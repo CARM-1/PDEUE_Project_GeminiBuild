@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "IF-005_PITSnapshot",
+  "type": "object",
+  "properties": {
+    "snapshot_id": { "type": "string" },
+    "event_id": { "type": "string" },
+    "cutoff_timestamp": { "type": "string", "format": "date-time" },
+    "admissible_evidence_ids": { "type": "array", "items": { "type": "string" } }
+  },
+  "required": ["snapshot_id", "event_id", "cutoff_timestamp", "admissible_evidence_ids"]
+}
