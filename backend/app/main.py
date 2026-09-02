@@ -1,33 +1,33 @@
-﻿from fastapi import FastAPI, Depends, HTTPException
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-import prometheus_client
-from starlette.responses import Response
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from typing import Dict, Any, List
+from app.domain.paper_session import PaperSessionManager
+from app.domain.decision_packet import DecisionPacketBuilder
 
-app = FastAPI(title="PDEUE Chief Administrator API", version="0.1.0-wave0")
-security = HTTPBearer()
+app = FastAPI(title="PDEUE Operator Workspace API", version="1.0.0")
+paper_manager = PaperSessionManager()
+packet_builder = DecisionPacketBuilder()
 
-def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    if credentials.credentials != "pdeue_dev_secret_token":
-        raise HTTPException(status_code=403, detail="Invalid authorization token")
-    return credentials.credentials
+class CreateSessionRequest(BaseModel):
+    initial_capital_cents: int
+
+class PaperTradeRequest(BaseModel):
+    session_id: str
+    contract_id: str
+    price: float
+    quantity: int
 
 @app.get("/health")
-def get_health():
-    return {
-        "status": "HEALTHY",
-        "phase": "Phase 1 Bootstrap",
-        "wave": "Wave 0 Product Chassis",
-        "blocked_domains": ["external_data", "aws_prod", "venue_apis", "orders", "money_movement"]
-    }
+def health_check():
+    return {"status": "HEALTHY", "service": "PDEUE Operator API"}
 
-@app.get("/version")
-def get_version():
-    return {
-        "version": "0.1.0-wave0",
-        "commit": "bootstrap-init",
-        "environment": "local-harness"
-    }
+@app.post("/api/v1/paper/sessions")
+def create_paper_session(req: CreateSessionRequest):
+    return paper_manager.create_session(req.initial_capital_cents)
 
-@app.get("/metrics", dependencies=[Depends(verify_token)])
-def get_metrics():
-    return Response(content=prometheus_client.generate_latest(), media_type="text/plain")
+@app.post("/api/v1/paper/trade")
+def execute_trade(req: PaperTradeRequest):
+    try:
+        return paper_manager.execute_paper_trade(req.session_id, req.contract_id, req.price, req.quantity)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
