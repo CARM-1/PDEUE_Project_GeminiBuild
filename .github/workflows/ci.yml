@@ -21,7 +21,7 @@ jobs:
         run: |
           cd backend
           python -m pip install --upgrade pip
-          pip install pytest ruff mypy fastapi uvicorn jsonschema prometheus_client
+          pip install pytest ruff mypy fastapi uvicorn jsonschema prometheus_client httpx
 
       - name: Validate Contract Schemas
         run: |
