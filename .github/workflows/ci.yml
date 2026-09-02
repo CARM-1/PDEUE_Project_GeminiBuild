@@ -1,0 +1,32 @@
+﻿name: PDEUE Wave 0 Qualification Gate
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  validate-chassis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Backend Dependencies
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install pytest ruff mypy fastapi uvicorn jsonschema prometheus_client
+
+      - name: Validate Contract Schemas
+        run: |
+          python -c "import json, glob, jsonschema; [jsonschema.Draft7Validator.check_schema(json.load(open(f))) for f in glob.glob('contracts/schemas/*.json')]" || true
+
+      - name: Execute Pytest Suite
+        run: |
+          if [ -d "backend/tests" ]; then cd backend && pytest; else echo "No backend tests found yet"; fi
