@@ -13,7 +13,7 @@ def test_pit_replay_snapshot_and_backtest():
 
     ticks = [
         {"raw_prob": 0.80, "yes_ask": 0.50, "outcome": 1},
-        {"raw_prob": 0.30, "yes_ask": 0.25, "outcome": 0}
+        {"raw_prob": 0.30, "yes_ask": 0.35, "outcome": 0}
     ]
     results = engine.run_backtest_simulation(ticks, reliability_factor=0.95)
     assert results["total_trades"] == 1
