@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "IF-004_EvidenceRevision",
+  "type": "object",
+  "properties": {
+    "revision_id": { "type": "string" },
+    "evidence_id": { "type": "string" },
+    "revised_at": { "type": "string", "format": "date-time" }
+  },
+  "required": ["revision_id", "evidence_id", "revised_at"]
+}

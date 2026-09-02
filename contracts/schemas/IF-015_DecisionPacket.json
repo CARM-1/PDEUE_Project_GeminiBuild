@@ -3,17 +3,10 @@
   "title": "IF-015_DecisionPacket",
   "type": "object",
   "properties": {
-    "packet_id": { "type": "string", "format": "uuid" },
+    "packet_id": { "type": "string" },
     "event_id": { "type": "string" },
-    "timestamp": { "type": "string", "format": "date-time" },
-    "operating_mode": { 
-      "type": "string", 
-      "enum": ["NORMAL", "DEGRADED", "BLOCKED", "KILL_SWITCH"] 
-    },
-    "blocked_reasons": { 
-      "type": "array", 
-      "items": { "type": "string" } 
-    }
+    "operating_mode": { "type": "string", "enum": ["NORMAL", "DEGRADED", "BLOCKED", "KILL_SWITCH"] },
+    "blocked_reasons": { "type": "array", "items": { "type": "string" } }
   },
-  "required": ["packet_id", "event_id", "timestamp", "operating_mode", "blocked_reasons"]
+  "required": ["packet_id", "event_id", "operating_mode", "blocked_reasons"]
 }
