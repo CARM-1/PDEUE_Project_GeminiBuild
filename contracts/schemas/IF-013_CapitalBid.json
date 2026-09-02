@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "IF-013_CapitalBid",
+  "type": "object",
+  "properties": {
+    "bid_id": { "type": "string" },
+    "event_id": { "type": "string" },
+    "allocation_cents": { "type": "integer" },
+    "target_price": { "type": "number" }
+  },
+  "required": ["bid_id", "event_id", "allocation_cents", "target_price"]
+}

@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "IF-011_EventRiskAssessment",
+  "type": "object",
+  "properties": {
+    "risk_id": { "type": "string" },
+    "event_id": { "type": "string" },
+    "max_loss_cents": { "type": "integer" },
+    "admissible": { "type": "boolean" }
+  },
+  "required": ["risk_id", "event_id", "max_loss_cents", "admissible"]
+}

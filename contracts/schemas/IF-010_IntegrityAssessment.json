@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "IF-010_IntegrityAssessment",
+  "type": "object",
+  "properties": {
+    "assessment_id": { "type": "string" },
+    "event_id": { "type": "string" },
+    "passed": { "type": "boolean" },
+    "checks": { "type": "array", "items": { "type": "string" } }
+  },
+  "required": ["assessment_id", "event_id", "passed", "checks"]
+}
