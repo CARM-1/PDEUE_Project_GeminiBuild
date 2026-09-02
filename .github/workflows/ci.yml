@@ -1,4 +1,4 @@
-﻿name: PDEUE Wave 0 Qualification Gate
+﻿name: PDEUE Wave 0 & 1 Qualification Gate
 
 on:
   push:
@@ -25,8 +25,9 @@ jobs:
 
       - name: Validate Contract Schemas
         run: |
-          python -c "import json, glob, jsonschema; [jsonschema.Draft7Validator.check_schema(json.load(open(f))) for f in glob.glob('contracts/schemas/*.json')]" || true
+          python -c "import json, glob, jsonschema; [jsonschema.Draft7Validator.check_schema(json.load(open(f))) for f in glob.glob('contracts/schemas/*.json')]"
 
       - name: Execute Pytest Suite
         run: |
-          if [ -d "backend/tests" ]; then cd backend && pytest; else echo "No backend tests found yet"; fi
+          cd backend
+          PYTHONPATH=. python -m pytest
