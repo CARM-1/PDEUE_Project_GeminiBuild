@@ -17,10 +17,16 @@ def _b64_decode(data_str: str) -> bytes:
     padding = "=" * ((4 - len(data_str) % 4) % 4)
     return base64.urlsafe_b64decode((data_str + padding).encode("utf-8"))
 
-def create_jwt_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
+def create_jwt_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None, expires_in: Optional[int] = None) -> str:
     header = {"alg": "HS256", "typ": "JWT"}
     payload = data.copy()
-    expire = (datetime.now(timezone.utc) + (expires_delta or timedelta(hours=24))).timestamp()
+    if expires_in is not None:
+        delta = timedelta(seconds=expires_in)
+    elif expires_delta is not None:
+        delta = expires_delta
+    else:
+        delta = timedelta(hours=24)
+    expire = (datetime.now(timezone.utc) + delta).timestamp()
     payload.update({"exp": expire})
     header_b64 = _b64_encode(json.dumps(header, separators=(",", ":")).encode("utf-8"))
     payload_b64 = _b64_encode(json.dumps(payload, separators=(",", ":")).encode("utf-8"))
