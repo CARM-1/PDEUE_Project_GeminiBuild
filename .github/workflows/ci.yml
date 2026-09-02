@@ -1,13 +1,13 @@
-﻿name: PDEUE Wave 0 & 1 Qualification Gate
+name: PDEUE Pipeline & Qualification Gate
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
 
 jobs:
-  validate-chassis:
+  validate-and-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,17 +17,16 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Backend Dependencies
+      - name: Install Dependencies
         run: |
-          cd backend
           python -m pip install --upgrade pip
-          pip install pytest ruff mypy fastapi uvicorn jsonschema prometheus_client httpx httpx
+          pip install -r backend/requirements.txt
 
       - name: Validate Contract Schemas
         run: |
-          python -c "import json, glob, jsonschema; [jsonschema.Draft7Validator.check_schema(json.load(open(f, encoding='utf-8-sig'))) for f in glob.glob('contracts/schemas/*.json')]"
+          python -c "import jsonschema, json, glob; [jsonschema.Draft7Validator.check_schema(json.load(open(f))) for f in glob.glob('contracts/schemas/*.json')]"
 
       - name: Execute Pytest Suite
         run: |
           cd backend
-          PYTHONPATH=. python -m pytest
+          pytest -v
