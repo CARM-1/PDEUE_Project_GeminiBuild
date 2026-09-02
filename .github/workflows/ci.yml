@@ -25,7 +25,7 @@ jobs:
 
       - name: Validate Contract Schemas
         run: |
-          python -c "import json, glob, jsonschema; [jsonschema.Draft7Validator.check_schema(json.load(open(f))) for f in glob.glob('contracts/schemas/*.json')]"
+          python -c "import json, glob, jsonschema; [jsonschema.Draft7Validator.check_schema(json.load(open(f, encoding='utf-8-sig'))) for f in glob.glob('contracts/schemas/*.json')]"
 
       - name: Execute Pytest Suite
         run: |
