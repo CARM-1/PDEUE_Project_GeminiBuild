@@ -1,4 +1,4 @@
-from backend.app.adapters.weather import NOAAAdapter
+from app.adapters.weather import NOAAAdapter
 
 def test_noaa_adapter_parsing():
     adapter = NOAAAdapter()
