@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "IF-008_MarketSnapshot",
+  "type": "object",
+  "properties": {
+    "market_id": { "type": "string" },
+    "contract_id": { "type": "string" },
+    "yes_bid": { "type": "number" },
+    "yes_ask": { "type": "number" },
+    "timestamp": { "type": "string", "format": "date-time" }
+  },
+  "required": ["market_id", "contract_id", "yes_bid", "yes_ask", "timestamp"]
+}
