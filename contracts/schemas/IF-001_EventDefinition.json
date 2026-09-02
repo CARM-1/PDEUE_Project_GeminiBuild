@@ -1,0 +1,13 @@
+﻿{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "IF-001_EventDefinition",
+  "type": "object",
+  "properties": {
+    "event_id": { "type": "string" },
+    "domain": { "type": "string", "enum": ["WEATHER", "FINANCIAL", "ECONOMIC"] },
+    "title": { "type": "string" },
+    "resolution_source": { "type": "string" },
+    "cutoff_timestamp": { "type": "string", "format": "date-time" }
+  },
+  "required": ["event_id", "domain", "title", "resolution_source", "cutoff_timestamp"]
+}

@@ -1,0 +1,12 @@
+﻿{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "IF-003_EvidenceObject",
+  "type": "object",
+  "properties": {
+    "evidence_id": { "type": "string" },
+    "source": { "type": "string" },
+    "published_at": { "type": "string", "format": "date-time" },
+    "payload": { "type": "object" }
+  },
+  "required": ["evidence_id", "source", "published_at", "payload"]
+}
