@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from app.domain.calibration import ProbabilityCalibrationEngine
 from app.domain.portfolio_allocation import PortfolioAllocationEngine
 
@@ -8,6 +8,25 @@ class DecisionPacketBuilder:
     def __init__(self, kelly_fraction: float = 0.25, max_position_pct: float = 0.10):
         self.calibrator = ProbabilityCalibrationEngine()
         self.allocator = PortfolioAllocationEngine(kelly_fraction=kelly_fraction, max_position_pct=max_position_pct)
+
+    def build_packet(
+        self,
+        event_id: str,
+        operating_mode: str = "NORMAL",
+        underwriting: Optional[Dict[str, Any]] = None,
+        risk_assessment: Optional[Dict[str, Any]] = None,
+        capital_bid: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        return {
+            "packet_id": str(uuid.uuid4()),
+            "event_id": event_id,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "operating_mode": operating_mode,
+            "underwriting": underwriting or {},
+            "risk_assessment": risk_assessment or {},
+            "capital_bid": capital_bid or {},
+            "blocked_reasons": [] if operating_mode == "NORMAL" else ["BLOCKED"]
+        }
 
     def build_decision_packet(
         self,
