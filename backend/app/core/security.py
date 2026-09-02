@@ -37,24 +37,27 @@ def create_jwt_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = 
 
 create_access_token = create_jwt_token
 
-def decode_jwt_token(token: str) -> Dict[str, Any]:
+def decode_jwt_token(token: str) -> Optional[Dict[str, Any]]:
     try:
         parts = token.split(".")
         if len(parts) != 3:
-            raise ValueError("Invalid token format")
+            return None
         header_b64, payload_b64, sig_b64 = parts
         signing_input = f"{header_b64}.{payload_b64}".encode("utf-8")
         expected_sig = _b64_encode(hmac.new(SECRET_KEY.encode("utf-8"), signing_input, hashlib.sha256).digest())
         if not hmac.compare_digest(sig_b64, expected_sig):
-            raise ValueError("Signature mismatch")
+            return None
         payload = json.loads(_b64_decode(payload_b64).decode("utf-8"))
         if "exp" in payload and datetime.now(timezone.utc).timestamp() > payload["exp"]:
-            raise ValueError("Token expired")
+            return None
         return payload
     except Exception:
-        raise HTTPException(status_code=403, detail="Invalid or expired authentication token")
+        return None
 
 decode_access_token = decode_jwt_token
 
 def verify_jwt_token(credentials: HTTPAuthorizationCredentials = Depends(security_scheme)) -> Dict[str, Any]:
-    return decode_jwt_token(credentials.credentials)
+    payload = decode_jwt_token(credentials.credentials)
+    if not payload:
+        raise HTTPException(status_code=403, detail="Invalid or expired authentication token")
+    return payload
