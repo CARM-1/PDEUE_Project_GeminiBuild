@@ -1,33 +1,27 @@
-import hmac
-import hashlib
-import base64
-import json
-import time
+import jwt
+from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, Optional
+from fastapi import Depends, HTTPException
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-SECRET_KEY = "pdeue_super_secret_phase1_key"
+SECRET_KEY = "pdeue_dev_secret_key_change_in_production"
+ALGORITHM = "HS256"
 
-def create_access_token(payload: dict, expires_in: int = 3600) -> str:
-    data = payload.copy()
-    data["exp"] = int(time.time()) + expires_in
-    header = base64.b64encode(json.dumps({"alg": "HS256", "typ": "JWT"}).encode()).decode().rstrip("=")
-    body = base64.b64encode(json.dumps(data).encode()).decode().rstrip("=")
-    signature = hmac.new(SECRET_KEY.encode(), f"{header}.{body}".encode(), hashlib.sha256).hexdigest()
-    return f"{header}.{body}.{signature}"
+security_scheme = HTTPBearer()
 
-def decode_access_token(token: str) -> Optional[dict]:
+def create_jwt_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(hours=24))
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+create_access_token = create_jwt_token
+
+def decode_jwt_token(token: str) -> Dict[str, Any]:
     try:
-        parts = token.split(".")
-        if len(parts) != 3:
-            return None
-        header, body, signature = parts
-        expected_sig = hmac.new(SECRET_KEY.encode(), f"{header}.{body}".encode(), hashlib.sha256).hexdigest()
-        if not hmac.compare_digest(signature, expected_sig):
-            return None
-        padding = "=" * (-len(body) % 4)
-        data = json.loads(base64.b64decode(body + padding).decode())
-        if data.get("exp", 0) < time.time():
-            return None
-        return data
+        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     except Exception:
-        return None
+        raise HTTPException(status_code=403, detail="Invalid or expired authentication token")
+
+def verify_jwt_token(credentials: HTTPAuthorizationCredentials = Depends(security_scheme)) -> Dict[str, Any]:
+    return decode_jwt_token(credentials.credentials)
