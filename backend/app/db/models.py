@@ -26,6 +26,7 @@ class AccountModel(Base):
     account_id = Column(String, primary_key=True, index=True)
     user_id = Column(String, ForeignKey('users.user_id'), nullable=False, index=True)
     tenant_id = Column(String, nullable=False, index=True, default='default_tenant')
+    account_name = Column(String, nullable=True, default='Primary')
     balance_cents = Column(Integer, default=0)
     currency = Column(String, default='USD')
     status = Column(String, default='ACTIVE')
