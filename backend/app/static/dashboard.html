@@ -10,24 +10,24 @@
   .badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: bold; font-size: 0.8rem; }
   .badge-paper { background: #0369a1; color: #e0f2fe; }
   .badge-halted { background: #b91c1c; color: #fee2e2; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; padding: 2rem; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; padding: 1.5rem; }
   .card { background: #131b2e; border: 1px solid #1e293b; border-radius: 0.5rem; padding: 1.25rem; }
-  .card h2 { margin-top: 0; font-size: 1rem; color: #94a3b8; border-bottom: 1px solid #1e293b; padding-bottom: 0.5rem; }
+  .card h2 { margin-top: 0; font-size: 0.95rem; color: #94a3b8; border-bottom: 1px solid #1e293b; padding-bottom: 0.5rem; }
   table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.85rem; }
   th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid #1e293b; }
   th { color: #64748b; }
   .btn-kill { background: #ef4444; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.375rem; cursor: pointer; font-weight: bold; }
   .btn-kill:hover { background: #dc2626; }
-  .btn-action { background: #0284c7; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 0.375rem; cursor: pointer; font-weight: bold; font-size: 0.8rem; margin-right: 0.5rem; }
+  .btn-action { background: #0284c7; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 0.375rem; cursor: pointer; font-weight: bold; font-size: 0.8rem; margin-right: 0.5rem; transition: background 0.2s ease; }
   .btn-action:hover { background: #0369a1; }
-  .metric { font-size: 1.5rem; font-weight: bold; color: #f8fafc; margin: 0.5rem 0; }
+  .metric { font-size: 1.4rem; font-weight: bold; color: #f8fafc; margin: 0.4rem 0; }
 </style>
 </head>
 <body>
 <header>
   <div>
     <h1>PDEUE Chief Administrator Workspace</h1>
-    <span style="font-size:0.75rem; color:#64748b;">B6 Operator Governance & Autonomous Decision Center</span>
+    <span style="font-size:0.75rem; color:#64748b;">B6 Operator Governance & Autonomous Execution Center</span>
   </div>
   <div>
     <span id="mode-badge" class="badge badge-paper">MODE: PAPER</span>
@@ -36,26 +36,40 @@
 </header>
 <div class="grid">
   <div class="card">
-    <h2>Capital Ledger & Reservations</h2>
-    <div class="metric" id="avail-cents">$0.00</div>
-    <div style="color:#64748b; font-size:0.85rem;">Reserved: <span id="res-cents" style="color:#cbd5e1;">$0.00</span></div>
+    <h2>Capital Ledger & Cash</h2>
+    <div class="metric" id="avail-cents">$100,000.00</div>
+    <div style="color:#64748b; font-size:0.8rem;">Reserved: <span id="res-cents" style="color:#cbd5e1;">$0.00</span></div>
   </div>
   <div class="card">
-    <h2>Autonomous Daemon Telemetry</h2>
-    <div style="margin-top:0.5rem; font-size:0.9rem;">Loop State: <strong id="daemon-state" style="color:#cbd5e1;">IDLE</strong></div>
-    <div style="color:#64748b; font-size:0.8rem; margin-top:0.25rem;">Cycles: <span id="daemon-cycles">0</span> | Contracts Scanned: <span id="daemon-scanned">0</span> | Dispatched: <span id="daemon-dispatched">0</span></div>
-    <div style="margin-top: 0.75rem;">
+    <h2>Mark-to-Market Portfolio (MTM)</h2>
+    <div class="metric" id="mtm-value">$0.00</div>
+    <div style="color:#64748b; font-size:0.8rem;">Invested: <span id="inv-cost" style="color:#cbd5e1;">$0.00</span> | PnL: <strong id="unreal-pnl" style="color:#22c55e;">$0.00 (+0.0%)</strong></div>
+  </div>
+  <div class="card">
+    <h2>Autonomous Scanning Loop</h2>
+    <div style="margin-top:0.4rem; font-size:0.85rem;">State: <strong id="daemon-state" style="color:#cbd5e1;">IDLE</strong></div>
+    <div style="color:#64748b; font-size:0.75rem; margin-top:0.25rem;">Cycles: <span id="daemon-cycles">0</span> | Scanned: <span id="daemon-scanned">0</span> | Dispatched: <span id="daemon-dispatched">0</span></div>
+    <div style="margin-top: 0.6rem;">
       <button id="btn-toggle-daemon" class="btn-action" onclick="toggleDaemon()">START AUTONOMOUS LOOP</button>
-      <button class="btn-action" onclick="triggerScanNow()" style="background:#334155;">SCAN NOW</button>
+      <button id="btn-scan-now" class="btn-action" onclick="triggerScanNow()" style="background:#334155;">SCAN NOW</button>
     </div>
   </div>
   <div class="card">
     <h2>Circuit Breaker Telemetry</h2>
-    <div style="margin-top:0.5rem; font-size:0.9rem;">Status: <strong id="cb-status" style="color:#22c55e;">NORMAL (ARMED)</strong></div>
-    <div style="color:#64748b; font-size:0.8rem; margin-top:0.25rem;">Audit Events: <span id="audit-count">0</span></div>
+    <div style="margin-top:0.4rem; font-size:0.85rem;">Status: <strong id="cb-status" style="color:#22c55e;">NORMAL (ARMED)</strong></div>
+    <div style="color:#64748b; font-size:0.75rem; margin-top:0.25rem;">Audit Events: <span id="audit-count">0</span></div>
   </div>
   <div class="card" style="grid-column: 1 / -1;">
-    <h2>Cross-Category Opportunity Leaderboard (Live Aggregated Feed)</h2>
+    <h2>Active Portfolio Positions (Live Inventory)</h2>
+    <table>
+      <thead>
+        <tr><th>Contract</th><th>Category</th><th>Venue</th><th>Side</th><th>Qty</th><th>VWAP Entry</th><th>Mark Price</th><th>Invested Cost</th><th>Current MTM</th><th>Unrealized PnL</th></tr>
+      </thead>
+      <tbody id="pos-table"><tr><td colspan="10" style="text-align:center; color:#64748b;">No open positions in inventory. Run a scan or enable autonomous loop to execute.</td></tr></tbody>
+    </table>
+  </div>
+  <div class="card" style="grid-column: 1 / -1;">
+    <h2>Cross-Category Opportunity Leaderboard (Market Radar)</h2>
     <table>
       <thead>
         <tr><th>Rank</th><th>Category</th><th>Venue</th><th>Contract</th><th>Model P</th><th>Market Price</th><th>Net Edge</th><th>Sharpe</th><th>Action</th></tr>
@@ -74,6 +88,22 @@
       document.getElementById('mode-badge').className = 'badge ' + (data.operating_mode === 'HALTED' ? 'badge-halted' : 'badge-paper');
       document.getElementById('avail-cents').innerText = '$' + (data.ledger.available_balance_cents / 100).toLocaleString(undefined, {minimumFractionDigits: 2});
       document.getElementById('res-cents').innerText = '$' + (data.ledger.reserved_cents / 100).toLocaleString(undefined, {minimumFractionDigits: 2});
+      if (data.portfolio) {
+        document.getElementById('mtm-value').innerText = '$' + (data.portfolio.total_mtm_value_cents / 100).toLocaleString(undefined, {minimumFractionDigits: 2});
+        document.getElementById('inv-cost').innerText = '$' + (data.portfolio.total_invested_cents / 100).toLocaleString(undefined, {minimumFractionDigits: 2});
+        const pnl = (data.portfolio.total_unrealized_pnl_cents / 100);
+        const pnlEl = document.getElementById('unreal-pnl');
+        pnlEl.innerText = (pnl >= 0 ? '+$' : '-$') + Math.abs(pnl).toFixed(2) + ' (' + (pnl >= 0 ? '+' : '') + data.portfolio.portfolio_roi_pct.toFixed(1) + '%)';
+        pnlEl.style.color = pnl >= 0 ? '#22c55e' : '#ef4444';
+        const posTable = document.getElementById('pos-table');
+        if (data.portfolio.positions && data.portfolio.positions.length > 0) {
+          posTable.innerHTML = data.portfolio.positions.map(p => {
+            const upnl = p.unrealized_pnl_cents / 100.0;
+            const col = upnl >= 0 ? '#22c55e' : '#ef4444';
+            return `<tr><td><code>${p.contract_id}</code></td><td>${p.category}</td><td>${p.venue}</td><td>${p.side}</td><td><strong>${p.quantity}</strong></td><td>$${p.vwap_price.toFixed(2)}</td><td>$${p.current_mid.toFixed(2)}</td><td>$${(p.total_cost_cents/100).toFixed(2)}</td><td>$${(p.mtm_value_cents/100).toFixed(2)}</td><td style="color:${col}; font-weight:bold;">${upnl >= 0 ? '+' : ''}$${upnl.toFixed(2)} (${p.roi_pct >= 0 ? '+' : ''}${p.roi_pct.toFixed(1)}%)</td></tr>`;
+          }).join('');
+        }
+      }
       document.getElementById('cb-status').innerText = data.circuit_breaker.is_tripped ? 'TRIPPED: ' + data.circuit_breaker.trip_reason : 'NORMAL (ARMED)';
       document.getElementById('cb-status').style.color = data.circuit_breaker.is_tripped ? '#ef4444' : '#22c55e';
       document.getElementById('audit-count').innerText = data.audit_events_count;
@@ -99,8 +129,14 @@
     refreshState();
   }
   async function triggerScanNow() {
-    await fetch('/api/v1/operator/daemon/cycle', { method: 'POST' });
-    refreshState();
+    const btn = document.getElementById('btn-scan-now');
+    if (btn) { btn.innerText = 'SCANNING...'; btn.style.background = '#22c55e'; }
+    try {
+      await fetch('/api/v1/operator/daemon/cycle', { method: 'POST' });
+      await refreshState();
+    } finally {
+      setTimeout(() => { if (btn) { btn.innerText = 'SCAN NOW'; btn.style.background = '#334155'; } }, 500);
+    }
   }
   async function triggerKillSwitch() {
     if (confirm('Authorize Emergency Stop? This halts execution and stops all background workers.')) {
@@ -109,7 +145,7 @@
     }
   }
   refreshState();
-  setInterval(refreshState, 3000);
+  setInterval(refreshState, 2000);
 </script>
 </body>
 </html>

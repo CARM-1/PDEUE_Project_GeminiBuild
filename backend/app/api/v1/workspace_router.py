@@ -4,18 +4,20 @@ import pathlib
 from app.domain.operator_workspace import OperatorWorkspaceService
 from app.domain.scan_worker import AutonomousScanWorker
 from app.domain.position_book import PositionBook
+from app.domain.capital_ledger import CapitalLedger
 from app.domain.global_portfolio_dispatcher import GlobalPortfolioDispatcher
 
 workspace_router = APIRouter()
+_ledger = CapitalLedger(initial_balance_cents=10000000)
 _position_book = PositionBook()
-_dispatcher = GlobalPortfolioDispatcher(position_book=_position_book)
-_service = OperatorWorkspaceService(position_book=_position_book)
+_dispatcher = GlobalPortfolioDispatcher(ledger=_ledger, position_book=_position_book)
+_service = OperatorWorkspaceService(ledger=_ledger, position_book=_position_book)
 _worker = AutonomousScanWorker(dispatcher=_dispatcher, circuit_breaker=_service.circuit_breaker)
 
 @workspace_router.get('/dashboard', response_class=HTMLResponse)
 def get_dashboard():
     html_path = pathlib.Path(__file__).parent.parent.parent / 'static' / 'dashboard.html'
-    return HTMLResponse(content=html_path.read_text(encoding='utf-8'))
+    return HTMLResponse(content=html_path.read_text(encoding='utf-8'), headers={'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache'})
 
 @workspace_router.get('/api/v1/operator/workspace-state')
 def get_workspace_state():
