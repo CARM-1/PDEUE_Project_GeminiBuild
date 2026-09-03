@@ -37,3 +37,6 @@ try:
     app.include_router(operator_router, prefix="/api/v1")
 except Exception:
     pass
+
+from app.api.v1.workspace_router import workspace_router
+app.include_router(workspace_router)

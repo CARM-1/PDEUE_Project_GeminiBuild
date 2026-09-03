@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PDEUE Chief Administrator Workspace</title>
+<style>
+  body { margin:0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0b0f19; color: #e2e8f0; }
+  header { padding: 1rem 2rem; background: #131b2e; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; }
+  h1 { margin:0; font-size: 1.25rem; color: #38bdf8; }
+  .badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: bold; font-size: 0.8rem; }
+  .badge-paper { background: #0369a1; color: #e0f2fe; }
+  .badge-halted { background: #b91c1c; color: #fee2e2; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; padding: 2rem; }
+  .card { background: #131b2e; border: 1px solid #1e293b; border-radius: 0.5rem; padding: 1.25rem; }
+  .card h2 { margin-top: 0; font-size: 1rem; color: #94a3b8; border-bottom: 1px solid #1e293b; padding-bottom: 0.5rem; }
+  table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.85rem; }
+  th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid #1e293b; }
+  th { color: #64748b; }
+  .btn-kill { background: #ef4444; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.375rem; cursor: pointer; font-weight: bold; }
+  .btn-kill:hover { background: #dc2626; }
+  .metric { font-size: 1.5rem; font-weight: bold; color: #f8fafc; margin: 0.5rem 0; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>PDEUE Chief Administrator Workspace</h1>
+    <span style="font-size:0.75rem; color:#64748b;">B6 Operator Governance & Decision Center</span>
+  </div>
+  <div>
+    <span id="mode-badge" class="badge badge-paper">MODE: PAPER</span>
+    <button class="btn-kill" onclick="triggerKillSwitch()" style="margin-left: 1rem;">EMERGENCY KILL SWITCH</button>
+  </div>
+</header>
+<div class="grid">
+  <div class="card">
+    <h2>Capital Ledger & Reservations</h2>
+    <div class="metric" id="avail-cents">$0.00</div>
+    <div style="color:#64748b; font-size:0.85rem;">Reserved: <span id="res-cents" style="color:#cbd5e1;">$0.00</span></div>
+  </div>
+  <div class="card">
+    <h2>Circuit Breaker Telemetry</h2>
+    <div style="margin-top:0.5rem; font-size:0.9rem;">Status: <strong id="cb-status" style="color:#22c55e;">NORMAL (ARMED)</strong></div>
+    <div style="color:#64748b; font-size:0.8rem; margin-top:0.25rem;">Audit Events: <span id="audit-count">0</span></div>
+  </div>
+  <div class="card" style="grid-column: 1 / -1;">
+    <h2>Cross-Category Opportunity Leaderboard</h2>
+    <table>
+      <thead>
+        <tr><th>Rank</th><th>Category</th><th>Venue</th><th>Contract</th><th>Model P</th><th>Market Price</th><th>Net Edge</th><th>Sharpe</th><th>Action</th></tr>
+      </thead>
+      <tbody id="opp-table"><tr><td colspan="9" style="text-align:center; color:#64748b;">Scanning active contract ladders...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  async function refreshState() {
+    try {
+      const res = await fetch('/api/v1/operator/workspace-state');
+      const data = await res.json();
+      document.getElementById('mode-badge').innerText = 'MODE: ' + data.operating_mode;
+      document.getElementById('mode-badge').className = 'badge ' + (data.operating_mode === 'HALTED' ? 'badge-halted' : 'badge-paper');
+      document.getElementById('avail-cents').innerText = '$' + (data.ledger.available_balance_cents / 100).toLocaleString(undefined, {minimumFractionDigits: 2});
+      document.getElementById('res-cents').innerText = '$' + (data.ledger.reserved_cents / 100).toLocaleString(undefined, {minimumFractionDigits: 2});
+      document.getElementById('cb-status').innerText = data.circuit_breaker.is_tripped ? 'TRIPPED: ' + data.circuit_breaker.trip_reason : 'NORMAL (ARMED)';
+      document.getElementById('cb-status').style.color = data.circuit_breaker.is_tripped ? '#ef4444' : '#22c55e';
+      document.getElementById('audit-count').innerText = data.audit_events_count;
+      const tbody = document.getElementById('opp-table');
+      if (data.opportunities && data.opportunities.length > 0) {
+        tbody.innerHTML = data.opportunities.map(o => `<tr><td>#${o.global_rank}</td><td>${o.category}</td><td>${o.venue}</td><td><code>${o.contract_id}</code></td><td>${(o.model_probability * 100).toFixed(1)}%</td><td>$${o.entry_price.toFixed(2)}</td><td style="color:#22c55e; font-weight:bold;">+${(o.net_edge * 100).toFixed(1)}%</td><td>${o.sharpe_ratio}</td><td><strong style="color:#38bdf8;">${o.recommended_action}</strong></td></tr>`).join('');
+      }
+    } catch (err) { console.error('Telemetry poll error:', err); }
+  }
+  async function triggerKillSwitch() {
+    if (confirm('Authorize Emergency Stop? This halts execution.')) {
+      await fetch('/api/v1/operator/emergency-stop', { method: 'POST' });
+      refreshState();
+    }
+  }
+  refreshState();
+  setInterval(refreshState, 5000);
+</script>
+</body>
+</html>
