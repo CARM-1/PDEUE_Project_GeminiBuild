@@ -10,11 +10,13 @@ class KalshiMarketDataClient:
         self.base_url = base_url or self.DEFAULT_BASE_URL
         self.adapter = adapter or KalshiVenueAdapter()
 
-    def fetch_markets_by_series(self, series_ticker: str, timeout_sec: float = 3.0) -> List[Dict[str, Any]]:
+    def fetch_markets_by_series(self, series_ticker: str, timeout_sec: float = 1.0) -> List[Dict[str, Any]]:
         try:
             resp = httpx.get(f'{self.base_url}/markets?series_ticker={series_ticker}', timeout=timeout_sec)
             if resp.status_code == 200:
-                return resp.json().get('markets', [])
+                markets = resp.json().get('markets', [])
+                if markets:
+                    return markets
         except Exception:
             pass
         return self._get_fallback_series_markets(series_ticker)
@@ -36,11 +38,13 @@ class PolymarketMarketDataClient:
         self.base_url = base_url or self.DEFAULT_BASE_URL
         self.adapter = adapter or PolymarketVenueAdapter()
 
-    def fetch_markets_by_tag(self, tag: str, timeout_sec: float = 3.0) -> List[Dict[str, Any]]:
+    def fetch_markets_by_tag(self, tag: str, timeout_sec: float = 1.0) -> List[Dict[str, Any]]:
         try:
             resp = httpx.get(f'{self.base_url}/events?tag={tag}&limit=5', timeout=timeout_sec)
             if resp.status_code == 200:
-                return resp.json()
+                data = resp.json()
+                if isinstance(data, list) and data:
+                    return data
         except Exception:
             pass
         return self._get_fallback_tag_markets(tag)
