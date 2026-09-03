@@ -3,18 +3,21 @@ from datetime import datetime, timezone
 from app.domain.circuit_breaker import CircuitBreakerEngine
 from app.domain.capital_ledger import CapitalLedger
 from app.domain.cross_category_screener import CrossCategoryScreener
+from app.domain.position_book import PositionBook
 from app.adapters.market_data_clients import MarketDataFeedAggregator
 
 class OperatorWorkspaceService:
-    def __init__(self, circuit_breaker: Optional[CircuitBreakerEngine] = None, ledger: Optional[CapitalLedger] = None, screener: Optional[CrossCategoryScreener] = None, feed_aggregator: Optional[MarketDataFeedAggregator] = None):
+    def __init__(self, circuit_breaker: Optional[CircuitBreakerEngine] = None, ledger: Optional[CapitalLedger] = None, screener: Optional[CrossCategoryScreener] = None, feed_aggregator: Optional[MarketDataFeedAggregator] = None, position_book: Optional[PositionBook] = None):
         self.circuit_breaker = circuit_breaker or CircuitBreakerEngine()
         self.ledger = ledger or CapitalLedger(initial_balance_cents=10000000)
         self.screener = screener or CrossCategoryScreener()
         self.feed_aggregator = feed_aggregator or MarketDataFeedAggregator()
+        self.position_book = position_book or PositionBook()
 
     def get_workspace_state(self, db_session = None) -> Dict[str, Any]:
         live_board = self.feed_aggregator.get_unified_board()
         screen_res = self.screener.screen_cross_category_board(live_board)
+        self.position_book.update_market_prices(live_board)
         total_reserved = sum(self.ledger.reservations.values())
         return {
             'timestamp': datetime.now(timezone.utc).isoformat(),
@@ -29,6 +32,7 @@ class OperatorWorkspaceService:
                 'reserved_cents': total_reserved,
                 'total_capital_cents': self.ledger.balance_cents + total_reserved
             },
+            'portfolio': self.position_book.get_summary(),
             'opportunities': screen_res.get('leaderboard', []),
             'audit_events_count': len(self.circuit_breaker.trip_history)
         }

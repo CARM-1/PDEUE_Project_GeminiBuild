@@ -3,10 +3,14 @@ from fastapi.responses import HTMLResponse
 import pathlib
 from app.domain.operator_workspace import OperatorWorkspaceService
 from app.domain.scan_worker import AutonomousScanWorker
+from app.domain.position_book import PositionBook
+from app.domain.global_portfolio_dispatcher import GlobalPortfolioDispatcher
 
 workspace_router = APIRouter()
-_service = OperatorWorkspaceService()
-_worker = AutonomousScanWorker(circuit_breaker=_service.circuit_breaker)
+_position_book = PositionBook()
+_dispatcher = GlobalPortfolioDispatcher(position_book=_position_book)
+_service = OperatorWorkspaceService(position_book=_position_book)
+_worker = AutonomousScanWorker(dispatcher=_dispatcher, circuit_breaker=_service.circuit_breaker)
 
 @workspace_router.get('/dashboard', response_class=HTMLResponse)
 def get_dashboard():
@@ -41,3 +45,7 @@ def stop_daemon():
 @workspace_router.post('/api/v1/operator/daemon/cycle')
 def trigger_daemon_cycle():
     return _worker.run_single_cycle()
+
+@workspace_router.get('/api/v1/operator/positions')
+def get_positions():
+    return _position_book.get_summary()

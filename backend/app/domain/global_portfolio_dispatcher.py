@@ -6,14 +6,16 @@ from app.domain.cross_category_screener import CrossCategoryScreener
 from app.domain.decision_packet import DecisionPacketBuilder
 from app.domain.capital_ledger import CapitalLedger
 from app.domain.execution_coordinator import ExecutionEnvelopeCoordinator
+from app.domain.position_book import PositionBook
 from app.db.models import DecisionPacketRecordModel, OrderRecordModel
 
 class GlobalPortfolioDispatcher:
-    def __init__(self, screener: Optional[CrossCategoryScreener] = None, packet_builder: Optional[DecisionPacketBuilder] = None, ledger: Optional[CapitalLedger] = None, coordinator: Optional[ExecutionEnvelopeCoordinator] = None, db_session = None, max_concurrent_orders: int = 3, max_portfolio_exposure_cents: int = 500000):
+    def __init__(self, screener: Optional[CrossCategoryScreener] = None, packet_builder: Optional[DecisionPacketBuilder] = None, ledger: Optional[CapitalLedger] = None, coordinator: Optional[ExecutionEnvelopeCoordinator] = None, position_book: Optional[PositionBook] = None, db_session = None, max_concurrent_orders: int = 3, max_portfolio_exposure_cents: int = 500000):
         self.screener = screener or CrossCategoryScreener()
         self.packet_builder = packet_builder or DecisionPacketBuilder()
         self.ledger = ledger or CapitalLedger(initial_balance_cents=10000000)
         self.coordinator = coordinator or ExecutionEnvelopeCoordinator(mode='PAPER')
+        self.position_book = position_book or PositionBook()
         self.db_session = db_session
         self.max_concurrent_orders = max_concurrent_orders
         self.max_portfolio_exposure_cents = max_portfolio_exposure_cents
@@ -52,6 +54,7 @@ class GlobalPortfolioDispatcher:
             exec_res = self.coordinator.execute_order_lifecycle(tenant_id=tenant_id, account_id=account_id, venue=venue, order_intent=order_intent, reservation=reservation)
             if exec_res.get('success'):
                 total_allocated += stake_cents
+                self.position_book.record_fill(contract_id=contract_id, venue=venue, category=cat, side='BUY', price=price, quantity=qty, fill_cost_cents=stake_cents)
                 dispatched.append({'contract_id': contract_id, 'category': cat, 'venue': venue, 'action': action, 'allocated_cents': stake_cents, 'reservation_id': res_id, 'order_intent': order_intent, 'execution_result': exec_res})
                 if self.db_session is not None:
                     db_packet = DecisionPacketRecordModel(packet_id=packet['packet_id'], tenant_id=tenant_id, event_id=event_id, operating_mode=packet.get('operating_mode', 'NORMAL'), model_probability=packet['underwriting']['calibrated_prob'], recommended_stake_cents=stake_cents, packet_payload=json.dumps(packet))
