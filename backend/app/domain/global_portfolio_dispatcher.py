@@ -21,7 +21,7 @@ class GlobalPortfolioDispatcher:
         screen_res = self.screener.screen_cross_category_board(board_candidates)
         leaderboard = screen_res.get('leaderboard', [])
         if not leaderboard:
-            return {'status': 'ABSTAINED', 'reason': 'NO_ADMISSIBLE_OPPORTUNITIES', 'screen_summary': screen_res, 'dispatched_orders': [], 'total_allocated_cents': 0}
+            return {'status': 'ABSTAINED', 'reason': 'NO_ADMISSIBLE_OPPORTUNITIES', 'screen_summary': screen_res, 'dispatched_count': 0, 'dispatched_orders': [], 'total_allocated_cents': 0}
         dispatched = []
         total_allocated = 0
         for cand in leaderboard[:self.max_concurrent_orders]:
