@@ -45,7 +45,8 @@ class UnifiedGovernanceGate:
         # 3. Source Qualification Check
         source_res = self.source_registry.evaluate_source(source_id)
         if not source_res["qualified"]:
-            denial_reasons.append(f"UNQUALIFIED_SOURCE: {source_res["reason"]}")
+            reason = source_res["reason"]
+            denial_reasons.append(f"UNQUALIFIED_SOURCE: {reason}")
 
         # 4. Compliance Policy Check
         comp_res = self.compliance_policy.evaluate_compliance(tenant_id, venue, jurisdiction, proposed_stake)
@@ -55,7 +56,8 @@ class UnifiedGovernanceGate:
         # 5. Identity & RBAC Check
         auth_res = self.identity_governance.authorize_action(principal_id, tenant_id, "START_SESSION")
         if not auth_res["authorized"]:
-            denial_reasons.append(f"IDENTITY_DENIAL: {auth_res["reason"]}")
+            reason = auth_res["reason"]
+            denial_reasons.append(f"IDENTITY_DENIAL: {reason}")
 
         is_admitted = len(denial_reasons) == 0
         action_label = "GOVERNANCE_ADMISSION_GRANTED" if is_admitted else "GOVERNANCE_ADMISSION_DENIED"
