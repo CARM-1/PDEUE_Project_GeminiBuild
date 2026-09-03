@@ -1,17 +1,23 @@
 from typing import Dict, Any, Callable, Optional
 from app.domain.advanced_weather_engine import AdvancedWeatherEngine
 from app.domain.domain_adapter_sdk import EconomicIndicatorAdapter
+from app.domain.sports_adapter import SportsDomainAdapter
+from app.domain.crypto_adapter import CryptoDomainAdapter
 
 class DomainRegistry:
     def __init__(self):
         self._handlers: Dict[str, Callable] = {}
         self.weather_engine = AdvancedWeatherEngine()
         self.economic_adapter = EconomicIndicatorAdapter()
+        self.sports_adapter = SportsDomainAdapter()
+        self.crypto_adapter = CryptoDomainAdapter()
         self._register_default_domains()
 
     def _register_default_domains(self):
         self._handlers['WEATHER'] = self._underwrite_weather
         self._handlers['MACROECONOMIC'] = self._underwrite_macro
+        self._handlers['SPORTS'] = lambda spec: self.sports_adapter.underwrite_game(spec)
+        self._handlers['CRYPTO'] = lambda spec: self.crypto_adapter.underwrite_threshold(spec)
 
     def register_domain(self, category: str, handler: Callable):
         self._handlers[category.upper()] = handler
