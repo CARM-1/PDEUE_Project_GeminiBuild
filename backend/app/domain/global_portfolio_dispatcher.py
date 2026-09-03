@@ -31,7 +31,8 @@ class GlobalPortfolioDispatcher:
             target_prob = prob if action == 'BUY_YES' else round(1.0 - prob, 4)
             contract_id = cand['contract_id']
             venue = cand['venue']
-            event_id = f'EVT-PORT-{cand['category']}-{contract_id}'
+            cat = cand['category']
+            event_id = f'EVT-PORT-{cat}-{contract_id}'
             packet = self.packet_builder.build_decision_packet(event_id=event_id, raw_prob=target_prob, yes_ask=price, total_capital=total_capital, reliability_factor=1.0)
             stake_dollars = packet['capital_bid']['recommended_stake']
             stake_cents = int(round(stake_dollars * 100))
@@ -51,7 +52,7 @@ class GlobalPortfolioDispatcher:
             exec_res = self.coordinator.execute_order_lifecycle(tenant_id=tenant_id, account_id=account_id, venue=venue, order_intent=order_intent, reservation=reservation)
             if exec_res.get('success'):
                 total_allocated += stake_cents
-                dispatched.append({'contract_id': contract_id, 'category': cand['category'], 'venue': venue, 'action': action, 'allocated_cents': stake_cents, 'reservation_id': res_id, 'order_intent': order_intent, 'execution_result': exec_res})
+                dispatched.append({'contract_id': contract_id, 'category': cat, 'venue': venue, 'action': action, 'allocated_cents': stake_cents, 'reservation_id': res_id, 'order_intent': order_intent, 'execution_result': exec_res})
                 if self.db_session is not None:
                     db_packet = DecisionPacketRecordModel(packet_id=packet['packet_id'], tenant_id=tenant_id, event_id=event_id, operating_mode=packet.get('operating_mode', 'NORMAL'), model_probability=packet['underwriting']['calibrated_prob'], recommended_stake_cents=stake_cents, packet_payload=json.dumps(packet))
                     db_order = OrderRecordModel(order_id=f'ORD-{uuid.uuid4().hex[:8]}', tenant_id=tenant_id, contract_id=contract_id, venue=venue, side='BUY', price=price, quantity=qty, status='ROUTED', idempotency_key=idem_key)
