@@ -18,6 +18,8 @@
   th { color: #64748b; }
   .btn-kill { background: #ef4444; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.375rem; cursor: pointer; font-weight: bold; }
   .btn-kill:hover { background: #dc2626; }
+  .btn-action { background: #0284c7; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 0.375rem; cursor: pointer; font-weight: bold; font-size: 0.8rem; margin-right: 0.5rem; }
+  .btn-action:hover { background: #0369a1; }
   .metric { font-size: 1.5rem; font-weight: bold; color: #f8fafc; margin: 0.5rem 0; }
 </style>
 </head>
@@ -25,7 +27,7 @@
 <header>
   <div>
     <h1>PDEUE Chief Administrator Workspace</h1>
-    <span style="font-size:0.75rem; color:#64748b;">B6 Operator Governance & Decision Center</span>
+    <span style="font-size:0.75rem; color:#64748b;">B6 Operator Governance & Autonomous Decision Center</span>
   </div>
   <div>
     <span id="mode-badge" class="badge badge-paper">MODE: PAPER</span>
@@ -39,12 +41,21 @@
     <div style="color:#64748b; font-size:0.85rem;">Reserved: <span id="res-cents" style="color:#cbd5e1;">$0.00</span></div>
   </div>
   <div class="card">
+    <h2>Autonomous Daemon Telemetry</h2>
+    <div style="margin-top:0.5rem; font-size:0.9rem;">Loop State: <strong id="daemon-state" style="color:#cbd5e1;">IDLE</strong></div>
+    <div style="color:#64748b; font-size:0.8rem; margin-top:0.25rem;">Cycles: <span id="daemon-cycles">0</span> | Contracts Scanned: <span id="daemon-scanned">0</span> | Dispatched: <span id="daemon-dispatched">0</span></div>
+    <div style="margin-top: 0.75rem;">
+      <button id="btn-toggle-daemon" class="btn-action" onclick="toggleDaemon()">START AUTONOMOUS LOOP</button>
+      <button class="btn-action" onclick="triggerScanNow()" style="background:#334155;">SCAN NOW</button>
+    </div>
+  </div>
+  <div class="card">
     <h2>Circuit Breaker Telemetry</h2>
     <div style="margin-top:0.5rem; font-size:0.9rem;">Status: <strong id="cb-status" style="color:#22c55e;">NORMAL (ARMED)</strong></div>
     <div style="color:#64748b; font-size:0.8rem; margin-top:0.25rem;">Audit Events: <span id="audit-count">0</span></div>
   </div>
   <div class="card" style="grid-column: 1 / -1;">
-    <h2>Cross-Category Opportunity Leaderboard</h2>
+    <h2>Cross-Category Opportunity Leaderboard (Live Aggregated Feed)</h2>
     <table>
       <thead>
         <tr><th>Rank</th><th>Category</th><th>Venue</th><th>Contract</th><th>Model P</th><th>Market Price</th><th>Net Edge</th><th>Sharpe</th><th>Action</th></tr>
@@ -54,6 +65,7 @@
   </div>
 </div>
 <script>
+  let daemonRunning = false;
   async function refreshState() {
     try {
       const res = await fetch('/api/v1/operator/workspace-state');
@@ -65,20 +77,39 @@
       document.getElementById('cb-status').innerText = data.circuit_breaker.is_tripped ? 'TRIPPED: ' + data.circuit_breaker.trip_reason : 'NORMAL (ARMED)';
       document.getElementById('cb-status').style.color = data.circuit_breaker.is_tripped ? '#ef4444' : '#22c55e';
       document.getElementById('audit-count').innerText = data.audit_events_count;
+      if (data.daemon) {
+        daemonRunning = data.daemon.is_running;
+        document.getElementById('daemon-state').innerText = daemonRunning ? 'ACTIVE (RUNNING)' : 'STOPPED';
+        document.getElementById('daemon-state').style.color = daemonRunning ? '#22c55e' : '#94a3b8';
+        document.getElementById('daemon-cycles').innerText = data.daemon.stats.cycles_completed;
+        document.getElementById('daemon-scanned').innerText = data.daemon.stats.total_contracts_scanned;
+        document.getElementById('daemon-dispatched').innerText = data.daemon.stats.total_orders_dispatched;
+        document.getElementById('btn-toggle-daemon').innerText = daemonRunning ? 'STOP AUTONOMOUS LOOP' : 'START AUTONOMOUS LOOP';
+        document.getElementById('btn-toggle-daemon').style.background = daemonRunning ? '#b91c1c' : '#0284c7';
+      }
       const tbody = document.getElementById('opp-table');
       if (data.opportunities && data.opportunities.length > 0) {
         tbody.innerHTML = data.opportunities.map(o => `<tr><td>#${o.global_rank}</td><td>${o.category}</td><td>${o.venue}</td><td><code>${o.contract_id}</code></td><td>${(o.model_probability * 100).toFixed(1)}%</td><td>$${o.entry_price.toFixed(2)}</td><td style="color:#22c55e; font-weight:bold;">+${(o.net_edge * 100).toFixed(1)}%</td><td>${o.sharpe_ratio}</td><td><strong style="color:#38bdf8;">${o.recommended_action}</strong></td></tr>`).join('');
       }
     } catch (err) { console.error('Telemetry poll error:', err); }
   }
+  async function toggleDaemon() {
+    const endpoint = daemonRunning ? '/api/v1/operator/daemon/stop' : '/api/v1/operator/daemon/start';
+    await fetch(endpoint, { method: 'POST' });
+    refreshState();
+  }
+  async function triggerScanNow() {
+    await fetch('/api/v1/operator/daemon/cycle', { method: 'POST' });
+    refreshState();
+  }
   async function triggerKillSwitch() {
-    if (confirm('Authorize Emergency Stop? This halts execution.')) {
+    if (confirm('Authorize Emergency Stop? This halts execution and stops all background workers.')) {
       await fetch('/api/v1/operator/emergency-stop', { method: 'POST' });
       refreshState();
     }
   }
   refreshState();
-  setInterval(refreshState, 5000);
+  setInterval(refreshState, 3000);
 </script>
 </body>
 </html>
