@@ -25,7 +25,7 @@ class CrossCategoryScreener:
                 p_model = self.registry.underwrite(cat, spec)
 
             if p_model is None:
-                fn = getattr(self.registry, 'get_domain', lambda c: None)(cat) or getattr(self.registry, 'get_underwriter', lambda c: None)(cat) or getattr(self.registry, 'get_adapter', lambda c: None)(cat) or getattr(self.registry, 'domains', {}).get(cat)
+                fn = getattr(self.registry, 'get_domain', lambda c: None)(cat) or getattr(self.registry, 'get_estimator', lambda c: None)(cat) or getattr(self.registry, 'domains', {}).get(cat)
                 if callable(fn):
                     try:
                         p_model = float(fn(spec))
@@ -41,37 +41,38 @@ class CrossCategoryScreener:
             net_edge_no = (1.0 - p_model) - ((1.0 - yes_bid) * (1.0 + self.fee_rate))
 
             if net_edge_yes >= self.min_edge_threshold and net_edge_yes >= net_edge_no:
-                side = 'BUY_YES'
-                net_edge = net_edge_yes
-                entry_price = yes_ask
+                side = 'BUY_YES'; net_edge = net_edge_yes; entry_price = yes_ask
             elif net_edge_no >= self.min_edge_threshold:
-                side = 'BUY_NO'
-                net_edge = net_edge_no
-                entry_price = 1.0 - yes_bid
+                side = 'BUY_NO'; net_edge = net_edge_no; entry_price = 1.0 - yes_bid
             else:
                 continue
 
             variance = max(0.01, p_model * (1.0 - p_model))
             sharpe = net_edge / math.sqrt(variance)
-            velocity_multiplier = 1.0 + (1.0 / max(0.5, hours))
-            velocity_score = round(sharpe * velocity_multiplier, 4)
+            velocity_mult = 1.0 + (1.0 / max(0.5, hours))
+            velocity_score = round(sharpe * velocity_mult, 4)
 
-            admitted.append({
+            record = {
                 'contract_id': item.get('contract_id'),
                 'category': cat,
                 'venue': item.get('venue'),
                 'side': side,
+                'model_probability': round(p_model, 4),
                 'model_prob': round(p_model, 4),
                 'entry_price': round(entry_price, 4),
                 'net_edge': round(net_edge, 4),
                 'sharpe_ratio': round(sharpe, 4),
                 'hours_to_expiry': hours,
                 'velocity_score': velocity_score
-            })
+            }
+            admitted.append(record)
 
         admitted.sort(key=lambda x: x['velocity_score'], reverse=True)
+        top_opp = admitted[0] if admitted else None
         return {
             'total_evaluated': len(board_candidates),
             'admissible_count': len(admitted),
+            'top_opportunity': top_opp,
+            'top_pick': top_opp,
             'leaderboard': admitted
         }
