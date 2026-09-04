@@ -6,7 +6,8 @@ class CapitalLedger:
         self.central_family_pool_cents = 0
         self.founder_pool_cents = 0
         self.members: Dict[str, Dict[str, Any]] = {}
-        self.reservations: Dict[str, Any] = {}
+        self.reservations: Dict[str, int] = {}
+        self.reservation_owners: Dict[str, str] = {}
         self.commitments: Dict[str, int] = {}
 
     @property
@@ -36,14 +37,15 @@ class CapitalLedger:
             return False
         mem['balance_cents'] -= amount_cents
         mem['reserved_cents'] += amount_cents
-        self.reservations[reservation_id] = {'member_id': member_id, 'amount_cents': amount_cents}
+        self.reservations[reservation_id] = amount_cents
+        self.reservation_owners[reservation_id] = member_id
         return True
+
     def release_member_reservation(self, reservation_id: str) -> bool:
-        res = self.reservations.pop(reservation_id, None)
-        if not res:
+        amt = self.reservations.pop(reservation_id, None)
+        if amt is None:
             return False
-        mid = res.get('member_id') if isinstance(res, dict) else 'MASTER'
-        amt = res.get('amount_cents') if isinstance(res, dict) else int(res)
+        mid = self.reservation_owners.pop(reservation_id, 'MASTER')
         if mid == 'MASTER':
             self.master_balance_cents += amt
             return True
@@ -77,17 +79,18 @@ class CapitalLedger:
         if amount_cents <= 0 or amount_cents > self.master_balance_cents:
             return False
         self.master_balance_cents -= amount_cents
-        self.reservations[reservation_id] = {'member_id': 'MASTER', 'amount_cents': amount_cents}
+        self.reservations[reservation_id] = amount_cents
+        self.reservation_owners[reservation_id] = 'MASTER'
         return True
 
     def release_reservation(self, reservation_id: str, account_id: str = 'MASTER') -> bool:
         return self.release_member_reservation(reservation_id)
 
     def commit_reservation(self, reservation_id: str) -> bool:
-        res = self.reservations.pop(reservation_id, None)
-        if not res:
+        amt = self.reservations.pop(reservation_id, None)
+        if amt is None:
             return False
-        amt = res.get('amount_cents', 0) if isinstance(res, dict) else int(res)
+        self.reservation_owners.pop(reservation_id, None)
         self.commitments[reservation_id] = amt
         return True
 

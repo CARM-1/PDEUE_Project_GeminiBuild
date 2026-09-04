@@ -18,7 +18,7 @@ class OperatorWorkspaceService:
         live_board = self.feed_aggregator.get_unified_board()
         screen_res = self.screener.screen_cross_category_board(live_board)
         self.position_book.update_market_prices(live_board)
-        total_reserved = sum(self.ledger.reservations.values())
+        total_reserved = sum(v if isinstance(v, (int, float)) else v.get('amount_cents', 0) for v in self.ledger.reservations.values())
         return {
             'timestamp': datetime.now(timezone.utc).isoformat(),
             'operating_mode': 'HALTED' if self.circuit_breaker.is_tripped else 'PAPER',
