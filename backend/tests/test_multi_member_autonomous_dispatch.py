@@ -39,7 +39,8 @@ def test_autonomous_scan_worker_multi_member_cycle():
     ledger = CapitalLedger()
     pb = PositionBook()
     ledger.register_member_account('MEMBER-AUTONOMOUS', seed_capital_cents=10000, max_risk_pct=0.05)
-    worker = AutonomousScanWorker(ledger=ledger, position_book=pb)
+    dispatcher = GlobalPortfolioDispatcher(ledger=ledger, position_book=pb)
+    worker = AutonomousScanWorker(dispatcher=dispatcher)
     res = worker.run_single_cycle()
     assert res['status'] in ('DISPATCHED', 'COMPLETED')
     assert worker.cycles_completed == 1
