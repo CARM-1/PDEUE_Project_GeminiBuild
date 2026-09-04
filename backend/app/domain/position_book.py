@@ -36,6 +36,7 @@ class PositionBook:
             'last_updated': datetime.now(timezone.utc).isoformat()
         }
         return self.positions[contract_id]
+
     def close_position(self, contract_id: str, outcome: str, payout_cents: int) -> Optional[Dict[str, Any]]:
         pos = self.positions.pop(contract_id, None)
         if not pos:
@@ -46,6 +47,27 @@ class PositionBook:
         record = {'contract_id': contract_id, 'venue': pos['venue'], 'category': pos['category'], 'side': pos['side'], 'member_id': pos.get('member_id', 'DEFAULT'), 'quantity': pos['quantity'], 'vwap_price': pos['vwap_price'], 'total_cost_cents': cost, 'outcome': outcome, 'payout_cents': payout_cents, 'realized_pnl_cents': pnl, 'closed_at': datetime.now(timezone.utc).isoformat()}
         self.settled_positions.append(record)
         return record
+    def update_market_prices(self, market_feed: List[Dict[str, Any]]) -> None:
+        price_map = {}
+        for item in market_feed:
+            cid = item.get('contract_id')
+            yes_bid = item.get('yes_bid', 0.0)
+            yes_ask = item.get('yes_ask', 1.0)
+            mid = round((yes_bid + yes_ask) / 2.0, 4)
+            if cid:
+                price_map[cid] = mid
+
+        for cid, pos in self.positions.items():
+            if cid in price_map:
+                mid = price_map[cid]
+                pos['current_mid'] = mid
+                pos_val_dollars = pos['quantity'] * mid
+                mtm_val_cents = int(round(pos_val_dollars * 100))
+                pos['mtm_value_cents'] = mtm_val_cents
+                pos['unrealized_pnl_cents'] = mtm_val_cents - pos['total_cost_cents']
+                if pos['total_cost_cents'] > 0:
+                    pos['roi_pct'] = round((pos['unrealized_pnl_cents'] / pos['total_cost_cents']) * 100.0, 2)
+                pos['last_updated'] = datetime.now(timezone.utc).isoformat()
 
     def get_summary(self) -> Dict[str, Any]:
         total_invested = sum(p['total_cost_cents'] for p in self.positions.values())

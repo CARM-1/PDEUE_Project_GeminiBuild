@@ -7,6 +7,15 @@ class CapitalLedger:
         self.founder_pool_cents = 0
         self.members: Dict[str, Dict[str, Any]] = {}
         self.reservations: Dict[str, Any] = {}
+        self.commitments: Dict[str, int] = {}
+
+    @property
+    def balance_cents(self) -> int:
+        return self.master_balance_cents
+
+    @balance_cents.setter
+    def balance_cents(self, value: int) -> None:
+        self.master_balance_cents = value
 
     def register_member_account(self, member_id: str, seed_capital_cents: int, max_risk_pct: float = 0.05) -> Dict[str, Any]:
         if member_id not in self.members:
@@ -29,16 +38,21 @@ class CapitalLedger:
         mem['reserved_cents'] += amount_cents
         self.reservations[reservation_id] = {'member_id': member_id, 'amount_cents': amount_cents}
         return True
-
     def release_member_reservation(self, reservation_id: str) -> bool:
         res = self.reservations.pop(reservation_id, None)
         if not res:
             return False
-        mem = self.members.get(res['member_id'])
+        mid = res.get('member_id') if isinstance(res, dict) else 'MASTER'
+        amt = res.get('amount_cents') if isinstance(res, dict) else int(res)
+        if mid == 'MASTER':
+            self.master_balance_cents += amt
+            return True
+        mem = self.members.get(mid)
         if mem:
-            mem['balance_cents'] += res['amount_cents']
-            mem['reserved_cents'] -= res['amount_cents']
-        return True
+            mem['balance_cents'] += amt
+            mem['reserved_cents'] -= amt
+            return True
+        return False
 
     def credit_member_balance(self, member_id: str, amount_cents: int) -> int:
         mem = self.members.get(member_id)
@@ -68,6 +82,14 @@ class CapitalLedger:
 
     def release_reservation(self, reservation_id: str, account_id: str = 'MASTER') -> bool:
         return self.release_member_reservation(reservation_id)
+
+    def commit_reservation(self, reservation_id: str) -> bool:
+        res = self.reservations.pop(reservation_id, None)
+        if not res:
+            return False
+        amt = res.get('amount_cents', 0) if isinstance(res, dict) else int(res)
+        self.commitments[reservation_id] = amt
+        return True
 
     def credit_balance(self, amount_cents: int, account_id: str = 'MASTER') -> int:
         if account_id != 'MASTER' and account_id in self.members:
