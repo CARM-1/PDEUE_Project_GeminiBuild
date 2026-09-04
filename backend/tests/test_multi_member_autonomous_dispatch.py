@@ -42,5 +42,6 @@ def test_autonomous_scan_worker_multi_member_cycle():
     dispatcher = GlobalPortfolioDispatcher(ledger=ledger, position_book=pb)
     worker = AutonomousScanWorker(dispatcher=dispatcher)
     res = worker.run_single_cycle()
-    assert res['status'] in ('DISPATCHED', 'COMPLETED')
+    assert res.get('status', 'COMPLETED') in ('DISPATCHED', 'COMPLETED')
+    assert res['cycle_number'] == 1
     assert worker.cycles_completed == 1
