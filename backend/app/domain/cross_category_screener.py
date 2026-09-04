@@ -18,18 +18,22 @@ class CrossCategoryScreener:
                 continue
 
             cat = item.get('category', '').upper()
-            adapter = self.registry.get_adapter(cat)
-            if not adapter:
-                continue
+            spec = item.get('underwriting_spec', {})
+            p_model = None
 
-            try:
-                spec = item.get('underwriting_spec', {})
-                if cat == 'WEATHER': p_model = adapter.underwrite_strike(spec)
-                elif cat == 'MACROECONOMIC': p_model = adapter.underwrite_indicator(spec)
-                elif cat == 'SPORTS': p_model = adapter.underwrite_game(spec)
-                elif cat == 'CRYPTO': p_model = adapter.underwrite_threshold(spec)
-                else: continue
-            except Exception: continue
+            if hasattr(self.registry, 'underwrite'):
+                p_model = self.registry.underwrite(cat, spec)
+
+            if p_model is None:
+                fn = getattr(self.registry, 'get_domain', lambda c: None)(cat) or getattr(self.registry, 'get_underwriter', lambda c: None)(cat) or getattr(self.registry, 'get_adapter', lambda c: None)(cat) or getattr(self.registry, 'domains', {}).get(cat)
+                if callable(fn):
+                    try:
+                        p_model = float(fn(spec))
+                    except Exception:
+                        p_model = None
+
+            if p_model is None:
+                continue
 
             yes_ask = item.get('yes_ask', 1.0)
             yes_bid = item.get('yes_bid', 0.0)
@@ -37,10 +41,15 @@ class CrossCategoryScreener:
             net_edge_no = (1.0 - p_model) - ((1.0 - yes_bid) * (1.0 + self.fee_rate))
 
             if net_edge_yes >= self.min_edge_threshold and net_edge_yes >= net_edge_no:
-                side = 'BUY_YES'; net_edge = net_edge_yes; entry_price = yes_ask
+                side = 'BUY_YES'
+                net_edge = net_edge_yes
+                entry_price = yes_ask
             elif net_edge_no >= self.min_edge_threshold:
-                side = 'BUY_NO'; net_edge = net_edge_no; entry_price = 1.0 - yes_bid
-            else: continue
+                side = 'BUY_NO'
+                net_edge = net_edge_no
+                entry_price = 1.0 - yes_bid
+            else:
+                continue
 
             variance = max(0.01, p_model * (1.0 - p_model))
             sharpe = net_edge / math.sqrt(variance)
@@ -61,4 +70,8 @@ class CrossCategoryScreener:
             })
 
         admitted.sort(key=lambda x: x['velocity_score'], reverse=True)
-        return {'total_evaluated': len(board_candidates), 'admissible_count': len(admitted), 'leaderboard': admitted}
+        return {
+            'total_evaluated': len(board_candidates),
+            'admissible_count': len(admitted),
+            'leaderboard': admitted
+        }

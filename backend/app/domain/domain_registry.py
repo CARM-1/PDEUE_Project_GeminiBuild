@@ -1,48 +1,39 @@
 from typing import Dict, Any, Callable, Optional
-from app.domain.advanced_weather_engine import AdvancedWeatherEngine
-from app.domain.domain_adapter_sdk import EconomicIndicatorAdapter
+from app.domain.weather_engine import WeatherProbabilityEngine
+from app.domain.economic_engine import EconomicUnderwritingEngine
 from app.domain.sports_adapter import SportsDomainAdapter
 from app.domain.crypto_adapter import CryptoDomainAdapter
 
 class DomainRegistry:
     def __init__(self):
-        self._handlers: Dict[str, Callable] = {}
-        self.weather_engine = AdvancedWeatherEngine()
-        self.economic_adapter = EconomicIndicatorAdapter()
-        self.sports_adapter = SportsDomainAdapter()
-        self.crypto_adapter = CryptoDomainAdapter()
-        self._register_default_domains()
+        self.domains: Dict[str, Callable[[Dict[str, Any]], float]] = {}
+        self._weather = WeatherProbabilityEngine()
+        self._macro = EconomicUnderwritingEngine()
+        self._sports = SportsDomainAdapter()
+        self._crypto = CryptoDomainAdapter()
 
-    def _register_default_domains(self):
-        self._handlers['WEATHER'] = self._underwrite_weather
-        self._handlers['MACROECONOMIC'] = self._underwrite_macro
-        self._handlers['SPORTS'] = lambda spec: self.sports_adapter.underwrite_game(spec)
-        self._handlers['CRYPTO'] = lambda spec: self.crypto_adapter.underwrite_threshold(spec)
+        self.register_domain('WEATHER', lambda s: self._weather.calculate_exceedance_probability(s.get('ensemble_members', []), s.get('strike_temp_c', 0.0), s.get('station_id')))
+        self.register_domain('MACROECONOMIC', lambda s: self._macro.underwrite_indicator(s))
+        self.register_domain('SPORTS', lambda s: self._sports.underwrite_game(s))
+        self.register_domain('CRYPTO', lambda s: self._crypto.underwrite_threshold(s))
 
-    def register_domain(self, category: str, handler: Callable):
-        self._handlers[category.upper()] = handler
+    def register_domain(self, category: str, underwriter: Callable[[Dict[str, Any]], float]) -> None:
+        self.domains[category.upper()] = underwriter
 
-    def has_domain(self, category: str) -> bool:
-        return category.upper() in self._handlers
+    def underwrite(self, category: str, spec: Dict[str, Any]) -> Optional[float]:
+        fn = self.domains.get(category.upper())
+        if not fn:
+            return None
+        try:
+            return float(fn(spec))
+        except Exception:
+            return None
 
-    def _underwrite_weather(self, spec: Dict[str, Any]) -> float:
-        strike = float(spec['strike_temp_c'])
-        ensemble = spec.get('ensemble_members', [])
-        station_id = spec.get('station_id', 'KORD')
-        res = self.weather_engine.calculate_exceedance_probability(strike, ensemble, station_id)
-        return res['probability']
+    def get_underwriter(self, category: str) -> Optional[Callable]:
+        return self.domains.get(category.upper())
 
-    def _underwrite_macro(self, spec: Dict[str, Any]) -> float:
-        threshold = float(spec['threshold'])
-        evidence = spec.get('evidence', [])
-        features = self.economic_adapter.extract_features(evidence)
-        features['threshold'] = threshold
-        artifact = self.economic_adapter.underwrite(features)
-        return artifact['calibrated_probability']
+    def get_domain(self, category: str) -> Optional[Callable]:
+        return self.domains.get(category.upper())
 
-    def calculate_probability(self, category: str, spec: Dict[str, Any]) -> Dict[str, Any]:
-        cat = category.upper()
-        if cat not in self._handlers:
-            raise ValueError(f'Unsupported domain category: {category}')
-        prob = self._handlers[cat](spec)
-        return {'category': cat, 'model_probability': round(prob, 4), 'underwritten': True}
+    def get_adapter(self, category: str) -> Optional[Callable]:
+        return self.domains.get(category.upper())
