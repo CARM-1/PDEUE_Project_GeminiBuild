@@ -3,11 +3,13 @@ from fastapi.responses import HTMLResponse
 from typing import Dict, Any, Optional
 from app.domain.operator_workspace import OperatorWorkspaceService
 from app.domain.scan_worker import AutonomousScanWorker
+from app.domain.ai_copilot import AICopilotEngine
 from app.api.v1.dashboard_template import DASHBOARD_HTML_TEMPLATE
 
 workspace_router = APIRouter()
 _service = OperatorWorkspaceService()
 _worker = AutonomousScanWorker()
+_copilot = AICopilotEngine()
 
 @workspace_router.get('/dashboard', response_class=HTMLResponse)
 def get_dashboard_html():
@@ -41,6 +43,13 @@ def dual_approve(payload: Dict[str, Any]):
     approver = payload.get('approver_id', 'T3-SEC-OFFICER')
     role = payload.get('approver_role', 'T3_SYSTEM_ADMIN')
     return _service.approve_dual_control_action(action_id=aid, approver_id=approver, approver_role=role)
+
+@workspace_router.post('/api/v1/operator/ai-chat')
+def ai_chat(payload: Dict[str, Any]):
+    q = payload.get('query', '')
+    hat = payload.get('actor_hat', 'Chief Administrator')
+    state = _service.get_workspace_state()
+    return _copilot.process_query(query=q, actor_hat=hat, workspace_state=state)
 
 @workspace_router.get('/api/v1/operator/daemon/status')
 def get_daemon_status():

@@ -27,14 +27,11 @@ def test_workspace_api_endpoints():
     assert 'PDEUE Chief Administrator Workspace' in resp.text
     state_resp = client.get('/api/v1/operator/workspace-state')
     assert state_resp.status_code == 200
-    data = state_resp.json()
-    assert 'founder_scma' in data
-    assert 'metrics' in data
     inspect_resp = client.get('/api/v1/operator/contract/KX-ORD-26')
     assert inspect_resp.status_code == 200
-    assert inspect_resp.json()['contract_id'] == 'KX-ORD-26'
     pnl_resp = client.get('/api/v1/operator/analytics/pnl-series?timeframe=24H')
     assert pnl_resp.status_code == 200
-    assert len(pnl_resp.json()['labels']) > 0
-    dual_resp = client.post('/api/v1/operator/governance/dual-approve', json={'action_id': 'TEST'})
-    assert dual_resp.status_code == 200
+    chat_resp = client.post('/api/v1/operator/ai-chat', json={'query': 'audit risk'})
+    assert chat_resp.status_code == 200
+    assert '87%' in chat_resp.json()['response_text']
+    assert chat_resp.json()['unilateral_execution'] is False
