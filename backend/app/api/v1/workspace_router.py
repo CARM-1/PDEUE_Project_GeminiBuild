@@ -3,6 +3,7 @@ from fastapi.responses import HTMLResponse
 from typing import Dict, Any, Optional
 from app.domain.operator_workspace import OperatorWorkspaceService
 from app.domain.scan_worker import AutonomousScanWorker
+from app.api.v1.dashboard_template import DASHBOARD_HTML_TEMPLATE
 
 workspace_router = APIRouter()
 _service = OperatorWorkspaceService()
@@ -21,6 +22,10 @@ def get_workspace_state():
 @workspace_router.post('/api/v1/operator/emergency-stop')
 def trigger_emergency_stop():
     return _service.trigger_emergency_stop(actor_id='CHIEF_ADMIN', reason='Dashboard Kill Switch Activated')
+
+@workspace_router.get('/api/v1/operator/positions')
+def get_positions():
+    return _service.position_book.get_summary()
 
 @workspace_router.get('/api/v1/operator/contract/{contract_id}')
 def inspect_contract(contract_id: str):
@@ -44,12 +49,16 @@ def get_daemon_status():
 @workspace_router.post('/api/v1/operator/daemon/start')
 def start_daemon():
     _worker.start()
-    return _worker.get_telemetry()
+    tel = _worker.get_telemetry()
+    tel['status'] = 'STARTED'
+    return tel
 
 @workspace_router.post('/api/v1/operator/daemon/stop')
 def stop_daemon():
     _worker.stop()
-    return _worker.get_telemetry()
+    tel = _worker.get_telemetry()
+    tel['status'] = 'STOPPED'
+    return tel
 
 @workspace_router.post('/api/v1/operator/daemon/cycle')
 def run_daemon_cycle():
