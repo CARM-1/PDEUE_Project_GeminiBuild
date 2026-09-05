@@ -1,3 +1,4 @@
+from app.api.v1.accounting_router import router as accounting_router
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Dict, Any, List
@@ -40,3 +41,5 @@ except Exception:
 
 from app.api.v1.workspace_router import workspace_router
 app.include_router(workspace_router)
+
+app.include_router(accounting_router)
