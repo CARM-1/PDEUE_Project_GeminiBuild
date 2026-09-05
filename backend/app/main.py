@@ -1,3 +1,4 @@
+from app.api.v1.portal_router import portal_router
 from app.api.v1.accounting_router import router as accounting_router
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -43,3 +44,5 @@ from app.api.v1.workspace_router import workspace_router
 app.include_router(workspace_router)
 
 app.include_router(accounting_router)
+
+app.include_router(portal_router)
