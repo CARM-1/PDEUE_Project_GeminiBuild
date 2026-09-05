@@ -25,5 +25,5 @@ def test_incident_alert_broadcast():
         details={'reason': 'Manual kill-switch triggered by Chief Administrator'}
     )
     assert alert['broadcast_status'] == 'EMITTED'
-    assert alert['alert_type'] == 'CIRCUIT_BREAKER_TRIPPED
+    assert alert['alert_type'] == 'CIRCUIT_BREAKER_TRIPPED'
     assert len(dispatcher.incident_alerts) == 1
