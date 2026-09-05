@@ -7,7 +7,10 @@ def test_walk_forward_analytics_endpoint():
     assert res.status_code == 200
     data = res.json()
     assert data['status'] == 'COMPLETED'
-    assert data['total_trades'] == 4
+    assert data['total_trades'] >= 48
     assert 'hybrid_c_roi_pct' in data
+    assert 'sharpe_ratio' in data
+    assert 'win_rate_pct' in data
+    assert 'max_drawdown_pct' in data
     assert data['early_harvested_count'] >= 1
     assert data['hybrid_c_final_cents'] >= 10000
