@@ -1,8 +1,18 @@
 version: "3.8"
 services:
-  api:
-    build: .
+  pdeue-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pdeue-engine
+    restart: unless-stopped
     ports:
       - "8000:8000"
     environment:
-      - APP_ENV=development
+      - APP_ENV=production
+      - OPERATING_MODE=PAPER
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

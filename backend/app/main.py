@@ -1,3 +1,4 @@
+from app.api.v1.health_router import health_router
 from app.api.v1.portal_router import portal_router
 from app.api.v1.accounting_router import router as accounting_router
 from fastapi import FastAPI, HTTPException
@@ -46,3 +47,5 @@ app.include_router(workspace_router)
 app.include_router(accounting_router)
 
 app.include_router(portal_router)
+
+app.include_router(health_router)
