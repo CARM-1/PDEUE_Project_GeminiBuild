@@ -236,7 +236,7 @@
     function executeActionCard(endpoint, method, aid) {
       if (method === "POST") {
         fetch(endpoint, { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({action_id: aid, actor_id: "CHIEF_ADMIN"}) }).then(() => { refresh();
-fetch('/api/v1/operator/analytics/walk-forward-simulation').then(r=>r.json()).then(d=>{ if(document.getElementById('wf-roi')) document.getElementById('wf-roi').innerText = d.hybrid_c_roi_pct + '%'; if(document.getElementById('wf-harvest')) document.getElementById('wf-harvest').innerText = d.early_harvested_count; if(document.getElementById('wf-maturity')) document.getElementById('wf-maturity').innerText = d.held_to_maturity_count; }); alert("Action card executed successfully."); });
+fetch('/api/v1/operator/analytics/walk-forward-simulation').then(r=>r.json()).then(d=>{ if(document.getElementById('wf-roi')) document.getElementById('wf-roi').innerText = d.hybrid_c_roi_pct + '%'; if(document.getElementById('wf-harvest')) document.getElementById('wf-harvest').innerText = d.early_harvested_count; if(document.getElementById('wf-maturity')) document.getElementById('wf-maturity').innerText = d.held_to_maturity_count; if(document.getElementById('wf-sharpe')) document.getElementById('wf-sharpe').innerText = d.sharpe_ratio; if(document.getElementById('wf-winrate')) document.getElementById('wf-winrate').innerText = d.win_rate_pct + '%'; if(document.getElementById('wf-mdd')) document.getElementById('wf-mdd').innerText = d.max_drawdown_pct + '%'; }); alert("Action card executed successfully."); });
       } else {
         inspect("KX-ORD-26");
       }
@@ -264,7 +264,7 @@ fetch('/api/v1/operator/analytics/walk-forward-simulation').then(r=>r.json()).th
       });
     }
     window.onload = () => { initCharts(); refresh();
-fetch('/api/v1/operator/analytics/walk-forward-simulation').then(r=>r.json()).then(d=>{ if(document.getElementById('wf-roi')) document.getElementById('wf-roi').innerText = d.hybrid_c_roi_pct + '%'; if(document.getElementById('wf-harvest')) document.getElementById('wf-harvest').innerText = d.early_harvested_count; if(document.getElementById('wf-maturity')) document.getElementById('wf-maturity').innerText = d.held_to_maturity_count; }); setInterval(refresh, 5000); };
+fetch('/api/v1/operator/analytics/walk-forward-simulation').then(r=>r.json()).then(d=>{ if(document.getElementById('wf-roi')) document.getElementById('wf-roi').innerText = d.hybrid_c_roi_pct + '%'; if(document.getElementById('wf-harvest')) document.getElementById('wf-harvest').innerText = d.early_harvested_count; if(document.getElementById('wf-maturity')) document.getElementById('wf-maturity').innerText = d.held_to_maturity_count; if(document.getElementById('wf-sharpe')) document.getElementById('wf-sharpe').innerText = d.sharpe_ratio; if(document.getElementById('wf-winrate')) document.getElementById('wf-winrate').innerText = d.win_rate_pct + '%'; if(document.getElementById('wf-mdd')) document.getElementById('wf-mdd').innerText = d.max_drawdown_pct + '%'; }); setInterval(refresh, 5000); };
   </script>
 </body>
 </html>
