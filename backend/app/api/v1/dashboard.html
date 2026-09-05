@@ -143,3 +143,126 @@
     <hr style="border-color:#334155;">
     <div id="drw-body" style="font-size:0.85rem; line-height:1.6;"></div>
   </div>
+  <button id="copilot-btn" onclick="toggleCopilot()" style="position:fixed; bottom:25px; right:25px; background:#38bdf8; color:#0f172a; border:none; padding:12px 24px; font-weight:700; font-size:0.95rem; border-radius:30px; cursor:pointer; box-shadow:0 4px 20px rgba(56,189,248,0.5); z-index:9999; display:flex; align-items:center; gap:8px;">
+    <span style="font-size:1.1rem;">&#129302;</span><span>AI Copilot</span>
+  </button>
+  <div id="copilot-drawer" style="position:fixed; right:-430px; bottom:20px; width:400px; height:560px; background:#090d16; border:2px solid #38bdf8; border-radius:12px; box-shadow:-5px 10px 30px rgba(0,0,0,0.8); z-index:10000; transition:right 0.3s ease; display:flex; flex-direction:column; overflow:hidden;">
+    <div style="display:flex; justify-content:space-between; align-items:center; background:#1e293b; padding:12px 16px; border-bottom:1px solid #334155;">
+      <div>
+        <strong style="color:#38bdf8; font-size:1rem;">&#129302; PDEUE Copilot</strong>
+        <small style="display:block; color:#94a3b8; font-size:0.7rem;">AUTH-01/AUTH-04 Deterministic Governance</small>
+      </div>
+      <button onclick="toggleCopilot()" style="background:#334155; color:white; border:none; padding:4px 10px; border-radius:4px; cursor:pointer;">&#10005;</button>
+    </div>
+    <div style="padding:8px 12px; background:#0f172a; border-bottom:1px solid #1e293b; display:flex; gap:6px; flex-wrap:wrap;">
+      <button onclick="sendQuick('Audit risk and waterfall')" class="tf-btn" style="font-size:0.7rem;">Audit Risk</button>
+      <button onclick="sendQuick('Explain contract KX-ORD-26')" class="tf-btn" style="font-size:0.7rem;">Explain Edge</button>
+      <button onclick="sendQuick('Trip the emergency kill switch')" class="tf-btn" style="font-size:0.7rem; color:#ef4444; border-color:#ef4444;">Kill Switch</button>
+    </div>
+    <div id="chat-log" style="flex:1; overflow-y:auto; padding:12px; font-size:0.85rem; line-height:1.4;">
+      <p style="color:#94a3b8; margin-top:0;">Copilot active. State changes generate Action Cards requiring explicit operator click.</p>
+    </div>
+    <div style="display:flex; gap:6px; padding:12px; background:#1e293b; border-top:1px solid #334155;">
+      <input id="chat-input" type="text" placeholder="Ask copilot..." style="flex:1; padding:8px 12px; background:#0f172a; color:white; border:1px solid #334155; border-radius:4px; font-size:0.85rem;" onkeypress="if(event.key==='Enter')sendChat()">
+      <button onclick="sendChat()" class="btn-action" style="background:#38bdf8; color:#0f172a; font-weight:bold; border:none; padding:8px 14px; border-radius:4px; cursor:pointer;">Send</button>
+    </div>
+  </div>
+  <script>
+    let eqChart = null, wfChart = null;
+    function showTab(id, btn) {
+      document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
+      document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
+      document.getElementById(id).classList.add("active");
+      btn.classList.add("active");
+    }
+    function closeDrawer() { document.getElementById("drawer").classList.remove("open"); }
+    function inspect(cid) {
+      fetch("/api/v1/operator/contract/" + cid).then(r => r.json()).then(d => {
+        document.getElementById("drw-title").innerText = d.contract_id;
+        document.getElementById("drw-body").innerHTML = "<p><strong>Venue:</strong> " + d.venue + " | <strong>Domain:</strong> " + d.category + "</p><p><strong>P(Model):</strong> " + (d.model_probability*100).toFixed(1) + "% | <strong>Ask:</strong> $" + d.venue_implied_prob.toFixed(2) + "</p><p><strong>Net Edge:</strong> +" + (d.net_edge*100).toFixed(1) + "%</p><p><strong>Early Harvest:</strong> " + (d.profit_capture_ratio*100).toFixed(1) + "% / 80%</p><p><strong>Audit Hash:</strong> <br><code style=\"color:#38bdf8; font-size:0.75rem;\">" + d.audit_hash + "</code></p>";
+        document.getElementById("drawer").classList.add("open");
+      });
+    }
+    function initCharts() {
+      const ctxEq = document.getElementById("chart-equity").getContext("2d");
+      eqChart = new Chart(ctxEq, { type: "line", data: { labels: ["T-6h","T-5h","T-4h","T-3h","T-2h","T-1h","Now"], datasets: [{ label: "Equity (Cents)", data: [500000, 502000, 504500, 503800, 506200, 508000, 510000], borderColor: "#38bdf8", tension: 0.3 }] }, options: { responsive: true, plugins: { legend: { display: false } } } });
+      const ctxWf = document.getElementById("chart-waterfall").getContext("2d");
+      wfChart = new Chart(ctxWf, { type: "doughnut", data: { labels: ["SCMA (87%)", "CFCP (10%)", "FAEP (3%)"], datasets: [{ data: [87, 10, 3], backgroundColor: ["#38bdf8", "#22c55e", "#a855f7"] }] }, options: { responsive: true } });
+    }
+    function fetchTf(tf, btn) {
+      document.querySelectorAll(".tf-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      fetch("/api/v1/operator/analytics/pnl-series?timeframe=" + tf).then(r => r.json()).then(d => {
+        eqChart.data.labels = d.labels;
+        eqChart.data.datasets[0].data = d.equity_curve_cents;
+        eqChart.update();
+      });
+    }
+    function triggerKillSwitch() {
+      if (confirm("Trip Emergency Circuit Breaker?")) {
+        fetch("/api/v1/operator/emergency-stop", { method: "POST" }).then(() => refresh());
+      }
+    }
+    function toggleCopilot() {
+      const d = document.getElementById("copilot-drawer");
+      d.style.right = (d.style.right === "25px") ? "-430px" : "25px";
+    }
+    function sendQuick(txt) {
+      document.getElementById("chat-input").value = txt;
+      sendChat();
+    }
+    function sendChat() {
+      const inp = document.getElementById("chat-input");
+      const q = inp.value.trim();
+      if (!q) return;
+      inp.value = "";
+      const log = document.getElementById("chat-log");
+      log.innerHTML += "<p style=\"margin:6px 0;\"><strong>You:</strong> " + q + "</p>";
+      const hat = document.getElementById("hat-select") ? document.getElementById("hat-select").value : "Chief Administrator";
+      fetch("/api/v1/operator/ai-chat", { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({query: q, actor_hat: hat}) }).then(r => r.json()).then(d => {
+        log.innerHTML += "<p style=\"margin:6px 0; color:#38bdf8;\"><strong>Copilot:</strong> " + d.response_text + "</p>";
+        if (d.action_cards && d.action_cards.length > 0) {
+          d.action_cards.forEach(c => {
+            const col = c.destructive ? "#ef4444" : "#22c55e";
+            const card = "<div style=\"background:#1e293b; border:1px solid #334155; padding:8px; margin:6px 0; border-radius:4px;\"><strong style=\"color:" + col + ";\">" + c.title + "</strong><p style=\"margin:4px 0; font-size:0.75rem;\">" + c.description + "</p><button class=\"btn-action\" style=\"background:" + col + "; color:white; font-size:0.75rem; border:none; padding:4px 8px; border-radius:3px; cursor:pointer;\" onclick=\"executeActionCard('" + c.endpoint + "', '" + c.method + "', '" + c.action_id + "')\">Execute Card</button></div>";
+            log.innerHTML += card;
+          });
+        }
+        log.scrollTop = log.scrollHeight;
+      }).catch(() => {
+        log.innerHTML += "<p style=\"color:#ef4444;\">Error connecting to Copilot API.</p>";
+      });
+    }
+    function executeActionCard(endpoint, method, aid) {
+      if (method === "POST") {
+        fetch(endpoint, { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({action_id: aid, actor_id: "CHIEF_ADMIN"}) }).then(() => { refresh(); alert("Action card executed successfully."); });
+      } else {
+        inspect("KX-ORD-26");
+      }
+    }
+    function refresh() {
+      fetch("/api/v1/operator/workspace-state").then(r => r.json()).then(d => {
+        document.getElementById("fnd-balance").innerText = "$" + (d.founder_scma.balance_cents / 100).toFixed(2);
+        document.getElementById("fnd-reserved").innerText = "$" + (d.founder_scma.reserved_cents / 100).toFixed(2);
+        document.getElementById("fnd-faep").innerText = "$" + (d.faep_cents / 100).toFixed(2);
+        document.getElementById("pool-cfcp").innerText = "$" + (d.cfcp_cents / 100).toFixed(2);
+        document.getElementById("metric-pf").innerText = d.metrics.profit_factor + "x";
+        document.getElementById("metric-wr").innerText = "Win Rate: " + d.metrics.win_rate_pct + "%";
+        const tbodyPos = document.getElementById("pos-tbody");
+        if (d.portfolio.positions && d.portfolio.positions.length > 0) {
+          tbodyPos.innerHTML = d.portfolio.positions.map(p => "<tr><td><a href=\"#\" onclick=\"inspect('" + p.contract_id + "')\" style=\"color:#38bdf8;\">" + p.contract_id + "</a></td><td>" + p.venue + "</td><td>" + p.side + "</td><td>" + p.quantity + "</td><td>$" + p.vwap_price.toFixed(2) + "</td><td>$" + (p.total_cost_cents/100).toFixed(2) + "</td><td>$" + (p.mtm_value_cents/100).toFixed(2) + "</td><td><button class=\"btn-action\" onclick=\"inspect('" + p.contract_id + "')\">Inspect</button></td></tr>").join("");
+        }
+        const tbodyMem = document.getElementById("members-tbody");
+        if (d.family_members) {
+          tbodyMem.innerHTML = d.family_members.map(m => "<tr><td>" + m.member_id + "</td><td>$" + (m.balance_cents/100).toFixed(2) + "</td><td>$" + (m.reserved_cents/100).toFixed(2) + "</td><td>" + (m.max_risk_pct*100).toFixed(1) + "%</td><td>$" + (m.lifetime_profit_cents/100).toFixed(2) + "</td></tr>").join("");
+        }
+        const tbodySc = document.getElementById("scanner-tbody");
+        if (d.screened_opportunities) {
+          tbodySc.innerHTML = d.screened_opportunities.map(o => "<tr><td>" + o.contract_id + "</td><td>" + o.category + "</td><td>" + o.venue + "</td><td>$" + o.entry_price.toFixed(2) + "</td><td>" + ((o.model_probability||0.5)*100).toFixed(1) + "%</td><td>+" + (o.net_edge*100).toFixed(1) + "%</td><td>" + o.hours_to_expiry + "h</td><td><button class=\"btn-action\" onclick=\"inspect('" + o.contract_id + "')\">View</button></td></tr>").join("");
+        }
+      });
+    }
+    window.onload = () => { initCharts(); refresh(); setInterval(refresh, 5000); };
+  </script>
+</body>
+</html>
