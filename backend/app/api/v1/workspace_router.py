@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import HTMLResponse
 from typing import Dict, Any, Optional
+import pathlib
 from app.domain.operator_workspace import OperatorWorkspaceService
 from app.domain.scan_worker import AutonomousScanWorker
 from app.domain.ai_copilot import AICopilotEngine
@@ -13,7 +14,9 @@ _copilot = AICopilotEngine()
 
 @workspace_router.get('/dashboard', response_class=HTMLResponse)
 def get_dashboard_html():
-    return HTMLResponse(content=DASHBOARD_HTML_TEMPLATE)
+    html_file = pathlib.Path(__file__).parent / 'dashboard.html'
+    content = html_file.read_text(encoding='utf-8') if html_file.exists() else DASHBOARD_HTML_TEMPLATE
+    return HTMLResponse(content=content, headers={'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'Expires': '0'})
 
 @workspace_router.get('/api/v1/operator/workspace-state')
 def get_workspace_state():
