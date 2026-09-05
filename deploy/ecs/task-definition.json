@@ -1,0 +1,61 @@
+{
+  "family": "pdeue-engine-prod",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "512",
+  "memory": "1024",
+  "containerDefinitions": [
+    {
+      "name": "pdeue-core-engine",
+      "image": "carm1/pdeue:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "hostPort": 8000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "APP_ENV",
+          "value": "production"
+        },
+        {
+          "name": "OPERATING_MODE",
+          "value": "PAPER"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "DATABASE_URL",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:123456789012:secret:pdeue/rds_url"
+        },
+        {
+          "name": "ACCOUNTING_SIGNING_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:123456789012:secret:pdeue/hmac_key"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/pdeue-production",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "pdeue"
+        }
+      },
+      "healthCheck": {
+        "command": [
+          "CMD-SHELL",
+          "curl -f http://localhost:8000/healthz || exit 1"
+        ],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 10
+      }
+    }
+  ]
+}
