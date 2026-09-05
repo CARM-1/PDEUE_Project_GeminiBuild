@@ -18,3 +18,15 @@ def get_audit_logs(token_data: Dict[str, Any] = Depends(verify_jwt_token)):
     tenant_id = token_data.get("tenant_id")
     logs = [entry for entry in operator_engine.audit_log if entry["tenant_id"] == tenant_id]
     return {"tenant_id": tenant_id, "audit_count": len(logs), "logs": logs}
+
+@router.get('/analytics/walk-forward-simulation')
+def get_walk_forward_simulation():
+    from app.domain.walk_forward_simulation import WalkForwardBenchmark
+    sim = WalkForwardBenchmark(initial_capital_cents=10000)
+    ticks = [
+        {'contract_id': 'WX-KORD-26', 'entry_ask': 0.12, 'peak_midpoint': 0.85, 'final_payout': 1.0, 'fee_rate': 0.01},
+        {'contract_id': 'MACRO-CPI-3.0', 'entry_ask': 0.50, 'peak_midpoint': 0.65, 'final_payout': 0.0, 'fee_rate': 0.01},
+        {'contract_id': 'SPORTS-NFL-KC', 'entry_ask': 0.40, 'peak_midpoint': 0.92, 'final_payout': 1.0, 'fee_rate': 0.01},
+        {'contract_id': 'CRYPTO-BTC-120K', 'entry_ask': 0.20, 'peak_midpoint': 0.25, 'final_payout': 0.0, 'fee_rate': 0.00}
+    ]
+    return sim.run_simulation(ticks)
