@@ -1,23 +1,16 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import HTMLResponse
-import pathlib
+from typing import Dict, Any, Optional
 from app.domain.operator_workspace import OperatorWorkspaceService
 from app.domain.scan_worker import AutonomousScanWorker
-from app.domain.position_book import PositionBook
-from app.domain.capital_ledger import CapitalLedger
-from app.domain.global_portfolio_dispatcher import GlobalPortfolioDispatcher
 
 workspace_router = APIRouter()
-_ledger = CapitalLedger(initial_balance_cents=10000000)
-_position_book = PositionBook()
-_dispatcher = GlobalPortfolioDispatcher(ledger=_ledger, position_book=_position_book)
-_service = OperatorWorkspaceService(ledger=_ledger, position_book=_position_book)
-_worker = AutonomousScanWorker(dispatcher=_dispatcher, circuit_breaker=_service.circuit_breaker)
+_service = OperatorWorkspaceService()
+_worker = AutonomousScanWorker()
 
 @workspace_router.get('/dashboard', response_class=HTMLResponse)
-def get_dashboard():
-    html_path = pathlib.Path(__file__).parent.parent.parent / 'static' / 'dashboard.html'
-    return HTMLResponse(content=html_path.read_text(encoding='utf-8'), headers={'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache'})
+def get_dashboard_html():
+    return HTMLResponse(content=DASHBOARD_HTML_TEMPLATE)
 
 @workspace_router.get('/api/v1/operator/workspace-state')
 def get_workspace_state():
@@ -26,9 +19,23 @@ def get_workspace_state():
     return state
 
 @workspace_router.post('/api/v1/operator/emergency-stop')
-def post_emergency_stop():
-    _worker.stop()
-    return _service.trigger_emergency_kill_switch(actor_id='CHIEF_ADMIN', reason='Operator kill-switch triggered from Web Workspace')
+def trigger_emergency_stop():
+    return _service.trigger_emergency_stop(actor_id='CHIEF_ADMIN', reason='Dashboard Kill Switch Activated')
+
+@workspace_router.get('/api/v1/operator/contract/{contract_id}')
+def inspect_contract(contract_id: str):
+    return _service.get_contract_inspection(contract_id)
+
+@workspace_router.get('/api/v1/operator/analytics/pnl-series')
+def get_pnl_series(timeframe: str = Query('24H')):
+    return _service.get_pnl_time_series(timeframe=timeframe)
+
+@workspace_router.post('/api/v1/operator/governance/dual-approve')
+def dual_approve(payload: Dict[str, Any]):
+    aid = payload.get('action_id', '')
+    approver = payload.get('approver_id', 'T3-SEC-OFFICER')
+    role = payload.get('approver_role', 'T3_SYSTEM_ADMIN')
+    return _service.approve_dual_control_action(action_id=aid, approver_id=approver, approver_role=role)
 
 @workspace_router.get('/api/v1/operator/daemon/status')
 def get_daemon_status():
@@ -37,17 +44,13 @@ def get_daemon_status():
 @workspace_router.post('/api/v1/operator/daemon/start')
 def start_daemon():
     _worker.start()
-    return {'status': 'STARTED', 'telemetry': _worker.get_telemetry()}
+    return _worker.get_telemetry()
 
 @workspace_router.post('/api/v1/operator/daemon/stop')
 def stop_daemon():
     _worker.stop()
-    return {'status': 'STOPPED', 'telemetry': _worker.get_telemetry()}
+    return _worker.get_telemetry()
 
 @workspace_router.post('/api/v1/operator/daemon/cycle')
-def trigger_daemon_cycle():
+def run_daemon_cycle():
     return _worker.run_single_cycle()
-
-@workspace_router.get('/api/v1/operator/positions')
-def get_positions():
-    return _position_book.get_summary()
