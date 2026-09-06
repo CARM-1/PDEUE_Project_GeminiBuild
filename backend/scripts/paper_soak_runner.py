@@ -22,7 +22,8 @@ class PaperSoakRunner:
         cycle_interval_sec: float = 5.0,
         health_export_interval: int = 4320,
         health_export_path: str = 'health_summary.json',
-        initial_balance_cents: int = 10000
+        initial_balance_cents: int = 10000,
+        limiter: Optional[VenueRateLimiter] = None
     ):
         self.total_cycles = total_cycles
         self.cycle_interval_sec = cycle_interval_sec
@@ -30,7 +31,7 @@ class PaperSoakRunner:
         self.current_cycle = 0
         self.is_running = False
 
-        self.limiter = VenueRateLimiter()
+        self.limiter = limiter or VenueRateLimiter()
         self.sink = TelemetryHealthSink(export_path=health_export_path)
         self.ledger = CapitalLedger(initial_balance_cents=initial_balance_cents)
         self.ledger.register_member_account('founder_scma', seed_capital_cents=initial_balance_cents)
