@@ -14,6 +14,10 @@ from app.adapters.rate_limiter import VenueRateLimiter
 from app.domain.telemetry_sink import TelemetryHealthSink
 from app.domain.capital_ledger import CapitalLedger
 from app.domain.maker_rebate_adapter import MakerRebateLedgerAdapter
+from app.domain.atomic_leg_coordinator import AtomicLegCoordinator
+from app.domain.dynamic_spread_kelly import DynamicSpreadKellyRegime
+from app.domain.stale_sniping_engine import StaleQuoteSnipingEngine
+from app.domain.venue_rebalancer import CrossVenueRebalanceManager
 
 class PaperSoakRunner:
     def __init__(
@@ -30,6 +34,7 @@ class PaperSoakRunner:
         self.health_export_interval = health_export_interval
         self.current_cycle = 0
         self.is_running = False
+        self.partition = 'PARTITION_2_ENHANCED_ALPHA'
 
         self.limiter = limiter or VenueRateLimiter()
         self.sink = TelemetryHealthSink(export_path=health_export_path)
@@ -37,7 +42,13 @@ class PaperSoakRunner:
         self.ledger.register_member_account('founder_scma', seed_capital_cents=initial_balance_cents)
         self.rebate_adapter = MakerRebateLedgerAdapter(ledger=self.ledger)
 
+        self.leg_coordinator = AtomicLegCoordinator(leg_timeout_ms=750.0)
+        self.spread_kelly = DynamicSpreadKellyRegime(base_fraction=0.25, defensive_floor=0.05, max_spread=0.05)
+        self.sniping_engine = StaleQuoteSnipingEngine()
+        self.venue_rebalancer = CrossVenueRebalanceManager(target_ratio=0.50, tolerance=0.15)
+
         self.maker_stats = {'posted': 0, 'filled': 0, 'expired': 0}
+        self.phase_bc_metrics = {'scratched_legs': 0, 'sniped_quotes': 0, 'rebalances_triggered': 0}
         self.spread_distributions = {'WEATHER': 0.02, 'MACRO': 0.03, 'SPORTS': 0.015, 'CRYPTO': 0.025}
         self.circuit_breaker = {'is_tripped': False, 'trip_reason': None}
 
@@ -51,6 +62,7 @@ class PaperSoakRunner:
         cycle_expired = 0
 
         if kalshi_ok and poly_ok and not self.circuit_breaker['is_tripped']:
+            active_frac = self.spread_kelly.calculate_active_fraction(self.spread_distributions['WEATHER'])
             cycle_posted = 4
             cycle_filled = 3
             cycle_expired = 1
@@ -66,6 +78,14 @@ class PaperSoakRunner:
                     contract_id=f'SOAK-CONTRACT-{self.current_cycle}',
                     order_id=f'SOAK-ORD-{self.current_cycle}'
                 )
+
+            if self.current_cycle % 25 == 0:
+                sniped = self.sniping_engine.evaluate_quote_staleness(
+                    public_ground_truth={'published_at_epoch': 100.0, 'true_probability': 0.75},
+                    resting_quote={'ticker': f'SNIPE-{self.current_cycle}', 'venue': 'KALSHI', 'quoted_at_epoch': 90.0, 'ask_price': 0.65}
+                )
+                if sniped:
+                    self.phase_bc_metrics['sniped_quotes'] += 1
 
         should_export = (
             self.current_cycle % self.health_export_interval == 0
@@ -84,6 +104,8 @@ class PaperSoakRunner:
                 circuit_breaker_status=self.circuit_breaker,
                 rate_limiter_warnings=self.limiter.warnings_count
             )
+            payload['partition_tag'] = self.partition
+            payload['phase_bc_metrics'] = self.phase_bc_metrics
             self.sink.export_health_summary(payload)
 
         return {
@@ -91,6 +113,7 @@ class PaperSoakRunner:
             'posted': cycle_posted,
             'filled': cycle_filled,
             'expired': cycle_expired,
+            'phase_bc_metrics': self.phase_bc_metrics,
             'rate_limiter_warnings': self.limiter.warnings_count
         }
 
@@ -118,6 +141,6 @@ if __name__ == '__main__':
         sys.exit(0)
     signal.signal(signal.SIGINT, handle_sig)
     signal.signal(signal.SIGTERM, handle_sig)
-    print('Starting 72-Hour Autonomous Paper Soak (51,840 cycles @ 5s)...')
+    print('Starting 72-Hour Autonomous Paper Soak with Phase B & C Enhancements...')
     asyncio.run(runner.run())
     print('Paper Soak completed cleanly.')
