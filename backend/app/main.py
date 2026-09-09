@@ -1,5 +1,10 @@
+import pathlib
+try:
+    from app.api.v1.portal_router import portal_router
+except ImportError:
+    from backend.app.api.v1.portal_router import portal_router
+from fastapi.staticfiles import StaticFiles
 from app.api.v1.health_router import health_router
-from app.api.v1.portal_router import portal_router
 from app.api.v1.accounting_router import router as accounting_router
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -46,6 +51,11 @@ app.include_router(workspace_router)
 
 app.include_router(accounting_router)
 
-app.include_router(portal_router)
 
 app.include_router(health_router)
+
+
+# Mount portal router and static templates
+app.include_router(portal_router)
+static_path = pathlib.Path(__file__).parent / 'static'
+app.mount('/static', StaticFiles(directory=str(static_path)), name='static')

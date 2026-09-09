@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PDEUE - Member Desktop</title>
+  <link rel="stylesheet" href="/static/css/shared_components.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/static/js/shared_components.js"></script>
+</head>
+<body>
+  <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-subtle); padding-bottom:15px; margin-bottom:20px;">
+    <div>
+      <h1 style="margin:0; font-size:1.5rem; color:var(--accent-cyan);">Member User Desktop</h1>
+      <div class="shared-sub">Single-SCMA Sovereign Boundary | Role: <span id="user-role">MEMBER_USER</span></div>
+    </div>
+    <div style="text-align:right;">
+      <span style="font-size:0.85rem; color:var(--text-muted);">Account ID:</span>
+      <strong id="scma-id" style="color:var(--accent-cyan);">SCMA-MEM-001</strong>
+    </div>
+  </div>
+
+  <div class="shared-grid">
+    <div class="shared-card">
+      <h3><abbr data-tooltip="Isolated capital belonging exclusively to this member">Available Cash</abbr></h3>
+      <div class="shared-val" id="val-cash" style="color:var(--accent-green);">$0.00</div>
+      <div class="shared-sub">Exact integer-cent backing</div>
+    </div>
+    <div class="shared-card">
+      <h3><abbr data-tooltip="Capital reserved for open market orders">Reserved Margin</abbr></h3>
+      <div class="shared-val" id="val-reserved">$0.00</div>
+      <div class="shared-sub">Zero cross-collateralization</div>
+    </div>
+    <div class="shared-card">
+      <h3><abbr data-tooltip="Accumulated 87% waterfall earnings">Lifetime Profit</abbr></h3>
+      <div class="shared-val" id="val-profit" style="color:var(--accent-cyan);">$0.00</div>
+      <div class="shared-sub">87% Net Waterfall reinvestment</div>
+    </div>
+    <div class="shared-card">
+      <h3><abbr data-tooltip="Restricted to downward adjustments only">Risk Dial Cap</abbr></h3>
+      <div class="shared-val" id="val-dial">3.0%</div>
+      <div class="shared-sub">System Ceiling: 5.0% Max</div>
+    </div>
+  </div>
+
+  <div class="shared-grid" style="grid-template-columns: 2fr 1fr;">
+    <div class="shared-card">
+      <h3>Personal Compounding Curve</h3>
+      <div style="height:260px; position:relative;">
+        <canvas id="member-compounding-chart"></canvas>
+      </div>
+    </div>
+
+    <div class="shared-card">
+      <h3>Risk Dial Control</h3>
+      <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">
+        Members may lower risk exposure autonomously. Increases above your authorized baseline require Chief Administrator approval.
+      </p>
+      <input type="range" min="0.5" max="5.0" step="0.1" value="3.0" class="risk-slider" id="risk-slider" oninput="document.getElementById('dial-disp').innerText = this.value + '%'">
+      <div style="display:flex; justify-content:space-between; margin-top:8px; font-weight:600;">
+        <span>Floor: 0.5%</span>
+        <span id="dial-disp" style="color:var(--accent-cyan);">3.0%</span>
+        <span>Ceiling: 5.0%</span>
+      </div>
+      <button class="shared-drawer-close" style="float:none; width:100%; margin-top:16px; background:var(--accent-cyan); color:#0a0f1d;" onclick="updateRiskDial()">Commit Risk Dial</button>
+    </div>
+  </div>
+
+  <div class="shared-grid">
+    <div class="shared-card">
+      <h3>Decentralized Distribution Gateway</h3>
+      <div style="display:flex; gap:12px; margin-top:10px;">
+        <button class="shared-drawer-close" style="float:none; background:var(--accent-green); color:#0a0f1d;" onclick="openDistributionDrawer('GREEN')">Green Tier (Autonomous)</button>
+        <button class="shared-drawer-close" style="float:none; background:var(--accent-amber); color:#0a0f1d;" onclick="openDistributionDrawer('YELLOW')">Yellow Tier (Compounding Friction)</button>
+        <button class="shared-drawer-close" style="float:none; background:var(--accent-red); color:white;" onclick="openDistributionDrawer('RED')">Red Tier (Co-Signed Withdrawal)</button>
+      </div>
+    </div>
+
+    <div class="shared-card">
+      <h3>FSE AI Financial Tutor</h3>
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="tutor-prompt" placeholder="Ask about compounding, probability, or risks..." style="flex:1; background:#020617; border:1px solid var(--border-subtle); color:white; padding:8px 12px; border-radius:4px;">
+        <button class="shared-drawer-close" style="float:none; background:var(--accent-purple); color:white;" onclick="askTutor()">Ask Tutor</button>
+      </div>
+      <div id="tutor-response" style="margin-top:10px; font-size:0.85rem; color:var(--text-muted); min-height:40px;"></div>
+    </div>
+  </div>
+
+  <div id="drawer-distribution" class="shared-drawer">
+    <button class="shared-drawer-close" onclick="PDEUEComponents.closeInspector('drawer-distribution')">X</button>
+    <h3 id="drawer-distribution-title" style="color:var(--accent-cyan);">Distribution Request</h3>
+    <div id="drawer-distribution-body" style="margin-top:20px;"></div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const res = await fetch('/api/v1/portal/member/SCMA-MEM-001');
+      if (res.ok) {
+        const data = await res.json();
+        document.getElementById('val-cash').innerText = PDEUEComponents.formatCents(data.cash_cents);
+        document.getElementById('val-reserved').innerText = PDEUEComponents.formatCents(data.reserved_cents);
+        document.getElementById('val-profit').innerText = PDEUEComponents.formatCents(data.lifetime_profit_cents);
+        document.getElementById('val-dial').innerText = data.risk_dial_pct + '%';
+        document.getElementById('risk-slider').value = data.risk_dial_pct;
+        document.getElementById('dial-disp').innerText = data.risk_dial_pct + '%';
+        
+        PDEUEComponents.renderEquityChart('member-compounding-chart', 
+          ['Cycle 0', 'Cycle 10', 'Cycle 20', 'Cycle 30', 'Current'], 
+          data.equity_series_cents);
+      }
+    });
+
+    async function updateRiskDial() {
+      const val = parseFloat(document.getElementById('risk-slider').value);
+      const res = await fetch('/api/v1/portal/member/SCMA-MEM-001/risk-dial', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ new_risk_dial: val })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert('Risk dial updated to ' + data.applied_risk_dial + '%');
+        location.reload();
+      } else {
+        alert('Error: ' + data.detail);
+      }
+    }
+
+    function openDistributionDrawer(tier) {
+      let content = '<p>Initiate distribution under canonical TPW guidelines.</p>';
+      if (tier === 'GREEN') content += '<p style="color:var(--accent-green);">Autonomous Tier: Profit draw only. Capital base preserved.</p>';
+      if (tier === 'YELLOW') content += '<p style="color:var(--accent-amber);">Yellow Tier: AI warns of reduced future compounding velocity.</p>';
+      if (tier === 'RED') content += '<p style="color:var(--accent-red);">Red Tier: Principal reduction requires Lineal F1/F2 Mentor signature.</p>';
+      content += '<input type="number" placeholder="Amount (Cents)" style="width:100%; padding:8px; margin:10px 0; background:#020617; border:1px solid #334155; color:white;">';
+      content += '<button class="shared-drawer-close" style="float:none; width:100%; background:var(--accent-cyan); color:#0a0f1d;">Submit Intent</button>';
+      PDEUEComponents.openInspector('drawer-distribution', 'Request Distribution (' + tier + ')', content);
+    }
+
+    async function askTutor() {
+      const q = document.getElementById('tutor-prompt').value;
+      if (!q) return;
+      document.getElementById('tutor-response').innerText = 'FSE Tutor analyzing...';
+      const res = await fetch('/api/v1/portal/member/ai-tutor', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ question: q })
+      });
+      const d = await res.json();
+      document.getElementById('tutor-response').innerHTML = '<strong>Tutor:</strong> ' + d.answer;
+    }
+  </script>
+</body>
+</html>

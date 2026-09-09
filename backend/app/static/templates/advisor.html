@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PDEUE - Financial Advisor Workspace</title>
+  <link rel="stylesheet" href="/static/css/shared_components.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/static/js/shared_components.js"></script>
+</head>
+<body>
+  <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-subtle); padding-bottom:15px; margin-bottom:20px;">
+    <div>
+      <h1 style="margin:0; font-size:1.5rem; color:var(--accent-cyan);">Financial Advisor Workspace</h1>
+      <div class="shared-sub">Role: <span id="advisor-role">F1_FINANCIAL_ADVISOR</span> | Read-Only Analytical Posture</div>
+    </div>
+    <div style="background:#334155; padding:6px 12px; border-radius:4px; font-size:0.8rem;">
+      No Trading or Kill-Switch Authority
+    </div>
+  </div>
+
+  <div class="shared-grid">
+    <div class="shared-card">
+      <h3>Assigned Household</h3>
+      <div class="shared-val" id="adv-household">HOUSEHOLD-ALPHA</div>
+      <div class="shared-sub">Lineal Advisory Oversight</div>
+    </div>
+    <div class="shared-card">
+      <h3>Household Capital</h3>
+      <div class="shared-val" id="adv-capital" style="color:var(--accent-green);">$0.00</div>
+      <div class="shared-sub">Aggregated SCMA Total</div>
+    </div>
+    <div class="shared-card">
+      <h3>Active Risk Ceiling</h3>
+      <div class="shared-val" id="adv-max-risk">5.0%</div>
+      <div class="shared-sub">B4-RSK Governance Cap</div>
+    </div>
+  </div>
+
+  <div class="shared-card" style="margin-bottom:20px;">
+    <h3>Assigned Member Accounts</h3>
+    <table class="shared-type-table" id="member-table">
+      <thead>
+        <tr>
+          <th>SCMA ID</th>
+          <th>Household</th>
+          <th>Available Cash</th>
+          <th>Reserved Margin</th>
+          <th>Risk Dial</th>
+          <th>Audit Action</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div id="drawer-audit" class="shared-drawer">
+    <button class="shared-drawer-close" onclick="PDEUEComponents.closeInspector('drawer-audit')">X</button>
+    <h3 id="drawer-audit-title" style="color:var(--accent-cyan);">Decision Audit</h3>
+    <div id="drawer-audit-body" style="margin-top:20px;"></div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const res = await fetch('/api/v1/portal/advisor/households');
+      if (res.ok) {
+        const d = await res.json();
+        document.getElementById('adv-capital').innerText = PDEUEComponents.formatCents(d.total_capital_cents);
+        const tbody = document.querySelector('#member-table tbody');
+        tbody.innerHTML = '';
+        d.members.forEach(m => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><strong>${m.scma_id}</strong></td>
+            <td>${m.household_id}</td>
+            <td>${PDEUEComponents.formatCents(m.cash_cents)}</td>
+            <td>${PDEUEComponents.formatCents(m.reserved_cents)}</td>
+            <td>${m.risk_dial_pct}%</td>
+            <td><button class="shared-drawer-close" style="float:none; padding:3px 8px; font-size:0.75rem; background:var(--accent-cyan); color:#0a0f1d;" onclick="inspectAudit('${m.scma_id}')">Audit Decisions</button></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+    });
+
+    async function inspectAudit(scmaId) {
+      const res = await fetch('/api/v1/portal/advisor/decision-audit/IF-037-CONTRACT-DEMO');
+      const d = await res.json();
+      const body = `
+        <p><strong>Contract:</strong> ${d.contract_id}</p>
+        <p><strong>Rationale:</strong> ${d.plain_english_rationale}</p>
+        <p><strong>Model Exceedance:</strong> ${(d.model_prob * 100).toFixed(1)}%</p>
+        <p><strong>Market Price:</strong> $${(d.market_ask_cents / 100).toFixed(2)}</p>
+        <p><strong>Sizing:</strong> Quarter-Kelly ($0.25 f*)</p>
+      `;
+      PDEUEComponents.openInspector('drawer-audit', 'Audit: ' + scmaId, body);
+    }
+  </script>
+</body>
+</html>

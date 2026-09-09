@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PDEUE - Technical Ops Console</title>
+  <link rel="stylesheet" href="/static/css/shared_components.css">
+  <script src="/static/js/shared_components.js"></script>
+</head>
+<body>
+  <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-subtle); padding-bottom:15px; margin-bottom:20px;">
+    <div>
+      <h1 style="margin:0; font-size:1.5rem; color:var(--accent-cyan);">Technical Infrastructure Console</h1>
+      <div class="shared-sub">Daemon Telemetry & System Bounds | Role: <span id="tech-role">T3_SYSTEM_ADMIN</span></div>
+    </div>
+    <div style="background:#1e293b; padding:6px 12px; border-radius:4px; font-size:0.8rem; border:1px solid var(--accent-amber); color:var(--accent-amber);">
+      Privacy Plane: Financial Data Redacted
+    </div>
+  </div>
+
+  <div class="shared-grid">
+    <div class="shared-card">
+      <h3>Scan Daemon Cycle</h3>
+      <div class="shared-val" id="val-cycle">5,000 ms</div>
+      <div class="shared-sub">Polling interval cadence</div>
+    </div>
+    <div class="shared-card">
+      <h3>Rate-Limiter Depth</h3>
+      <div class="shared-val" id="val-bucket" style="color:var(--accent-green);">100%</div>
+      <div class="shared-sub">Token bucket capacity</div>
+    </div>
+    <div class="shared-card">
+      <h3>WebSocket Latency</h3>
+      <div class="shared-val" id="val-latency">18 ms</div>
+      <div class="shared-sub">Venue round-trip ping</div>
+    </div>
+    <div class="shared-card">
+      <h3>Operating State</h3>
+      <div class="shared-val" id="val-state" style="color:var(--accent-cyan);">ACTIVE</div>
+      <div class="shared-sub">Fail-closed invariant ok</div>
+    </div>
+  </div>
+
+  <div class="shared-card">
+    <h3>Data Plane Diagnostic Stream</h3>
+    <div style="margin-bottom:12px; font-size:0.85rem; color:var(--text-muted);">
+      Personal identities and ledger values are masked by default per Directive R-12. Chief Administrator grant required for temporary unredaction.
+    </div>
+    <table class="shared-type-table" id="stream-table">
+      <thead>
+        <tr>
+          <th>Worker ID</th>
+          <th>Tenant SCMA</th>
+          <th>Operation</th>
+          <th>Allocated Ledger Cent Value</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>worker-daemon-01</td>
+          <td id="cell-scma">SCMA-MEM-****</td>
+          <td>DISPATCH_CONTRACT</td>
+          <td id="cell-val">CENTS-******</td>
+          <td style="color:var(--accent-green);">SUCCESS</td>
+        </tr>
+      </tbody>
+    </table>
+    <button class="shared-drawer-close" style="float:none; margin-top:16px; background:#334155; color:white;" onclick="requestUnredact()">Request CA Unredact Grant</button>
+  </div>
+
+  <script>
+    async function requestUnredact() {
+      const res = await fetch('/api/v1/portal/tech/request-unredact', { method: 'POST' });
+      const d = await res.json();
+      if (d.unredacted) {
+        document.getElementById('cell-scma').innerText = d.scma_id;
+        document.getElementById('cell-val').innerText = PDEUEComponents.formatCents(d.cents);
+        alert('CA Grant accepted: Temporary 60s diagnostic unredact applied.');
+      } else {
+        alert('Grant denied.');
+      }
+    }
+  </script>
+</body>
+</html>
