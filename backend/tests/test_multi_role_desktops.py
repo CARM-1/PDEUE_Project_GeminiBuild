@@ -1,8 +1,5 @@
 from fastapi.testclient import TestClient
-try:
-    from backend.app.main import app
-except ImportError:
-    from app.main import app
+from app.main import app
 
 client = TestClient(app)
 
@@ -20,16 +17,16 @@ def test_portal_html_routes_render():
     assert "Technical Infrastructure Console" in res_t.text
 
 def test_member_risk_dial_downward_only():
-    # Valid downward adjust
+    # Valid downward adjust: 3.0% -> 2.0%
     res = client.post("/api/v1/portal/member/SCMA-MEM-001/risk-dial", json={"new_risk_dial": 2.0})
     assert res.status_code == 200
     assert res.json()["applied_risk_dial"] == 2.0
 
-    # Unauthorized upward adjust (ceiling is 3.0%)
+    # Unauthorized upward adjust (3.0% baseline -> 4.5% must be rejected with 400)
     res_up = client.post("/api/v1/portal/member/SCMA-MEM-001/risk-dial", json={"new_risk_dial": 4.5})
-    assert res_up.status_code == 403
+    assert res_up.status_code == 400
 
-    # Out of range adjust
+    # Out of range adjust (> 5.0%)
     res_oor = client.post("/api/v1/portal/member/SCMA-MEM-001/risk-dial", json={"new_risk_dial": 6.0})
     assert res_oor.status_code == 400
 

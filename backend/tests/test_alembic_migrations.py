@@ -1,7 +1,7 @@
 import os
 import pathlib
-from alembic.config import Config
 from alembic import command
+from alembic.config import Config
 from sqlalchemy import create_engine, inspect
 
 def test_alembic_upgrade_and_downgrade():
@@ -10,7 +10,10 @@ def test_alembic_upgrade_and_downgrade():
     ini_path = backend_dir / 'alembic.ini'
     test_db = backend_dir / 'test_migration.db'
     if test_db.exists():
-        test_db.unlink()
+        try:
+            test_db.unlink()
+        except PermissionError:
+            pass
     db_url = f'sqlite:///{test_db.as_posix()}'
 
     alembic_cfg = Config(str(ini_path))
@@ -19,14 +22,19 @@ def test_alembic_upgrade_and_downgrade():
 
     command.upgrade(alembic_cfg, 'head')
     engine = create_engine(db_url)
-    inspector = inspect(engine)
-    tables = inspector.get_table_names()
-    assert 'accounting_outbox_events' in tables, 'Outbox table not created by migration'
+    try:
+        inspector = inspect(engine)
+        tables = inspector.get_table_names()
+        assert 'accounting_outbox_events' in tables, 'Outbox table not created by migration'
 
-    command.downgrade(alembic_cfg, 'base')
-    inspector_down = inspect(engine)
-    tables_down = inspector_down.get_table_names()
-    assert 'accounting_outbox_events' not in tables_down, 'Outbox table not dropped on downgrade'
-
-    if test_db.exists():
-        test_db.unlink()
+        command.downgrade(alembic_cfg, 'base')
+        inspector_down = inspect(engine)
+        tables_down = inspector_down.get_table_names()
+        assert 'accounting_outbox_events' not in tables_down, 'Outbox table not dropped on downgrade'
+    finally:
+        engine.dispose()
+        if test_db.exists():
+            try:
+                test_db.unlink()
+            except PermissionError:
+                pass
