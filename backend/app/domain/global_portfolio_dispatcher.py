@@ -8,6 +8,7 @@ from app.domain.capital_ledger import CapitalLedger
 from app.domain.execution_coordinator import ExecutionEnvelopeCoordinator
 from app.domain.position_book import PositionBook
 from app.domain.priority_eviction import PriorityEvictionManager
+from app.domain.maker_execution_engine import MakerExecutionEngine
 from app.db.models import DecisionPacketRecordModel, OrderRecordModel
 
 class GlobalPortfolioDispatcher:
@@ -19,6 +20,7 @@ class GlobalPortfolioDispatcher:
         coordinator: Optional[ExecutionEnvelopeCoordinator] = None,
         position_book: Optional[PositionBook] = None,
         eviction_manager: Optional[PriorityEvictionManager] = None,
+        maker_engine: Optional[MakerExecutionEngine] = None,
         db_session = None,
         max_concurrent_orders: int = 5,
         max_portfolio_exposure_cents: int = 500000,
@@ -34,6 +36,7 @@ class GlobalPortfolioDispatcher:
             dry_powder_floor_pct=0.40,
             max_expiry_hours=max_expiry_hours
         )
+        self.maker_engine = maker_engine or MakerExecutionEngine()
         self.db_session = db_session
         self.max_concurrent_orders = max_concurrent_orders
         self.max_portfolio_exposure_cents = max_portfolio_exposure_cents
@@ -138,16 +141,33 @@ class GlobalPortfolioDispatcher:
             if not self.ledger.reserve_capital(res_id, stake_cents):
                 continue
 
-            qty = max(1, int(stake_dollars / price)) if price > 0 else 1
+            cand_bid = raw_item.get('yes_bid', cand.get('yes_bid'))
+            cand_ask = raw_item.get('yes_ask', cand.get('yes_ask', price))
+            order_price, pricing_mode, spread_discount, fee_savings = price, 'TAKER_FALLBACK', 0.0, 0.0
+            if cand_bid is not None and cand_ask is not None:
+                try:
+                    f_bid, f_ask = float(cand_bid), float(cand_ask)
+                    if f_bid > 0 and f_ask > f_bid:
+                        mq = self.maker_engine.construct_maker_bid(best_bid=f_bid, best_ask=f_ask, model_prob=float(target_prob))
+                        if mq.get('status') == 'POSTED':
+                            order_price = mq['maker_price']
+                            pricing_mode = 'MAKER_LIMIT'
+                            spread_discount = mq.get('spread_discount', 0.0)
+                            fee_savings = mq.get('fee_savings', 0.0)
+                except (ValueError, TypeError): order_price = price
+            qty = max(1, int(stake_dollars / order_price)) if order_price > 0 else 1
             idem_key = f'IDEM-PORT-{uuid.uuid4().hex[:12]}'
             order_intent = {
                 'decision_packet_id': packet['packet_id'],
                 'contract_id': contract_id,
                 'side': 'BUY',
-                'price': price,
+                'price': order_price,
                 'quantity': qty,
                 'total_cost_cents': stake_cents,
-                'idempotency_key': idem_key
+                'idempotency_key': idem_key,
+                'pricing_mode': pricing_mode,
+                'spread_discount': spread_discount,
+                'fee_savings': fee_savings
             }
             reservation = {'reserved': True, 'reserved_cents': stake_cents}
             exec_res = self.coordinator.execute_order_lifecycle(
@@ -165,7 +185,7 @@ class GlobalPortfolioDispatcher:
                     venue=venue,
                     category=cat,
                     side='BUY',
-                    price=price,
+                    price=order_price,
                     quantity=qty,
                     fill_cost_cents=stake_cents
                 )
@@ -184,7 +204,11 @@ class GlobalPortfolioDispatcher:
                     'allocated_cents': stake_cents,
                     'reservation_id': res_id,
                     'order_intent': order_intent,
-                    'execution_result': exec_res
+                    'execution_result': exec_res,
+                    'pricing_mode': pricing_mode,
+                    'maker_price': order_price,
+                    'spread_discount': spread_discount,
+                    'fee_savings': fee_savings
                 })
                 if self.db_session is not None:
                     db_packet = DecisionPacketRecordModel(
@@ -202,7 +226,7 @@ class GlobalPortfolioDispatcher:
                         contract_id=contract_id,
                         venue=venue,
                         side='BUY',
-                        price=price,
+                        price=order_price,
                         quantity=qty,
                         status='ROUTED',
                         idempotency_key=idem_key
@@ -245,7 +269,22 @@ class GlobalPortfolioDispatcher:
                 stake_eval = getattr(self, 'risk_engine', None)
                 alloc = min(int(eq * risk_pct), raw_k) if not stake_eval else stake_eval.evaluate_stake(total_equity_cents=eq, member_risk_pct=risk_pct, factor_committed_cents=0, raw_kelly_stake_cents=raw_k).get('allocated_stake_cents', 0)
                 if alloc <= 0: continue
-                p_cents = max(1, int(round(ask * 100)))
+                raw_item = next((b for b in board_candidates if b.get('contract_id') == cand.get('contract_id')), {})
+                cand_bid = raw_item.get('yes_bid', cand.get('yes_bid'))
+                cand_ask = raw_item.get('yes_ask', cand.get('yes_ask', ask))
+                order_price, pricing_mode, spread_discount, fee_savings = ask, 'TAKER_FALLBACK', 0.0, 0.0
+                if cand_bid is not None and cand_ask is not None:
+                    try:
+                        f_bid, f_ask = float(cand_bid), float(cand_ask)
+                        if f_bid > 0 and f_ask > f_bid:
+                            mq = self.maker_engine.construct_maker_bid(best_bid=f_bid, best_ask=f_ask, model_prob=float(prob))
+                            if mq.get('status') == 'POSTED':
+                                order_price = mq['maker_price']
+                                pricing_mode = 'MAKER_LIMIT'
+                                spread_discount = mq.get('spread_discount', 0.0)
+                                fee_savings = mq.get('fee_savings', 0.0)
+                    except (ValueError, TypeError): order_price = ask
+                p_cents = max(1, int(round(order_price * 100)))
                 qty = max(1, alloc // p_cents)
                 cost = qty * p_cents
                 if cost > mem['balance_cents']:
@@ -254,8 +293,11 @@ class GlobalPortfolioDispatcher:
                 if qty <= 0 or cost <= 0: continue
                 res_id = f'RES-{mid}-{uuid.uuid4().hex[:6]}'
                 if not self.ledger.reserve_member_capital(res_id, mid, cost): continue
+                order_side = cand.get('side') or cand.get('recommended_action') or 'BUY'
                 if hasattr(self.position_book, 'record_fill'):
-                    self.position_book.record_fill(contract_id=cand.get('contract_id'), venue=cand.get('venue'), category=cand.get('category'), side=cand.get('side'), price=ask, quantity=qty, fill_cost_cents=cost, member_id=mid)
-                dispatched.append({'member_id': mid, 'contract_id': cand.get('contract_id'), 'reservation_id': res_id, 'venue': cand.get('venue'), 'category': cand.get('category'), 'side': cand.get('side'), 'quantity': qty, 'cost_cents': cost, 'entry_price': ask, 'model_probability': prob})
+                    self.position_book.record_fill(contract_id=cand.get('contract_id'), venue=cand.get('venue'), category=cand.get('category'), side=order_side, price=order_price, quantity=qty, fill_cost_cents=cost, member_id=mid)
+                if hasattr(self.eviction_manager, 'register_resting_order'):
+                    self.eviction_manager.register_resting_order(order_id=res_id, ticker=cand.get('contract_id'), domain=cand.get('category', 'GENERAL'), net_edge=cand.get('net_edge', 0.0), stake_cents=cost)
+                dispatched.append({'member_id': mid, 'contract_id': cand.get('contract_id'), 'reservation_id': res_id, 'venue': cand.get('venue'), 'category': cand.get('category'), 'side': order_side, 'quantity': qty, 'cost_cents': cost, 'entry_price': order_price, 'model_probability': prob, 'pricing_mode': pricing_mode, 'maker_price': order_price, 'spread_discount': spread_discount, 'fee_savings': fee_savings})
                 total_allocated += cost
         return {'status': 'DISPATCHED' if dispatched else 'ABSTAINED', 'reason': 'MULTI_MEMBER_DISPATCHED' if dispatched else 'NO_CAPITAL_OR_RISK_REJECTED', 'dispatched_count': len(dispatched), 'dispatched_orders': dispatched, 'total_allocated_cents': total_allocated, 'members_processed': len(targets), 'screen_summary': screen_res}
