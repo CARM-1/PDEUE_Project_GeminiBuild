@@ -5,6 +5,12 @@
   <title>PDEUE - Technical Ops Console</title>
   <link rel="stylesheet" href="/static/css/shared_components.css">
   <script src="/static/js/shared_components.js"></script>
+  <style>
+    .badge-green { background: #064e3b; color: #34d399; padding: 3px 8px; border-radius: 4px; font-weight: 600; font-size: 0.75rem; }
+    .badge-red { background: #7f1d1d; color: #f87171; padding: 3px 8px; border-radius: 4px; font-weight: 600; font-size: 0.75rem; }
+    .text-mono { font-family: monospace; }
+    .edge-val { color: #34d399; font-weight: 600; }
+  </style>
 </head>
 <body>
   <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-subtle); padding-bottom:15px; margin-bottom:20px;">
@@ -17,27 +23,64 @@
     </div>
   </div>
 
-  <div class="shared-grid">
+  <div class="shared-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 20px;">
     <div class="shared-card">
       <h3>Scan Daemon Cycle</h3>
       <div class="shared-val" id="val-cycle">5,000 ms</div>
-      <div class="shared-sub">Polling interval cadence</div>
+      <div class="shared-sub">Cadence interval</div>
     </div>
     <div class="shared-card">
-      <h3>Rate-Limiter Depth</h3>
-      <div class="shared-val" id="val-bucket" style="color:var(--accent-green);">100%</div>
-      <div class="shared-sub">Token bucket capacity</div>
+      <h3>Dry Powder (40% Floor)</h3>
+      <div class="shared-val" id="dry-powder-status" style="color:var(--accent-green);">COMPLIANT</div>
+      <div class="shared-sub" id="dry-powder-sub">40.00 USD floor locked</div>
     </div>
     <div class="shared-card">
-      <h3>WebSocket Latency</h3>
-      <div class="shared-val" id="val-latency">18 ms</div>
-      <div class="shared-sub">Venue round-trip ping</div>
+      <h3>Concurrent Active Bids</h3>
+      <div class="shared-val" id="active-bids-count">0 / 5</div>
+      <div class="shared-sub">Inside maker queue capacity</div>
     </div>
     <div class="shared-card">
-      <h3>Operating State</h3>
-      <div class="shared-val" id="val-state" style="color:var(--accent-cyan);">ACTIVE</div>
-      <div class="shared-sub">Fail-closed invariant ok</div>
+      <h3>Alpha Preemptions</h3>
+      <div class="shared-val" id="preemptions-count">0</div>
+      <div class="shared-sub">Zero-friction reallocations</div>
     </div>
+  </div>
+
+  <div class="shared-card" style="margin-bottom: 20px;">
+    <h3>Active Resting Maker Limit Bids</h3>
+    <table class="shared-type-table">
+      <thead>
+        <tr>
+          <th>Order ID</th>
+          <th>Ticker</th>
+          <th>Domain</th>
+          <th>Stake (Cents)</th>
+          <th>Net Edge</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="resting-orders-body">
+        <tr><td colspan="6" style="text-align: center; color: #64748b;">No active resting limit orders</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="shared-card" style="margin-bottom: 20px;">
+    <h3>Priority Preemption & Eviction History</h3>
+    <table class="shared-type-table">
+      <thead>
+        <tr>
+          <th>Evicted Order ID</th>
+          <th>Ticker</th>
+          <th>Domain</th>
+          <th>Evicted At</th>
+          <th>Reason</th>
+        </tr>
+      </thead>
+      <tbody id="eviction-history-body">
+        <tr><td colspan="5" style="text-align: center; color: #64748b;">Zero preemption events recorded</td></tr>
+      </tbody>
+    </table>
   </div>
 
   <div class="shared-card">
@@ -80,6 +123,72 @@
         alert('Grant denied.');
       }
     }
+
+    async function fetchTelemetry() {
+      try {
+        const res = await fetch('/api/v1/portal/telemetry');
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // Dry Powder
+        const headroom = data.capital_headroom;
+        if (headroom) {
+          const isCompliant = headroom.dry_powder_compliant;
+          const dryPowderElem = document.getElementById('dry-powder-status');
+          dryPowderElem.innerText = isCompliant ? 'COMPLIANT' : 'BREACHED';
+          dryPowderElem.style.color = isCompliant ? 'var(--accent-green)' : 'var(--accent-red)';
+          document.getElementById('dry-powder-sub').innerText =
+            `${(headroom.uncommitted_cash_cents / 100).toFixed(2)} USD uncommitted (${(headroom.dry_powder_floor_cents / 100).toFixed(2)} USD floor)`;
+        }
+
+        // Eviction metrics
+        const eviction = data.eviction_engine;
+        if (eviction) {
+          document.getElementById('active-bids-count').innerText =
+            `${eviction.active_resting_bids_count} / ${eviction.max_concurrent_orders}`;
+          document.getElementById('preemptions-count').innerText =
+            data.worker_status?.evictions_executed || eviction.recent_evictions.length;
+
+          // Resting Orders
+          const restingBody = document.getElementById('resting-orders-body');
+          if (eviction.resting_orders && eviction.resting_orders.length > 0) {
+            restingBody.innerHTML = eviction.resting_orders.map(o => `
+              <tr>
+                <td class="text-mono">${o.order_id}</td>
+                <td><strong>${o.ticker}</strong></td>
+                <td>${o.domain}</td>
+                <td>${o.stake_cents}¢</td>
+                <td class="edge-val">+${(o.net_edge * 100).toFixed(1)}%</td>
+                <td><span class="badge-green">${o.status}</span></td>
+              </tr>
+            `).join('');
+          } else {
+            restingBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #64748b;">No active resting limit orders</td></tr>';
+          }
+
+          // Eviction History
+          const evictBody = document.getElementById('eviction-history-body');
+          if (eviction.recent_evictions && eviction.recent_evictions.length > 0) {
+            evictBody.innerHTML = eviction.recent_evictions.slice().reverse().map(e => `
+              <tr>
+                <td class="text-mono">${e.order_id}</td>
+                <td>${e.ticker}</td>
+                <td>${e.domain}</td>
+                <td class="text-mono">${new Date(e.evicted_at).toLocaleTimeString()}</td>
+                <td><span class="badge-red">${e.eviction_reason}</span></td>
+              </tr>
+            `).join('');
+          } else {
+            evictBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #64748b;">Zero preemption events recorded</td></tr>';
+          }
+        }
+      } catch (err) {
+        console.error("Telemetry poll failed:", err);
+      }
+    }
+
+    fetchTelemetry();
+    setInterval(fetchTelemetry, 3000);
   </script>
 </body>
 </html>
