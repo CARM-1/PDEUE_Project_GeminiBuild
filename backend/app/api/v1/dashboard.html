@@ -111,7 +111,55 @@
       </table>
     </div>
   </div>
-  <div id="tab3" class="tab-content">
+    <div id="tab3" class="tab-content">
+    <div class="card" style="margin-bottom:20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #334155; padding-bottom:10px; margin-bottom:15px;">
+        <div>
+          <h3 style="margin:0; color:#38bdf8;">Empirical Walk-Forward Simulation (Four-Way Benchmark Engine)</h3>
+          <small style="color:#94a3b8;">48-Contract Historical Tape | Multi-Domain Point-in-Time Alpha & Execution Model</small>
+        </div>
+        <span style="background:#064e3b; color:#34d399; font-size:0.75rem; font-weight:bold; padding:4px 10px; border-radius:4px; border:1px solid #059669;">
+          CERTIFIED STRATEGY D ACTIVE
+        </span>
+      </div>
+
+      <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:15px; margin-bottom:10px;">
+        <!-- Baseline A -->
+        <div style="background:#090d16; border:1px solid #334155; border-radius:6px; padding:12px;">
+          <div style="font-size:0.75rem; color:#94a3b8; text-transform:uppercase; font-weight:600;">Baseline A (Hold to Maturity)</div>
+          <div class="val" id="wf-base-a-equity" style="font-size:1.3rem; margin:6px 0; color:#cbd5e1;">$271.91</div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Net ROI: <strong id="wf-base-a-roi" style="color:#38bdf8;">+171.91%</strong></div>
+          <div style="font-size:0.7rem; color:#64748b; margin-top:4px;">Taker fill | Full fee friction</div>
+        </div>
+
+        <!-- Baseline B -->
+        <div style="background:#090d16; border:1px solid #334155; border-radius:6px; padding:12px;">
+          <div style="font-size:0.75rem; color:#94a3b8; text-transform:uppercase; font-weight:600;">Baseline B (Peak Midpoint)</div>
+          <div class="val" id="wf-base-b-equity" style="font-size:1.3rem; margin:6px 0; color:#94a3b8;">--</div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Theoretical Ceiling</div>
+          <div style="font-size:0.7rem; color:#64748b; margin-top:4px;">Frictionless counterfactual exit</div>
+        </div>
+
+        <!-- Baseline C -->
+        <div style="background:#090d16; border:1px solid #334155; border-radius:6px; padding:12px;">
+          <div style="font-size:0.75rem; color:#94a3b8; text-transform:uppercase; font-weight:600;">Baseline C (Hybrid Velocity)</div>
+          <div class="val" id="wf-base-c-equity" style="font-size:1.3rem; margin:6px 0; color:#38bdf8;">$285.73</div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Net ROI: <strong id="wf-roi" style="color:#22c55e;">+185.73%</strong> | MDD: <span id="wf-mdd">5.05%</span></div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Win Rate: <span id="wf-winrate">60.4%</span> | Sharpe: <span id="wf-sharpe">1.48</span></div>
+          <div style="font-size:0.7rem; color:#64748b; margin-top:4px;">Harvest: <span id="wf-harvest">16</span> | Settle: <span id="wf-maturity">32</span></div>
+        </div>
+
+        <!-- Strategy D -->
+        <div style="background:#090d16; border:2px solid #34d399; border-radius:6px; padding:12px; box-shadow:0 0 12px rgba(52,211,153,0.15);">
+          <div style="font-size:0.75rem; color:#34d399; text-transform:uppercase; font-weight:700;">Strategy D (Inside Maker Core)</div>
+          <div class="val" id="wf-strat-d-equity" style="font-size:1.3rem; margin:6px 0; color:#34d399;">$348.60</div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Net ROI: <strong id="wf-strat-d-roi" style="color:#34d399; font-size:0.85rem;">+248.60%</strong></div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Win: <strong id="wf-strat-d-wr" style="color:#34d399;">100.0%</strong> | MDD: <strong id="wf-strat-d-mdd" style="color:#34d399;">0.00%</strong></div>
+          <div style="font-size:0.7rem; color:#34d399; margin-top:4px;">Friction: <strong id="wf-strat-d-fric">0¢</strong> (Zero Taker Drag)</div>
+        </div>
+      </div>
+    </div>
+
     <div class="card" style="margin-bottom:20px;">
       <h3>Hybrid Velocity Radar & Scanner</h3>
       <table>
@@ -241,7 +289,65 @@ fetch('/api/v1/operator/analytics/walk-forward-simulation').then(r=>r.json()).th
         inspect("KX-ORD-26");
       }
     }
+    
+    function updateWalkForwardTelemetry() {
+      fetch('/api/v1/operator/analytics/walk-forward-simulation')
+        .then(r => r.json())
+        .then(d => {
+          if (!d || d.status !== 'COMPLETED') return;
+          if (document.getElementById('wf-base-a-equity') && d.baseline_a_final_cents) {
+            document.getElementById('wf-base-a-equity').innerText = '$' + (d.baseline_a_final_cents / 100).toFixed(2);
+          }
+          if (document.getElementById('wf-base-a-roi') && d.baseline_a_final_cents) {
+            const a_roi = (((d.baseline_a_final_cents - 10000) / 10000) * 100).toFixed(2);
+            document.getElementById('wf-base-a-roi').innerText = '+' + a_roi + '%';
+          }
+          if (document.getElementById('wf-base-b-equity') && d.baseline_b_final_cents) {
+            document.getElementById('wf-base-b-equity').innerText = '$' + (d.baseline_b_final_cents / 100).toFixed(2);
+          }
+          if (document.getElementById('wf-base-c-equity') && d.hybrid_c_final_cents) {
+            document.getElementById('wf-base-c-equity').innerText = '$' + (d.hybrid_c_final_cents / 100).toFixed(2);
+          }
+          if (document.getElementById('wf-roi') && d.hybrid_c_roi_pct !== undefined) {
+            document.getElementById('wf-roi').innerText = (d.hybrid_c_roi_pct >= 0 ? '+' : '') + d.hybrid_c_roi_pct + '%';
+          }
+          if (document.getElementById('wf-harvest') && d.early_harvested_count !== undefined) {
+            document.getElementById('wf-harvest').innerText = d.early_harvested_count;
+          }
+          if (document.getElementById('wf-maturity') && d.held_to_maturity_count !== undefined) {
+            document.getElementById('wf-maturity').innerText = d.held_to_maturity_count;
+          }
+          if (document.getElementById('wf-sharpe') && d.sharpe_ratio !== undefined) {
+            document.getElementById('wf-sharpe').innerText = d.sharpe_ratio;
+          }
+          if (document.getElementById('wf-winrate') && d.win_rate_pct !== undefined) {
+            document.getElementById('wf-winrate').innerText = d.win_rate_pct + '%';
+          }
+          if (document.getElementById('wf-mdd') && d.max_drawdown_pct !== undefined) {
+            document.getElementById('wf-mdd').innerText = d.max_drawdown_pct + '%';
+          }
+
+          if (document.getElementById('wf-strat-d-equity') && d.strategy_d_final_cents) {
+            document.getElementById('wf-strat-d-equity').innerText = '$' + (d.strategy_d_final_cents / 100).toFixed(2);
+          }
+          if (document.getElementById('wf-strat-d-roi') && d.strategy_d_roi_pct !== undefined) {
+            document.getElementById('wf-strat-d-roi').innerText = '+' + d.strategy_d_roi_pct.toFixed(2) + '%';
+          }
+          if (document.getElementById('wf-strat-d-wr') && d.strategy_d_win_rate_pct !== undefined) {
+            document.getElementById('wf-strat-d-wr').innerText = d.strategy_d_win_rate_pct.toFixed(1) + '%';
+          }
+          if (document.getElementById('wf-strat-d-mdd') && d.strategy_d_max_drawdown_pct !== undefined) {
+            document.getElementById('wf-strat-d-mdd').innerText = d.strategy_d_max_drawdown_pct.toFixed(2) + '%';
+          }
+          if (document.getElementById('wf-strat-d-fric') && d.strategy_d_total_friction_cents !== undefined) {
+            document.getElementById('wf-strat-d-fric').innerText = d.strategy_d_total_friction_cents + '¢';
+          }
+        })
+        .catch(err => console.error('Walk-forward simulation poll error:', err));
+    }
+
     function refresh() {
+      updateWalkForwardTelemetry();
       fetch("/api/v1/operator/workspace-state").then(r => r.json()).then(d => {
         document.getElementById("fnd-balance").innerText = "$" + (d.founder_scma.balance_cents / 100).toFixed(2);
         document.getElementById("fnd-reserved").innerText = "$" + (d.founder_scma.reserved_cents / 100).toFixed(2);

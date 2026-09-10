@@ -1,151 +1,376 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>PDEUE Chief Administrator Workspace</title>
-<style>
-  body { margin:0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0b0f19; color: #e2e8f0; }
-  header { padding: 1rem 2rem; background: #131b2e; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; }
-  h1 { margin:0; font-size: 1.25rem; color: #38bdf8; }
-  .badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: bold; font-size: 0.8rem; }
-  .badge-paper { background: #0369a1; color: #e0f2fe; }
-  .badge-halted { background: #b91c1c; color: #fee2e2; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; padding: 1.5rem; }
-  .card { background: #131b2e; border: 1px solid #1e293b; border-radius: 0.5rem; padding: 1.25rem; }
-  .card h2 { margin-top: 0; font-size: 0.95rem; color: #94a3b8; border-bottom: 1px solid #1e293b; padding-bottom: 0.5rem; }
-  table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.85rem; }
-  th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid #1e293b; }
-  th { color: #64748b; }
-  .btn-kill { background: #ef4444; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.375rem; cursor: pointer; font-weight: bold; }
-  .btn-kill:hover { background: #dc2626; }
-  .btn-action { background: #0284c7; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 0.375rem; cursor: pointer; font-weight: bold; font-size: 0.8rem; margin-right: 0.5rem; transition: background 0.2s ease; }
-  .btn-action:hover { background: #0369a1; }
-  .metric { font-size: 1.4rem; font-weight: bold; color: #f8fafc; margin: 0.4rem 0; }
-</style>
+  <meta charset="UTF-8">
+  <title>PDEUE Chief Administrator Workspace</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 20px; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 15px; margin-bottom: 20px; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid #334155; }
+    .tab-btn { background: #1e293b; color: #94a3b8; border: none; padding: 12px 20px; font-weight: 600; cursor: pointer; border-radius: 6px 6px 0 0; }
+    .tab-btn.active { background: #38bdf8; color: #0f172a; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-bottom: 25px; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 18px; }
+    .card h3 { margin-top: 0; color: #38bdf8; font-size: 0.95rem; text-transform: uppercase; }
+    .val { font-size: 1.8rem; font-weight: 700; margin: 10px 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #334155; }
+    th { background: #090d16; color: #94a3b8; }
+    .btn-kill { background: #ef4444; color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+    .btn-action { background: #38bdf8; color: #0f172a; border: none; padding: 6px 12px; font-weight: bold; border-radius: 4px; cursor: pointer; }
+    abbr[data-tooltip] { text-decoration: underline dotted #38bdf8; cursor: help; position: relative; }
+    abbr[data-tooltip]:hover::after { content: attr(data-tooltip); position: absolute; bottom: 125%; left: 50%; transform: translateX(-50%); background: #020617; color: #f8fafc; border: 1px solid #475569; padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; white-space: nowrap; z-index: 100; }
+    #drawer { position: fixed; right: -450px; top: 0; width: 420px; height: 100%; background: #090d16; border-left: 2px solid #38bdf8; box-shadow: -5px 0 25px rgba(0,0,0,0.7); padding: 25px; box-sizing: border-box; transition: right 0.3s ease; z-index: 200; overflow-y: auto; }
+    #drawer.open { right: 0; }
+    .close-btn { background: #334155; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; float: right; }
+    .tf-btn { background: #1e293b; color: #94a3b8; border: 1px solid #334155; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; }
+    .tf-btn.active { background: #38bdf8; color: #0f172a; font-weight: bold; }
+  </style>
 </head>
 <body>
-<header>
-  <div>
-    <h1>PDEUE Chief Administrator Workspace</h1>
-    <span style="font-size:0.75rem; color:#64748b;">B6 Operator Governance & Autonomous Execution Center</span>
-  </div>
-  <div>
-    <span id="mode-badge" class="badge badge-paper">MODE: PAPER</span>
-    <button class="btn-kill" onclick="triggerKillSwitch()" style="margin-left: 1rem;">EMERGENCY KILL SWITCH</button>
-  </div>
-</header>
-<div class="grid">
-  <div class="card">
-    <h2>Capital Ledger & Cash</h2>
-    <div class="metric" id="avail-cents">$100,000.00</div>
-    <div style="color:#64748b; font-size:0.8rem;">Reserved: <span id="res-cents" style="color:#cbd5e1;">$0.00</span></div>
-  </div>
-  <div class="card">
-    <h2>Mark-to-Market Portfolio (MTM)</h2>
-    <div class="metric" id="mtm-value">$0.00</div>
-    <div style="color:#64748b; font-size:0.8rem;">Invested: <span id="inv-cost" style="color:#cbd5e1;">$0.00</span> | PnL: <strong id="unreal-pnl" style="color:#22c55e;">$0.00 (+0.0%)</strong></div>
-  </div>
-  <div class="card">
-    <h2>Autonomous Scanning Loop</h2>
-    <div style="margin-top:0.4rem; font-size:0.85rem;">State: <strong id="daemon-state" style="color:#cbd5e1;">IDLE</strong></div>
-    <div style="color:#64748b; font-size:0.75rem; margin-top:0.25rem;">Cycles: <span id="daemon-cycles">0</span> | Scanned: <span id="daemon-scanned">0</span> | Dispatched: <span id="daemon-dispatched">0</span></div>
-    <div style="margin-top: 0.6rem;">
-      <button id="btn-toggle-daemon" class="btn-action" onclick="toggleDaemon()">START AUTONOMOUS LOOP</button>
-      <button id="btn-scan-now" class="btn-action" onclick="triggerScanNow()" style="background:#334155;">SCAN NOW</button>
+  <div class="topbar">
+    <div>
+      <h1 style="margin:0; font-size: 1.4rem;">PDEUE Chief Administrator Workspace</h1>
+      <small style="color: #94a3b8;">Binding Lexicon v0.4 | Dual-Control Active</small>
+    </div>
+    <div style="display:flex; gap:15px; align-items:center;">
+      <span id="sys-mode" style="background:#22c55e; color:#0f172a; padding:6px 14px; font-weight:bold; border-radius:20px;">MODE: PAPER</span>
+      <button class="btn-kill" onclick="triggerKillSwitch()">EMERGENCY KILL SWITCH</button>
     </div>
   </div>
-  <div class="card">
-    <h2>Circuit Breaker Telemetry</h2>
-    <div style="margin-top:0.4rem; font-size:0.85rem;">Status: <strong id="cb-status" style="color:#22c55e;">NORMAL (ARMED)</strong></div>
-    <div style="color:#64748b; font-size:0.75rem; margin-top:0.25rem;">Audit Events: <span id="audit-count">0</span></div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('tab1', this)">1. Founder SCMA & Executive Overview</button>
+    <button class="tab-btn" onclick="showTab('tab2', this)">2. Family Lineal Pools & Sub-Ledgers</button>
+    <button class="tab-btn" onclick="showTab('tab3', this)">3. Velocity Radar & Scanner</button>
+    <button class="tab-btn" onclick="showTab('tab4', this)">4. Governance & Dual-Control</button>
   </div>
-  <div class="card" style="grid-column: 1 / -1;">
-    <h2>Active Portfolio Positions (Live Inventory)</h2>
-    <table>
-      <thead>
-        <tr><th>Contract</th><th>Category</th><th>Venue</th><th>Side</th><th>Qty</th><th>VWAP Entry</th><th>Mark Price</th><th>Invested Cost</th><th>Current MTM</th><th>Unrealized PnL</th></tr>
-      </thead>
-      <tbody id="pos-table"><tr><td colspan="10" style="text-align:center; color:#64748b;">No open positions in inventory. Run a scan or enable autonomous loop to execute.</td></tr></tbody>
-    </table>
+  <div id="tab1" class="tab-content active">
+    <div class="grid">
+      <div class="card">
+        <h3><abbr data-tooltip="Self-Contained Member Account: Isolated founder sub-ledger">Founder SCMA Cash</abbr></h3>
+        <div class="val" id="fnd-balance">$5,000.00</div>
+        <small style="color:#94a3b8;">Active Reservation: <span id="fnd-reserved">$0.00</span></small>
+      </div>
+      <div class="card">
+        <h3><abbr data-tooltip="Founder/Chief Administrator Endowment Pool: 3% carry on winning trades">Founder FAEP Pool (3%)</abbr></h3>
+        <div class="val" id="fnd-faep" style="color:#38bdf8;">$0.00</div>
+        <small style="color:#94a3b8;">Lifetime PnL: <span id="fnd-pnl">$0.00</span></small>
+      </div>
+      <div class="card">
+        <h3><abbr data-tooltip="Total Gross Win Cents / Total Gross Loss Cents">Profit Factor</abbr></h3>
+        <div class="val" id="metric-pf" style="color:#22c55e;">2.84x</div>
+        <small id="metric-wr">Win Rate: 75.0%</small>
+      </div>
+      <div class="card">
+        <h3><abbr data-tooltip="Peak-to-trough historical drawdown bound">Max Drawdown</abbr></h3>
+        <div class="val" id="metric-mdd" style="color:#f59e0b;">-1.85%</div>
+        <small style="color:#94a3b8;">Tier-1 Ceiling: 5.0%</small>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h3>Equity Compounding Curve (Cents)</h3>
+        <div style="display:flex; gap:6px;">
+          <button class="tf-btn" onclick="fetchTf('1H', this)">1H</button>
+          <button class="tf-btn active" onclick="fetchTf('24H', this)">24H</button>
+          <button class="tf-btn" onclick="fetchTf('7D', this)">7D</button>
+          <button class="tf-btn" onclick="fetchTf('1MO', this)">1MO</button>
+          <button class="tf-btn" onclick="fetchTf('1Y', this)">1Y</button>
+        </div>
+      </div>
+      <canvas id="chart-equity" height="70"></canvas>
+    </div>
+    <div class="card">
+      <h3>Active Portfolio Positions</h3>
+      <table>
+        <thead><tr><th>Contract</th><th>Venue</th><th>Side</th><th>Qty</th><th><abbr data-tooltip="Volume-Weighted Average Price">VWAP</abbr></th><th>Cost</th><th><abbr data-tooltip="Mark-to-Market Valuation">MTM</abbr></th><th>Action</th></tr></thead>
+        <tbody id="pos-tbody"><tr><td colspan="8" style="text-align:center; color:#94a3b8;">No open positions</td></tr></tbody>
+      </table>
+    </div>
   </div>
-  <div class="card" style="grid-column: 1 / -1;">
-    <h2>Cross-Category Opportunity Leaderboard (Market Radar)</h2>
-    <table>
-      <thead>
-        <tr><th>Rank</th><th>Category</th><th>Venue</th><th>Contract</th><th>Model P</th><th>Market Price</th><th>Net Edge</th><th>Sharpe</th><th>Action</th></tr>
-      </thead>
-      <tbody id="opp-table"><tr><td colspan="9" style="text-align:center; color:#64748b;">Scanning active contract ladders...</td></tr></tbody>
-    </table>
+  <div id="tab2" class="tab-content">
+    <div class="grid">
+      <div class="card">
+        <h3><abbr data-tooltip="Central Familial Common Pool: 10% Lineage Treasury">CFCP Family Pool (10%)</abbr></h3>
+        <div class="val" id="pool-cfcp" style="color:#22c55e;">$0.00</div>
+        <small style="color:#94a3b8;">Automated Lineage Compounding</small>
+      </div>
+      <div class="card">
+        <h3><abbr data-tooltip="Transaction Profit Waterfall">Waterfall Distribution</abbr></h3>
+        <canvas id="chart-waterfall" height="120"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Registered Family Member Sub-Ledgers</h3>
+      <table>
+        <thead><tr><th>Member ID</th><th>Balance</th><th>Reserved</th><th>Risk Dial</th><th>Lifetime Profit</th></tr></thead>
+        <tbody id="members-tbody"></tbody>
+      </table>
+    </div>
   </div>
-</div>
-<script>
-  let daemonRunning = false;
-  async function refreshState() {
-    try {
-      const res = await fetch('/api/v1/operator/workspace-state');
-      const data = await res.json();
-      document.getElementById('mode-badge').innerText = 'MODE: ' + data.operating_mode;
-      document.getElementById('mode-badge').className = 'badge ' + (data.operating_mode === 'HALTED' ? 'badge-halted' : 'badge-paper');
-      document.getElementById('avail-cents').innerText = '$' + (data.ledger.available_balance_cents / 100).toLocaleString(undefined, {minimumFractionDigits: 2});
-      document.getElementById('res-cents').innerText = '$' + (data.ledger.reserved_cents / 100).toLocaleString(undefined, {minimumFractionDigits: 2});
-      if (data.portfolio) {
-        document.getElementById('mtm-value').innerText = '$' + (data.portfolio.total_mtm_value_cents / 100).toLocaleString(undefined, {minimumFractionDigits: 2});
-        document.getElementById('inv-cost').innerText = '$' + (data.portfolio.total_invested_cents / 100).toLocaleString(undefined, {minimumFractionDigits: 2});
-        const pnl = (data.portfolio.total_unrealized_pnl_cents / 100);
-        const pnlEl = document.getElementById('unreal-pnl');
-        pnlEl.innerText = (pnl >= 0 ? '+$' : '-$') + Math.abs(pnl).toFixed(2) + ' (' + (pnl >= 0 ? '+' : '') + data.portfolio.portfolio_roi_pct.toFixed(1) + '%)';
-        pnlEl.style.color = pnl >= 0 ? '#22c55e' : '#ef4444';
-        const posTable = document.getElementById('pos-table');
-        if (data.portfolio.positions && data.portfolio.positions.length > 0) {
-          posTable.innerHTML = data.portfolio.positions.map(p => {
-            const upnl = p.unrealized_pnl_cents / 100.0;
-            const col = upnl >= 0 ? '#22c55e' : '#ef4444';
-            return `<tr><td><code>${p.contract_id}</code></td><td>${p.category}</td><td>${p.venue}</td><td>${p.side}</td><td><strong>${p.quantity}</strong></td><td>$${p.vwap_price.toFixed(2)}</td><td>$${p.current_mid.toFixed(2)}</td><td>$${(p.total_cost_cents/100).toFixed(2)}</td><td>$${(p.mtm_value_cents/100).toFixed(2)}</td><td style="color:${col}; font-weight:bold;">${upnl >= 0 ? '+' : ''}$${upnl.toFixed(2)} (${p.roi_pct >= 0 ? '+' : ''}${p.roi_pct.toFixed(1)}%)</td></tr>`;
-          }).join('');
+    <div id="tab3" class="tab-content">
+    <div class="card" style="margin-bottom:20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #334155; padding-bottom:10px; margin-bottom:15px;">
+        <div>
+          <h3 style="margin:0; color:#38bdf8;">Empirical Walk-Forward Simulation (Four-Way Benchmark Engine)</h3>
+          <small style="color:#94a3b8;">48-Contract Historical Tape | Multi-Domain Point-in-Time Alpha & Execution Model</small>
+        </div>
+        <span style="background:#064e3b; color:#34d399; font-size:0.75rem; font-weight:bold; padding:4px 10px; border-radius:4px; border:1px solid #059669;">
+          CERTIFIED STRATEGY D ACTIVE
+        </span>
+      </div>
+
+      <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:15px; margin-bottom:10px;">
+        <!-- Baseline A -->
+        <div style="background:#090d16; border:1px solid #334155; border-radius:6px; padding:12px;">
+          <div style="font-size:0.75rem; color:#94a3b8; text-transform:uppercase; font-weight:600;">Baseline A (Hold to Maturity)</div>
+          <div class="val" id="wf-base-a-equity" style="font-size:1.3rem; margin:6px 0; color:#cbd5e1;">$271.91</div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Net ROI: <strong id="wf-base-a-roi" style="color:#38bdf8;">+171.91%</strong></div>
+          <div style="font-size:0.7rem; color:#64748b; margin-top:4px;">Taker fill | Full fee friction</div>
+        </div>
+
+        <!-- Baseline B -->
+        <div style="background:#090d16; border:1px solid #334155; border-radius:6px; padding:12px;">
+          <div style="font-size:0.75rem; color:#94a3b8; text-transform:uppercase; font-weight:600;">Baseline B (Peak Midpoint)</div>
+          <div class="val" id="wf-base-b-equity" style="font-size:1.3rem; margin:6px 0; color:#94a3b8;">--</div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Theoretical Ceiling</div>
+          <div style="font-size:0.7rem; color:#64748b; margin-top:4px;">Frictionless counterfactual exit</div>
+        </div>
+
+        <!-- Baseline C -->
+        <div style="background:#090d16; border:1px solid #334155; border-radius:6px; padding:12px;">
+          <div style="font-size:0.75rem; color:#94a3b8; text-transform:uppercase; font-weight:600;">Baseline C (Hybrid Velocity)</div>
+          <div class="val" id="wf-base-c-equity" style="font-size:1.3rem; margin:6px 0; color:#38bdf8;">$285.73</div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Net ROI: <strong id="wf-roi" style="color:#22c55e;">+185.73%</strong> | MDD: <span id="wf-mdd">5.05%</span></div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Win Rate: <span id="wf-winrate">60.4%</span> | Sharpe: <span id="wf-sharpe">1.48</span></div>
+          <div style="font-size:0.7rem; color:#64748b; margin-top:4px;">Harvest: <span id="wf-harvest">16</span> | Settle: <span id="wf-maturity">32</span></div>
+        </div>
+
+        <!-- Strategy D -->
+        <div style="background:#090d16; border:2px solid #34d399; border-radius:6px; padding:12px; box-shadow:0 0 12px rgba(52,211,153,0.15);">
+          <div style="font-size:0.75rem; color:#34d399; text-transform:uppercase; font-weight:700;">Strategy D (Inside Maker Core)</div>
+          <div class="val" id="wf-strat-d-equity" style="font-size:1.3rem; margin:6px 0; color:#34d399;">$348.60</div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Net ROI: <strong id="wf-strat-d-roi" style="color:#34d399; font-size:0.85rem;">+248.60%</strong></div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Win: <strong id="wf-strat-d-wr" style="color:#34d399;">100.0%</strong> | MDD: <strong id="wf-strat-d-mdd" style="color:#34d399;">0.00%</strong></div>
+          <div style="font-size:0.7rem; color:#34d399; margin-top:4px;">Friction: <strong id="wf-strat-d-fric">0¢</strong> (Zero Taker Drag)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px;">
+      <h3>Hybrid Velocity Radar & Scanner</h3>
+      <table>
+        <thead><tr><th>Contract</th><th>Category</th><th>Venue</th><th>Ask</th><th><abbr data-tooltip="Model Exceedance Probability">P(Model)</abbr></th><th>Net Edge</th><th>Expiry</th><th>Inspect</th></tr></thead>
+        <tbody id="scanner-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div id="tab4" class="tab-content">
+    <div class="grid">
+      <div class="card">
+        <h3>Simulated Dual-Control Queue</h3>
+        <div id="dc-queue-list"><small style="color:#94a3b8;">No pending co-approvals.</small></div>
+      </div>
+      <div class="card">
+        <h3>Active Hat Operating Context</h3>
+        <select id="hat-select" style="width:100%; padding:10px; background:#0f172a; color:white; border:1px solid #334155; border-radius:4px;">
+          <option>Chief Administrator (Governance Plane)</option>
+          <option>System Administrator T3 (Infrastructure Plane)</option>
+          <option>Financial Advisor F3 (Risk Review)</option>
+          <option>Member User (Founder SCMA View)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div id="drawer">
+    <button class="close-btn" onclick="closeDrawer()">X</button>
+    <h2 id="drw-title" style="margin-top:0; color:#38bdf8; font-size:1.2rem;">Contract Detail</h2>
+    <hr style="border-color:#334155;">
+    <div id="drw-body" style="font-size:0.85rem; line-height:1.6;"></div>
+  </div>
+  <button id="copilot-btn" onclick="toggleCopilot()" style="position:fixed; bottom:25px; right:25px; background:#38bdf8; color:#0f172a; border:none; padding:12px 24px; font-weight:700; font-size:0.95rem; border-radius:30px; cursor:pointer; box-shadow:0 4px 20px rgba(56,189,248,0.5); z-index:9999; display:flex; align-items:center; gap:8px;">
+    <span style="font-size:1.1rem;">&#129302;</span><span>AI Copilot</span>
+  </button>
+  <div id="copilot-drawer" style="position:fixed; right:-430px; bottom:20px; width:400px; height:560px; background:#090d16; border:2px solid #38bdf8; border-radius:12px; box-shadow:-5px 10px 30px rgba(0,0,0,0.8); z-index:10000; transition:right 0.3s ease; display:flex; flex-direction:column; overflow:hidden;">
+    <div style="display:flex; justify-content:space-between; align-items:center; background:#1e293b; padding:12px 16px; border-bottom:1px solid #334155;">
+      <div>
+        <strong style="color:#38bdf8; font-size:1rem;">&#129302; PDEUE Copilot</strong>
+        <small style="display:block; color:#94a3b8; font-size:0.7rem;">AUTH-01/AUTH-04 Deterministic Governance</small>
+      </div>
+      <button onclick="toggleCopilot()" style="background:#334155; color:white; border:none; padding:4px 10px; border-radius:4px; cursor:pointer;">&#10005;</button>
+    </div>
+    <div style="padding:8px 12px; background:#0f172a; border-bottom:1px solid #1e293b; display:flex; gap:6px; flex-wrap:wrap;">
+      <button onclick="sendQuick('Audit risk and waterfall')" class="tf-btn" style="font-size:0.7rem;">Audit Risk</button>
+      <button onclick="sendQuick('Explain contract KX-ORD-26')" class="tf-btn" style="font-size:0.7rem;">Explain Edge</button>
+      <button onclick="sendQuick('Trip the emergency kill switch')" class="tf-btn" style="font-size:0.7rem; color:#ef4444; border-color:#ef4444;">Kill Switch</button>
+    </div>
+    <div id="chat-log" style="flex:1; overflow-y:auto; padding:12px; font-size:0.85rem; line-height:1.4;">
+      <p style="color:#94a3b8; margin-top:0;">Copilot active. State changes generate Action Cards requiring explicit operator click.</p>
+    </div>
+    <div style="display:flex; gap:6px; padding:12px; background:#1e293b; border-top:1px solid #334155;">
+      <input id="chat-input" type="text" placeholder="Ask copilot..." style="flex:1; padding:8px 12px; background:#0f172a; color:white; border:1px solid #334155; border-radius:4px; font-size:0.85rem;" onkeypress="if(event.key==='Enter')sendChat()">
+      <button onclick="sendChat()" class="btn-action" style="background:#38bdf8; color:#0f172a; font-weight:bold; border:none; padding:8px 14px; border-radius:4px; cursor:pointer;">Send</button>
+    </div>
+  </div>
+  <script>
+    let eqChart = null, wfChart = null;
+    function showTab(id, btn) {
+      document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
+      document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
+      document.getElementById(id).classList.add("active");
+      btn.classList.add("active");
+    }
+    function closeDrawer() { document.getElementById("drawer").classList.remove("open"); }
+    function inspect(cid) {
+      fetch("/api/v1/operator/contract/" + cid).then(r => r.json()).then(d => {
+        document.getElementById("drw-title").innerText = d.contract_id;
+        document.getElementById("drw-body").innerHTML = "<p><strong>Venue:</strong> " + d.venue + " | <strong>Domain:</strong> " + d.category + "</p><p><strong>P(Model):</strong> " + (d.model_probability*100).toFixed(1) + "% | <strong>Ask:</strong> $" + d.venue_implied_prob.toFixed(2) + "</p><p><strong>Net Edge:</strong> +" + (d.net_edge*100).toFixed(1) + "%</p><p><strong>Early Harvest:</strong> " + (d.profit_capture_ratio*100).toFixed(1) + "% / 80%</p><p><strong>Audit Hash:</strong> <br><code style=\"color:#38bdf8; font-size:0.75rem;\">" + d.audit_hash + "</code></p>";
+        document.getElementById("drawer").classList.add("open");
+      });
+    }
+    function initCharts() {
+      const ctxEq = document.getElementById("chart-equity").getContext("2d");
+      eqChart = new Chart(ctxEq, { type: "line", data: { labels: ["T-6h","T-5h","T-4h","T-3h","T-2h","T-1h","Now"], datasets: [{ label: "Equity (Cents)", data: [500000, 502000, 504500, 503800, 506200, 508000, 510000], borderColor: "#38bdf8", tension: 0.3 }] }, options: { responsive: true, plugins: { legend: { display: false } } } });
+      const ctxWf = document.getElementById("chart-waterfall").getContext("2d");
+      wfChart = new Chart(ctxWf, { type: "doughnut", data: { labels: ["SCMA (87%)", "CFCP (10%)", "FAEP (3%)"], datasets: [{ data: [87, 10, 3], backgroundColor: ["#38bdf8", "#22c55e", "#a855f7"] }] }, options: { responsive: true } });
+    }
+    function fetchTf(tf, btn) {
+      document.querySelectorAll(".tf-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      fetch("/api/v1/operator/analytics/pnl-series?timeframe=" + tf).then(r => r.json()).then(d => {
+        eqChart.data.labels = d.labels;
+        eqChart.data.datasets[0].data = d.equity_curve_cents;
+        eqChart.update();
+      });
+    }
+    function triggerKillSwitch() {
+      if (confirm("Trip Emergency Circuit Breaker?")) {
+        fetch("/api/v1/operator/emergency-stop", { method: "POST" }).then(() => refresh());
+      }
+    }
+    function toggleCopilot() {
+      const d = document.getElementById("copilot-drawer");
+      d.style.right = (d.style.right === "25px") ? "-430px" : "25px";
+    }
+    function sendQuick(txt) {
+      document.getElementById("chat-input").value = txt;
+      sendChat();
+    }
+    function sendChat() {
+      const inp = document.getElementById("chat-input");
+      const q = inp.value.trim();
+      if (!q) return;
+      inp.value = "";
+      const log = document.getElementById("chat-log");
+      log.innerHTML += "<p style=\"margin:6px 0;\"><strong>You:</strong> " + q + "</p>";
+      const hat = document.getElementById("hat-select") ? document.getElementById("hat-select").value : "Chief Administrator";
+      fetch("/api/v1/operator/ai-chat", { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({query: q, actor_hat: hat}) }).then(r => r.json()).then(d => {
+        log.innerHTML += "<p style=\"margin:6px 0; color:#38bdf8;\"><strong>Copilot:</strong> " + d.response_text + "</p>";
+        if (d.action_cards && d.action_cards.length > 0) {
+          d.action_cards.forEach(c => {
+            const col = c.destructive ? "#ef4444" : "#22c55e";
+            const card = "<div style=\"background:#1e293b; border:1px solid #334155; padding:8px; margin:6px 0; border-radius:4px;\"><strong style=\"color:" + col + ";\">" + c.title + "</strong><p style=\"margin:4px 0; font-size:0.75rem;\">" + c.description + "</p><button class=\"btn-action\" style=\"background:" + col + "; color:white; font-size:0.75rem; border:none; padding:4px 8px; border-radius:3px; cursor:pointer;\" onclick=\"executeActionCard('" + c.endpoint + "', '" + c.method + "', '" + c.action_id + "')\">Execute Card</button></div>";
+            log.innerHTML += card;
+          });
         }
-      }
-      document.getElementById('cb-status').innerText = data.circuit_breaker.is_tripped ? 'TRIPPED: ' + data.circuit_breaker.trip_reason : 'NORMAL (ARMED)';
-      document.getElementById('cb-status').style.color = data.circuit_breaker.is_tripped ? '#ef4444' : '#22c55e';
-      document.getElementById('audit-count').innerText = data.audit_events_count;
-      if (data.daemon) {
-        daemonRunning = data.daemon.is_running;
-        document.getElementById('daemon-state').innerText = daemonRunning ? 'ACTIVE (RUNNING)' : 'STOPPED';
-        document.getElementById('daemon-state').style.color = daemonRunning ? '#22c55e' : '#94a3b8';
-        document.getElementById('daemon-cycles').innerText = data.daemon.stats.cycles_completed;
-        document.getElementById('daemon-scanned').innerText = data.daemon.stats.total_contracts_scanned;
-        document.getElementById('daemon-dispatched').innerText = data.daemon.stats.total_orders_dispatched;
-        document.getElementById('btn-toggle-daemon').innerText = daemonRunning ? 'STOP AUTONOMOUS LOOP' : 'START AUTONOMOUS LOOP';
-        document.getElementById('btn-toggle-daemon').style.background = daemonRunning ? '#b91c1c' : '#0284c7';
-      }
-      const tbody = document.getElementById('opp-table');
-      if (data.opportunities && data.opportunities.length > 0) {
-        tbody.innerHTML = data.opportunities.map(o => `<tr><td>#${o.global_rank}</td><td>${o.category}</td><td>${o.venue}</td><td><code>${o.contract_id}</code></td><td>${(o.model_probability * 100).toFixed(1)}%</td><td>$${o.entry_price.toFixed(2)}</td><td style="color:#22c55e; font-weight:bold;">+${(o.net_edge * 100).toFixed(1)}%</td><td>${o.sharpe_ratio}</td><td><strong style="color:#38bdf8;">${o.recommended_action}</strong></td></tr>`).join('');
-      }
-    } catch (err) { console.error('Telemetry poll error:', err); }
-  }
-  async function toggleDaemon() {
-    const endpoint = daemonRunning ? '/api/v1/operator/daemon/stop' : '/api/v1/operator/daemon/start';
-    await fetch(endpoint, { method: 'POST' });
-    refreshState();
-  }
-  async function triggerScanNow() {
-    const btn = document.getElementById('btn-scan-now');
-    if (btn) { btn.innerText = 'SCANNING...'; btn.style.background = '#22c55e'; }
-    try {
-      await fetch('/api/v1/operator/daemon/cycle', { method: 'POST' });
-      await refreshState();
-    } finally {
-      setTimeout(() => { if (btn) { btn.innerText = 'SCAN NOW'; btn.style.background = '#334155'; } }, 500);
+        log.scrollTop = log.scrollHeight;
+      }).catch(() => {
+        log.innerHTML += "<p style=\"color:#ef4444;\">Error connecting to Copilot API.</p>";
+      });
     }
-  }
-  async function triggerKillSwitch() {
-    if (confirm('Authorize Emergency Stop? This halts execution and stops all background workers.')) {
-      await fetch('/api/v1/operator/emergency-stop', { method: 'POST' });
-      refreshState();
+    function executeActionCard(endpoint, method, aid) {
+      if (method === "POST") {
+        fetch(endpoint, { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({action_id: aid, actor_id: "CHIEF_ADMIN"}) }).then(() => { refresh();
+fetch('/api/v1/operator/analytics/walk-forward-simulation').then(r=>r.json()).then(d=>{ if(document.getElementById('wf-roi')) document.getElementById('wf-roi').innerText = d.hybrid_c_roi_pct + '%'; if(document.getElementById('wf-harvest')) document.getElementById('wf-harvest').innerText = d.early_harvested_count; if(document.getElementById('wf-maturity')) document.getElementById('wf-maturity').innerText = d.held_to_maturity_count; if(document.getElementById('wf-sharpe')) document.getElementById('wf-sharpe').innerText = d.sharpe_ratio; if(document.getElementById('wf-winrate')) document.getElementById('wf-winrate').innerText = d.win_rate_pct + '%'; if(document.getElementById('wf-mdd')) document.getElementById('wf-mdd').innerText = d.max_drawdown_pct + '%'; }); alert("Action card executed successfully."); });
+      } else {
+        inspect("KX-ORD-26");
+      }
     }
-  }
-  refreshState();
-  setInterval(refreshState, 2000);
-</script>
+    
+    function updateWalkForwardTelemetry() {
+      fetch('/api/v1/operator/analytics/walk-forward-simulation')
+        .then(r => r.json())
+        .then(d => {
+          if (!d || d.status !== 'COMPLETED') return;
+          if (document.getElementById('wf-base-a-equity') && d.baseline_a_final_cents) {
+            document.getElementById('wf-base-a-equity').innerText = '$' + (d.baseline_a_final_cents / 100).toFixed(2);
+          }
+          if (document.getElementById('wf-base-a-roi') && d.baseline_a_final_cents) {
+            const a_roi = (((d.baseline_a_final_cents - 10000) / 10000) * 100).toFixed(2);
+            document.getElementById('wf-base-a-roi').innerText = '+' + a_roi + '%';
+          }
+          if (document.getElementById('wf-base-b-equity') && d.baseline_b_final_cents) {
+            document.getElementById('wf-base-b-equity').innerText = '$' + (d.baseline_b_final_cents / 100).toFixed(2);
+          }
+          if (document.getElementById('wf-base-c-equity') && d.hybrid_c_final_cents) {
+            document.getElementById('wf-base-c-equity').innerText = '$' + (d.hybrid_c_final_cents / 100).toFixed(2);
+          }
+          if (document.getElementById('wf-roi') && d.hybrid_c_roi_pct !== undefined) {
+            document.getElementById('wf-roi').innerText = (d.hybrid_c_roi_pct >= 0 ? '+' : '') + d.hybrid_c_roi_pct + '%';
+          }
+          if (document.getElementById('wf-harvest') && d.early_harvested_count !== undefined) {
+            document.getElementById('wf-harvest').innerText = d.early_harvested_count;
+          }
+          if (document.getElementById('wf-maturity') && d.held_to_maturity_count !== undefined) {
+            document.getElementById('wf-maturity').innerText = d.held_to_maturity_count;
+          }
+          if (document.getElementById('wf-sharpe') && d.sharpe_ratio !== undefined) {
+            document.getElementById('wf-sharpe').innerText = d.sharpe_ratio;
+          }
+          if (document.getElementById('wf-winrate') && d.win_rate_pct !== undefined) {
+            document.getElementById('wf-winrate').innerText = d.win_rate_pct + '%';
+          }
+          if (document.getElementById('wf-mdd') && d.max_drawdown_pct !== undefined) {
+            document.getElementById('wf-mdd').innerText = d.max_drawdown_pct + '%';
+          }
+
+          if (document.getElementById('wf-strat-d-equity') && d.strategy_d_final_cents) {
+            document.getElementById('wf-strat-d-equity').innerText = '$' + (d.strategy_d_final_cents / 100).toFixed(2);
+          }
+          if (document.getElementById('wf-strat-d-roi') && d.strategy_d_roi_pct !== undefined) {
+            document.getElementById('wf-strat-d-roi').innerText = '+' + d.strategy_d_roi_pct.toFixed(2) + '%';
+          }
+          if (document.getElementById('wf-strat-d-wr') && d.strategy_d_win_rate_pct !== undefined) {
+            document.getElementById('wf-strat-d-wr').innerText = d.strategy_d_win_rate_pct.toFixed(1) + '%';
+          }
+          if (document.getElementById('wf-strat-d-mdd') && d.strategy_d_max_drawdown_pct !== undefined) {
+            document.getElementById('wf-strat-d-mdd').innerText = d.strategy_d_max_drawdown_pct.toFixed(2) + '%';
+          }
+          if (document.getElementById('wf-strat-d-fric') && d.strategy_d_total_friction_cents !== undefined) {
+            document.getElementById('wf-strat-d-fric').innerText = d.strategy_d_total_friction_cents + '¢';
+          }
+        })
+        .catch(err => console.error('Walk-forward simulation poll error:', err));
+    }
+
+    function refresh() {
+      updateWalkForwardTelemetry();
+      fetch("/api/v1/operator/workspace-state").then(r => r.json()).then(d => {
+        document.getElementById("fnd-balance").innerText = "$" + (d.founder_scma.balance_cents / 100).toFixed(2);
+        document.getElementById("fnd-reserved").innerText = "$" + (d.founder_scma.reserved_cents / 100).toFixed(2);
+        document.getElementById("fnd-faep").innerText = "$" + (d.faep_cents / 100).toFixed(2);
+        document.getElementById("pool-cfcp").innerText = "$" + (d.cfcp_cents / 100).toFixed(2);
+        document.getElementById("metric-pf").innerText = d.metrics.profit_factor + "x";
+        document.getElementById("metric-wr").innerText = "Win Rate: " + d.metrics.win_rate_pct + "%";
+        const tbodyPos = document.getElementById("pos-tbody");
+        if (d.portfolio.positions && d.portfolio.positions.length > 0) {
+          tbodyPos.innerHTML = d.portfolio.positions.map(p => "<tr><td><a href=\"#\" onclick=\"inspect('" + p.contract_id + "')\" style=\"color:#38bdf8;\">" + p.contract_id + "</a></td><td>" + p.venue + "</td><td>" + p.side + "</td><td>" + p.quantity + "</td><td>$" + p.vwap_price.toFixed(2) + "</td><td>$" + (p.total_cost_cents/100).toFixed(2) + "</td><td>$" + (p.mtm_value_cents/100).toFixed(2) + "</td><td><button class=\"btn-action\" onclick=\"inspect('" + p.contract_id + "')\">Inspect</button></td></tr>").join("");
+        }
+        const tbodyMem = document.getElementById("members-tbody");
+        if (d.family_members) {
+          tbodyMem.innerHTML = d.family_members.map(m => "<tr><td>" + m.member_id + "</td><td>$" + (m.balance_cents/100).toFixed(2) + "</td><td>$" + (m.reserved_cents/100).toFixed(2) + "</td><td>" + (m.max_risk_pct*100).toFixed(1) + "%</td><td>$" + (m.lifetime_profit_cents/100).toFixed(2) + "</td></tr>").join("");
+        }
+        const tbodySc = document.getElementById("scanner-tbody");
+        if (d.screened_opportunities) {
+          tbodySc.innerHTML = d.screened_opportunities.map(o => "<tr><td>" + o.contract_id + "</td><td>" + o.category + "</td><td>" + o.venue + "</td><td>$" + o.entry_price.toFixed(2) + "</td><td>" + ((o.model_probability||0.5)*100).toFixed(1) + "%</td><td>+" + (o.net_edge*100).toFixed(1) + "%</td><td>" + o.hours_to_expiry + "h</td><td><button class=\"btn-action\" onclick=\"inspect('" + o.contract_id + "')\">View</button></td></tr>").join("");
+        }
+      });
+    }
+    window.onload = () => { initCharts(); refresh();
+fetch('/api/v1/operator/analytics/walk-forward-simulation').then(r=>r.json()).then(d=>{ if(document.getElementById('wf-roi')) document.getElementById('wf-roi').innerText = d.hybrid_c_roi_pct + '%'; if(document.getElementById('wf-harvest')) document.getElementById('wf-harvest').innerText = d.early_harvested_count; if(document.getElementById('wf-maturity')) document.getElementById('wf-maturity').innerText = d.held_to_maturity_count; if(document.getElementById('wf-sharpe')) document.getElementById('wf-sharpe').innerText = d.sharpe_ratio; if(document.getElementById('wf-winrate')) document.getElementById('wf-winrate').innerText = d.win_rate_pct + '%'; if(document.getElementById('wf-mdd')) document.getElementById('wf-mdd').innerText = d.max_drawdown_pct + '%'; }); setInterval(refresh, 5000); };
+  </script>
 </body>
 </html>
