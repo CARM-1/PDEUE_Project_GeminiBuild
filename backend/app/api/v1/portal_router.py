@@ -2,13 +2,33 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
+from datetime import datetime, timezone
 import pathlib
 
 from app.domain.portal_service import PortalService
+from app.domain.priority_eviction import PriorityEvictionManager
+from app.domain.capital_ledger import CapitalLedger
+from app.domain.scan_worker import AutonomousScanWorker
+from app.adapters.platform_yield_adapter import PlatformYieldAdapter
 
 portal_router = APIRouter(tags=['Portals'])
 router = portal_router
 global_portal_service = PortalService()
+
+# Global runtime telemetry instances for operator and technical consoles
+_GLOBAL_YIELD_ADAPTER = PlatformYieldAdapter()
+_GLOBAL_LEDGER = CapitalLedger(initial_balance_cents=10000)
+_GLOBAL_EVICTION_MGR = PriorityEvictionManager(
+    max_concurrent_orders=5,
+    dry_powder_floor_pct=0.40,
+    max_expiry_hours=6.0
+)
+_GLOBAL_WORKER = AutonomousScanWorker(
+    dispatcher=None,
+    circuit_breaker=None,
+    eviction_manager=_GLOBAL_EVICTION_MGR,
+    ledger=_GLOBAL_LEDGER
+)
 
 class RiskUpdateRequest(BaseModel):
     requested_risk_pct: Optional[float] = None
@@ -48,7 +68,6 @@ def get_tech_console_page():
 def get_member_telemetry(scma_id: str):
     res = global_portal_service.get_member_view(scma_id)
     if res.get('status') == 'NOT_FOUND':
-        # Default seed for demo member if requested
         if scma_id == 'SCMA-MEM-001':
             global_portal_service.ledger.register_member_account('SCMA-MEM-001', seed_capital_cents=125000, max_risk_pct=0.03)
             return global_portal_service.get_member_view('SCMA-MEM-001')
@@ -132,4 +151,61 @@ def request_tech_unredact():
         "cents": 15000
     }
 
-__all__ = ['router', 'portal_router', 'global_portal_service', 'PortalService', 'RiskUpdateRequest', 'DistributionRequest', 'TutorQuery']
+@portal_router.get('/api/v1/portal/telemetry')
+def get_operator_telemetry() -> Dict[str, Any]:
+    """Returns technical console telemetry including velocity and priority eviction metrics."""
+    total_eq = _GLOBAL_LEDGER.balance_cents
+    committed = sum(_GLOBAL_LEDGER.reservations.values())
+    dry_powder_floor = int(total_eq * _GLOBAL_EVICTION_MGR.dry_powder_floor_pct)
+    uncommitted = max(0, total_eq - committed)
+
+    worker_stats = _GLOBAL_WORKER.stats
+
+    return {
+        "worker_status": {
+            "is_running": _GLOBAL_WORKER.is_running,
+            "interval_seconds": _GLOBAL_WORKER.interval_seconds,
+            "cycles_completed": worker_stats.get("cycles_completed", 0),
+            "contracts_scanned": worker_stats.get("total_contracts_scanned", 0),
+            "orders_dispatched": worker_stats.get("total_orders_dispatched", 0),
+            "evictions_executed": worker_stats.get("total_evictions_executed", 0),
+            "last_cycle_status": worker_stats.get("last_cycle_status", "IDLE"),
+        },
+        "eviction_engine": {
+            "max_concurrent_orders": _GLOBAL_EVICTION_MGR.max_concurrent_orders,
+            "active_resting_bids_count": len(_GLOBAL_EVICTION_MGR.resting_orders),
+            "filled_inventory_count": len(_GLOBAL_EVICTION_MGR.filled_orders),
+            "resting_orders": list(_GLOBAL_EVICTION_MGR.resting_orders.values()),
+            "recent_evictions": _GLOBAL_EVICTION_MGR.eviction_history[-10:],
+            "preemption_alpha_threshold": _GLOBAL_EVICTION_MGR.preemption_alpha_threshold,
+            "min_edge_delta": _GLOBAL_EVICTION_MGR.min_edge_delta,
+            "max_expiry_hours": _GLOBAL_EVICTION_MGR.max_expiry_hours,
+        },
+        "capital_headroom": {
+            "total_equity_cents": total_eq,
+            "committed_reservations_cents": committed,
+            "uncommitted_cash_cents": uncommitted,
+            "dry_powder_floor_cents": dry_powder_floor,
+            "dry_powder_compliant": uncommitted >= dry_powder_floor,
+        },
+        "yield_adapter": {
+            "accruals_count": len(_GLOBAL_YIELD_ADAPTER.accrual_history),
+            "recent_accruals": _GLOBAL_YIELD_ADAPTER.accrual_history[-5:],
+            "status": "ONLINE"
+        },
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+
+__all__ = [
+    'router',
+    'portal_router',
+    'global_portal_service',
+    'PortalService',
+    'RiskUpdateRequest',
+    'DistributionRequest',
+    'TutorQuery',
+    '_GLOBAL_EVICTION_MGR',
+    '_GLOBAL_LEDGER',
+    '_GLOBAL_WORKER',
+    '_GLOBAL_YIELD_ADAPTER',
+]
