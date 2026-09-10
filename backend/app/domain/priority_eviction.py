@@ -15,7 +15,7 @@ class PriorityEvictionManager:
         self,
         max_concurrent_orders: int = 5,
         dry_powder_floor_pct: float = 0.40,
-        max_expiry_hours: float = 6.0,
+        max_expiry_hours: Optional[float] = 6.0,
         preemption_alpha_threshold: float = 0.20,
         min_edge_delta: float = 0.10,
     ):
@@ -71,8 +71,8 @@ class PriorityEvictionManager:
         candidate_stake = candidate.get("proposed_stake_cents", 0)
         expiry_hours = candidate.get("expiry_hours", 1.0)
 
-        # 1. Hard expiry horizon filter (< 6h)
-        if expiry_hours > self.max_expiry_hours:
+        # 1. Hard expiry horizon filter (< 6h when configured)
+        if self.max_expiry_hours is not None and expiry_hours > self.max_expiry_hours:
             return {
                 "admitted": False,
                 "reason": "EXPIRY_EXCEEDS_HORIZON_CEILING",

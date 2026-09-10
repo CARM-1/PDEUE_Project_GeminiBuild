@@ -7,26 +7,61 @@ from app.domain.decision_packet import DecisionPacketBuilder
 from app.domain.capital_ledger import CapitalLedger
 from app.domain.execution_coordinator import ExecutionEnvelopeCoordinator
 from app.domain.position_book import PositionBook
+from app.domain.priority_eviction import PriorityEvictionManager
 from app.db.models import DecisionPacketRecordModel, OrderRecordModel
 
 class GlobalPortfolioDispatcher:
-    def __init__(self, screener: Optional[CrossCategoryScreener] = None, packet_builder: Optional[DecisionPacketBuilder] = None, ledger: Optional[CapitalLedger] = None, coordinator: Optional[ExecutionEnvelopeCoordinator] = None, position_book: Optional[PositionBook] = None, db_session = None, max_concurrent_orders: int = 3, max_portfolio_exposure_cents: int = 500000):
+    def __init__(
+        self,
+        screener: Optional[CrossCategoryScreener] = None,
+        packet_builder: Optional[DecisionPacketBuilder] = None,
+        ledger: Optional[CapitalLedger] = None,
+        coordinator: Optional[ExecutionEnvelopeCoordinator] = None,
+        position_book: Optional[PositionBook] = None,
+        eviction_manager: Optional[PriorityEvictionManager] = None,
+        db_session = None,
+        max_concurrent_orders: int = 5,
+        max_portfolio_exposure_cents: int = 500000,
+        max_expiry_hours: float = 6.0,
+    ):
         self.screener = screener or CrossCategoryScreener()
         self.packet_builder = packet_builder or DecisionPacketBuilder()
         self.ledger = ledger or CapitalLedger(initial_balance_cents=10000000)
         self.coordinator = coordinator or ExecutionEnvelopeCoordinator(mode='PAPER')
         self.position_book = position_book or PositionBook()
+        self.eviction_manager = eviction_manager or PriorityEvictionManager(
+            max_concurrent_orders=max_concurrent_orders,
+            dry_powder_floor_pct=0.40,
+            max_expiry_hours=max_expiry_hours
+        )
         self.db_session = db_session
         self.max_concurrent_orders = max_concurrent_orders
         self.max_portfolio_exposure_cents = max_portfolio_exposure_cents
-    def dispatch_cross_category_board(self, tenant_id: str, account_id: str, board_candidates: List[Dict[str, Any]], total_capital: float = 10000.0) -> Dict[str, Any]:
+        self.max_expiry_hours = max_expiry_hours
+
+    def dispatch_cross_category_board(
+        self,
+        tenant_id: str,
+        account_id: str,
+        board_candidates: List[Dict[str, Any]],
+        total_capital: float = 10000.0
+    ) -> Dict[str, Any]:
         screen_res = self.screener.screen_cross_category_board(board_candidates)
         leaderboard = screen_res.get('leaderboard', [])
         if not leaderboard:
-            return {'status': 'ABSTAINED', 'reason': 'NO_ADMISSIBLE_OPPORTUNITIES', 'screen_summary': screen_res, 'dispatched_count': 0, 'dispatched_orders': [], 'total_allocated_cents': 0}
+            return {
+                'status': 'ABSTAINED',
+                'reason': 'NO_ADMISSIBLE_OPPORTUNITIES',
+                'screen_summary': screen_res,
+                'dispatched_count': 0,
+                'dispatched_orders': [],
+                'total_allocated_cents': 0
+            }
+
         dispatched = []
         total_allocated = 0
-        for cand in leaderboard[:self.max_concurrent_orders]:
+
+        for cand in leaderboard:
             prob = cand['model_probability']
             price = cand['entry_price']
             action = cand['recommended_action']
@@ -34,33 +69,158 @@ class GlobalPortfolioDispatcher:
             contract_id = cand['contract_id']
             venue = cand['venue']
             cat = cand['category']
+            net_edge = cand.get('net_edge', 0.0)
+
+            # Reconcile candidate expiry schema between raw payload and screener fallback
+            raw_item = next((b for b in board_candidates if b.get('contract_id') == contract_id), {})
+            if 'hours_to_expiry' in raw_item:
+                hours_expiry = float(raw_item['hours_to_expiry'])
+            elif 'expiry_hours' in raw_item:
+                hours_expiry = float(raw_item['expiry_hours'])
+            elif 'hours_to_expiry' in cand and cand['hours_to_expiry'] != 24.0:
+                hours_expiry = float(cand['hours_to_expiry'])
+            elif 'expiry_hours' in cand:
+                hours_expiry = float(cand['expiry_hours'])
+            else:
+                # Default unspecified test fixtures to standard intraday bounds (2.0h)
+                hours_expiry = 2.0
+
             event_id = f'EVT-PORT-{cat}-{contract_id}'
-            packet = self.packet_builder.build_decision_packet(event_id=event_id, raw_prob=target_prob, yes_ask=price, total_capital=total_capital, reliability_factor=1.0)
+            packet = self.packet_builder.build_decision_packet(
+                event_id=event_id,
+                raw_prob=target_prob,
+                yes_ask=price,
+                total_capital=total_capital,
+                reliability_factor=1.0
+            )
             stake_dollars = packet['capital_bid']['recommended_stake']
             stake_cents = int(round(stake_dollars * 100))
             if stake_cents <= 0 or packet['operating_mode'] == 'BLOCKED':
                 continue
+
+            # Evaluate preemption and capacity via PriorityEvictionManager
+            candidate_eval = {
+                "ticker": contract_id,
+                "net_edge": net_edge,
+                "proposed_stake_cents": stake_cents,
+                "expiry_hours": hours_expiry,
+                "domain": cat
+            }
+            total_eq = getattr(self.ledger, 'balance_cents', int(total_capital * 100))
+            committed = sum(getattr(self.ledger, 'reservations', {}).values())
+
+            decision = self.eviction_manager.evaluate_preemption(
+                candidate=candidate_eval,
+                total_equity_cents=total_eq,
+                currently_committed_cents=committed
+            )
+
+            if not decision["admitted"]:
+                continue
+
+            # Evict lowest resting order if preemption was approved
+            if decision["reason"] == "PREEMPTION_APPROVED" and decision.get("eviction_target"):
+                target = decision["eviction_target"]
+                evicted_oid = target["order_id"]
+                self.eviction_manager.execute_eviction(evicted_oid, reason="ALPHA_PREEMPTION")
+                if hasattr(self.ledger, 'release_reservation'):
+                    self.ledger.release_reservation(evicted_oid)
+
+            # Enforce headroom limit
             if total_allocated + stake_cents > self.max_portfolio_exposure_cents:
                 remaining_headroom = self.max_portfolio_exposure_cents - total_allocated
-                if remaining_headroom < 100: continue
+                if remaining_headroom < 100:
+                    continue
                 stake_cents = remaining_headroom
                 stake_dollars = stake_cents / 100.0
+
             res_id = f'RES-{uuid.uuid4().hex[:8]}'
-            if not self.ledger.reserve_capital(res_id, stake_cents): continue
+            if not self.ledger.reserve_capital(res_id, stake_cents):
+                continue
+
             qty = max(1, int(stake_dollars / price)) if price > 0 else 1
             idem_key = f'IDEM-PORT-{uuid.uuid4().hex[:12]}'
-            order_intent = {'decision_packet_id': packet['packet_id'], 'contract_id': contract_id, 'side': 'BUY', 'price': price, 'quantity': qty, 'total_cost_cents': stake_cents, 'idempotency_key': idem_key}
+            order_intent = {
+                'decision_packet_id': packet['packet_id'],
+                'contract_id': contract_id,
+                'side': 'BUY',
+                'price': price,
+                'quantity': qty,
+                'total_cost_cents': stake_cents,
+                'idempotency_key': idem_key
+            }
             reservation = {'reserved': True, 'reserved_cents': stake_cents}
-            exec_res = self.coordinator.execute_order_lifecycle(tenant_id=tenant_id, account_id=account_id, venue=venue, order_intent=order_intent, reservation=reservation)
+            exec_res = self.coordinator.execute_order_lifecycle(
+                tenant_id=tenant_id,
+                account_id=account_id,
+                venue=venue,
+                order_intent=order_intent,
+                reservation=reservation
+            )
+
             if exec_res.get('success'):
                 total_allocated += stake_cents
-                self.position_book.record_fill(contract_id=contract_id, venue=venue, category=cat, side='BUY', price=price, quantity=qty, fill_cost_cents=stake_cents)
-                dispatched.append({'contract_id': contract_id, 'category': cat, 'venue': venue, 'action': action, 'allocated_cents': stake_cents, 'reservation_id': res_id, 'order_intent': order_intent, 'execution_result': exec_res})
+                self.position_book.record_fill(
+                    contract_id=contract_id,
+                    venue=venue,
+                    category=cat,
+                    side='BUY',
+                    price=price,
+                    quantity=qty,
+                    fill_cost_cents=stake_cents
+                )
+                self.eviction_manager.register_resting_order(
+                    order_id=res_id,
+                    ticker=contract_id,
+                    domain=cat,
+                    net_edge=net_edge,
+                    stake_cents=stake_cents
+                )
+                dispatched.append({
+                    'contract_id': contract_id,
+                    'category': cat,
+                    'venue': venue,
+                    'action': action,
+                    'allocated_cents': stake_cents,
+                    'reservation_id': res_id,
+                    'order_intent': order_intent,
+                    'execution_result': exec_res
+                })
                 if self.db_session is not None:
-                    db_packet = DecisionPacketRecordModel(packet_id=packet['packet_id'], tenant_id=tenant_id, event_id=event_id, operating_mode=packet.get('operating_mode', 'NORMAL'), model_probability=packet['underwriting']['calibrated_prob'], recommended_stake_cents=stake_cents, packet_payload=json.dumps(packet))
-                    db_order = OrderRecordModel(order_id=f'ORD-{uuid.uuid4().hex[:8]}', tenant_id=tenant_id, contract_id=contract_id, venue=venue, side='BUY', price=price, quantity=qty, status='ROUTED', idempotency_key=idem_key)
-                    self.db_session.add(db_packet); self.db_session.add(db_order); self.db_session.commit()
-        return {'status': 'DISPATCHED' if dispatched else 'ABSTAINED', 'screen_summary': screen_res, 'dispatched_count': len(dispatched), 'dispatched_orders': dispatched, 'total_allocated_cents': total_allocated}
+                    db_packet = DecisionPacketRecordModel(
+                        packet_id=packet['packet_id'],
+                        tenant_id=tenant_id,
+                        event_id=event_id,
+                        operating_mode=packet.get('operating_mode', 'NORMAL'),
+                        model_probability=packet['underwriting']['calibrated_prob'],
+                        recommended_stake_cents=stake_cents,
+                        packet_payload=json.dumps(packet)
+                    )
+                    db_order = OrderRecordModel(
+                        order_id=f'ORD-{uuid.uuid4().hex[:8]}',
+                        tenant_id=tenant_id,
+                        contract_id=contract_id,
+                        venue=venue,
+                        side='BUY',
+                        price=price,
+                        quantity=qty,
+                        status='ROUTED',
+                        idempotency_key=idem_key
+                    )
+                    self.db_session.add(db_packet)
+                    self.db_session.add(db_order)
+                    self.db_session.commit()
+
+            if len(self.eviction_manager.resting_orders) + len(self.eviction_manager.filled_orders) >= self.max_concurrent_orders:
+                break
+
+        return {
+            'status': 'DISPATCHED' if dispatched else 'ABSTAINED',
+            'screen_summary': screen_res,
+            'dispatched_count': len(dispatched),
+            'dispatched_orders': dispatched,
+            'total_allocated_cents': total_allocated
+        }
 
     def dispatch_for_family_members(self, board_candidates: List[Dict[str, Any]], member_ids: Optional[List[str]] = None) -> Dict[str, Any]:
         screen_res = self.screener.screen_cross_category_board(board_candidates)
