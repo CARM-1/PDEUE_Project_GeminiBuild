@@ -5,12 +5,25 @@ from typing import Dict, Any, Optional
 from app.adapters.market_data_clients import MarketDataFeedAggregator
 from app.domain.global_portfolio_dispatcher import GlobalPortfolioDispatcher
 from app.domain.circuit_breaker import CircuitBreakerEngine
+from app.domain.priority_eviction import PriorityEvictionManager
 
 class AutonomousScanWorker:
-    def __init__(self, aggregator: Optional[MarketDataFeedAggregator] = None, dispatcher: Optional[GlobalPortfolioDispatcher] = None, circuit_breaker: Optional[CircuitBreakerEngine] = None, interval_seconds: float = 5.0):
+    def __init__(
+        self,
+        aggregator: Optional[MarketDataFeedAggregator] = None,
+        dispatcher: Optional[GlobalPortfolioDispatcher] = None,
+        circuit_breaker: Optional[CircuitBreakerEngine] = None,
+        eviction_manager: Optional[PriorityEvictionManager] = None,
+        interval_seconds: float = 5.0,
+        ledger: Optional[Any] = None,
+    ):
         self.aggregator = aggregator or MarketDataFeedAggregator()
         self.dispatcher = dispatcher or GlobalPortfolioDispatcher()
+        self.ledger = ledger
+        if ledger is not None and hasattr(self.dispatcher, "ledger"):
+            self.dispatcher.ledger = ledger
         self.circuit_breaker = circuit_breaker or CircuitBreakerEngine()
+        self.eviction_manager = eviction_manager or PriorityEvictionManager()
         self.interval_seconds = interval_seconds
         self.is_running = False
         self._thread: Optional[threading.Thread] = None
@@ -18,9 +31,11 @@ class AutonomousScanWorker:
             'cycles_completed': 0,
             'total_contracts_scanned': 0,
             'total_orders_dispatched': 0,
+            'total_evictions_executed': 0,
             'last_cycle_timestamp': None,
             'last_cycle_status': 'IDLE'
         }
+
     def run_single_cycle(self, tenant_id: str = 'tenant_daemon', account_id: str = 'acc_daemon') -> Dict[str, Any]:
         if not self.circuit_breaker.validate_execution_allowed():
             self.stats['last_cycle_status'] = 'HALTED_CIRCUIT_BREAKER'
@@ -37,6 +52,25 @@ class AutonomousScanWorker:
         self.stats['last_cycle_timestamp'] = datetime.now(timezone.utc).isoformat()
         self.stats['last_cycle_status'] = dispatch_res.get('status', 'COMPLETED')
         return {'cycle_number': self.stats['cycles_completed'], 'contracts_scanned': contracts_count, 'dispatch_result': dispatch_res, 'timestamp': self.stats['last_cycle_timestamp']}
+
+    def evaluate_candidate_preemption(
+        self,
+        candidate: Dict[str, Any],
+        total_equity_cents: int,
+        currently_committed_cents: int
+    ) -> Dict[str, Any]:
+        """Evaluates an incoming candidate against resting limit orders for preemption."""
+        return self.eviction_manager.evaluate_preemption(
+            candidate=candidate,
+            total_equity_cents=total_equity_cents,
+            currently_committed_cents=currently_committed_cents
+        )
+
+    def execute_eviction(self, order_id: str, reason: str = "ALPHA_PREEMPTION") -> Dict[str, Any]:
+        """Executes cancellation of an unfilled resting order to liberate capital."""
+        evicted = self.eviction_manager.execute_eviction(order_id, reason=reason)
+        self.stats['total_evictions_executed'] += 1
+        return evicted
 
     def start(self):
         if self.is_running:
