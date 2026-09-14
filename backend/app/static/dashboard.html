@@ -192,7 +192,7 @@
       </div>
     </div>
 
-    <!-- LIVE LINEAL ROSTER & PROVISIONING MANAGER (ADR-004) -->
+    <!-- LIVE LINEAL ROSTER & PROVISIONING MANAGER -->
     <div class="table-container">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
         <div>
@@ -519,6 +519,10 @@
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({query: q, actor_hat: 'Chief Administrator'})
         });
+        if (d.status === "NOOP") {
+          alert("No change applied:\n" + d.message);
+          return;
+        }
         if (!res.ok) {
           res = await fetch('/api/v1/operator/copilot/query', {
             method: 'POST',
@@ -540,21 +544,6 @@
             `).join('');
           }
           log.innerHTML += `<div class="chat-bubble ai"><div>${reply}</div>${cardHtml}</div>`;
-        } else {
-          if (q.toLowerCase().includes("freeze") || q.toLowerCase().includes("florida") || q.toLowerCase().includes("citrus")) {
-            log.innerHTML += `
-              <div class="chat-bubble ai">
-                <div><strong>Opportunity Research Center (ORC):</strong> Evaluated hypothesis against Point-in-Time NOAA meteorological models. Sub-freezing conditions detected in citrus production corridors.</div>
-                <div style="margin-top:8px; padding:10px; background:#0b132b; border:1px solid #10b981; border-radius:6px;">
-                  <strong style="color:#10b981;">Open Opportunity Research Dossier: KX-MIA-FRZ-32</strong>
-                  <div style="color:#94a3b8; font-size:0.75rem; margin:4px 0;">NOAA GFS Ensemble confirms freeze alert. Model Probability: 31.5% vs Ask: 3.0¢ (+28.5% Net Statistical Edge).</div>
-                  <button onclick="openInspector('KX-MIA-FRZ-32', 'KALSHI', 'BUY_YES', '3.0¢')" style="background:#10b981; color:#0b132b; border:none; padding:4px 10px; border-radius:4px; font-size:0.75rem; font-weight:bold; cursor:pointer; margin-top:4px;">Inspect Research Dossier</button>
-                </div>
-              </div>
-            `;
-          } else {
-            log.innerHTML += `<div class="chat-bubble ai" style="border-left-color:#ef4444;">Server query response: ${res.status}</div>`;
-          }
         }
       } catch (err) {
         log.innerHTML += `<div class="chat-bubble ai" style="border-left-color:#ef4444;">Connection error while dispatching query.</div>`;
@@ -572,8 +561,6 @@
         const d = await res.json();
         const cid = (payload && payload.contract_id) ? payload.contract_id : 'KX-MIA-FRZ-32';
         openInspector(cid, 'KALSHI', 'BUY_YES', '3.0¢');
-        const hashEl = document.getElementById("insp-hash");
-        if (hashEl && d.dossier_id) hashEl.innerText = 'SHA256-' + d.dossier_id + '-VERIFIED';
       } catch (e) {
         openInspector('KX-MIA-FRZ-32', 'KALSHI', 'BUY_YES', '3.0¢');
       }
@@ -631,10 +618,6 @@
         ctx.beginPath();
         ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
         ctx.fill();
-        ctx.beginPath();
-        ctx.arc(pt.x, pt.y, 7, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(56, 189, 248, 0.4)";
-        ctx.stroke();
       });
     }
 
@@ -787,25 +770,103 @@
       }
     }
 
-    async function promptTransition(uid, currentRole) {
-      const targetRole = prompt(`Promote/Transition User ${uid}\nCurrent Role: ${currentRole}\nEnter new role (e.g. F1_FINANCIAL_ADVISOR, T2_SYSTEM_ADMIN, MEMBER_USER):`);
-      if (!targetRole) return;
-      const just = prompt("Enter governance justification:", "Lineal Merit Promotion");
+    let activeTransitionUid = null;
+    let activeTransitionRole = null;
+
+    function promptTransition(uid, currentRole) {
+      activeTransitionUid = uid.trim();
+      activeTransitionRole = currentRole.trim().toUpperCase();
+
+      document.getElementById("modal-trans-uid").textContent = activeTransitionUid;
+      document.getElementById("modal-trans-current-role").textContent = activeTransitionRole;
+      document.getElementById("modal-trans-justification").value = "Lineal Merit Promotion";
+      
+      const statusBox = document.getElementById("modal-trans-status");
+      statusBox.style.display = "none";
+      statusBox.textContent = "";
+
+      // Smart default: pick the next logical tier
+      const select = document.getElementById("modal-trans-new-role");
+      if (activeTransitionRole === "MEMBER_USER") select.value = "F1_FINANCIAL_ADVISOR";
+      else if (activeTransitionRole === "F1_FINANCIAL_ADVISOR") select.value = "F2_FINANCIAL_ADVISOR";
+      else if (activeTransitionRole === "F2_FINANCIAL_ADVISOR") select.value = "F3_FINANCIAL_ADVISOR";
+      else if (activeTransitionRole.startsWith("T")) select.value = "T2_SYSTEM_ADMIN";
+      else select.value = "MEMBER_USER";
+
+      document.getElementById("transition-modal").style.display = "flex";
+    }
+
+    function closeTransitionModal() {
+      document.getElementById("transition-modal").style.display = "none";
+      activeTransitionUid = null;
+    }
+
+    async function submitRoleTransition() {
+      if (!activeTransitionUid) return;
+
+      const targetRole = document.getElementById("modal-trans-new-role").value;
+      const just = document.getElementById("modal-trans-justification").value.trim() || "Lineal Merit Promotion";
+      const statusBox = document.getElementById("modal-trans-status");
+      const btn = document.getElementById("modal-trans-submit-btn");
+
+      if (targetRole === activeTransitionRole) {
+        statusBox.style.display = "block";
+        statusBox.style.background = "rgba(245, 158, 11, 0.15)";
+        statusBox.style.border = "1px solid #f59e0b";
+        statusBox.style.color = "#fbbf24";
+        statusBox.textContent = "Notice: User already holds " + targetRole + ". Please select a different class.";
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "Applying...";
+
       try {
+        const payload = {
+          user_id: activeTransitionUid,
+          new_role: targetRole,
+          justification: just
+        };
         const res = await fetch('/api/v1/operator/transition-role', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({
-            user_id: uid,
-            new_role: targetRole.trim(),
-            justification: just || "Lineal Merit Promotion"
-          })
+          body: JSON.stringify(payload)
         });
         const d = await res.json();
-        alert(`Role Transitioned:\n${d.old_role} -> ${d.new_role}\nTarget Portal: ${d.target_portal}\nPreserved SCMA: ${d.preserved_scma}`);
-        syncRoster();
-      } catch (e) {
-        alert("Transition failed: " + e.message);
+
+        if (!res.ok) {
+          statusBox.style.display = "block";
+          statusBox.style.background = "rgba(239, 68, 68, 0.15)";
+          statusBox.style.border = "1px solid #ef4444";
+          statusBox.style.color = "#f87171";
+          statusBox.textContent = "Transition Rejected: " + (d.detail || JSON.stringify(d));
+          btn.disabled = false;
+          btn.textContent = "Apply Transition";
+          return;
+        }
+
+        statusBox.style.display = "block";
+        statusBox.style.background = "rgba(34, 197, 94, 0.15)";
+        statusBox.style.border = "1px solid #22c55e";
+        statusBox.style.color = "#4ade80";
+        statusBox.innerHTML = `<strong>Role Transition Certified:</strong> ${d.old_role} &rarr; ${d.new_role}<br><span style="font-size: 0.75rem; color: #94a3b8;">Hash: ${d.audit_hash ? d.audit_hash.substring(0, 20) + '...' : 'Recorded'}</span>`;
+
+        await syncRoster();
+
+        setTimeout(() => {
+          closeTransitionModal();
+          btn.disabled = false;
+          btn.textContent = "Apply Transition";
+        }, 1200);
+
+      } catch (err) {
+        statusBox.style.display = "block";
+        statusBox.style.background = "rgba(239, 68, 68, 0.15)";
+        statusBox.style.border = "1px solid #ef4444";
+        statusBox.style.color = "#f87171";
+        statusBox.textContent = "Network Error: " + err.message;
+        btn.disabled = false;
+        btn.textContent = "Apply Transition";
       }
     }
 
@@ -818,5 +879,63 @@
     });
     window.addEventListener("resize", renderChart);
   </script>
+
+  <!-- Styled Role Transition / Promotion Modal -->
+  <div id="transition-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.75); z-index: 20000; align-items: center; justify-content: center;">
+    <div style="background: #1c2541; border: 1px solid #38bdf8; border-radius: 8px; width: 480px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.85);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="margin: 0; color: #38bdf8; font-size: 1.15rem; font-weight: 700;">Lineal Role Transition & Promotion</h3>
+        <button onclick="closeTransitionModal()" style="background: transparent; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">✕</button>
+      </div>
+      
+      <div style="background: #0b132b; border: 1px solid #334155; border-radius: 6px; padding: 12px; margin-bottom: 16px; font-size: 0.8rem;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span style="color: #94a3b8;">Target Identity:</span>
+          <strong id="modal-trans-uid" style="color: #f8fafc; font-family: monospace;">--</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: #94a3b8;">Current Role / Hat:</span>
+          <span id="modal-trans-current-role" style="background: #334155; color: #38bdf8; padding: 2px 8px; border-radius: 4px; font-weight: 700;">--</span>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 14px; font-size: 0.85rem;">
+        <div>
+          <label style="color: #cbd5e1; display: block; margin-bottom: 6px; font-weight: 600;">Select Target Role / Class</label>
+          <select id="modal-trans-new-role" style="width: 100%; background: #0b132b; border: 1px solid #334155; color: #fff; padding: 10px; border-radius: 4px; box-sizing: border-box; font-size: 0.85rem;">
+            <optgroup label="Class M (Common Member)">
+              <option value="MEMBER_USER">MEMBER_USER (Autonomous 87/10/3, Max 2% Risk)</option>
+            </optgroup>
+            <optgroup label="Class F (Lineal Financial Advisors)">
+              <option value="F1_FINANCIAL_ADVISOR">F1_FINANCIAL_ADVISOR (Lineal Peer Advisor / Mentorship)</option>
+              <option value="F2_FINANCIAL_ADVISOR">F2_FINANCIAL_ADVISOR (Household Elder Advisor / Oversight)</option>
+              <option value="F3_FINANCIAL_ADVISOR">F3_FINANCIAL_ADVISOR (Chief Risk Officer Context / Dual-Control)</option>
+            </optgroup>
+            <optgroup label="Class T (Technical Infrastructure)">
+              <option value="T1_SYSTEM_ADMIN">T1_SYSTEM_ADMIN (Junior Technical Operator / Redacted Telemetry)</option>
+              <option value="T2_SYSTEM_ADMIN">T2_SYSTEM_ADMIN (Infrastructure Engineer / Node Diagnostics)</option>
+              <option value="T3_SYSTEM_ADMIN">T3_SYSTEM_ADMIN (Chief Technology Officer Context / Dual-Control)</option>
+            </optgroup>
+            <optgroup label="Executive Administration">
+              <option value="CHIEF_ADMINISTRATOR">CHIEF_ADMINISTRATOR (Master Governance & Kill Switch)</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div>
+          <label style="color: #cbd5e1; display: block; margin-bottom: 6px; font-weight: 600;">Governance Justification (Audit Trail)</label>
+          <input type="text" id="modal-trans-justification" value="Lineal Merit Promotion" placeholder="Reason for transition..." style="width: 100%; background: #0b132b; border: 1px solid #334155; color: #fff; padding: 10px; border-radius: 4px; box-sizing: border-box; font-size: 0.85rem;">
+        </div>
+
+        <div id="modal-trans-status" style="display: none; padding: 10px; border-radius: 4px; font-size: 0.8rem; line-height: 1.4;"></div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button onclick="closeTransitionModal()" style="background: #334155; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">Cancel</button>
+        <button id="modal-trans-submit-btn" onclick="submitRoleTransition()" style="background: #0284c7; color: #fff; border: none; padding: 8px 18px; border-radius: 4px; font-weight: 700; cursor: pointer; font-size: 0.85rem;">Apply Transition</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
