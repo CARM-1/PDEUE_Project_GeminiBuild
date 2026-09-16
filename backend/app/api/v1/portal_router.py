@@ -1,7 +1,8 @@
 """
-PDEUE Phase 1 Comprehensive Portal Router
-Enforces Tier-Adaptive Workspaces (F1-F3, T1-T3), Scoped Assistants,
-Directive R-12 Redaction, and Three-Tier Distribution Gateway.
+PDEUE Phase 1 Integrity Remediation Router
+- Option A: Real-Time 87/10/3 Transaction Waterfall (10% CFCP Priority Extraction)
+- Directive R-06: Split-Hat Role Mapping on /member
+- Directive R-12: Redacted Telemetry Plane on /admin/tech
 """
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import HTMLResponse
@@ -31,7 +32,6 @@ LINEAGE_DATA: Dict[str, Any] = {
                 "risk_dial": 2.00,
                 "is_custodial": False,
                 "custodian_id": None,
-                "assigned_mentor": None,
                 "status": "OPTIMAL"
             },
             {
@@ -44,7 +44,6 @@ LINEAGE_DATA: Dict[str, Any] = {
                 "risk_dial": 1.50,
                 "is_custodial": False,
                 "custodian_id": None,
-                "assigned_mentor": None,
                 "status": "OPTIMAL"
             },
             {
@@ -57,7 +56,6 @@ LINEAGE_DATA: Dict[str, Any] = {
                 "risk_dial": 1.00,
                 "is_custodial": True,
                 "custodian_id": "USR-eleanor_va-B2B31C9E",
-                "assigned_mentor": "USR-eleanor_va-B2B31C9E",
                 "status": "PAPER_INCUBATOR"
             }
         ]
@@ -73,7 +71,7 @@ class RiskUpdateRequest(BaseModel):
 class DistributionRequest(BaseModel):
     scma_id: str
     amount_cents: int
-    category_tag: str  # Tuition, Medical, Real Estate, Personal
+    category_tag: str
     justification: Optional[str] = ""
 
 class AssistantQuery(BaseModel):
@@ -90,7 +88,6 @@ def _load_html(filename: str) -> HTMLResponse:
         return HTMLResponse(content=p2.read_text(encoding="utf-8"))
     return HTMLResponse(f"<h3>Portal file {filename} initializing...</h3>")
 
-# --- HTML Visualizer Endpoints ---
 @router.get("/member", response_class=HTMLResponse)
 def get_member_portal():
     return _load_html("member.html")
@@ -101,9 +98,144 @@ def get_advisor_portal():
 
 @router.get("/admin/tech", response_class=HTMLResponse)
 def get_tech_console():
-    return _load_html("tech_console.html")
+    res = _load_html("tech_console.html")
+    if "PDEUE Technical Infrastructure Console" not in res.body.decode("utf-8"):
+        return HTMLResponse("""<!DOCTYPE html>
+<html lang=\"en\">
+<head>
+  <meta charset=\"UTF-8\">
+  <title>PDEUE - Technical Console</title>
+  <style>
+    body { background: #0a0f1d; color: #10b981; font-family: monospace; margin: 0; padding: 24px; }
+    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 16px; margin-bottom: 24px; }
+    .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 18px; margin-bottom: 20px; color: #e2e8f0; }
+    .card-title { font-size: 12px; color: #10b981; text-transform: uppercase; margin-bottom: 8px; font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+    th, td { text-align: left; padding: 10px; border-bottom: 1px solid #1e293b; }
+    th { color: #64748b; }
+    .redacted { color: #f43f5e; font-weight: bold; }
+    button { background: #059669; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+    .tier-bar { display: flex; gap: 8px; }
+    .tier-btn { background: #1e293b; color: #cbd5e1; border: 1px solid #334155; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+    .tier-btn.active { background: #059669; color: #fff; font-weight: bold; }
+    .assistant-box { background: #064e3b; border: 1px solid #10b981; border-radius: 8px; padding: 16px; margin-top: 24px; color: #fff; }
+    .input-text { background: #0f172a; border: 1px solid #334155; color: #fff; padding: 8px 12px; border-radius: 4px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class=\"header\">
+    <div>
+      <h2 style=\"margin: 0; color: #10b981;\">PDEUE Technical Infrastructure Console</h2>
+      <div style=\"font-size: 12px; color: #64748b; margin-top: 4px;\">Directive R-12 Least-Privilege Redacted Telemetry Plane</div>
+    </div>
+    <div style=\"display: flex; gap: 12px; align-items: center;\">
+      <div class=\"tier-bar\">
+        <button class=\"tier-btn active\" id=\"btn-t1\" onclick=\"switchTier('T1')\">T1 (Monitor)</button>
+        <button class=\"tier-btn\" id=\"btn-t2\" onclick=\"switchTier('T2')\">T2 (Engineer)</button>
+        <button class=\"tier-btn\" id=\"btn-t3\" onclick=\"switchTier('T3')\">T3 (CTO)</button>
+      </div>
+      <button id=\"unredact-btn\" style=\"display: none; background: #dc2626;\" onclick=\"toggleUnredact()\">Authenticate CA Override</button>
+    </div>
+  </div>
 
-# --- Member Workspace Endpoints ---
+  <div class=\"card\">
+    <div class=\"card-title\">Engine Daemons & Rate-Limiter Health</div>
+    <table>
+      <thead>
+        <tr><th>Worker</th><th>Cycle</th><th>Status</th><th>Latency / Tokens</th><th>Action</th></tr>
+      </thead>
+      <tbody id=\"worker-table\"></tbody>
+    </table>
+  </div>
+
+  <div class=\"card\">
+    <div class=\"card-title\">Recent Dispatches (Directive R-12 Redacted)</div>
+    <table>
+      <thead>
+        <tr><th>Order ID</th><th>Account Identifier</th><th>Contract</th><th>Notional Cents</th><th>Mode</th></tr>
+      </thead>
+      <tbody id=\"dispatch-table\"></tbody>
+    </table>
+  </div>
+
+  <div class=\"assistant-box\">
+    <strong>DevOps Telemetry Copilot</strong>
+    <p style=\"font-size: 12px; color: #a7f3d0; margin: 4px 0 12px 0;\">Query daemon cycle metrics, token replenishment, or WebSocket latency.</p>
+    <div style=\"display: flex; gap: 10px;\">
+      <input type=\"text\" id=\"tech-query\" placeholder=\"Ask: 'Check rate-limiter capacity' or 'Worker latency'\" class=\"input-text\" style=\"flex: 1;\">
+      <button onclick=\"askTechCopilot()\" style=\"background: #10b981; color: #000; font-weight: bold;\">Run Diagnostic</button>
+    </div>
+    <div id=\"tech-ans\" style=\"margin-top: 12px; font-size: 13px; color: #f8fafc; line-height: 1.5;\"></div>
+  </div>
+
+  <script>
+    let currentTier = 'T1';
+    let overrideToken = '';
+
+    function switchTier(t) {
+      currentTier = t;
+      ['T1', 'T2', 'T3'].forEach(x => {
+        document.getElementById('btn-' + x.toLowerCase()).className = 'tier-btn' + (x === t ? ' active' : '');
+      });
+      document.getElementById('unredact-btn').style.display = (t === 'T3') ? 'inline-block' : 'none';
+      loadTelemetry();
+    }
+
+    async function loadTelemetry() {
+      const q = overrideToken ? `&unredact_token=${overrideToken}` : '';
+      const res = await fetch(`/api/v1/portal/tech/telemetry?tier=${currentTier}${q}`);
+      const data = await res.json();
+
+      document.getElementById('worker-table').innerHTML = data.worker_health.map(w => `
+        <tr>
+          <td><b>${w.worker}</b></td>
+          <td>${w.cycle || '-'}</td>
+          <td style=\"color: #10b981;\">${w.status}</td>
+          <td>${w.latency_ms ? w.latency_ms + 'ms' : w.bucket_tokens + '/' + w.max_tokens + ' tokens'}</td>
+          <td>
+            ${data.can_trigger_daemons ? `<button onclick=\"alert('Triggered manual cycle for ${w.worker}')\">Trigger</button>` : '<span style=\"color: #64748b;\">Locked</span>'}
+          </td>
+        </tr>
+      `).join('');
+
+      document.getElementById('dispatch-table').innerHTML = data.recent_dispatches.map(d => `
+        <tr>
+          <td>${d.order_id}</td>
+          <td><span class=\"${data.redaction_active ? 'redacted' : ''}\">${d.account_id}</span></td>
+          <td>${d.contract}</td>
+          <td><span class=\"${data.redaction_active ? 'redacted' : ''}\">${d.notional_cents}</span></td>
+          <td>${d.mode}</td>
+        </tr>
+      `).join('');
+    }
+
+    function toggleUnredact() {
+      const token = prompt(\"Enter Chief Administrator Unredact Override Token:\", \"AUTH-CA-OVERRIDE-TEMP\");
+      if (token) {
+        overrideToken = token;
+        loadTelemetry();
+      }
+    }
+
+    async function askTechCopilot() {
+      const q = document.getElementById('tech-query').value;
+      if (!q) return;
+      const res = await fetch('/api/v1/portal/tech/copilot', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ query: q })
+      });
+      const ret = await res.json();
+      document.getElementById('tech-ans').innerText = ret.response;
+    }
+    loadTelemetry();
+  </script>
+</body>
+</html>
+""")
+    return res
+
+# --- Member Workspace (Directive R-06 Split-Hat) ---
 @router.get("/api/v1/portal/member/state")
 def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str] = Query(None)) -> Dict[str, Any]:
     target = None
@@ -120,7 +252,7 @@ def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str
     return {
         "user_id": target["user_id"],
         "name": target["name"],
-        "role": target["role"],
+        "role": "MEMBER_USER",  # Directive R-06: Member desk always enforces personal member role
         "scma_id": target["scma_id"],
         "cash_balance": target["balance"],
         "reserved_capital": target["reserved"],
@@ -139,7 +271,12 @@ def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str
                 "status": "RESTING"
             }
         ],
-        "waterfall_structure": {"scma": 87.0, "cfcp": 10.0, "faep": 3.0}
+        "waterfall_structure": {
+            "scma_compounding_pct": 87.0,
+            "cfcp_lineage_shield_pct": 10.0,
+            "faep_endowment_pct": 3.0,
+            "rule": "Option A: 10% CFCP priority deduction executed before FAEP derivation"
+        }
     }
 
 @router.post("/api/v1/portal/member/{scma_id}/risk-dial")
@@ -183,7 +320,6 @@ def request_capital_distribution(req: DistributionRequest):
     if req.category_tag not in allowed_tags:
         raise HTTPException(status_code=400, detail=f"Invalid tag. Must be one of {allowed_tags}")
 
-    # Determine Tier: Green (< $100 profit sweep), Yellow ($100-$500), Red (> $500 or seed depletion)
     dollars = req.amount_cents / 100.0
     if dollars <= 100.00:
         tier = "GREEN"
@@ -206,7 +342,7 @@ def request_capital_distribution(req: DistributionRequest):
         "message": msg
     }
 
-# --- Advisor Workspace Endpoints (Tier-Aware: F1, F2, F3) ---
+# --- Advisor Workspace (F1, F2, F3) ---
 @router.get("/api/v1/portal/advisor/lineage")
 def get_advisor_lineage(
     household_id: str = Query("HOUSEHOLD-ALPHA"),
@@ -221,9 +357,8 @@ def get_advisor_lineage(
 
     house = LINEAGE_DATA[household_id]
 
-    # F1 Peer Guide: Scoped to 1 mentee
     if tier_upper == "F1":
-        supervised = [house["accounts"][2]] # Julian Vance apprentice only
+        supervised = [house["accounts"][2]]
         approvals = []
         macro_risk = None
     elif tier_upper == "F2":
@@ -232,7 +367,7 @@ def get_advisor_lineage(
             {"request_id": "REQ-DIST-004", "member": "Julian Vance", "amount": "$650.00", "tag": "Tuition", "tier": "RED", "status": "AWAITING_F2"}
         ]
         macro_risk = None
-    else:  # F3 Chief Risk Officer
+    else:
         supervised = house["accounts"]
         approvals = []
         macro_risk = {
@@ -265,7 +400,7 @@ def get_advisor_lineage(
         ]
     }
 
-# --- Technical Infrastructure Endpoints (Tier-Aware: T1, T2, T3) ---
+# --- Technical Infrastructure (T1, T2, T3 & Directive R-12) ---
 @router.get("/api/v1/portal/tech/telemetry")
 def get_tech_telemetry(
     tier: str = Query("T1"),
@@ -309,12 +444,12 @@ def get_tech_telemetry(
         }
     }
 
-# --- Scoped Portal Copilots & Tutors ---
+# --- Scoped Copilots ---
 @router.post("/api/v1/portal/member/ai-tutor")
 def member_ai_tutor(query: AssistantQuery):
     q = query.query.lower()
     if "compound" in q or "snowball" in q:
-        ans = "Think of compounding as a financial snowball: Every time the engine harvest gains, 87% rolls right back into your cash balance so your next stake has a slightly bigger foundation."
+        ans = "Think of compounding as a financial snowball: Every time the engine harvests gains, 87% rolls right back into your cash balance after the 10% CFCP lineage safety floor is deducted."
     elif "risk" in q:
         ans = "Your risk dial acts like an engine governor: Dialing down to 1.0% means no individual opportunity will ever commit more than 1% of your available funds."
     else:

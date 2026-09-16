@@ -26,8 +26,8 @@
 <body>
   <div class="header">
     <div>
-      <h2 style="margin: 0; color: #38bdf8;">PDEUE Member Desktop</h2>
-      <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Single-SCMA Autonomous Allocation Desk</div>
+      <h2 style="margin: 0; color: #38bdf8;" id="portal-title">PDEUE Member Desktop</h2>
+      <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Private SCMA Wealth Compounding (Directive R-06 Context)</div>
     </div>
     <span class="badge" id="m-role">MEMBER_USER</span>
   </div>
@@ -50,8 +50,8 @@
       <div class="card-value" style="color: #4ade80;">+$<span id="m-yield">0.00</span></div>
     </div>
     <div class="card">
-      <div class="card-title">Waterfall Allocation</div>
-      <div class="card-value" style="font-size: 18px; color: #cbd5e1;">87% SCMA / 10% CFCP</div>
+      <div class="card-title">Profit Allocation Waterfall</div>
+      <div class="card-value" style="font-size: 18px; color: #cbd5e1;">87% SCMA / 10% CFCP / 3% FAEP</div>
     </div>
   </div>
 
@@ -92,7 +92,7 @@
 
   <div class="assistant-box">
     <strong style="color: #38bdf8;">FSE AI Educational Tutor</strong>
-    <p style="font-size: 12px; color: #94a3b8; margin: 4px 0 12px 0;">Ask questions about compounding, risk dials, or prediction market mechanics.</p>
+    <p style="font-size: 12px; color: #94a3b8; margin: 4px 0 12px 0;">Ask questions about compounding, the 10% CFCP priority deduction, or risk dials.</p>
     <div style="display: flex; gap: 10px;">
       <input type="text" id="tutor-query" placeholder="Ask: 'How does compounding work?'" class="input-text" style="flex: 1;">
       <button onclick="askTutor()">Ask Tutor</button>
@@ -110,7 +110,9 @@
       const data = await res.json();
       currentScma = data.scma_id;
 
-      document.getElementById('m-role').innerText = data.role;
+      // Enforce Directive R-06 Split-Hat Context
+      document.getElementById('m-role').innerText = "MEMBER_USER (" + data.scma_id.split('-')[1] + ")";
+      document.getElementById('portal-title').innerText = data.name + " — Personal Member Desktop";
       document.getElementById('m-cash').innerText = data.cash_balance.toFixed(2);
       document.getElementById('m-reserved').innerText = data.reserved_capital.toFixed(2);
       document.getElementById('m-yield').innerText = data.lifetime_yield.toFixed(2);

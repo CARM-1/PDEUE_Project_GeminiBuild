@@ -43,11 +43,17 @@
 <body>
 
   <!-- PDEUE PORTAL HUB RIBBON -->
-  <div style="background: #060b19; border-bottom: 1px solid #1e293b; padding: 8px 16px; display: flex; align-items: center; gap: 16px; font-size: 0.8rem; margin: -24px -24px 20px -24px;">
-    <strong style="color: #cbd5e1; letter-spacing: 0.05em;">PDEUE PORTAL HUB:</strong>
-    <a href="/dashboard" style="background: #0284c7; color: #ffffff; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-weight: 700;">Chief Admin Cockpit</a>
-    <a href="/admin/tech" style="color: #94a3b8; padding: 4px 10px; text-decoration: none; font-weight: 600;">Technical Console (Class T)</a>
-    <a href="/advisor" style="color: #94a3b8; padding: 4px 10px; text-decoration: none; font-weight: 600;">Financial Advisor Workspace (Class F)</a>
+  <!-- CHIEF ADMIN SUPERVISORY LENS (DOWNWARD ONLY) -->
+  <div style="background: #060b19; border-bottom: 1px solid #1e293b; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin: -24px -24px 20px -24px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <strong style="color: #38bdf8; letter-spacing: 0.05em;">SUPERVISORY LENS:</strong>
+      <select onchange="window.location.href=this.value" style="background: #1e293b; color: #f8fafc; border: 1px solid #334155; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">
+        <option value="/dashboard" selected>Chief Admin Cockpit (Global Family Aggregate)</option>
+        <option value="/admin/tech">Technical Infrastructure Console (Class T Telemetry)</option>
+        <option value="/advisor?household_id=HOUSEHOLD-ALPHA">Advisor Lineage Workspace (House Alpha)</option>
+      </select>
+    </div>
+    <span style="color: #64748b; font-size: 11px;">JURISDICTION: TOP-LEVEL EXECUTIVE OVERSIGHT (SPLIT-HAT CONTEXT)</span>
   </div>
 
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -62,7 +68,7 @@
   </div>
 
   <div class="nav-tabs">
-    <button id="tab-btn-1" class="nav-btn active" onclick="switchTab(1)">1. Founder SCMA & Executive Overview</button>
+    <button id="tab-btn-1" class="nav-btn active" onclick="switchTab(1)">1. Lineage Executive Overview</button>
     <button id="tab-btn-2" class="nav-btn" onclick="switchTab(2)">2. Family Lineal Pools & Sub-Ledgers</button>
     <button id="tab-btn-3" class="nav-btn" onclick="switchTab(3)">3. Velocity Radar & Scanner</button>
     <button id="tab-btn-4" class="nav-btn" onclick="switchTab(4)">4. Governance & Dual-Control</button>
@@ -72,13 +78,13 @@
   <div id="tab-panel-1" class="tab-panel active">
     <div class="grid-cards">
       <div class="card">
-        <div class="card-label">Founder SCMA Cash</div>
+        <div class="card-label">LINEAGE TOTAL EQUITY</div>
         <div class="card-val" id="fnd-balance">$4,250.00</div>
         <div class="card-sub" id="fnd-reserved">Active Reservation: $750.00</div>
       </div>
       <div class="card">
-        <div class="card-label">Founder FAEP Pool (3%)</div>
-        <div class="card-val" id="fnd-faep" style="color: #38bdf8;">$150.00</div>
+        <div class="card-label">COMMITTED MARGIN</div>
+        <div class="card-val" id="fnd-faep" style="color: #38bdf8;">$25.00</div>
         <div class="card-sub">Lifetime PnL: $0.00</div>
       </div>
       <div class="card">
@@ -138,7 +144,7 @@
       </div>
       <div class="card">
         <div class="card-label" style="color: #f59e0b;">FAEP Endowment Pool (3%)</div>
-        <div class="card-val">$150.00</div>
+        <div class="card-val">$25.00</div>
         <div class="card-sub">Multi-Generational Growth Ledger</div>
       </div>
     </div>

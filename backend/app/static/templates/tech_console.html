@@ -91,7 +91,7 @@
           <td style="color: #10b981;">${w.status}</td>
           <td>${w.latency_ms ? w.latency_ms + 'ms' : w.bucket_tokens + '/' + w.max_tokens + ' tokens'}</td>
           <td>
-            ${data.can_trigger_daemons ? `<button onclick="alert('Triggered manual cycle for ${w.worker}')">Trigger</button>` : '<span style="color: #64748b;">Locked</span>'}
+            ${data.can_trigger_daemons ? `<button onclick="alert('Triggered manual cycle for ' + w.worker)">Trigger</button>` : '<span style="color: #64748b;">Locked</span>'}
           </td>
         </tr>
       `).join('');
