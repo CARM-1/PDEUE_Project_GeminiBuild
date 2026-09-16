@@ -8,11 +8,10 @@
     .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 16px; margin-bottom: 24px; }
     .badge { background: #0284c7; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; }
     .custodial-banner { display: none; background: #7c2d12; border: 1px solid #ea580c; color: #ffedd5; padding: 12px; border-radius: 6px; margin-bottom: 20px; font-size: 13px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 24px; }
-    .card { background: #131c31; border: 1px solid #1e293b; border-radius: 8px; padding: 18px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .card { background: #131c31; border: 1px solid #1e293b; border-radius: 8px; padding: 18px; margin-bottom: 20px; }
     .card-title { font-size: 12px; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; }
     .card-value { font-size: 26px; font-weight: bold; color: #38bdf8; }
-    .control-panel { background: #131c31; border: 1px solid #1e293b; border-radius: 8px; padding: 20px; margin-bottom: 24px; }
     .slider-box { display: flex; align-items: center; gap: 16px; margin-top: 12px; }
     input[type=range] { flex: 1; accent-color: #0284c7; }
     button { background: #0284c7; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
@@ -20,6 +19,8 @@
     table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
     th, td { text-align: left; padding: 10px; border-bottom: 1px solid #1e293b; }
     th { color: #94a3b8; }
+    .assistant-box { background: #0f172a; border: 1px solid #0284c7; border-radius: 8px; padding: 16px; margin-top: 24px; }
+    .input-text { background: #1e293b; border: 1px solid #334155; color: #fff; padding: 8px 12px; border-radius: 4px; font-size: 13px; }
   </style>
 </head>
 <body>
@@ -32,7 +33,7 @@
   </div>
 
   <div id="custodial-alert" class="custodial-banner">
-    <strong>Custodial Lock Active:</strong> Risk dial and distribution authorizations are restricted by your appointed Lineal Custodian (<span id="custodian-id">None</span>).
+    <strong>Custodial Lock Active:</strong> Risk dial adjustments and distributions are locked by your appointed Custodian (<span id="custodian-id">None</span>).
   </div>
 
   <div class="grid">
@@ -49,12 +50,12 @@
       <div class="card-value" style="color: #4ade80;">+$<span id="m-yield">0.00</span></div>
     </div>
     <div class="card">
-      <div class="card-title">Profit Allocation</div>
+      <div class="card-title">Waterfall Allocation</div>
       <div class="card-value" style="font-size: 18px; color: #cbd5e1;">87% SCMA / 10% CFCP</div>
     </div>
   </div>
 
-  <div class="control-panel">
+  <div class="card">
     <h3 style="margin-top: 0; color: #e2e8f0;">Autonomous Risk Dial (Downward-Only)</h3>
     <p style="font-size: 13px; color: #94a3b8; margin: 0;">Governs max capital stake per opportunity. Dial can only be reduced by member.</p>
     <div class="slider-box">
@@ -65,15 +66,38 @@
   </div>
 
   <div class="card">
+    <h3 style="margin-top: 0; color: #e2e8f0;">Capital Distribution Gateway (Categorical Tagging)</h3>
+    <div style="display: flex; gap: 12px; align-items: center; margin-top: 12px;">
+      <input type="number" id="dist-amount" placeholder="Amount (e.g. 50.00)" class="input-text" style="width: 150px;">
+      <select id="dist-tag" class="input-text">
+        <option value="Personal">Personal / Lifestyle</option>
+        <option value="Tuition">Tuition / Education</option>
+        <option value="Medical">Medical / Emergency</option>
+        <option value="Real Estate">Real Estate / Housing</option>
+      </select>
+      <button onclick="submitDistribution()">Request Distribution</button>
+    </div>
+    <div id="dist-result" style="margin-top: 10px; font-size: 13px; color: #38bdf8;"></div>
+  </div>
+
+  <div class="card">
     <div class="card-title">Active Resting Allocations</div>
     <table>
       <thead>
         <tr><th>Contract</th><th>Category</th><th>Committed</th><th>Net Edge</th><th>Status</th></tr>
       </thead>
-      <tbody id="pos-table">
-        <tr><td colspan="5" style="color: #64748b;">Synchronizing open books...</td></tr>
-      </tbody>
+      <tbody id="pos-table"></tbody>
     </table>
+  </div>
+
+  <div class="assistant-box">
+    <strong style="color: #38bdf8;">FSE AI Educational Tutor</strong>
+    <p style="font-size: 12px; color: #94a3b8; margin: 4px 0 12px 0;">Ask questions about compounding, risk dials, or prediction market mechanics.</p>
+    <div style="display: flex; gap: 10px;">
+      <input type="text" id="tutor-query" placeholder="Ask: 'How does compounding work?'" class="input-text" style="flex: 1;">
+      <button onclick="askTutor()">Ask Tutor</button>
+    </div>
+    <div id="tutor-ans" style="margin-top: 12px; font-size: 13px; color: #f8fafc; line-height: 1.5;"></div>
   </div>
 
   <script>
@@ -101,19 +125,15 @@
       }
 
       const tbody = document.getElementById('pos-table');
-      if (data.positions && data.positions.length > 0) {
-        tbody.innerHTML = data.positions.map(p => `
-          <tr>
-            <td><b>${p.contract_id}</b></td>
-            <td>${p.category}</td>
-            <td>$${p.allocation.toFixed(2)}</td>
-            <td style="color: #4ade80;">+${p.edge_pct}%</td>
-            <td><span style="color: #38bdf8;">${p.status}</span></td>
-          </tr>
-        `).join('');
-      } else {
-        tbody.innerHTML = '<tr><td colspan="5">No active resting allocations.</td></tr>';
-      }
+      tbody.innerHTML = data.positions.map(p => `
+        <tr>
+          <td><b>${p.contract_id}</b></td>
+          <td>${p.category}</td>
+          <td>$${p.allocation.toFixed(2)}</td>
+          <td style="color: #4ade80;">+${p.edge_pct}%</td>
+          <td><span style="color: #38bdf8;">${p.status}</span></td>
+        </tr>
+      `).join('');
     }
 
     async function saveRiskDial() {
@@ -124,12 +144,33 @@
         body: JSON.stringify({ requested_risk_pct: newDial })
       });
       const ret = await res.json();
-      if (!res.ok) {
-        alert("Risk adjustment rejected: " + (ret.detail || "Violation"));
-      } else {
-        alert("Risk ceiling successfully reduced to " + ret.applied_risk_dial + "%");
-        loadState();
-      }
+      if (!res.ok) alert("Rejected: " + (ret.detail || "Violation"));
+      else { alert("Risk dial updated to " + ret.applied_risk_dial + "%"); loadState(); }
+    }
+
+    async function submitDistribution() {
+      const amt = parseFloat(document.getElementById('dist-amount').value);
+      const tag = document.getElementById('dist-tag').value;
+      if (!amt || amt <= 0) return alert("Enter a valid amount.");
+      const res = await fetch('/api/v1/portal/member/request-distribution', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ scma_id: currentScma, amount_cents: Math.round(amt * 100), category_tag: tag })
+      });
+      const ret = await res.json();
+      document.getElementById('dist-result').innerText = `[${ret.tier} TIER] ${ret.message}`;
+    }
+
+    async function askTutor() {
+      const q = document.getElementById('tutor-query').value;
+      if (!q) return;
+      const res = await fetch('/api/v1/portal/member/ai-tutor', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ query: q })
+      });
+      const ret = await res.json();
+      document.getElementById('tutor-ans').innerText = ret.response;
     }
     loadState();
   </script>

@@ -246,70 +246,10 @@ def get_tech_console():
   </style>
 </head>
 <body>
-  <div class="nav">
-    <strong style="color:#f8fafc; margin-right:8px;">PDEUE PORTAL HUB:</strong>
-    <a href="/dashboard">Chief Admin Cockpit</a>
-    <a href="/admin/tech" class="active">Technical Console (Class T)</a>
-    <a href="/advisor">Financial Advisor Workspace (Class F)</a>
-  </div>
+  
   <h2>Technical Infrastructure Console</h2>
   <p style="color:#94a3b8; font-size:0.85rem;">Autonomous scan workers, event queues, and live telemetry streams.</p>
-  <div class="grid">
-    <div class="card">
-      <h4 style="margin:0 0 8px 0; color:#38bdf8;">Worker & Liquidity Allocation</h4>
-      <div id="dry-powder-status" style="color:#10b981; font-weight:bold; margin-bottom:6px;">DRY POWDER: $5,000.00 AVAILABLE</div>
-      <div id="active-bids-count" style="color:#38bdf8; font-weight:bold; margin-bottom:6px;">ACTIVE BIDS: 5 RESTING ORDERS</div>
-      <pre>POLLING FREQUENCY: 5000ms\nEXECUTION ENGINE: STRATEGY D\nMODE: PAPER\nDATABASE PERSISTENCE: ONLINE (WAL)</pre>
-    </div>
-    <div class="card">
-      <h4 style="margin:0 0 8px 0; color:#10b981;">Resting Orders Ladder</h4>
-      <table>
-        <thead><tr><th>Order ID</th><th>Contract</th><th>Side</th><th>Price</th></tr></thead>
-        <tbody id="resting-orders-body">
-          <tr><td>ORD-STG-001</td><td>KX-MIA-FRZ-32</td><td>BUY</td><td>2.0¢</td></tr>
-          <tr><td>ORD-STG-002</td><td>POLY-239496</td><td>BUY</td><td>1.0¢</td></tr>
-        </tbody>
-      </table>
-      <h4 style="margin:16px 0 4px 0; color:#f59e0b;">Eviction Queue History</h4>
-      <table>
-        <thead><tr><th>Contract</th><th>Evicted At</th><th>Reason</th></tr></thead>
-        <tbody id="eviction-history-body">
-          <tr><td>POLY-LEGACY</td><td>T-1h</td><td>EXPIRED_TTL</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-  <script>
-    const TELEMETRY_URL = '/api/v1/portal/telemetry';
-  </script>
-</body>
-</html>"""
-
-@workspace_router.get("/advisor", response_class=HTMLResponse)
-def get_advisor_portal():
-    """Financial Advisor Workspace for Class F personnel (87/10/3 waterfall, trustees)."""
-    return """<!DOCTYPE html>
-<html>
-<head>
-  <title>Financial Advisor Workspace</title>
-  <style>
-    body { background:#0b1120; color:#f8fafc; font-family:sans-serif; margin:0; padding:20px; }
-    .nav { background:#0f172a; border-bottom:1px solid #334155; padding:10px 20px; margin:-20px -20px 20px -20px; display:flex; gap:16px; font-size:0.85rem; align-items:center; }
-    .nav a { color:#94a3b8; text-decoration:none; padding:4px 8px; border-radius:4px; }
-    .nav a.active { color:#38bdf8; font-weight:bold; background:#1e293b; border:1px solid #38bdf8; }
-    .card-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; margin-bottom:20px; }
-    .card { background:#1e293b; border:1px solid #334155; border-radius:6px; padding:16px; }
-    table { width:100%; border-collapse:collapse; font-size:0.85rem; margin-top:12px; }
-    th, td { padding:8px; border-bottom:1px solid #334155; text-align:left; }
-  </style>
-</head>
-<body>
-  <div class="nav">
-    <strong style="color:#f8fafc; margin-right:8px;">PDEUE PORTAL HUB:</strong>
-    <a href="/dashboard">Chief Admin Cockpit</a>
-    <a href="/admin/tech">Technical Console (Class T)</a>
-    <a href="/advisor" class="active">Financial Advisor Workspace (Class F)</a>
-  </div>
+  
   <h2>Financial Advisor Workspace</h2>
   <p style="color:#94a3b8; font-size:0.85rem;">Multi-generational fiduciary ledgers and 87/10/3 deterministic capital allocations.</p>
   <div class="card-grid">

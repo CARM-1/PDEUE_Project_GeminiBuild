@@ -15,6 +15,11 @@
     th { color: #94a3b8; }
     .badge-custodial { background: #ea580c; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
     .badge-optimal { background: #10b981; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+    .tier-bar { display: flex; gap: 8px; margin-bottom: 20px; }
+    .tier-btn { background: #1e293b; color: #cbd5e1; border: 1px solid #334155; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+    .tier-btn.active { background: #a855f7; color: #fff; font-weight: bold; }
+    .assistant-box { background: #0f172a; border: 1px solid #a855f7; border-radius: 8px; padding: 16px; margin-top: 24px; }
+    .input-text { background: #1e293b; border: 1px solid #334155; color: #fff; padding: 8px 12px; border-radius: 4px; font-size: 13px; }
   </style>
 </head>
 <body>
@@ -23,7 +28,11 @@
       <h2 style="margin: 0; color: #c084fc;">Advisor Lineage Workspace</h2>
       <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Assigned Family Oversight & Read-Only PIT Inspection</div>
     </div>
-    <span style="border: 1px solid #a855f7; color: #a855f7; padding: 4px 10px; border-radius: 4px; font-size: 12px;">READ-ONLY POSTURE</span>
+    <div class="tier-bar">
+      <button class="tier-btn" id="btn-f1" onclick="switchTier('F1')">F1 (Peer Guide)</button>
+      <button class="tier-btn active" id="btn-f2" onclick="switchTier('F2')">F2 (Household Lead)</button>
+      <button class="tier-btn" id="btn-f3" onclick="switchTier('F3')">F3 (Chief Risk Officer)</button>
+    </div>
   </div>
 
   <div class="grid">
@@ -41,8 +50,21 @@
     </div>
   </div>
 
+  <div id="f2-approvals" class="card" style="display: none; border-color: #ea580c;">
+    <div class="card-title" style="color: #ea580c;">Pending Household Approvals (F2 Co-Signature Queue)</div>
+    <table>
+      <thead><tr><th>Request ID</th><th>Member</th><th>Amount</th><th>Tag</th><th>Action</th></tr></thead>
+      <tbody id="approvals-table"></tbody>
+    </table>
+  </div>
+
+  <div id="f3-macro" class="card" style="display: none; border-color: #38bdf8;">
+    <div class="card-title" style="color: #38bdf8;">Cross-Household Systemic Factor Exposure (F3 Risk Matrix)</div>
+    <div id="f3-content" style="font-size: 13px; line-height: 1.8;"></div>
+  </div>
+
   <div class="card">
-    <div class="card-title">Monitored Sub-Account Balances & Custodial Lineage</div>
+    <div class="card-title">Monitored Sub-Account Balances</div>
     <table>
       <thead>
         <tr><th>Account / Name</th><th>Role</th><th>SCMA ID</th><th>Balance</th><th>Risk Dial</th><th>Status</th></tr>
@@ -51,13 +73,61 @@
     </table>
   </div>
 
+  <div class="assistant-box">
+    <strong style="color: #c084fc;">Fiduciary Mentor Copilot</strong>
+    <p style="font-size: 12px; color: #94a3b8; margin: 4px 0 12px 0;">Model compounding impacts, inspect trade evidence, or formulate mentee guidance.</p>
+    <div style="display: flex; gap: 10px;">
+      <input type="text" id="copilot-query" placeholder="Ask: 'Explain impact of withdrawal on Julian's compounding velocity'" class="input-text" style="flex: 1;">
+      <button style="background: #a855f7; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;" onclick="askCopilot()">Consult Copilot</button>
+    </div>
+    <div id="copilot-ans" style="margin-top: 12px; font-size: 13px; color: #f8fafc; line-height: 1.5;"></div>
+  </div>
+
   <script>
+    let currentTier = 'F2';
+    function switchTier(t) {
+      currentTier = t;
+      ['F1', 'F2', 'F3'].forEach(x => {
+        document.getElementById('btn-' + x.toLowerCase()).className = 'tier-btn' + (x === t ? ' active' : '');
+      });
+      syncLineage();
+    }
+
     async function syncLineage() {
-      const res = await fetch('/api/v1/portal/advisor/lineage?household_id=HOUSEHOLD-ALPHA');
+      const res = await fetch(`/api/v1/portal/advisor/lineage?household_id=HOUSEHOLD-ALPHA&tier=${currentTier}`);
       const data = await res.json();
       document.getElementById('adv-eq').innerText = '$' + data.total_equity.toFixed(2);
       document.getElementById('adv-dd').innerText = data.max_drawdown_pct.toFixed(2) + '%';
       document.getElementById('adv-shield').innerText = '$' + data.cfcp_floor_shield.toFixed(2);
+
+      const f2Box = document.getElementById('f2-approvals');
+      if (data.pending_approvals && data.pending_approvals.length > 0) {
+        f2Box.style.display = 'block';
+        document.getElementById('approvals-table').innerHTML = data.pending_approvals.map(a => `
+          <tr>
+            <td>${a.request_id}</td>
+            <td><b>${a.member}</b></td>
+            <td>${a.amount}</td>
+            <td><span style="background: #334155; padding: 2px 6px; border-radius: 4px;">${a.tag}</span></td>
+            <td><button style="background: #10b981; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" onclick="alert('Co-signed ' + a.request_id)">Co-Sign Approval</button></td>
+          </tr>
+        `).join('');
+      } else {
+        f2Box.style.display = 'none';
+      }
+
+      const f3Box = document.getElementById('f3-macro');
+      if (data.macro_risk) {
+        f3Box.style.display = 'block';
+        document.getElementById('f3-content').innerHTML = `
+          <div>Cross-House Total Exposure: <b>${data.macro_risk.cross_house_exposure}</b></div>
+          <div>Weather Factor Concentration: <b>${data.macro_risk.weather_factor_concentration}</b></div>
+          <div>Macro Factor Concentration: <b>${data.macro_risk.macro_factor_concentration}</b></div>
+          <div>Platform 99% VaR: <b>${data.macro_risk.platform_var_99}</b></div>
+        `;
+      } else {
+        f3Box.style.display = 'none';
+      }
 
       const tbody = document.getElementById('sub-table');
       tbody.innerHTML = data.sub_accounts.map(a => `
@@ -70,6 +140,18 @@
           <td>${a.is_custodial ? '<span class="badge-custodial">CUSTODIAL APPRENTICE</span>' : '<span class="badge-optimal">ACTIVE</span>'}</td>
         </tr>
       `).join('');
+    }
+
+    async function askCopilot() {
+      const q = document.getElementById('copilot-query').value;
+      if (!q) return;
+      const res = await fetch('/api/v1/portal/advisor/copilot', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ query: q })
+      });
+      const ret = await res.json();
+      document.getElementById('copilot-ans').innerText = ret.response;
     }
     syncLineage();
   </script>

@@ -13,6 +13,11 @@
     th { color: #64748b; }
     .redacted { color: #f43f5e; font-weight: bold; }
     button { background: #059669; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+    .tier-bar { display: flex; gap: 8px; }
+    .tier-btn { background: #1e293b; color: #cbd5e1; border: 1px solid #334155; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+    .tier-btn.active { background: #059669; color: #fff; font-weight: bold; }
+    .assistant-box { background: #064e3b; border: 1px solid #10b981; border-radius: 8px; padding: 16px; margin-top: 24px; color: #fff; }
+    .input-text { background: #0f172a; border: 1px solid #334155; color: #fff; padding: 8px 12px; border-radius: 4px; font-size: 13px; }
   </style>
 </head>
 <body>
@@ -21,14 +26,21 @@
       <h2 style="margin: 0; color: #10b981;">PDEUE Technical Infrastructure Console</h2>
       <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Directive R-12 Least-Privilege Redacted Telemetry Plane</div>
     </div>
-    <button onclick="toggleUnredact()">Authenticate CA Override</button>
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <div class="tier-bar">
+        <button class="tier-btn active" id="btn-t1" onclick="switchTier('T1')">T1 (Monitor)</button>
+        <button class="tier-btn" id="btn-t2" onclick="switchTier('T2')">T2 (Engineer)</button>
+        <button class="tier-btn" id="btn-t3" onclick="switchTier('T3')">T3 (CTO)</button>
+      </div>
+      <button id="unredact-btn" style="display: none; background: #dc2626;" onclick="toggleUnredact()">Authenticate CA Override</button>
+    </div>
   </div>
 
   <div class="card">
     <div class="card-title">Engine Daemons & Rate-Limiter Health</div>
     <table>
       <thead>
-        <tr><th>Worker</th><th>Cycle</th><th>Status</th><th>Latency / Tokens</th></tr>
+        <tr><th>Worker</th><th>Cycle</th><th>Status</th><th>Latency / Tokens</th><th>Action</th></tr>
       </thead>
       <tbody id="worker-table"></tbody>
     </table>
@@ -44,11 +56,32 @@
     </table>
   </div>
 
+  <div class="assistant-box">
+    <strong>DevOps Telemetry Copilot</strong>
+    <p style="font-size: 12px; color: #a7f3d0; margin: 4px 0 12px 0;">Query daemon cycle metrics, token replenishment, or WebSocket latency.</p>
+    <div style="display: flex; gap: 10px;">
+      <input type="text" id="tech-query" placeholder="Ask: 'Check rate-limiter capacity' or 'Worker latency'" class="input-text" style="flex: 1;">
+      <button onclick="askTechCopilot()" style="background: #10b981; color: #000; font-weight: bold;">Run Diagnostic</button>
+    </div>
+    <div id="tech-ans" style="margin-top: 12px; font-size: 13px; color: #f8fafc; line-height: 1.5;"></div>
+  </div>
+
   <script>
+    let currentTier = 'T1';
     let overrideToken = '';
+
+    function switchTier(t) {
+      currentTier = t;
+      ['T1', 'T2', 'T3'].forEach(x => {
+        document.getElementById('btn-' + x.toLowerCase()).className = 'tier-btn' + (x === t ? ' active' : '');
+      });
+      document.getElementById('unredact-btn').style.display = (t === 'T3') ? 'inline-block' : 'none';
+      loadTelemetry();
+    }
+
     async function loadTelemetry() {
-      const q = overrideToken ? `?unredact_token=${overrideToken}` : '';
-      const res = await fetch(`/api/v1/portal/tech/telemetry${q}`);
+      const q = overrideToken ? `&unredact_token=${overrideToken}` : '';
+      const res = await fetch(`/api/v1/portal/tech/telemetry?tier=${currentTier}${q}`);
       const data = await res.json();
 
       document.getElementById('worker-table').innerHTML = data.worker_health.map(w => `
@@ -57,6 +90,9 @@
           <td>${w.cycle || '-'}</td>
           <td style="color: #10b981;">${w.status}</td>
           <td>${w.latency_ms ? w.latency_ms + 'ms' : w.bucket_tokens + '/' + w.max_tokens + ' tokens'}</td>
+          <td>
+            ${data.can_trigger_daemons ? `<button onclick="alert('Triggered manual cycle for ${w.worker}')">Trigger</button>` : '<span style="color: #64748b;">Locked</span>'}
+          </td>
         </tr>
       `).join('');
 
@@ -77,6 +113,18 @@
         overrideToken = token;
         loadTelemetry();
       }
+    }
+
+    async function askTechCopilot() {
+      const q = document.getElementById('tech-query').value;
+      if (!q) return;
+      const res = await fetch('/api/v1/portal/tech/copilot', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ query: q })
+      });
+      const ret = await res.json();
+      document.getElementById('tech-ans').innerText = ret.response;
     }
     loadTelemetry();
   </script>

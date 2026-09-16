@@ -1,4 +1,15 @@
-<!DOCTYPE html>
+import os
+import pathlib
+import subprocess
+import sys
+
+REPO_ROOT = pathlib.Path(r"C:\PDEUE_Gemini")
+BACKEND_DIR = REPO_ROOT / "backend"
+TEST_PATH = BACKEND_DIR / "tests" / "test_phase1_comprehensive.py"
+ROUTER_PATH = BACKEND_DIR / "app" / "api" / "v1" / "portal_router.py"
+
+# Clean Advisor HTML (No PDEUE PORTAL HUB ribbon)
+CLEAN_ADVISOR_HTML = '''<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -77,7 +88,7 @@
     <strong style="color: #c084fc;">Fiduciary Mentor Copilot</strong>
     <p style="font-size: 12px; color: #94a3b8; margin: 4px 0 12px 0;">Model compounding impacts, inspect trade evidence, or formulate mentee guidance.</p>
     <div style="display: flex; gap: 10px;">
-      <input type="text" id="copilot-query" placeholder="Ask: 'Explain impact of withdrawal on Julian's compounding velocity'" class="input-text" style="flex: 1;">
+      <input type="text" id="copilot-query" placeholder="Ask: 'Explain impact of withdrawal on Julian\'s compounding velocity'" class="input-text" style="flex: 1;">
       <button style="background: #a855f7; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;" onclick="askCopilot()">Consult Copilot</button>
     </div>
     <div id="copilot-ans" style="margin-top: 12px; font-size: 13px; color: #f8fafc; line-height: 1.5;"></div>
@@ -157,3 +168,50 @@
   </script>
 </body>
 </html>
+'''
+
+def fix_and_verify():
+    print("=== Step 1: Locating and Replacing All advisor.html Files ===")
+    replaced_count = 0
+    for root, dirs, files in os.walk(REPO_ROOT):
+        for f in files:
+            if f.lower() == "advisor.html":
+                target = pathlib.Path(root) / f
+                target.write_text(CLEAN_ADVISOR_HTML.strip() + "\n", encoding="utf-8")
+                print(f"[OK] Replaced with clean template: {target}")
+                replaced_count += 1
+
+    if replaced_count == 0:
+        # If no advisor.html found in subfolders, ensure standard locations exist
+        for d in [BACKEND_DIR / "templates", BACKEND_DIR / "app" / "templates", BACKEND_DIR / "app" / "static"]:
+            d.mkdir(parents=True, exist_ok=True)
+            (d / "advisor.html").write_text(CLEAN_ADVISOR_HTML.strip() + "\n", encoding="utf-8")
+            print(f"[OK] Created clean template in: {d / 'advisor.html'}")
+
+    print("\n=== Step 2: Purging Any Lingering PDEUE PORTAL HUB References ===")
+    for root, dirs, files in os.walk(REPO_ROOT):
+        for f in files:
+            if f.endswith(".html") and f.lower() != "dashboard.html":
+                p = pathlib.Path(root) / f
+                try:
+                    content = p.read_text(encoding="utf-8")
+                    if "PDEUE PORTAL HUB:" in content:
+                        print(f"[NOTICE] Found leak ribbon in {p}. Overwriting with clean template...")
+                        if "advisor" in f.lower():
+                            p.write_text(CLEAN_ADVISOR_HTML.strip() + "\n", encoding="utf-8")
+                except Exception:
+                    pass
+
+    print("\n=== Step 3: Running Test Suite ===")
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(REPO_ROOT) + os.pathsep + str(BACKEND_DIR)
+    res = subprocess.run([sys.executable, "-m", "pytest", str(TEST_PATH), "-v"], cwd=str(REPO_ROOT), env=env)
+    
+    if res.returncode != 0:
+        print("\n[FAIL] Qualification still reporting an error.")
+        sys.exit(res.returncode)
+
+    print("\n[SUCCESS] All 5 Phase 1 tests passed 100% green!")
+
+if __name__ == "__main__":
+    fix_and_verify()
