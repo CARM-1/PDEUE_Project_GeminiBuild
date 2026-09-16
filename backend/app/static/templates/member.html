@@ -3,152 +3,135 @@
 <head>
   <meta charset="UTF-8">
   <title>PDEUE - Member Desktop</title>
-  <link rel="stylesheet" href="/static/css/shared_components.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="/static/js/shared_components.js"></script>
+  <style>
+    body { background: #0a0f1d; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; margin: 0; padding: 24px; }
+    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 16px; margin-bottom: 24px; }
+    .badge { background: #0284c7; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+    .custodial-banner { display: none; background: #7c2d12; border: 1px solid #ea580c; color: #ffedd5; padding: 12px; border-radius: 6px; margin-bottom: 20px; font-size: 13px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .card { background: #131c31; border: 1px solid #1e293b; border-radius: 8px; padding: 18px; }
+    .card-title { font-size: 12px; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; }
+    .card-value { font-size: 26px; font-weight: bold; color: #38bdf8; }
+    .control-panel { background: #131c31; border: 1px solid #1e293b; border-radius: 8px; padding: 20px; margin-bottom: 24px; }
+    .slider-box { display: flex; align-items: center; gap: 16px; margin-top: 12px; }
+    input[type=range] { flex: 1; accent-color: #0284c7; }
+    button { background: #0284c7; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    button:disabled { background: #334155; cursor: not-allowed; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+    th, td { text-align: left; padding: 10px; border-bottom: 1px solid #1e293b; }
+    th { color: #94a3b8; }
+  </style>
 </head>
 <body>
-  <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-subtle); padding-bottom:15px; margin-bottom:20px;">
+  <div class="header">
     <div>
-      <h1 style="margin:0; font-size:1.5rem; color:var(--accent-cyan);">Member User Desktop</h1>
-      <div class="shared-sub">Single-SCMA Sovereign Boundary | Role: <span id="user-role">MEMBER_USER</span></div>
+      <h2 style="margin: 0; color: #38bdf8;">PDEUE Member Desktop</h2>
+      <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Single-SCMA Autonomous Allocation Desk</div>
     </div>
-    <div style="text-align:right;">
-      <span style="font-size:0.85rem; color:var(--text-muted);">Account ID:</span>
-      <strong id="scma-id" style="color:var(--accent-cyan);">SCMA-MEM-001</strong>
+    <span class="badge" id="m-role">MEMBER_USER</span>
+  </div>
+
+  <div id="custodial-alert" class="custodial-banner">
+    <strong>Custodial Lock Active:</strong> Risk dial and distribution authorizations are restricted by your appointed Lineal Custodian (<span id="custodian-id">None</span>).
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-title">Available Cash</div>
+      <div class="card-value">$<span id="m-cash">0.00</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Committed Margin</div>
+      <div class="card-value">$<span id="m-reserved">0.00</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Compounded Yield</div>
+      <div class="card-value" style="color: #4ade80;">+$<span id="m-yield">0.00</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Profit Allocation</div>
+      <div class="card-value" style="font-size: 18px; color: #cbd5e1;">87% SCMA / 10% CFCP</div>
     </div>
   </div>
 
-  <div class="shared-grid">
-    <div class="shared-card">
-      <h3><abbr data-tooltip="Isolated capital belonging exclusively to this member">Available Cash</abbr></h3>
-      <div class="shared-val" id="val-cash" style="color:var(--accent-green);">$0.00</div>
-      <div class="shared-sub">Exact integer-cent backing</div>
-    </div>
-    <div class="shared-card">
-      <h3><abbr data-tooltip="Capital reserved for open market orders">Reserved Margin</abbr></h3>
-      <div class="shared-val" id="val-reserved">$0.00</div>
-      <div class="shared-sub">Zero cross-collateralization</div>
-    </div>
-    <div class="shared-card">
-      <h3><abbr data-tooltip="Accumulated 87% waterfall earnings">Lifetime Profit</abbr></h3>
-      <div class="shared-val" id="val-profit" style="color:var(--accent-cyan);">$0.00</div>
-      <div class="shared-sub">87% Net Waterfall reinvestment</div>
-    </div>
-    <div class="shared-card">
-      <h3><abbr data-tooltip="Restricted to downward adjustments only">Risk Dial Cap</abbr></h3>
-      <div class="shared-val" id="val-dial">3.0%</div>
-      <div class="shared-sub">System Ceiling: 5.0% Max</div>
+  <div class="control-panel">
+    <h3 style="margin-top: 0; color: #e2e8f0;">Autonomous Risk Dial (Downward-Only)</h3>
+    <p style="font-size: 13px; color: #94a3b8; margin: 0;">Governs max capital stake per opportunity. Dial can only be reduced by member.</p>
+    <div class="slider-box">
+      <input type="range" id="risk-slider" min="0.5" max="2.0" step="0.1" value="1.5" oninput="document.getElementById('risk-val').innerText = this.value">
+      <span style="font-size: 18px; font-weight: bold; min-width: 60px;"><span id="risk-val">1.5</span>%</span>
+      <button id="risk-btn" onclick="saveRiskDial()">Apply Reduction</button>
     </div>
   </div>
 
-  <div class="shared-grid" style="grid-template-columns: 2fr 1fr;">
-    <div class="shared-card">
-      <h3>Personal Compounding Curve</h3>
-      <div style="height:260px; position:relative;">
-        <canvas id="member-compounding-chart"></canvas>
-      </div>
-    </div>
-
-    <div class="shared-card">
-      <h3>Risk Dial Control</h3>
-      <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">
-        Members may lower risk exposure autonomously. Increases above your authorized baseline require Chief Administrator approval.
-      </p>
-      <input type="range" min="0.5" max="5.0" step="0.1" value="3.0" class="risk-slider" id="risk-slider" oninput="document.getElementById('dial-disp').innerText = this.value + '%'">
-      <div style="display:flex; justify-content:space-between; margin-top:8px; font-weight:600;">
-        <span>Floor: 0.5%</span>
-        <span id="dial-disp" style="color:var(--accent-cyan);">3.0%</span>
-        <span>Ceiling: 5.0%</span>
-      </div>
-      <button class="shared-drawer-close" style="float:none; width:100%; margin-top:16px; background:var(--accent-cyan); color:#0a0f1d;" onclick="updateRiskDial()">Commit Risk Dial</button>
-    </div>
-  </div>
-
-  <div class="shared-grid">
-    <div class="shared-card">
-      <h3>Decentralized Distribution Gateway</h3>
-      <div style="display:flex; gap:12px; margin-top:10px;">
-        <button class="shared-drawer-close" style="float:none; background:var(--accent-green); color:#0a0f1d;" onclick="openDistributionDrawer('GREEN')">Green Tier (Autonomous)</button>
-        <button class="shared-drawer-close" style="float:none; background:var(--accent-amber); color:#0a0f1d;" onclick="openDistributionDrawer('YELLOW')">Yellow Tier (Compounding Friction)</button>
-        <button class="shared-drawer-close" style="float:none; background:var(--accent-red); color:white;" onclick="openDistributionDrawer('RED')">Red Tier (Co-Signed Withdrawal)</button>
-      </div>
-    </div>
-
-    <div class="shared-card">
-      <h3>FSE AI Financial Tutor</h3>
-      <div style="display:flex; gap:8px;">
-        <input type="text" id="tutor-prompt" placeholder="Ask about compounding, probability, or risks..." style="flex:1; background:#020617; border:1px solid var(--border-subtle); color:white; padding:8px 12px; border-radius:4px;">
-        <button class="shared-drawer-close" style="float:none; background:var(--accent-purple); color:white;" onclick="askTutor()">Ask Tutor</button>
-      </div>
-      <div id="tutor-response" style="margin-top:10px; font-size:0.85rem; color:var(--text-muted); min-height:40px;"></div>
-    </div>
-  </div>
-
-  <div id="drawer-distribution" class="shared-drawer">
-    <button class="shared-drawer-close" onclick="PDEUEComponents.closeInspector('drawer-distribution')">X</button>
-    <h3 id="drawer-distribution-title" style="color:var(--accent-cyan);">Distribution Request</h3>
-    <div id="drawer-distribution-body" style="margin-top:20px;"></div>
+  <div class="card">
+    <div class="card-title">Active Resting Allocations</div>
+    <table>
+      <thead>
+        <tr><th>Contract</th><th>Category</th><th>Committed</th><th>Net Edge</th><th>Status</th></tr>
+      </thead>
+      <tbody id="pos-table">
+        <tr><td colspan="5" style="color: #64748b;">Synchronizing open books...</td></tr>
+      </tbody>
+    </table>
   </div>
 
   <script>
-    document.addEventListener('DOMContentLoaded', async () => {
-      const res = await fetch('/api/v1/portal/member/SCMA-MEM-001');
-      if (res.ok) {
-        const data = await res.json();
-        document.getElementById('val-cash').innerText = PDEUEComponents.formatCents(data.available_cash_cents || data.cash_cents || 125000);
-        document.getElementById('val-reserved').innerText = PDEUEComponents.formatCents(data.reserved_margin_cents || data.reserved_cents || 15000);
-        document.getElementById('val-profit').innerText = PDEUEComponents.formatCents(data.lifetime_profit_cents || 34000);
-        const dial = (data.current_risk_pct || data.risk_dial_pct || 0.03);
-        const disp = dial <= 0.05 ? (dial * 100).toFixed(1) : dial.toFixed(1);
-        document.getElementById('val-dial').innerText = disp + '%';
-        document.getElementById('risk-slider').value = disp;
-        document.getElementById('dial-disp').innerText = disp + '%';
-        
-        PDEUEComponents.renderEquityChart('member-compounding-chart', 
-          ['Cycle 0', 'Cycle 10', 'Cycle 20', 'Cycle 30', 'Current'], 
-          data.equity_series_cents || [100000, 108000, 115000, 122000, 140000]);
-      }
-    });
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('user_id') || 'USR-eleanor_va-B2B31C9E';
+    let currentScma = '';
 
-    async function updateRiskDial() {
-      const val = parseFloat(document.getElementById('risk-slider').value);
-      const res = await fetch('/api/v1/portal/member/SCMA-MEM-001/risk-dial', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ new_risk_dial: val })
-      });
+    async function loadState() {
+      const res = await fetch(`/api/v1/portal/member/state?user_id=${userId}`);
       const data = await res.json();
-      if (res.ok) {
-        alert('Risk dial updated to ' + data.applied_risk_dial + '%');
-        location.reload();
+      currentScma = data.scma_id;
+
+      document.getElementById('m-role').innerText = data.role;
+      document.getElementById('m-cash').innerText = data.cash_balance.toFixed(2);
+      document.getElementById('m-reserved').innerText = data.reserved_capital.toFixed(2);
+      document.getElementById('m-yield').innerText = data.lifetime_yield.toFixed(2);
+      document.getElementById('risk-slider').value = data.risk_dial_pct;
+      document.getElementById('risk-val').innerText = data.risk_dial_pct.toFixed(1);
+
+      if (data.is_custodial) {
+        document.getElementById('custodial-alert').style.display = 'block';
+        document.getElementById('custodian-id').innerText = data.custodian_id;
+        document.getElementById('risk-slider').disabled = true;
+        document.getElementById('risk-btn').disabled = true;
+      }
+
+      const tbody = document.getElementById('pos-table');
+      if (data.positions && data.positions.length > 0) {
+        tbody.innerHTML = data.positions.map(p => `
+          <tr>
+            <td><b>${p.contract_id}</b></td>
+            <td>${p.category}</td>
+            <td>$${p.allocation.toFixed(2)}</td>
+            <td style="color: #4ade80;">+${p.edge_pct}%</td>
+            <td><span style="color: #38bdf8;">${p.status}</span></td>
+          </tr>
+        `).join('');
       } else {
-        alert('Error: ' + data.detail);
+        tbody.innerHTML = '<tr><td colspan="5">No active resting allocations.</td></tr>';
       }
     }
 
-    function openDistributionDrawer(tier) {
-      let content = '<p>Initiate distribution under canonical TPW guidelines.</p>';
-      if (tier === 'GREEN') content += '<p style="color:var(--accent-green);">Autonomous Tier: Profit draw only. Capital base preserved.</p>';
-      if (tier === 'YELLOW') content += '<p style="color:var(--accent-amber);">Yellow Tier: AI warns of reduced future compounding velocity.</p>';
-      if (tier === 'RED') content += '<p style="color:var(--accent-red);">Red Tier: Principal reduction requires Lineal F1/F2 Mentor signature.</p>';
-      content += '<input type="number" placeholder="Amount (Cents)" style="width:100%; padding:8px; margin:10px 0; background:#020617; border:1px solid #334155; color:white;">';
-      content += '<button class="shared-drawer-close" style="float:none; width:100%; background:var(--accent-cyan); color:#0a0f1d;">Submit Intent</button>';
-      PDEUEComponents.openInspector('drawer-distribution', 'Request Distribution (' + tier + ')', content);
-    }
-
-    async function askTutor() {
-      const q = document.getElementById('tutor-prompt').value;
-      if (!q) return;
-      document.getElementById('tutor-response').innerText = 'FSE Tutor analyzing...';
-      const res = await fetch('/api/v1/portal/member/ai-tutor', {
+    async function saveRiskDial() {
+      const newDial = parseFloat(document.getElementById('risk-slider').value);
+      const res = await fetch(`/api/v1/portal/member/${currentScma}/risk-dial`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ question: q })
+        body: JSON.stringify({ requested_risk_pct: newDial })
       });
-      const d = await res.json();
-      document.getElementById('tutor-response').innerHTML = '<strong>Tutor:</strong> ' + d.answer;
+      const ret = await res.json();
+      if (!res.ok) {
+        alert("Risk adjustment rejected: " + (ret.detail || "Violation"));
+      } else {
+        alert("Risk ceiling successfully reduced to " + ret.applied_risk_dial + "%");
+        loadState();
+      }
     }
+    loadState();
   </script>
 </body>
 </html>

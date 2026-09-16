@@ -2,98 +2,76 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>PDEUE - Financial Advisor Workspace</title>
-  <link rel="stylesheet" href="/static/css/shared_components.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="/static/js/shared_components.js"></script>
+  <title>PDEUE - Advisor Lineage Workspace</title>
+  <style>
+    body { background: #0a0f1d; color: #e2e8f0; font-family: monospace; margin: 0; padding: 24px; }
+    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 16px; margin-bottom: 24px; }
+    .card { background: #131c31; border: 1px solid #1e293b; border-radius: 8px; padding: 18px; margin-bottom: 20px; }
+    .card-title { font-size: 12px; color: #a855f7; text-transform: uppercase; margin-bottom: 8px; font-weight: bold; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .val { font-size: 24px; font-weight: bold; color: #f8fafc; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+    th, td { text-align: left; padding: 10px; border-bottom: 1px solid #1e293b; }
+    th { color: #94a3b8; }
+    .badge-custodial { background: #ea580c; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+    .badge-optimal { background: #10b981; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+  </style>
 </head>
 <body>
-  <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-subtle); padding-bottom:15px; margin-bottom:20px;">
+  <div class="header">
     <div>
-      <h1 style="margin:0; font-size:1.5rem; color:var(--accent-cyan);">Financial Advisor Workspace</h1>
-      <div class="shared-sub">Role: <span id="advisor-role">F1_FINANCIAL_ADVISOR</span> | Read-Only Analytical Posture</div>
+      <h2 style="margin: 0; color: #c084fc;">Advisor Lineage Workspace</h2>
+      <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Assigned Family Oversight & Read-Only PIT Inspection</div>
     </div>
-    <div style="background:#334155; padding:6px 12px; border-radius:4px; font-size:0.8rem;">
-      No Trading or Kill-Switch Authority
+    <span style="border: 1px solid #a855f7; color: #a855f7; padding: 4px 10px; border-radius: 4px; font-size: 12px;">READ-ONLY POSTURE</span>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-title">Household Total Equity</div>
+      <div class="val" id="adv-eq">$0.00</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Max Lineal Drawdown</div>
+      <div class="val" style="color: #4ade80;" id="adv-dd">0.00%</div>
+    </div>
+    <div class="card">
+      <div class="card-title">CFCP Floor Shield</div>
+      <div class="val" style="color: #38bdf8;" id="adv-shield">$0.00</div>
     </div>
   </div>
 
-  <div class="shared-grid">
-    <div class="shared-card">
-      <h3>Assigned Household</h3>
-      <div class="shared-val" id="adv-household">HOUSEHOLD-ALPHA</div>
-      <div class="shared-sub">Lineal Advisory Oversight</div>
-    </div>
-    <div class="shared-card">
-      <h3>Household Capital</h3>
-      <div class="shared-val" id="adv-capital" style="color:var(--accent-green);">$0.00</div>
-      <div class="shared-sub">Aggregated SCMA Total</div>
-    </div>
-    <div class="shared-card">
-      <h3>Active Risk Ceiling</h3>
-      <div class="shared-val" id="adv-max-risk">5.0%</div>
-      <div class="shared-sub">B4-RSK Governance Cap</div>
-    </div>
-  </div>
-
-  <div class="shared-card" style="margin-bottom:20px;">
-    <h3>Assigned Member Accounts</h3>
-    <table class="shared-type-table" id="member-table">
+  <div class="card">
+    <div class="card-title">Monitored Sub-Account Balances & Custodial Lineage</div>
+    <table>
       <thead>
-        <tr>
-          <th>SCMA ID</th>
-          <th>Household</th>
-          <th>Available Cash</th>
-          <th>Reserved Margin</th>
-          <th>Risk Dial</th>
-          <th>Audit Action</th>
-        </tr>
+        <tr><th>Account / Name</th><th>Role</th><th>SCMA ID</th><th>Balance</th><th>Risk Dial</th><th>Status</th></tr>
       </thead>
-      <tbody></tbody>
+      <tbody id="sub-table"></tbody>
     </table>
   </div>
 
-  <div id="drawer-audit" class="shared-drawer">
-    <button class="shared-drawer-close" onclick="PDEUEComponents.closeInspector('drawer-audit')">X</button>
-    <h3 id="drawer-audit-title" style="color:var(--accent-cyan);">Decision Audit</h3>
-    <div id="drawer-audit-body" style="margin-top:20px;"></div>
-  </div>
-
   <script>
-    document.addEventListener('DOMContentLoaded', async () => {
-      const res = await fetch('/api/v1/portal/advisor/households');
-      if (res.ok) {
-        const d = await res.json();
-        document.getElementById('adv-capital').innerText = PDEUEComponents.formatCents(d.total_capital_cents);
-        const tbody = document.querySelector('#member-table tbody');
-        tbody.innerHTML = '';
-        d.members.forEach(m => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td><strong>${m.scma_id}</strong></td>
-            <td>${m.household_id}</td>
-            <td>${PDEUEComponents.formatCents(m.cash_cents)}</td>
-            <td>${PDEUEComponents.formatCents(m.reserved_cents)}</td>
-            <td>${m.risk_dial_pct}%</td>
-            <td><button class="shared-drawer-close" style="float:none; padding:3px 8px; font-size:0.75rem; background:var(--accent-cyan); color:#0a0f1d;" onclick="inspectAudit('${m.scma_id}')">Audit Decisions</button></td>
-          `;
-          tbody.appendChild(tr);
-        });
-      }
-    });
+    async function syncLineage() {
+      const res = await fetch('/api/v1/portal/advisor/lineage?household_id=HOUSEHOLD-ALPHA');
+      const data = await res.json();
+      document.getElementById('adv-eq').innerText = '$' + data.total_equity.toFixed(2);
+      document.getElementById('adv-dd').innerText = data.max_drawdown_pct.toFixed(2) + '%';
+      document.getElementById('adv-shield').innerText = '$' + data.cfcp_floor_shield.toFixed(2);
 
-    async function inspectAudit(scmaId) {
-      const res = await fetch('/api/v1/portal/advisor/decision-audit/IF-037-CONTRACT-DEMO');
-      const d = await res.json();
-      const body = `
-        <p><strong>Contract:</strong> ${d.contract_id}</p>
-        <p><strong>Rationale:</strong> ${d.plain_english_rationale}</p>
-        <p><strong>Model Exceedance:</strong> ${(d.model_prob * 100).toFixed(1)}%</p>
-        <p><strong>Market Price:</strong> $${(d.market_ask_cents / 100).toFixed(2)}</p>
-        <p><strong>Sizing:</strong> Quarter-Kelly ($0.25 f*)</p>
-      `;
-      PDEUEComponents.openInspector('drawer-audit', 'Audit: ' + scmaId, body);
+      const tbody = document.getElementById('sub-table');
+      tbody.innerHTML = data.sub_accounts.map(a => `
+        <tr>
+          <td><b>${a.name}</b></td>
+          <td>${a.role}</td>
+          <td>${a.scma_id}</td>
+          <td>$${a.balance.toFixed(2)}</td>
+          <td>${a.risk_dial.toFixed(1)}%</td>
+          <td>${a.is_custodial ? '<span class="badge-custodial">CUSTODIAL APPRENTICE</span>' : '<span class="badge-optimal">ACTIVE</span>'}</td>
+        </tr>
+      `).join('');
     }
+    syncLineage();
   </script>
 </body>
 </html>

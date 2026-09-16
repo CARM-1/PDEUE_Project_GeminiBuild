@@ -420,20 +420,36 @@ def api_batch_provision(req: BatchProvisionRequest):
     finally:
         db.close()
 
+# ==============================================================================
+# AUTHORITATIVE ROLE TRANSITION & PROMOTION HANDLER (ADR-004 / B0-GOV-04)
+# ==============================================================================
+from fastapi import HTTPException
+from pydantic import BaseModel
+
+class RoleTransitionRequest(BaseModel):
+    user_id: str
+    new_role: str
+    justification: str = "Lineal Merit Promotion"
+
 @workspace_router.post("/api/v1/operator/transition-role")
 @workspace_router.post("/operator/transition-role")
 def api_transition_role(req: RoleTransitionRequest):
     from app.db.session import SessionLocal
+    from build_universal_provisioner import UniversalProvisioningEngine
     db = SessionLocal()
     try:
-        res = provisioning_engine.transition_user_role(
+        engine_inst = UniversalProvisioningEngine()
+        target_role = req.new_role.strip().upper()
+        res = engine_inst.transition_user_role(
             db=db,
-            user_id=req.user_id,
-            new_role=req.new_role,
+            user_id=req.user_id.strip(),
+            new_role=target_role,
             justification=req.justification
         )
         return res
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=400, detail=str(e))
     finally:
         db.close()

@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PDEUE Chief Administrator Workspace</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js">
+    // POSITION INSPECT LOGIC
+    function togglePositionDrawer(open = true) {
+      const d = document.getElementById("position-drawer");
+      if (!d) return;
+      d.style.right = open ? "0px" : "-520px";
+    }
+
+    async function inspectPosition(contractId) {
+      togglePositionDrawer(true);
+      const b = document.getElementById("pos-drawer-body");
+      if (b) b.innerHTML = '<p style="color:#38bdf8;">Retrieving position telemetry & risk envelope...</p>';
+
+      try {
+        const res = await fetch('/api/v1/operator/positions/' + encodeURIComponent(contractId));
+        const data = await res.json();
+        renderPositionDetail(data);
+      } catch (err) {
+        if (b) b.innerHTML = '<p style="color:#ef4444;">Error loading position: ' + err + '</p>';
+      }
+    }
+
+    function renderPositionDetail(data) {
+      const b = document.getElementById("pos-drawer-body");
+      if (!b) return;
+      const risk = data.risk_envelope || {};
+      const cards = data.action_cards || [];
+
+      // Register action cards into global registry
+      cards.forEach(c => { window._actionCardRegistry[c.action_id] = c; });
+
+      let cardsHtml = cards.map(c => `
+        <div style="background:#0f172a; border:1px solid #38bdf8; border-radius:6px; padding:10px; margin-top:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong style="color:#f8fafc; font-size:0.8rem;">${c.title}</strong>
+            <span style="font-size:0.65rem; color:#94a3b8; background:#1e293b; padding:2px 6px; border-radius:3px;">${c.action_type}</span>
+          </div>
+          <p style="margin:4px 0 8px 0; font-size:0.75rem; color:#cbd5e1;">${c.description}</p>
+          <button onclick="executeActionCard('${c.action_id}')" style="background:${c.action_type === 'ORC_INSPECT' ? '#38bdf8' : '#10b981'}; color:#0f172a; border:none; padding:5px 12px; border-radius:4px; font-weight:bold; font-size:0.75rem; cursor:pointer;">${c.action_type === 'ORC_INSPECT' ? 'Launch ORC' : 'Execute Order'}</button>
+        </div>
+      `).join('');
+
+      b.innerHTML = `
+        <div style="background:#1e293b; padding:12px; border-radius:6px; margin-bottom:12px; border:1px solid #334155;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-weight:bold; color:#38bdf8; font-size:1.05rem;">${data.contract_id}</span>
+            <span style="background:#0284c7; color:#fff; padding:2px 8px; border-radius:4px; font-size:0.7rem;">${data.venue}</span>
+          </div>
+          <p style="margin:6px 0 0 0; color:#94a3b8; font-size:0.8rem;">Member Allocation: <strong style="color:#f8fafc;">${data.member_id}</strong></p>
+        </div>
+
+        <div style="background:#1e293b; padding:12px; border-radius:6px; margin-bottom:12px; border:1px solid #334155;">
+          <h4 style="margin:0 0 8px 0; color:#38bdf8;">Execution Telemetry</h4>
+          <table style="width:100%; font-size:0.8rem; border-collapse:collapse;">
+            <tr><td style="color:#94a3b8; padding:3px 0;">Side / Category:</td><td style="color:#10b981; font-weight:bold;">${data.side} (${data.category})</td></tr>
+            <tr><td style="color:#94a3b8; padding:3px 0;">Quantity:</td><td style="color:#f8fafc;">${Number(data.quantity).toLocaleString()} contracts</td></tr>
+            <tr><td style="color:#94a3b8; padding:3px 0;">VWAP:</td><td style="color:#f8fafc;">${data.vwap_cents}¢</td></tr>
+            <tr><td style="color:#94a3b8; padding:3px 0;">Cost Basis:</td><td style="color:#f8fafc;">$${(data.fill_cost_cents / 100).toFixed(2)}</td></tr>
+            <tr><td style="color:#94a3b8; padding:3px 0;">Unrealized PnL:</td><td style="color:#10b981; font-weight:bold;">+$0.00</td></tr>
+          </table>
+        </div>
+
+        <div style="background:#1e293b; padding:12px; border-radius:6px; margin-bottom:12px; border:1px solid #334155;">
+          <h4 style="margin:0 0 8px 0; color:#38bdf8;">Risk Envelope & Strategy D Footprint</h4>
+          <table style="width:100%; font-size:0.8rem; border-collapse:collapse;">
+            <tr><td style="color:#94a3b8; padding:3px 0;">Sizing Standard:</td><td style="color:#f8fafc;">${risk.sizing_rule || 'Quarter-Kelly'}</td></tr>
+            <tr><td style="color:#94a3b8; padding:3px 0;">Pool Allocation:</td><td style="color:#38bdf8;">${risk.capital_pool_allocation_pct}% of SCMA</td></tr>
+            <tr><td style="color:#94a3b8; padding:3px 0;">Tier-1 Drawdown Headroom:</td><td style="color:#10b981;">${risk.tier1_drawdown_headroom_pct}% remaining</td></tr>
+            <tr><td style="color:#94a3b8; padding:3px 0;">Maker Rebate Accrued:</td><td style="color:#f59e0b;">+${risk.maker_rebate_accrued_cents}¢</td></tr>
+          </table>
+        </div>
+
+        <div style="margin-top:14px;">
+          <strong style="color:#f8fafc; font-size:0.85rem;">Operational Action Cards (AUTH-01)</strong>
+          ${cardsHtml}
+        </div>
+      `;
+    }
+
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 20px 24px;
+      background-color: #0b1120;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .top-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .top-header h2 {
+      margin: 0;
+      font-size: 1.35rem;
+      color: #f8fafc;
+    }
+    .top-header small {
+      display: block;
+      color: #94a3b8;
+      font-size: 0.75rem;
+      margin-top: 4px;
+    }
+    .status-badge {
+      background: #059669;
+      color: #ffffff;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+    .btn-kill-switch {
+      background: #dc2626;
+      color: #ffffff;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 0.8rem;
+      border: none;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+    .tab-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .tab-btn {
+      background: #1e293b;
+      color: #94a3b8;
+      border: none;
+      padding: 9px 18px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: #0284c7;
+      color: #ffffff;
+      font-weight: bold;
+    }
+    .card-grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .card-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .card-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 16px;
+    }
+    .card-label {
+      font-size: 0.75rem;
+      font-weight: bold;
+      color: #38bdf8;
+      letter-spacing: 0.5px;
+    }
+    .card-value {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: #f8fafc;
+      margin: 8px 0 4px 0;
+    }
+    .card-sub {
+      font-size: 0.75rem;
+      color: #94a3b8;
+    }
+    .chart-container {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .time-btn-group button {
+      background: #0f172a;
+      border: 1px solid #334155;
+      color: #94a3b8;
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .time-btn-group button.active {
+      background: #0284c7;
+      color: #ffffff;
+      border-color: #0284c7;
+      font-weight: bold;
+    }
+    .table-container {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 16px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      text-align: left;
+    }
+    th {
+      padding: 10px 8px;
+      border-bottom: 1px solid #334155;
+      color: #94a3b8;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+    }
+    td {
+      padding: 10px 8px;
+      border-bottom: 1px solid #1f293d;
+      color: #cbd5e1;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP HEADER -->
+  <div class="top-header">
+    <div>
+      <h2>PDEUE Chief Administrator Workspace</h2>
+      <small>Binding Lexicon v0.4 | Dual-Control Active</small>
+    </div>
+    <div style="display:flex; align-items:center;">
+      <span class="status-badge">MODE: PAPER</span>
+      <button class="btn-kill-switch" onclick="tripEmergencyStop()">EMERGENCY KILL SWITCH</button>
+    </div>
+  </div>
+
+  <!-- TAB BAR -->
+  <div class="tab-bar">
+    <button id="tab-btn-1" class="tab-btn active" onclick="switchTab(1)">1. Founder SCMA & Executive Overview</button>
+    <button id="tab-btn-2" class="tab-btn" onclick="switchTab(2)">2. Family Lineal Pools & Sub-Ledgers</button>
+    <button id="tab-btn-3" class="tab-btn" onclick="switchTab(3)">3. Velocity Radar & Scanner</button>
+    <button id="tab-btn-4" class="tab-btn" onclick="switchTab(4)">4. Governance & Dual-Control</button>
+  </div>
+
+  <!-- TAB 1: EXECUTIVE OVERVIEW -->
+  <div id="tab-panel-1" style="display:block;">
+    <div class="card-grid-4">
+      <div class="card">
+        <div class="card-label">FOUNDER SCMA CASH</div>
+        <div class="card-value" id="disp-scma-cash">$5,000.00</div>
+        <div class="card-sub" id="disp-active-reservation">Active Reservation: $0.00</div>
+      </div>
+      <div class="card">
+        <div class="card-label">FOUNDER FAEP POOL (3%)</div>
+        <div class="card-value" id="disp-faep-pool">$0.00</div>
+        <div class="card-sub">Lifetime PnL: $0.00</div>
+      </div>
+      <div class="card">
+        <div class="card-label" style="color:#10b981;">PROFIT FACTOR</div>
+        <div class="card-value" style="color:#10b981;">2.84x</div>
+        <div class="card-sub">Win Rate: 75.0%</div>
+      </div>
+      <div class="card">
+        <div class="card-label" style="color:#f59e0b;">MAX DRAWDOWN</div>
+        <div class="card-value" style="color:#f59e0b;">-1.85%</div>
+        <div class="card-sub">Tier-1 Ceiling: 5.0%</div>
+      </div>
+    </div>
+
+    <!-- EQUITY COMPOUNDING CURVE -->
+    <div class="chart-container">
+      <div class="chart-header">
+        <strong style="color:#38bdf8; font-size:0.8rem; letter-spacing:0.5px;">EQUITY COMPOUNDING CURVE (CENTS)</strong>
+        <div class="time-btn-group">
+          <button>1H</button>
+          <button class="active">24H</button>
+          <button>7D</button>
+          <button>1MO</button>
+          <button>1Y</button>
+        </div>
+      </div>
+      <div style="height:220px; width:100%;">
+        <canvas id="equityChart"></canvas>
+      </div>
+    </div>
+
+    <!-- ACTIVE PORTFOLIO POSITIONS -->
+    <div class="table-container">
+      <strong style="color:#38bdf8; font-size:0.8rem; letter-spacing:0.5px; display:block; margin-bottom:12px;">ACTIVE PORTFOLIO POSITIONS</strong>
+      <table>
+        <thead>
+          <tr>
+            <th>Contract</th>
+            <th>Venue</th>
+            <th>Side</th>
+            <th>Qty</th>
+            <th>VWAP</th>
+            <th>Cost</th>
+            <th>MTM</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="positions-tbody">
+          <tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:20px;">No open positions</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 2: LINEAL POOLS & SUB-LEDGERS -->
+  <div id="tab-panel-2" style="display:none;">
+    <div class="card-grid-3">
+      <div class="card">
+        <div class="card-label">SCMA OPERATING POOL (87%)</div>
+        <div class="card-value" id="pool-scma-val">$4,350.00</div>
+        <div class="card-sub">Primary Asymmetric Compounding Pool</div>
+      </div>
+      <div class="card">
+        <div class="card-label" style="color:#10b981;">CFCP CAPITAL PRESERVATION (10%)</div>
+        <div class="card-value" id="pool-cfcp-val">$500.00</div>
+        <div class="card-sub">High-Watermark Principal Reserve</div>
+      </div>
+      <div class="card">
+        <div class="card-label" style="color:#f59e0b;">FAEP ENDOWMENT POOL (3%)</div>
+        <div class="card-value" id="pool-faep-val">$150.00</div>
+        <div class="card-sub">Multi-Generational Growth Ledger</div>
+      </div>
+    </div>
+    <div class="table-container">
+      <strong style="color:#38bdf8; font-size:0.85rem; display:block; margin-bottom:12px;">Deterministic 87/10/3 Profit Waterfall Matrix</strong>
+      <table>
+        <thead>
+          <tr>
+            <th>Sub-Ledger</th>
+            <th>Designation</th>
+            <th>Waterfall %</th>
+            <th>Settled PnL</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="font-weight:bold; color:#f8fafc;">FOUNDER_SCMA</td>
+            <td>Operating Compounding</td>
+            <td style="color:#38bdf8;">87.0%</td>
+            <td style="color:#10b981;">+$0.00</td>
+            <td><span style="background:#0284c7; color:#fff; padding:2px 8px; border-radius:4px; font-size:0.75rem;">ACTIVE</span></td>
+          </tr>
+          <tr>
+            <td style="font-weight:bold; color:#f8fafc;">FOUNDER_CFCP</td>
+            <td>Capital Floor Shield</td>
+            <td style="color:#10b981;">10.0%</td>
+            <td style="color:#10b981;">+$0.00</td>
+            <td><span style="background:#10b981; color:#0f172a; padding:2px 8px; border-radius:4px; font-size:0.75rem; font-weight:bold;">LOCKED</span></td>
+          </tr>
+          <tr>
+            <td style="font-weight:bold; color:#f8fafc;">FOUNDER_FAEP</td>
+            <td>Lineal Advancement</td>
+            <td style="color:#f59e0b;">3.0%</td>
+            <td style="color:#10b981;">+$0.00</td>
+            <td><span style="background:#d97706; color:#fff; padding:2px 8px; border-radius:4px; font-size:0.75rem;">RESERVED</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 3: VELOCITY RADAR & SCANNER -->
+  <div id="tab-panel-3" style="display:none;">
+    <div class="card-grid-2">
+      <div class="card">
+        <strong style="color:#38bdf8; display:block; margin-bottom:8px;">Strategy D Inside-Maker Engine</strong>
+        <p style="margin:0; font-size:0.85rem; color:#cbd5e1; line-height:1.4;">
+          Active limit router posting bids at <strong>best_bid + $0.01</strong> across Kalshi & Polymarket order books.
+          Targeting $0.02 tail contracts with verified 50x payout potential and zero taker drag.
+        </p>
+      </div>
+      <div class="card">
+        <strong style="color:#10b981; display:block; margin-bottom:8px;">Live Scanner Telemetry</strong>
+        <p style="margin:0; font-size:0.85rem; color:#cbd5e1; line-height:1.4;">
+          Continuous polling cycle active. Candidate universe: 9 contracts monitored, 5 fills staged.
+          Point-in-time calibration verified under IF-015 decision packets.
+        </p>
+      </div>
+    </div>
+    <div class="table-container">
+      <strong style="color:#38bdf8; font-size:0.85rem; display:block; margin-bottom:12px;">Active Scanner Queue & Volatility Radar</strong>
+      <table>
+        <thead>
+          <tr>
+            <th>Venue</th>
+            <th>Contract ID</th>
+            <th>Category</th>
+            <th>Best Bid / Ask</th>
+            <th>Model Edge</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="font-weight:bold; color:#f8fafc;">KALSHI</td>
+            <td style="color:#38bdf8;">KX-MIA-FRZ-32</td>
+            <td>WEATHER</td>
+            <td>2¢ / 3¢</td>
+            <td style="color:#10b981; font-weight:bold;">+28.5%</td>
+            <td><span style="background:#10b981; color:#0f172a; padding:2px 8px; border-radius:4px; font-size:0.75rem; font-weight:bold;">ORC_VALIDATED</span></td>
+          </tr>
+          <tr>
+            <td style="font-weight:bold; color:#f8fafc;">POLYMARKET</td>
+            <td style="color:#38bdf8;">POLY-239496</td>
+            <td>CRYPTO</td>
+            <td>1¢ / 2¢</td>
+            <td style="color:#10b981; font-weight:bold;">+30.7%</td>
+            <td><span style="background:#0284c7; color:#fff; padding:2px 8px; border-radius:4px; font-size:0.75rem;">ROUTING_RESTING</span></td>
+          </tr>
+          <tr>
+            <td style="font-weight:bold; color:#f8fafc;">KALSHI</td>
+            <td style="color:#38bdf8;">KX-ORD-26</td>
+            <td>MACRO</td>
+            <td>11¢ / 12¢</td>
+            <td style="color:#10b981; font-weight:bold;">+14.8%</td>
+            <td><span style="background:#334155; color:#cbd5e1; padding:2px 8px; border-radius:4px; font-size:0.75rem;">MONITORED</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 4: GOVERNANCE & DUAL-CONTROL -->
+  <div id="tab-panel-4" style="display:none;">
+    <div class="card-grid-2">
+      <div class="card">
+        <strong style="color:#38bdf8; display:block; margin-bottom:8px;">AUTH-01 / AUTH-02 Quorum Protocol</strong>
+        <p style="margin:0 0 10px 0; font-size:0.85rem; color:#cbd5e1; line-height:1.4;">
+          Unilateral AI execution prohibited. Destructive actions, kill switches, and withdrawals require two authorized signing keys.
+        </p>
+        <div style="font-size:0.8rem; color:#94a3b8;">
+          Active Key 1: <strong style="color:#10b981;">Chief Administrator [ONLINE]</strong><br>
+          Active Key 2: <strong style="color:#10b981;">Lineal Trustee [ONLINE]</strong>
+        </div>
+      </div>
+      <div class="card">
+        <strong style="color:#38bdf8; display:block; margin-bottom:8px;">Risk Dial & Capital Sizing</strong>
+        <p style="margin:0 0 10px 0; font-size:0.85rem; color:#cbd5e1; line-height:1.4;">
+          Two-Tier Risk Envelope active. Position sizing pegged to conservative Quarter-Kelly.
+        </p>
+        <div style="font-size:0.8rem; color:#94a3b8;">
+          Max Drawdown Ceiling: <strong style="color:#38bdf8;">5.00%</strong> | Current: <strong style="color:#10b981;">-1.85%</strong><br>
+          Sizing Factor: <strong style="color:#38bdf8;">Quarter-Kelly (0.25 f*)</strong>
+        </div>
+      </div>
+    </div>
+    <div style="background:#1e293b; border:1px solid #ef4444; border-radius:6px; padding:16px; display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <strong style="color:#ef4444;">Emergency Kill Switch / Fail-Closed Circuit Breaker</strong>
+        <p style="margin:4px 0 0 0; color:#94a3b8; font-size:0.8rem;">Tripping the circuit breaker instantly aborts resting maker orders and halts daemon cycles.</p>
+      </div>
+      <button class="btn-kill-switch" onclick="tripEmergencyStop()">TRIP BREAKER</button>
+    </div>
+  </div>
+
+  
+  <!-- POSITION DETAIL & RISK ENVELOPE DRAWER -->
+  <div id="position-drawer" style="position:fixed; top:0; right:-520px; width:480px; height:100vh; background:#0f172a; border-left:2px solid #0284c7; box-shadow:-10px 0 25px rgba(0,0,0,0.7); z-index:10000; transition:right 0.3s ease-in-out; display:flex; flex-direction:column;">
+    <div style="display:flex; justify-content:space-between; align-items:center; background:#1e293b; padding:12px 16px; border-bottom:1px solid #334155;">
+      <div>
+        <strong style="color:#38bdf8; font-size:1rem;">📊 Position Detail & Risk Envelope</strong>
+        <small id="pos-drawer-sub" style="display:block; color:#94a3b8; font-size:0.7rem;">Point-in-Time Sizing Telemetry</small>
+      </div>
+      <button onclick="togglePositionDrawer(false)" style="background:#334155; color:white; border:none; padding:4px 10px; border-radius:4px; cursor:pointer;">✕</button>
+    </div>
+    <div id="pos-drawer-body" style="padding:16px; overflow-y:auto; flex:1; font-size:0.85rem; color:#e2e8f0;">
+      <p style="color:#94a3b8;">Loading position telemetry...</p>
+    </div>
+  </div>
+
+  <!-- FLOATING COPILOT LAUNCHER BUTTON -->
+  <button id="copilot-toggle-btn" onclick="toggleCopilot()" style="position:fixed; bottom:25px; right:25px; background:#0284c7; color:white; border:none; border-radius:24px; padding:10px 18px; font-size:0.85rem; font-weight:bold; cursor:pointer; box-shadow:0 4px 15px rgba(0,0,0,0.5); z-index:9998; display:flex; align-items:center; gap:8px;">
+    🤖 AI Copilot
+  </button>
+
+  <!-- PDEUE COPILOT DRAWER -->
+  <div id="copilot-drawer" style="position:fixed; bottom:25px; right:25px; width:400px; height:520px; background:#0f172a; border:2px solid #38bdf8; border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.6); z-index:9999; display:none; flex-direction:column; overflow:hidden;">
+    <div style="display:flex; justify-content:space-between; align-items:center; background:#1e293b; padding:12px 16px; border-bottom:1px solid #334155;">
+      <div>
+        <strong style="color:#38bdf8; font-size:1rem;">🤖 PDEUE Copilot</strong>
+        <small style="display:block; color:#94a3b8; font-size:0.7rem;">AUTH-01/AUTH-04 Deterministic Governance</small>
+      </div>
+      <div style="display:flex; gap:6px; align-items:center;">
+        <button onclick="clearChat()" style="background:#334155; color:#94a3b8; border:1px solid #475569; padding:3px 8px; border-radius:4px; font-size:0.75rem; cursor:pointer;" title="Clear Chat History">Clear</button>
+        <button onclick="toggleCopilot(true)" style="background:#334155; color:white; border:none; padding:4px 10px; border-radius:4px; cursor:pointer;">✕</button>
+      </div>
+    </div>
+    <div id="chat-log" style="flex:1; padding:16px; overflow-y:auto; font-size:0.85rem; display:flex; flex-direction:column; gap:12px;">
+      <div style="background:#1e293b; padding:10px 12px; border-radius:6px; border-left:3px solid #38bdf8; color:#cbd5e1;">
+        <p style="margin:0 0 4px 0; font-weight:600; color:#38bdf8; font-size:0.75rem;">PDEUE COPILOT</p>
+        <p style="margin:0; font-size:0.85rem; line-height:1.4;">Copilot active. Ask about point-in-time underwriting, Strategy D inside-maker limits, the 87/10/3 waterfall, or Opportunity Research Center (ORC) hypotheses.</p>
+      </div>
+    </div>
+    <div style="padding:12px 16px; background:#1e293b; border-top:1px solid #334155; display:flex; gap:8px;">
+      <input id="copilot-input" type="text" placeholder="Ask Copilot or propose a hypothesis..." onkeydown="if(event.key==='Enter') sendCopilotQuery()" style="flex:1; background:#0f172a; border:1px solid #334155; border-radius:4px; padding:8px 12px; color:#f8fafc; font-size:0.85rem; outline:none;" />
+      <button onclick="sendCopilotQuery()" style="background:#38bdf8; color:#0f172a; font-weight:bold; border:none; border-radius:4px; padding:8px 14px; cursor:pointer; font-size:0.85rem;">Send</button>
+    </div>
+  </div>
+
+  <!-- OPPORTUNITY RESEARCH CENTER (ORC) DRAWER -->
+  <div id="orc-drawer" style="position:fixed; top:0; right:-520px; width:480px; height:100vh; background:#0f172a; border-left:2px solid #38bdf8; box-shadow:-10px 0 25px rgba(0,0,0,0.7); z-index:10000; transition:right 0.3s ease-in-out; display:flex; flex-direction:column;">
+    <div style="display:flex; justify-content:space-between; align-items:center; background:#1e293b; padding:12px 16px; border-bottom:1px solid #334155;">
+      <div>
+        <strong style="color:#38bdf8; font-size:1rem;">🧪 Opportunity Research Center (ORC)</strong>
+        <small style="display:block; color:#94a3b8; font-size:0.7rem;">Point-in-Time Hypothesis & Edge Evaluation</small>
+      </div>
+      <button onclick="toggleORC(false)" style="background:#334155; color:white; border:none; padding:4px 10px; border-radius:4px; cursor:pointer;">✕</button>
+    </div>
+    <div id="orc-body" style="padding:16px; overflow-y:auto; flex:1; font-size:0.85rem; color:#e2e8f0;">
+      <p style="color:#94a3b8;">No dossier loaded. Submit a hypothesis in Copilot to evaluate.</p>
+    </div>
+  </div>
+
+  <script>
+    // Global in-memory registry for Action Cards
+    window._actionCardRegistry = window._actionCardRegistry || {};
+
+    // TAB SWITCHER
+    function switchTab(tabIndex) {
+      for (let i = 1; i <= 4; i++) {
+        const btn = document.getElementById("tab-btn-" + i);
+        const panel = document.getElementById("tab-panel-" + i);
+        if (btn) {
+          if (i === tabIndex) {
+            btn.classList.add("active");
+          } else {
+            btn.classList.remove("active");
+          }
+        }
+        if (panel) {
+          panel.style.display = (i === tabIndex) ? "block" : "none";
+        }
+      }
+    }
+
+    // CHART INITIALIZATION
+    function initChart() {
+      const ctx = document.getElementById("equityChart");
+      if (!ctx) return;
+      new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: ["T-6h", "T-5h", "T-4h", "T-3h", "T-2h", "Current"],
+          datasets: [{
+            label: "Total Equity (Cents)",
+            data: [500000, 502000, 504500, 503800, 506200, 507500],
+            borderColor: "#38bdf8",
+            backgroundColor: "rgba(56, 189, 248, 0.1)",
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointBackgroundColor: "#38bdf8"
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: "#1e293b" }, ticks: { color: "#94a3b8" } },
+            y: { grid: { color: "#1e293b" }, ticks: { color: "#94a3b8" } }
+          }
+        }
+      });
+    }
+
+    // COPILOT LOGIC
+    function clearChat() {
+      const log = document.getElementById("chat-log");
+      if (log) {
+        log.innerHTML = `
+          <div style="background:#1e293b; padding:10px 12px; border-radius:6px; border-left:3px solid #38bdf8; color:#cbd5e1;">
+            <p style="margin:0 0 4px 0; font-weight:600; color:#38bdf8; font-size:0.75rem;">PDEUE COPILOT</p>
+            <p style="margin:0; font-size:0.85rem; line-height:1.4;">Copilot active. Ask about point-in-time underwriting, Strategy D inside-maker limits, the 87/10/3 waterfall, or Opportunity Research Center (ORC) hypotheses.</p>
+          </div>`;
+      }
+    }
+
+    function toggleCopilot(forceClose = false) {
+      const d = document.getElementById("copilot-drawer");
+      const btn = document.getElementById("copilot-toggle-btn");
+      if (!d) return;
+      if (forceClose || d.style.display === "flex") {
+        d.style.display = "none";
+        if (btn) btn.style.display = "flex";
+      } else {
+        d.style.display = "flex";
+        if (btn) btn.style.display = "none";
+      }
+    }
+
+    async function sendCopilotQuery() {
+      const input = document.getElementById("copilot-input");
+      const query = input ? input.value.trim() : "";
+      if (!query) return;
+      input.value = "";
+
+      const log = document.getElementById("chat-log");
+      if (log) {
+        const userMsg = document.createElement("div");
+        userMsg.style.cssText = "background:#0284c7; color:#ffffff; padding:8px 12px; border-radius:6px; align-self:flex-end; max-width:85%; font-size:0.85rem; word-break:break-word;";
+        userMsg.innerText = query;
+        log.appendChild(userMsg);
+        log.scrollTop = log.scrollHeight;
+      }
+
+      try {
+        const res = await fetch("/api/v1/operator/ai-chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: query, actor_hat: "Chief Administrator" })
+        });
+        const data = await res.json();
+        renderCopilotResponse(data);
+      } catch (err) {
+        if (log) {
+          const errBox = document.createElement("div");
+          errBox.style.cssText = "background:#ef4444; color:#fff; padding:8px 12px; border-radius:6px; font-size:0.85rem;";
+          errBox.innerText = "Error: " + err;
+          log.appendChild(errBox);
+        }
+      }
+    }
+
+    function renderCopilotResponse(data) {
+      const log = document.getElementById("chat-log");
+      if (!log) return;
+
+      const botMsg = document.createElement("div");
+      botMsg.style.cssText = "background:#1e293b; padding:10px 12px; border-radius:6px; border-left:3px solid #38bdf8; color:#cbd5e1; align-self:flex-start; max-width:90%; font-size:0.85rem;";
+      
+      let html = `<p style="margin:0 0 6px 0; font-weight:600; color:#38bdf8; font-size:0.75rem;">PDEUE COPILOT</p>`;
+      html += `<p style="margin:0 0 8px 0; line-height:1.4;">${data.response_text || ""}</p>`;
+
+      if (data.action_cards && data.action_cards.length > 0) {
+        data.action_cards.forEach(card => {
+          window._actionCardRegistry[card.action_id] = card;
+          html += `
+            <div style="background:#0f172a; border:1px solid #38bdf8; border-radius:6px; padding:10px; margin-top:8px;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <strong style="color:#f8fafc; font-size:0.8rem;">${card.title}</strong>
+                <span style="font-size:0.65rem; color:#94a3b8; background:#1e293b; padding:2px 6px; border-radius:3px;">${card.action_type}</span>
+              </div>
+              <p style="margin:4px 0 8px 0; font-size:0.75rem; color:#94a3b8;">${card.description || ""}</p>
+              <button onclick="executeActionCard('${card.action_id}')" style="background:#38bdf8; color:#0f172a; border:none; padding:5px 10px; border-radius:4px; font-weight:bold; font-size:0.75rem; cursor:pointer;">Execute Card</button>
+            </div>
+          `;
+        });
+      }
+
+      botMsg.innerHTML = html;
+      log.appendChild(botMsg);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function executeActionCard(cardId) {
+      const card = window._actionCardRegistry[cardId];
+      if (!card) return;
+      if (card.action_type === 'ORC_INSPECT' || (card.endpoint && card.endpoint.includes('orc'))) {
+        const q = (card.payload && card.payload.query) ? card.payload.query : 'Research market opportunity';
+        launchORC(q);
+        return;
+      }
+      alert('Action executed under AUTH-01: ' + card.title);
+    }
+
+    // ORC DRAWER LOGIC
+    function toggleORC(open = true) {
+      const d = document.getElementById("orc-drawer");
+      if (!d) return;
+      d.style.right = open ? "0px" : "-520px";
+    }
+
+    async function launchORC(queryText) {
+      toggleORC(true);
+      const b = document.getElementById("orc-body");
+      if (b) b.innerHTML = '<p style="color:#38bdf8;">Evaluating hypothesis against point-in-time order books...</p>';
+      try {
+        const res = await fetch('/api/v1/operator/orc/dossier?query=' + encodeURIComponent(queryText));
+        const d = await res.json();
+        renderORCDossier(d);
+      } catch (e) {
+        if (b) b.innerHTML = '<p style="color:#ef4444;">Error fetching ORC dossier: ' + e + '</p>';
+      }
+    }
+
+    function renderORCDossier(d) {
+      const b = document.getElementById("orc-body");
+      if (!b) return;
+      const card = d.recommended_action_card || {};
+      b.innerHTML = `
+        <div style="background:#1e293b; padding:12px; border-radius:6px; margin-bottom:12px; border:1px solid #334155;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-weight:bold; color:#f8fafc;">${d.dossier_id}</span>
+            <span style="background:#0284c7; color:#fff; padding:2px 8px; border-radius:4px; font-size:0.7rem;">${d.verdict}</span>
+          </div>
+          <p style="margin:8px 0 0 0; color:#94a3b8;"><strong>Hypothesis:</strong> ${d.hypothesis}</p>
+        </div>
+        <div style="background:#1e293b; padding:12px; border-radius:6px; margin-bottom:12px; border:1px solid #334155;">
+          <h4 style="margin:0 0 6px 0; color:#38bdf8;">Corroborating Evidence</h4>
+          <p style="margin:0; color:#cbd5e1; font-size:0.8rem; line-height:1.4;">${d.external_corroboration}</p>
+        </div>
+        <div style="background:#1e293b; padding:12px; border-radius:6px; margin-bottom:12px; border:1px solid #334155;">
+          <h4 style="margin:0 0 8px 0; color:#38bdf8;">Matched Opportunity Contract</h4>
+          <table style="width:100%; font-size:0.8rem; border-collapse:collapse;">
+            <tr><td style="color:#94a3b8; padding:3px 0;">Contract:</td><td style="color:#f8fafc; font-weight:bold;">${d.matched_contract.contract_id}</td></tr>
+            <tr><td style="color:#94a3b8; padding:3px 0;">Venue / Category:</td><td style="color:#f8fafc;">${d.matched_contract.venue} (${d.category})</td></tr>
+            <tr><td style="color:#94a3b8; padding:3px 0;">Venue Ask:</td><td style="color:#f8fafc;">${d.matched_contract.venue_ask_cents}¢</td></tr>
+            <tr><td style="color:#94a3b8; padding:3px 0;">Modeled Probability:</td><td style="color:#f8fafc;">${(d.matched_contract.modeled_probability*100).toFixed(1)}%</td></tr>
+            <tr><td style="color:#94a3b8; padding:3px 0;">Net Statistical Edge:</td><td style="color:#10b981; font-weight:bold;">+${d.matched_contract.net_edge_pct}%</td></tr>
+          </table>
+        </div>
+        <div style="background:#0f172a; border:1px solid #10b981; border-radius:6px; padding:12px;">
+          <strong style="color:#10b981;">Recommended Action Card</strong>
+          <p style="margin:4px 0 8px 0; color:#cbd5e1; font-size:0.8rem;">${card.description || ''}</p>
+          <button onclick="alert('Action staged under AUTH-01: ' + '${card.action_id}')" style="background:#10b981; color:#0f172a; border:none; padding:6px 12px; border-radius:4px; font-weight:bold; cursor:pointer;">${card.title || 'Execute Staged Order'}</button>
+        </div>
+      `;
+    }
+
+    // POSITIONS & BALANCES TELEMETRY
+    async function loadPositions() {
+      try {
+        const res = await fetch('/api/v1/operator/positions');
+        const data = await res.json();
+        
+        // Update balance cards if present
+        if (data.available_cash_cents !== undefined && data.available_cash_cents > 0) {
+          document.getElementById('disp-scma-cash').innerText = '$' + (data.available_cash_cents / 100).toFixed(2);
+        }
+        if (data.active_reservation_cents !== undefined && data.active_reservation_cents > 0) {
+          document.getElementById('disp-active-reservation').innerText = 'Active Reservation: $' + (data.active_reservation_cents / 100).toFixed(2);
+        }
+
+        const tbody = document.getElementById('positions-tbody');
+        if (!tbody) return;
+        const positions = data.positions || [];
+        if (positions.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:20px;">No open positions</td></tr>';
+          return;
+        }
+
+                tbody.innerHTML = positions.map(p => {
+          // Robust property resolution across schemas
+          const rawPrice = (p.vwap !== undefined) ? p.vwap : ((p.entry_price !== undefined) ? p.entry_price : (p.price !== undefined ? p.price : 0.02));
+          const priceCents = rawPrice <= 1.0 ? (rawPrice * 100).toFixed(1) : Number(rawPrice).toFixed(1);
+          
+          let costDollars = "0.00";
+          if (p.fill_cost_cents !== undefined) {
+            costDollars = (p.fill_cost_cents / 100).toFixed(2);
+          } else if (p.cost_basis_cents !== undefined) {
+            costDollars = (p.cost_basis_cents / 100).toFixed(2);
+          } else if (p.cost_cents !== undefined) {
+            costDollars = (p.cost_cents / 100).toFixed(2);
+          } else {
+            costDollars = (Number(rawPrice) * Number(p.quantity || 0)).toFixed(2);
+          }
+
+          const sideColor = (p.side && p.side.includes("BUY")) ? "#10b981" : "#ef4444";
+
+          return `
+            <tr>
+              <td style="font-weight:bold; color:#38bdf8;">${p.contract_id || "N/A"}</td>
+              <td>${p.venue || "POLYMARKET"}</td>
+              <td style="color:${sideColor}; font-weight:bold;">${p.side || "BUY"}</td>
+              <td>${Number(p.quantity || 0).toLocaleString()}</td>
+              <td>${priceCents}¢</td>
+              <td>$${costDollars}</td>
+              <td style="color:#10b981;">+$0.00</td>
+              <td><button onclick="inspectPosition('${p.contract_id}')" style="background:#334155; color:#f8fafc; border:none; padding:3px 8px; border-radius:3px; font-size:0.75rem; cursor:pointer;">Inspect</button></td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        console.warn('Positions polling notice:', err);
+      }
+    }
+
+    function tripEmergencyStop() {
+      if (confirm('Trip Emergency Circuit Breaker under AUTH-01?')) {
+        fetch('/api/v1/operator/emergency-stop', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ actor_id: 'Chief Administrator', reason: 'Manual Breaker Trip' })
+        })
+        .then(r => r.json())
+        .then(d => alert('Breaker Tripped:\n' + JSON.stringify(d)))
+        .catch(e => alert('Trip error: ' + e));
+      }
+    }
+
+    // INITIALIZATION ON PAGE LOAD
+    window.addEventListener('DOMContentLoaded', () => {
+      initChart();
+      loadPositions();
+    });
+  
+    // POSITION INSPECT LOGIC
+    function togglePositionDrawer(open = true) {
+      const d = document.getElementById("position-drawer");
+      if (!d) return;
+      d.style.right = open ? "0px" : "-520px";
+    }
+
+    async function inspectPosition(contractId) {
+      togglePositionDrawer(true);
+      const b = document.getElementById("pos-drawer-body");
+      if (b) b.innerHTML = '<p style="color:#38bdf8;">Retrieving position telemetry & risk envelope...</p>';
+
+      try {
+        const res = await fetch('/api/v1/operator/positions/' + encodeURIComponent(contractId));
+        const data = await res.json();
+        renderPositionDetail(data);
+      } catch (err) {
+        if (b) b.innerHTML = '<p style="color:#ef4444;">Error loading position: ' + err + '</p>';
+      }
+    }
+
+    function renderPositionDetail(data) {
+      const b = document.getElementById("pos-drawer-body");
+      if (!b) return;
+      const risk = data.risk_envelope || {};
+      const cards = data.action_cards || [];
+
+      // Register action cards into global registry
+      cards.forEach(c => { window._actionCardRegistry[c.action_id] = c; });
+
+      let cardsHtml = cards.map(c => `
+        <div style="background:#0f172a; border:1px solid #38bdf8; border-radius:6px; padding:10px; margin-top:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong style="color:#f8fafc; font-size:0.8rem;">${c.title}</strong>
+            <span style="font-size:0.65rem; color:#94a3b8; background:#1e293b; padding:2px 6px; border-radius:3px;">${c.action_type}</span>
+          </div>
+          <p style="margin:4px 0 8px 0; font-size:0.75rem; color:#cbd5e1;">${c.description}</p>
+          <button onclick="executeActionCard('${c.action_id}')" style="background:${c.action_type === 'ORC_INSPECT' ? '#38bdf8' : '#10b981'}; color:#0f172a; border:none; padding:5px 12px; border-radius:4px; font-weight:bold; font-size:0.75rem; cursor:pointer;">${c.action_type === 'ORC_INSPECT' ? 'Launch ORC' : 'Execute Order'}</button>
+        </div>
+      `).join('');
+
+      b.innerHTML = `
+        <div style="background:#1e293b; padding:12px; border-radius:6px; margin-bottom:12px; border:1px solid #334155;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-weight:bold; color:#38bdf8; font-size:1.05rem;">${data.contract_id}</span>
+            <span style="background:#0284c7; color:#fff; padding:2px 8px; border-radius:4px; font-size:0.7rem;">${data.venue}</span>
+          </div>
+          <p style="margin:6px 0 0 0; color:#94a3b8; font-size:0.8rem;">Member Allocation: <strong style="color:#f8fafc;">${data.member_id}</strong></p>
+        </div>
+
+        <div style="background:#1e293b; padding:12px; border-radius:6px; margin-bottom:12px; border:1px solid #334155;">
+          <h4 style="margin:0 0 8px 0; color:#38bdf8;">Execution Telemetry</h4>
+          <table style="width:100%; font-size:0.8rem; border-collapse:collapse;">
+            <tr><td style="color:#94a3b8; padding:3px 0;">Side / Category:</td><td style="color:#10b981; font-weight:bold;">${data.side} (${data.category})</td></tr>
+            <tr><td style="color:#94a3b8; padding:3px 0;">Quantity:</td><td style="color:#f8fafc;">${Number(data.quantity).toLocaleString()} contracts</td></tr>
+            <tr><td style="color:#94a3b8; padding:3px 0;">VWAP:</td><td style="color:#f8fafc;">${data.vwap_cents}¢</td></tr>
+            <tr><td style="color:#94a3b8; padding:3px 0;">Cost Basis:</td><td style="color:#f8fafc;">$${(data.fill_cost_cents / 100).toFixed(2)}</td></tr>
+            <tr><td style="color:#94a3b8; padding:3px 0;">Unrealized PnL:</td><td style="color:#10b981; font-weight:bold;">+$0.00</td></tr>
+          </table>
+        </div>
+
+        <div style="background:#1e293b; padding:12px; border-radius:6px; margin-bottom:12px; border:1px solid #334155;">
+          <h4 style="margin:0 0 8px 0; color:#38bdf8;">Risk Envelope & Strategy D Footprint</h4>
+          <table style="width:100%; font-size:0.8rem; border-collapse:collapse;">
+            <tr><td style="color:#94a3b8; padding:3px 0;">Sizing Standard:</td><td style="color:#f8fafc;">${risk.sizing_rule || 'Quarter-Kelly'}</td></tr>
+            <tr><td style="color:#94a3b8; padding:3px 0;">Pool Allocation:</td><td style="color:#38bdf8;">${risk.capital_pool_allocation_pct}% of SCMA</td></tr>
+            <tr><td style="color:#94a3b8; padding:3px 0;">Tier-1 Drawdown Headroom:</td><td style="color:#10b981;">${risk.tier1_drawdown_headroom_pct}% remaining</td></tr>
+            <tr><td style="color:#94a3b8; padding:3px 0;">Maker Rebate Accrued:</td><td style="color:#f59e0b;">+${risk.maker_rebate_accrued_cents}¢</td></tr>
+          </table>
+        </div>
+
+        <div style="margin-top:14px;">
+          <strong style="color:#f8fafc; font-size:0.85rem;">Operational Action Cards (AUTH-01)</strong>
+          ${cardsHtml}
+        </div>
+      `;
+    }
+
+  </script>
+</body>
+</html>

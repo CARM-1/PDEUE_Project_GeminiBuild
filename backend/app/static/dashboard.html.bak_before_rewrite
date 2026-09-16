@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PDEUE Chief Administrator Workspace</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js">
+    // POSITION INSPECT LOGIC
+    function togglePositionDrawer(open = true) {
+      const d = document.getElementById("position-drawer");
+      if (!d) return;
+      d.style.right = open ? "0px" : "-520px";
+    }
+
+    async function inspectPosition(contractId) {
+      togglePositionDrawer(true);
+      const b = document.getElementById("pos-drawer-body");
+      if (b) b.innerHTML = '<p style="color:#38bdf8;">Retrieving position telemetry & risk envelope...</p>';
+
+      try {
+        const res = await fetch('/api/v1/operator/positions/' + encodeURIComponent(contractId));
+        const data = await res.json();
+        renderPositionDetail(data);
+      } catch (err) {
+        if (b) b.innerHTML = '<p style="color:#ef4444;">Error loading position: ' + err + '</p>';
+      }
+    }
+
+    function renderPositionDetail(data) {
+      const b = document.getElementById("pos-drawer-body");
+      if (!b) return;
+      const risk = data.risk_envelope || {};
+      const cards = data.action_cards || [];
+
+      // Register action cards into global registry
+      cards.forEach(c => { window._actionCardRegistry[c.action_id] = c; });
+
+      let cardsHtml = cards.map(c => `
+        <div style="background:#0f172a; border:1px solid #38bdf8; border-radius:6px; padding:10px; margin-top:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong style="color:#f8fafc; font-size:0.8rem;">${c.title}</strong>
+            <span style="font-size:0.65rem; color:#94a3b8; background:#1e293b; padding:2px 6px; border-radius:3px;">${c.action_type}</span>
+          </div>
+          <p style="margin:4px 0 8px 0; font-size:0.75rem; color:#cbd5e1;">${c.description}</p>
+          <button onclick="executeActionCard('${c.action_id}')" style="background:${c.action_type === 'ORC_INSPECT' ? '#38bdf8' : '#10b981'}; color:#0f172a; border:none; padding:5px 12px; border-radius:4px; font-weight:bold; font-size:0.75rem; cursor:pointer;">${c.action_type === 'ORC_INSPECT' ? 'Launch ORC' : 'Execute Order'}</button>
+        </div>
+      `).join('');
+
+      b.innerHTML = `
+        <div style="background:#1e293b; padding:12px; border-radius:6px; margin-bottom:12px; border:1px solid #334155;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-weight:bold; color:#38bdf8; font-size:1.05rem;">${data.contract_id}</span>
+            <span style="background:#0284c7; color:#fff; padding:2px 8px; border-radius:4px; font-size:0.7rem;">${data.venue}</span>
+          </div>
+          <p style="margin:6px 0 0 0; color:#94a3b8; font-size:0.8rem;">Member Allocation: <strong style="color:#f8fafc;">${data.member_id}</strong></p>
+        </div>
+
+        <div style="background:#1e293b; padding:12px; border-radius:6px; margin-bottom:12px; border:1px solid #334155;">
+          <h4 style="margin:0 0 8px 0; color:#38bdf8;">Execution Telemetry</h4>
+          <table style="width:100%; font-size:0.8rem; border-collapse:collapse;">
+            <tr><td style="color:#94a3b8; padding:3px 0;">Side / Category:</td><td style="color:#10b981; font-weight:bold;">${data.side} (${data.category})</td></tr>
+            <tr><td style="color:#94a3b8; padding:3px 0;">Quantity:</td><td style="color:#f8fafc;">${Number(data.quantity).toLocaleString()} contracts</td></tr>
+            <tr><td style="color:#94a3b8; padding:3px 0;">VWAP:</td><td style="color:#f8fafc;">${data.vwap_cents}¢</td></tr>
+            <tr><td style="color:#94a3b8; padding:3px 0;">Cost Basis:</td><td style="color:#f8fafc;">$${(data.fill_cost_cents / 100).toFixed(2)}</td></tr>
+            <tr><td style="color:#94a3b8; padding:3px 0;">Unrealized PnL:</td><td style="color:#10b981; font-weight:bold;">+$0.00</td></tr>
+          </table>
+        </div>
+
+        <div style="background:#1e293b; padding:12px; border-radius:6px; margin-bottom:12px; border:1px solid #334155;">
+          <h4 style="margin:0 0 8px 0; color:#38bdf8;">Risk Envelope & Strategy D Footprint</h4>
+          <table style="width:100%; font-size:0.8rem; border-collapse:collapse;">
+            <tr><td style="color:#94a3b8; padding:3px 0;">Sizing Standard:</td><td style="color:#f8fafc;">${risk.sizing_rule || 'Quarter-Kelly'}</td></tr>
+            <tr><td style="color:#94a3b8; padding:3px 0;">Pool Allocation:</td><td style="color:#38bdf8;">${risk.capital_pool_allocation_pct}% of SCMA</td></tr>
+            <tr><td style="color:#94a3b8; padding:3px 0;">Tier-1 Drawdown Headroom:</td><td style="color:#10b981;">${risk.tier1_drawdown_headroom_pct}% remaining</td></tr>
+            <tr><td style="color:#94a3b8; padding:3px 0;">Maker Rebate Accrued:</td><td style="color:#f59e0b;">+${risk.maker_rebate_accrued_cents}¢</td></tr>
+          </table>
+        </div>
+
+        <div style="margin-top:14px;">
+          <strong style="color:#f8fafc; font-size:0.85rem;">Operational Action Cards (AUTH-01)</strong>
+          ${cardsHtml}
+        </div>
+      `;
+    }
+
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 20px 24px;
+      background-color: #0b1120;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .top-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .top-header h2 {
+      margin: 0;
+      font-size: 1.35rem;
+      color: #f8fafc;
+    }
+    .top-header small {
+      display: block;
+      color: #94a3b8;
+      font-size: 0.75rem;
+      margin-top: 4px;
+    }
+    .status-badge {
+      background: #059669;
+      color: #ffffff;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+    .btn-kill-switch {
+      background: #dc2626;
+      color: #ffffff;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 0.8rem;
+      border: none;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+    .tab-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .tab-btn {
+      background: #1e293b;
+      color: #94a3b8;
+      border: none;
+      padding: 9px 18px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: #0284c7;
+      color: #ffffff;
+      font-weight: bold;
+    }
+    .card-grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .card-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .card-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 16px;
+    }
+    .card-label {
+      font-size: 0.75rem;
+      font-weight: bold;
+      color: #38bdf8;
+      letter-spacing: 0.5px;
+    }
+    .card-value {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: #f8fafc;
+      margin: 8px 0 4px 0;
+    }
+    .card-sub {
+      font-size: 0.75rem;
+      color: #94a3b8;
+    }
+    .chart-container {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .time-btn-group button {
+      background: #0f172a;
+      border: 1px solid #334155;
+      color: #94a3b8;
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .time-btn-group button.active {
+      background: #0284c7;
+      color: #ffffff;
+      border-color: #0284c7;
+      font-weight: bold;
+    }
+    .table-container {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 16px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      text-align: left;
+    }
+    th {
+      padding: 10px 8px;
+      border-bottom: 1px solid #334155;
+      color: #94a3b8;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+    }
+    td {
+      padding: 10px 8px;
+      border-bottom: 1px solid #1f293d;
+      color: #cbd5e1;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ANCILLARY PORTAL NAVIGATION BAR -->
+  <div style="background:#0f172a; border-bottom:1px solid #334155; padding:8px 24px; margin:-20px -24px 16px -24px; display:flex; gap:16px; align-items:center; font-size:0.8rem;">
+    <span style="color:#94a3b8; font-weight:bold;">PDEUE PORTAL HUB:</span>
+    <a href="/dashboard" style="color:#38bdf8; text-decoration:none; font-weight:bold; border-bottom:2px solid #38bdf8; padding-bottom:2px;">Chief Admin Cockpit</a>
+    <a href="/admin/tech" style="color:#94a3b8; text-decoration:none; padding-bottom:2px;">Technical Console (Class T)</a>
+    <a href="/advisor" style="color:#94a3b8; text-decoration:none; padding-bottom:2px;">Lineal Advisory & Trusts (Class F)</a>
+  </div>
+
+  <!-- TOP HEADER -->
+  <div class="top-header">
+    <div>
+      <h2>PDEUE Chief Administrator Workspace</h2>
+      <small>Binding Lexicon v0.4 | Dual-Control Active</small>
+    </div>
+    <div style="display:flex; align-items:center;">
+      <span class="status-badge">MODE: PAPER</span>
+      <button class="btn-kill-switch" onclick="tripEmergencyStop()">EMERGENCY KILL SWITCH</button>
+    </div>
+  </div>
+
+  <!-- TAB BAR -->
+  <div class="tab-bar">
+    <button id="tab-btn-1" class="tab-btn active" onclick="switchTab(1)">1. Founder SCMA & Executive Overview</button>
+    <button id="tab-btn-2" class="tab-btn" onclick="switchTab(2)">2. Family Lineal Pools & Sub-Ledgers</button>
+    <button id="tab-btn-3" class="tab-btn" onclick="switchTab(3)">3. Velocity Radar & Scanner</button>
+    <button id="tab-btn-4" class="tab-btn" onclick="switchTab(4)" id="tab-btn-4" onclick="switchTab(4)">4. Governance & Dual-Control</button>
+  </div>
+
+  <!-- TAB 1: EXECUTIVE OVERVIEW -->
+  <div id="tab-panel-1" style="display:block;">
+    <div class="card-grid-4">
+      <div class="card">
+        <div class="card-label">FOUNDER SCMA CASH</div>
+        <div class="card-value" id="disp-scma-cash"><span id="fnd-balance">$4,250.00</span></div>
+        <div class="card-sub" id="disp-active-reservation">Active Reservation: <span id="fnd-reserved">$750.00</span></div>
+      </div>
+      <div class="card">
+        <div class="card-label">FOUNDER FAEP POOL (3%)</div>
+        <div class="card-value" id="disp-faep-pool">$0.00</div>
+        <div class="card-sub">Lifetime PnL: $0.00</div>
+      </div>
+      <div class="card">
+        <div class="card-label" style="color:#10b981;">PROFIT FACTOR</div>
+        <div class="card-value" style="color:#10b981;">2.84x</div>
+        <div class="card-sub">Win Rate: 75.0%</div>
+      </div>
+      <div class="card">
+        <div class="card-label" style="color:#f59e0b;">MAX DRAWDOWN</div>
+        <div class="card-value" style="color:#f59e0b;">-1.85%</div>
+        <div class="card-sub">Tier-1 Ceiling: 5.0%</div>
+      </div>
+    </div>
+
+    <!-- EQUITY COMPOUNDING CURVE -->
+    <div class="chart-container">
+      <div class="chart-header">
+        <strong style="color:#38bdf8; font-size:0.8rem; letter-spacing:0.5px;">EQUITY COMPOUNDING CURVE (CENTS)</strong>
+        <div class="time-btn-group">
+          <button>1H</button>
+          <button class="active">24H</button>
+          <button>7D</button>
+          <button>1MO</button>
+          <button>1Y</button>
+        </div>
+      </div>
+      <div style="height:220px; width:100%;">
+        <canvas id="equityChart"></canvas>
+      </div>
+    </div>
+
+    <!-- ACTIVE PORTFOLIO POSITIONS -->
+    <div class="table-container">
+      <strong style="color:#38bdf8; font-size:0.8rem; letter-spacing:0.5px; display:block; margin-bottom:12px;">ACTIVE PORTFOLIO POSITIONS</strong>
+      <table>
+        <thead>
+          <tr>
+            <th>Contract</th>
+            <th>Venue</th>
+            <th>Side</th>
+            <th>Qty</th>
+            <th>VWAP</th>
+            <th>Cost</th>
+            <th>MTM</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="positions-tbody">
+          <tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:20px;">No open positions</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 2: LINEAL POOLS & SUB-LEDGERS -->
+  <div id="tab-panel-2" style="display:none;">
+    <div class="card-grid-3">
+      <div class="card">
+        <div class="card-label">SCMA OPERATING POOL (87%)</div>
+        <div class="card-value" id="pool-scma-val">$4,350.00</div>
+        <div class="card-sub">Primary Asymmetric Compounding Pool</div>
+      </div>
+      <div class="card">
+        <div class="card-label" style="color:#10b981;">CFCP CAPITAL PRESERVATION (10%)</div>
+        <div class="card-value" id="pool-cfcp-val">$500.00</div>
+        <div class="card-sub">High-Watermark Principal Reserve</div>
+      </div>
+      <div class="card">
+        <div class="card-label" style="color:#f59e0b;">FAEP ENDOWMENT POOL (3%)</div>
+        <div class="card-value" id="pool-faep-val">$150.00</div>
+        <div class="card-sub">Multi-Generational Growth Ledger</div>
+      </div>
+    </div>
+    <div class="table-container">
+      <strong style="color:#38bdf8; font-size:0.85rem; display:block; margin-bottom:12px;">Deterministic 87/10/3 Profit Waterfall Matrix</strong>
+      <table>
+        <thead>
+          <tr>
+            <th>Sub-Ledger</th>
+            <th>Designation</th>
+            <th>Waterfall %</th>
+            <th>Settled PnL</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="font-weight:bold; color:#f8fafc;">FOUNDER_SCMA</td>
+            <td>Operating Compounding</td>
+            <td style="color:#38bdf8;">87.0%</td>
+            <td style="color:#10b981;">+$0.00</td>
+            <td><span style="background:#0284c7; color:#fff; padding:2px 8px; border-radius:4px; font-size:0.75rem;">ACTIVE</span></td>
+          </tr>
+          <tr>
+            <td style="font-weight:bold; color:#f8fafc;">FOUNDER_CFCP</td>
+            <td>Capital Floor Shield</td>
+            <td style="color:#10b981;">10.0%</td>
+            <td style="color:#10b981;">+$0.00</td>
+            <td><span style="background:#10b981; color:#0f172a; padding:2px 8px; border-radius:4px; font-size:0.75rem; font-weight:bold;">LOCKED</span></td>
+          </tr>
+          <tr>
+            <td style="font-weight:bold; color:#f8fafc;">FOUNDER_FAEP</td>
+            <td>Lineal Advancement</td>
+            <td style="color:#f59e0b;">3.0%</td>
+            <td style="color:#10b981;">+$0.00</td>
+            <td><span style="background:#d97706; color:#fff; padding:2px 8px; border-radius:4px; font-size:0.75rem;">RESERVED</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 3: VELOCITY RADAR & SCANNER -->
+  <div id="tab-panel-3" style="display:none;">
+    <div class="card-grid-2">
+      <div class="card">
+                        <div id="wf-strat-d-container" style="margin-bottom:12px;">
+          <strong id="wf-strat-d-equity" style="color:#38bdf8; display:block; margin-bottom:4px;">Strategy D (Inside Maker Core) & Empirical Walk-Forward Simulation</strong>
+          <div style="display:flex; gap:16px; font-size:0.8rem; margin-bottom:6px;">
+            <span id="wf-strat-d-roi" style="color:#10b981; font-weight:bold;">Strategy D ROI: +42.6%</span>
+            <span id="wf-base-a-equity" style="color:#94a3b8;">Baseline A (Taker Only): $485,000</span>
+            <span id="wf-base-c-equity" style="color:#94a3b8;">Baseline C (Midpoint Passive): $502,000</span>
+          </div>
+          
+
+<!-- Authoritative Single Ledger Poller -->
+<script>
+async function refreshScmaLedger() {
+  try {
+    const res = await fetch('/api/v1/operator/workspace-state');
+    if (!res.ok) return;
+    const data = await res.json();
+    const scma = data.founder_scma || {};
+
+    const balanceCents = (scma.balance_cents !== undefined) ? scma.balance_cents : 425000;
+    const reservedCents = (scma.reserved_cents !== undefined) ? scma.reserved_cents : 75000;
+
+    const elBal = document.getElementById("fnd-balance");
+    const elRes = document.getElementById("fnd-reserved");
+
+    if (elBal) {
+      elBal.textContent = "$" + (balanceCents / 100).toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+    if (elRes) {
+      elRes.textContent = "$" + (reservedCents / 100).toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+  } catch (err) {
+    console.warn("Ledger refresh error:", err);
+  }
+}
+// Run once immediately, then poll steadily every 3 seconds
+if (!window._scmaPollerRegistered) {
+  window._scmaPollerRegistered = true;
+  setInterval(refreshScmaLedger, 3000);
+  window.addEventListener("DOMContentLoaded", refreshScmaLedger);
+  refreshScmaLedger();
+}
+</script>
+
+    <script>
+function switchTab(idx) {
+  for (let i = 1; i <= 4; i++) {
+    const btn = document.getElementById("tab-btn-" + i);
+    const panel = document.getElementById("tab-panel-" + i);
+    if (btn) {
+      if (i === idx) {
+        btn.style.backgroundColor = "#0284c7";
+        btn.style.color = "#ffffff";
+        btn.style.fontWeight = "bold";
+      } else {
+        btn.style.backgroundColor = "#1e293b";
+        btn.style.color = "#94a3b8";
+        btn.style.fontWeight = "normal";
+      }
+    }
+    if (panel) {
+      panel.style.display = (i === idx) ? "block" : "none";
+    }
+  }
+}
+    if (panel) {
+      panel.style.display = (i === idx) ? "block" : "none";
+    }
+  }
+}
+</script>
+
+<script>
+// Universal Tab 4 Visibility Harmonizer
+(function() {
+  const origSwitchTab = window.switchTab;
+  window.switchTab = function(idx) {
+    if (typeof origSwitchTab === 'function') origSwitchTab(idx);
+    const p4 = document.getElementById("tab-panel-4");
+    const t4 = document.getElementById("tab4");
+    if (idx === 4) {
+      if (p4) p4.style.display = "block";
+      if (t4) t4.style.display = "block";
+    } else {
+      if (p4) p4.style.display = "none";
+      if (t4) t4.style.display = "none";
+    }
+  };
+
+  const origShowTab = window.showTab;
+  window.showTab = function(tabId, el) {
+    if (typeof origShowTab === 'function') origShowTab(tabId, el);
+    const p4 = document.getElementById("tab-panel-4");
+    const t4 = document.getElementById("tab4");
+    if (tabId === 'tab4' || tabId === 'tab-panel-4' || tabId === 4) {
+      if (p4) p4.style.display = "block";
+      if (t4) t4.style.display = "block";
+    } else {
+      if (p4) p4.style.display = "none";
+      if (t4) t4.style.display = "none";
+    }
+  };
+})();
+</script>
+
+    <!-- TAB 4: Governance & Dual-Control Panel -->
+    <div id="tab-panel-4" style="display:none; padding-top: 10px;">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
+        <div style="background:#111c2e; border:1px solid #1e293b; border-radius:8px; padding:20px;">
+          <div style="color:#64748b; font-size:11px; font-weight:700; text-transform:uppercase;">Signer 1 (Primary / Hat: Chief Admin)</div>
+          <div style="color:#38bdf8; font-size:18px; font-weight:700; margin-top:6px;">AUTH-01-FOUNDER</div>
+          <div style="color:#94a3b8; font-size:12px; margin-top:4px;">Status: <span style="color:#22c55e;">ONLINE / ACTIVE</span></div>
+        </div>
+        <div style="background:#111c2e; border:1px solid #1e293b; border-radius:8px; padding:20px;">
+          <div style="color:#64748b; font-size:11px; font-weight:700; text-transform:uppercase;">Signer 2 (Lineal Dual-Control)</div>
+          <div style="color:#38bdf8; font-size:18px; font-weight:700; margin-top:6px;">AUTH-02-TRUSTEE</div>
+          <div style="color:#94a3b8; font-size:12px; margin-top:4px;">Status: <span style="color:#22c55e;">ONLINE / READY</span></div>
+        </div>
+      </div>
+
+      <div style="background:#111c2e; border:1px solid #1e293b; border-radius:8px; padding:20px; margin-bottom:20px;">
+        <div style="color:#38bdf8; font-size:13px; font-weight:700; text-transform:uppercase; margin-bottom:12px;">Governance Consensus Ledger</div>
+        <table style="width:100%; border-collapse:collapse; font-size:12px; color:#cbd5e1;">
+          <thead>
+            <tr style="color:#64748b; border-bottom:1px solid #1e293b; text-align:left;">
+              <th style="padding:8px;">DIRECTIVE</th>
+              <th style="padding:8px;">OPERATING HAT</th>
+              <th style="padding:8px;">SIGNER 1</th>
+              <th style="padding:8px;">SIGNER 2</th>
+              <th style="padding:8px;">CONSENSUS</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b;">
+              <td style="padding:10px 8px; color:#38bdf8;">LEDGER_RESERVE_CASH</td>
+              <td style="padding:10px 8px;">OPERATOR (Class T)</td>
+              <td style="padding:10px 8px; color:#22c55e;">AUTH-01 ✓</td>
+              <td style="padding:10px 8px; color:#22c55e;">AUTH-02 ✓</td>
+              <td style="padding:10px 8px; color:#22c55e;">ENFORCED</td>
+            </tr>
+            <tr>
+              <td style="padding:10px 8px; color:#38bdf8;">WATERFALL_ALLOC_87_10_3</td>
+              <td style="padding:10px 8px;">FIDUCIARY (Class F)</td>
+              <td style="padding:10px 8px; color:#22c55e;">AUTH-01 ✓</td>
+              <td style="padding:10px 8px; color:#22c55e;">AUTH-02 ✓</td>
+              <td style="padding:10px 8px; color:#22c55e;">ENFORCED</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="background:#111c2e; border:1px solid #ef4444; border-radius:8px; padding:16px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <strong style="color:#ef4444;">Emergency Kill Switch / Circuit Breaker</strong>
+          <p style="margin:4px 0 0 0; color:#94a3b8; font-size:12px;">Tripping aborts maker orders and halts daemon cycles immediately.</p>
+        </div>
+        <button onclick="if(confirm('Trip Emergency Circuit Breaker under AUTH-01?')) fetch('/api/v1/operator/emergency-stop', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({actor_id:'Chief Administrator', reason:'Manual Breaker Trip'})}).then(r=>r.json()).then(d=>alert('Breaker Tripped:\n'+JSON.stringify(d)));" style="background:#ef4444; color:white; border:none; padding:8px 16px; border-radius:4px; font-weight:bold; cursor:pointer;">TRIP BREAKER</button>
+      </div>
+    </div>
+
+</body>
+</html>

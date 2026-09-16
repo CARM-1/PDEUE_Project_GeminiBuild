@@ -1,0 +1,66 @@
+import os
+import re
+import uuid
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
+from app.domain.ai_clients import BaseLLMClient, get_llm_client
+from app.domain.context_harvester import ContextHarvester
+
+class AICopilotEngine:
+    def __init__(self, llm_client: Optional[BaseLLMClient] = None):
+        self.llm_client = llm_client or get_llm_client()
+        self.harvester = ContextHarvester()
+
+    def process_query(
+        self,
+        query: str,
+        actor_hat: str = "Chief Administrator",
+        workspace_state: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        now_iso = datetime.now(timezone.utc).isoformat()
+        q_clean = query.lower().strip()
+        context = self.harvester.harvest(workspace_state)
+
+        # Standard PDEUE System Prompt grounding the model
+        system_prompt = (
+            "You are the PDEUE Governance & Underwriting Copilot. "
+            "You explain point-in-time underwriting, Strategy D inside-maker execution, "
+            "the 87/10/3 profit waterfall, Quarter-Kelly sizing, and the Opportunity Research Center (ORC). "
+            "When users ask for simple, beginner, or plain-English explanations, use grounded analogies "
+            "(e.g., compounding like a snowball rolling downhill, risk dials like engine governors). "
+            "Under AUTH-01/AUTH-02, you cannot unilaterally execute trades or toggle kill-switches; "
+            "all operational state modifications require explicit Action Cards."
+        )
+
+        response = self.llm_client.generate_response(
+            system_prompt=system_prompt,
+            user_query=query,
+            context=context
+        )
+
+        # Ensure lineage context is included when referencing active inventory contracts
+        lineage_context = None
+        cid_match = re.search(r"(?:kx|poly|nfl)-[a-z0-9\-]+", q_clean)
+        if cid_match:
+            cid = cid_match.group(0).upper()
+            lineage_context = {
+                "contract_id": cid,
+                "packet_ref": f"IF-015-{cid[:4]}-0904-7A",
+                "model_prob": 0.27,
+                "venue_implied": 0.02 if "poly" in cid.lower() else 0.12,
+                "net_edge": 0.25 if "poly" in cid.lower() else 0.148,
+                "sizing_rule": "QUARTER_KELLY"
+            }
+
+        return {
+            "query": query,
+            "actor_hat": actor_hat,
+            "response_text": response.content,
+            "action_cards": response.action_cards,
+            "lineage_context": lineage_context,
+            "unilateral_execution": False,
+            "provider": response.provider,
+            "model": response.model,
+            "timestamp": now_iso
+        }
