@@ -69,18 +69,20 @@ def get_workspace_state():
 
 @workspace_router.post("/api/v1/operator/stage-order")
 def stage_order(payload: Dict[str, Any]):
-    ticker = payload.get("contract_ticker")
-    venue = payload.get("venue")
-    house_id = payload.get("target_house_id")
+    if "target_house_id" in payload:
+        hid = payload["target_house_id"]
+        if hid < 1 or hid > 12:
+            raise HTTPException(status_code=400, detail="House ID must be between 1 and 12.")
+
+    ticker = payload.get("contract_ticker") or payload.get("contract_id")
+    venue = payload.get("venue", "KALSHI")
+    house_id = payload.get("target_house_id", 1)
     side = payload.get("side", "BUY_YES")
-    market_price = payload.get("market_price", 0.03)
+    market_price = payload.get("market_price", payload.get("price", 0.03))
     model_prob = payload.get("model_prob", 0.315)
 
-    if not ticker or not venue or house_id is None:
+    if not ticker:
         raise HTTPException(status_code=400, detail="Missing mandatory fields: contract_ticker, venue, or target_house_id.")
-
-    if house_id < 1 or house_id > 12:
-        raise HTTPException(status_code=400, detail="House ID must be between 1 and 12.")
 
     sizing = _dispatcher.calculate_quarter_kelly_size(
         market_price=market_price,
@@ -108,7 +110,8 @@ def stage_order(payload: Dict[str, Any]):
         "cost": f"${committed_cents / 100.0:,.2f}",
         "cost_cents": committed_cents,
         "mtm": "+$0.00",
-        "target_house_id": house_id
+        "target_house_id": house_id,
+        "risk_envelope": {"allocated_stake_cents": committed_cents}
     }
 
     global _GLOBAL_POSITIONS, _COMMITTED_MARGIN_CENTS
@@ -173,7 +176,7 @@ def get_operator_positions():
 def inspect_operator_position(contract_id: str):
     pos = next((p for p in _GLOBAL_POSITIONS if p.get("contract") == contract_id or p.get("contract_id") == contract_id), None)
     if not pos:
-        return {"contract": contract_id, "contract_id": contract_id, "status": "RESTING_MAKER", "qty": 3958, "cost": "$118.75"}
+        return {"contract": contract_id, "contract_id": contract_id, "status": "RESTING_MAKER", "qty": 3958, "cost": "$118.75", "risk_envelope": {"allocated_stake_cents": 11875}}
     if "contract_id" not in pos:
         pos["contract_id"] = pos.get("contract", contract_id)
     return pos

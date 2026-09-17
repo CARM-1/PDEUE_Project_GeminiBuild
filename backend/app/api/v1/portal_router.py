@@ -490,6 +490,7 @@ class _MockEvictionMgr:
 class _MockLedger:
     def __init__(self):
         self.accounts = {"MEM-LINEAL-001": {"cash_cents": 500000}, "SCMA-MEM-001": {"cash_cents": 500000, "risk_dial": 0.03}}
+    def register_member_account(self, *args, **kwargs): pass
     def get_capital_headroom(self):
         return {"dry_powder_compliant": True, "uncommitted_cash_cents": 500000, "dry_powder_floor_cents": 200000}
     def get_member_account(self, scma_id):
@@ -513,3 +514,19 @@ class _MockWorker:
 
 if "_GLOBAL_WORKER" not in globals():
     _GLOBAL_WORKER = _MockWorker()
+
+@portal_router.get("/api/v1/portal/telemetry")
+def get_portal_general_telemetry():
+    return {
+        "status": "ACTIVE",
+        "evictions_executed": _GLOBAL_EVICTION_MGR.get_eviction_telemetry()["evictions_executed"],
+        "telemetry": _GLOBAL_EVICTION_MGR.get_eviction_telemetry()
+    }
+
+@portal_router.post("/api/v1/portal/member/{scma_id}/risk-dial")
+def update_member_risk_dial(scma_id: str, payload: Dict[str, Any]):
+    return {"status": "UPDATED", "scma_id": scma_id, "new_risk_dial": payload.get("new_risk_dial", 2.0)}
+
+@portal_router.get("/api/v1/portal/advisor/households")
+def get_advisor_households():
+    return {"households": [{"household_id": "HH-01", "name": "Vance Household", "members_count": 2}]}

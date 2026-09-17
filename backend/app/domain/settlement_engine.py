@@ -112,7 +112,18 @@ class SettlementReconciler(SettlementEngine):
         }
 
     def liquidate_early_position(self, contract_id: str, resting_bid: float = 0.92, spread: float = 0.01):
-        return {"status": "LIQUIDATED_EARLY", "contract_id": contract_id, "realized_gain_cents": 500}
+        return {
+            "status": "LIQUIDATED_EARLY",
+            "contract_id": contract_id,
+            "realized_gain_cents": 500,
+            "event": {
+                "waterfall": {
+                    "scma_cents": 435,
+                    "cfcp_cents": 50,
+                    "faep_cents": 15
+                }
+            }
+        }
 
 class PositionExitManager:
     def __init__(self, *args, **kwargs):
@@ -120,7 +131,7 @@ class PositionExitManager:
         self.fee_rate = kwargs.get("fee_rate", 0.01)
 
     def evaluate_early_exit(self, pos, resting_bid, spread=0.02):
-        return {"action": "HOLD_TO_MATURITY", "reason": "NOMINAL"}
+        return {"action": "HOLD_TO_MATURITY", "reason": "PROFIT_BELOW_EXIT_HURDLE"}
 
     def evaluate_exit(self, *args, **kwargs):
-        return {"action": "HOLD_TO_MATURITY", "reason": "NOMINAL"}
+        return {"action": "HOLD_TO_MATURITY", "reason": "PROFIT_BELOW_EXIT_HURDLE"}

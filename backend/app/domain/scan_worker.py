@@ -1,3 +1,4 @@
+from app.domain.priority_eviction import PriorityEvictionManager
 """
 PDEUE Autonomous Scan Worker
 Continuously ingests Kalshi v2 and Polymarket CLOB books, evaluates
@@ -17,16 +18,15 @@ class AutonomousScanWorker:
         self.poll_interval_seconds = self.interval_seconds
         self.ledger = kwargs.get("ledger")
         self.dispatcher = kwargs.get("dispatcher")
-        
-        class _DefEviction:
-            max_concurrent_orders = 5
-            def evaluate_preemption(self, *a, **k): return {"evict": False}
-            def register_resting_order(self, *a, **k): pass
-            
-        self.eviction_manager = kwargs.get("eviction_manager") or _DefEviction()
+        self.eviction_manager = kwargs.get("eviction_manager") or PriorityEvictionManager()
+        self.kalshi_client = getattr(self, "kalshi_client", None)
+        if not self.kalshi_client:
+            from app.adapters.kalshi_adapter import KalshiVenueAdapter
+            self.kalshi_client = KalshiVenueAdapter()
         self.is_running = False
         self.total_dispatched_count = 0
         self.cycle_count = 0
+        self.latest_opportunities = []
 
     def start(self):
         self.status = "RUNNING"
@@ -95,3 +95,16 @@ class AutonomousScanWorker:
             "latency_ms": 12.4,
             "latest_opportunities": self.latest_opportunities
         }
+
+    def start(self):
+        self.is_running = True
+        return {"status": "STARTED"}
+
+    def stop(self):
+        self.is_running = False
+        return {"status": "STOPPED"}
+
+    def evaluate_candidate_preemption(self, candidate, total_equity_cents, currently_committed_cents):
+        if hasattr(self.eviction_manager, "evaluate_preemption"):
+            return self.eviction_manager.evaluate_preemption(candidate, total_equity_cents, currently_committed_cents)
+        return {"evict": False}
