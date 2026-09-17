@@ -164,7 +164,7 @@
               <th>Status</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="radar-table-body">
             <tr>
               <td style="font-weight: 700; color: #f8fafc;">FOUNDER_SCMA</td>
               <td>Operating Compounding</td>
@@ -945,5 +945,36 @@
     </div>
   </div>
 
+<script>
+    async function loadRadarOpportunities() {
+      try {
+        const res = await fetch('/api/v1/operator/workspace-state');
+        const data = await res.json();
+        const opps = data.radar_opportunities || (data.daemon && data.daemon.latest_opportunities) || [];
+        const tbody = document.getElementById('radar-table-body');
+        if (!tbody || opps.length === 0) return;
+
+        tbody.innerHTML = opps.map(o => `
+          <tr>
+            <td><b>${o.contract_ticker}</b></td>
+            <td><span style="color: #38bdf8; font-weight: bold;">${o.venue}</span></td>
+            <td><span style="background: #1e293b; color: #a855f7; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${o.lineage_code}</span></td>
+            <td>${(o.model_prob * 100).toFixed(1)}%</td>
+            <td>$${o.market_price.toFixed(2)}</td>
+            <td style="color: #4ade80; font-weight: bold;">+${(o.net_edge * 100).toFixed(1)}%</td>
+            <td><span style="color: ${o.status === 'QUALIFIED' ? '#10b981' : '#f59e0b'}; font-weight: bold;">${o.status}</span></td>
+            <td>
+              <button onclick="alert('Staging 12-House dispatch for ' + '${o.contract_ticker}' + ' (' + '${o.lineage_code}' + ')')" style="background: #0284c7; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-weight: bold;">Stage Order</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        console.error("Failed to refresh Velocity Radar:", err);
+      }
+    }
+    // Poll radar periodically
+    setInterval(loadRadarOpportunities, 5000);
+    setTimeout(loadRadarOpportunities, 500);
+</script>
 </body>
 </html>

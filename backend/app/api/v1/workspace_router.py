@@ -22,7 +22,9 @@ def get_dashboard_html():
 @workspace_router.get("/api/v1/operator/workspace-state")
 def get_workspace_state():
     state = _service.get_workspace_state()
-    state["daemon"] = _worker.get_telemetry()
+    tel = _worker.get_telemetry()
+    state["daemon"] = tel
+    state["radar_opportunities"] = tel.get("latest_opportunities", [])
     return state
 
 @workspace_router.post("/api/v1/operator/emergency-stop")
