@@ -21,6 +21,19 @@
   </style>
 </head>
 <body>
+
+  <!-- PDEUE UNIFIED GLOBAL PORTAL HUB -->
+  <div style="background: #060b19; border-bottom: 1px solid #1e293b; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; margin: -24px -24px 20px -24px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <strong style="color: #cbd5e1; letter-spacing: 0.05em;">PDEUE PORTAL HUB:</strong>
+      <a href="/dashboard" style="color: #94a3b8; padding: 4px 10px; text-decoration: none; font-weight: 600; border: 1px solid #334155; border-radius: 4px;">Chief Admin Cockpit</a>
+      <a href="/admin/tech" style="background: #0284c7; color: #ffffff; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-weight: 700; border: 1px solid #38bdf8;">Technical Console (Class T)</a>
+      <a href="/advisor" style="color: #94a3b8; padding: 4px 10px; text-decoration: none; font-weight: 600; border: 1px solid #334155; border-radius: 4px;">Advisor Workspace (Class F)</a>
+      <a href="/member" style="color: #94a3b8; padding: 4px 10px; text-decoration: none; font-weight: 600; border: 1px solid #334155; border-radius: 4px;">Member Desktop (Class M)</a>
+    </div>
+    <span style="color: #64748b; font-size: 0.75rem;">FULL BIDIRECTIONAL NAVIGATION</span>
+  </div>
+
   <div class="header">
     <div>
       <h2 style="margin: 0; color: #10b981;">PDEUE Technical Infrastructure Console</h2>
@@ -91,7 +104,7 @@
           <td style="color: #10b981;">${w.status}</td>
           <td>${w.latency_ms ? w.latency_ms + 'ms' : w.bucket_tokens + '/' + w.max_tokens + ' tokens'}</td>
           <td>
-            ${data.can_trigger_daemons ? `<button onclick="alert('Triggered manual cycle for ' + w.worker)">Trigger</button>` : '<span style="color: #64748b;">Locked</span>'}
+            ${data.can_trigger_daemons ? `<button onclick="alert('Triggered manual cycle for ${w.worker}')">Trigger</button>` : '<span style="color: #64748b;">Locked</span>'}
           </td>
         </tr>
       `).join('');

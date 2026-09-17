@@ -24,6 +24,19 @@
   </style>
 </head>
 <body>
+
+  <!-- PDEUE UNIFIED GLOBAL PORTAL HUB -->
+  <div style="background: #060b19; border-bottom: 1px solid #1e293b; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; margin: -24px -24px 20px -24px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <strong style="color: #cbd5e1; letter-spacing: 0.05em;">PDEUE PORTAL HUB:</strong>
+      <a href="/dashboard" style="color: #94a3b8; padding: 4px 10px; text-decoration: none; font-weight: 600; border: 1px solid #334155; border-radius: 4px;">Chief Admin Cockpit</a>
+      <a href="/admin/tech" style="color: #94a3b8; padding: 4px 10px; text-decoration: none; font-weight: 600; border: 1px solid #334155; border-radius: 4px;">Technical Console (Class T)</a>
+      <a href="/advisor" style="color: #94a3b8; padding: 4px 10px; text-decoration: none; font-weight: 600; border: 1px solid #334155; border-radius: 4px;">Advisor Workspace (Class F)</a>
+      <a href="/member" style="background: #0284c7; color: #ffffff; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-weight: 700; border: 1px solid #38bdf8;">Member Desktop (Class M)</a>
+    </div>
+    <span style="color: #64748b; font-size: 0.75rem;">FULL BIDIRECTIONAL NAVIGATION</span>
+  </div>
+
   <div class="header">
     <div>
       <h2 style="margin: 0; color: #38bdf8;" id="portal-title">PDEUE Member Desktop</h2>
@@ -110,7 +123,6 @@
       const data = await res.json();
       currentScma = data.scma_id;
 
-      // Enforce Directive R-06 Split-Hat Context
       document.getElementById('m-role').innerText = "MEMBER_USER (" + data.scma_id.split('-')[1] + ")";
       document.getElementById('portal-title').innerText = data.name + " — Personal Member Desktop";
       document.getElementById('m-cash').innerText = data.cash_balance.toFixed(2);
