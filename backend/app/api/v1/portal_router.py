@@ -504,3 +504,12 @@ class PortalService:
 _GLOBAL_EVICTION_MGR = _MockEvictionMgr()
 _GLOBAL_LEDGER = _MockLedger()
 global_portal_service = PortalService()
+
+class _MockWorker:
+    def __init__(self):
+        self.evictions_executed = 0
+    def get_status(self):
+        return {"evictions_executed": 0}
+
+if "_GLOBAL_WORKER" not in globals():
+    _GLOBAL_WORKER = _MockWorker()
