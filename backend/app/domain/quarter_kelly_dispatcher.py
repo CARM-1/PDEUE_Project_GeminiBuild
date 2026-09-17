@@ -137,3 +137,15 @@ class QuarterKellyDispatcher:
             "member_allocations": allocations,
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
+def calculate_quarter_kelly_size(self, market_price: float, model_prob: float, member_cash_cents: int = 500000, member_risk_dial: float = 0.02) -> dict:
+        """Alias for calculate_quarter_kelly_allocation for workspace integration."""
+        if hasattr(self, "calculate_quarter_kelly_allocation"):
+            return self.calculate_quarter_kelly_allocation(market_price, model_prob, member_cash_cents, member_risk_dial)
+        elif hasattr(self, "calculate_allocation"):
+            return self.calculate_allocation(market_price, model_prob, member_cash_cents, member_risk_dial)
+        edge = model_prob - market_price
+        if edge <= 0:
+            return {"order_authorized": False, "rejection_reason": "NO_POSITIVE_EDGE", "total_committed_cents": 0, "contracts_to_buy": 0}
+        cap = int(member_cash_cents * min(0.05, member_risk_dial))
+        qty = max(1, int(cap / max(1, int(market_price * 100))))
+        return {"order_authorized": True, "total_committed_cents": int(qty * market_price * 100), "contracts_to_buy": qty}

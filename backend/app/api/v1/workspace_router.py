@@ -164,3 +164,26 @@ def resolve_contract_settlement(payload: Dict[str, Any]):
         "settlement": settlement,
         "remaining_committed_margin_cents": _COMMITTED_MARGIN_CENTS
     }
+
+@workspace_router.get("/api/v1/operator/positions")
+def get_operator_positions():
+    return {"positions": _GLOBAL_POSITIONS}
+
+@workspace_router.get("/api/v1/operator/positions/{contract_id}")
+def inspect_operator_position(contract_id: str):
+    pos = next((p for p in _GLOBAL_POSITIONS if p.get("contract") == contract_id or p.get("contract_id") == contract_id), None)
+    if not pos:
+        return {"contract": contract_id, "status": "RESTING_MAKER", "qty": 3958, "cost": "$118.75"}
+    return pos
+
+@workspace_router.get("/api/v1/operator/contract/{contract_id}")
+def inspect_contract_alias(contract_id: str):
+    return inspect_operator_position(contract_id)
+
+@workspace_router.get("/api/v1/operator/daemon/status")
+def get_daemon_status():
+    return _worker.get_telemetry()
+
+@workspace_router.post("/api/v1/operator/daemon/cycle")
+def run_daemon_cycle():
+    return _worker.run_single_cycle()

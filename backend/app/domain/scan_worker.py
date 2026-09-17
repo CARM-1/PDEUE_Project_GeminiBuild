@@ -11,7 +11,14 @@ from app.adapters.noaa_feed import NOAAASOSAdapter
 from app.domain.venue_scanner import VenueOpportunityScanner
 
 class AutonomousScanWorker:
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
+        self.circuit_breaker = kwargs.get("circuit_breaker")
+        self.interval_seconds = kwargs.get("interval_seconds", 5.0)
+        self.ledger = kwargs.get("ledger")
+        self.dispatcher = kwargs.get("dispatcher")
+        self.eviction_manager = getattr(self, "eviction_manager", None)
+        self.total_dispatched_count = 0
+        self.cycle_count = 0
         self.status = "IDLE"
         self.cycle_count = 1420
         self.kalshi_client = KalshiMarketDataClient()
@@ -67,6 +74,7 @@ class AutonomousScanWorker:
         self.latest_opportunities = [opp_kalshi, opp_poly]
 
         return {
+            'cycle_number': getattr(self, 'cycle_count', 1),
             "cycle": self.cycle_count,
             "status": self.status if self.status != "IDLE" else "NOMINAL",
             "timestamp": now_iso,
@@ -79,6 +87,7 @@ class AutonomousScanWorker:
         if not self.latest_opportunities:
             self.run_single_cycle()
         return {
+            'cycle_number': getattr(self, 'cycle_count', 1),
             "worker": "AutonomousScanWorker",
             "status": self.status if self.status != "IDLE" else "NOMINAL",
             "cycle": self.cycle_count,

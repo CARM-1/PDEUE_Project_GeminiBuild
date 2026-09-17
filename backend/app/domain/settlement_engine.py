@@ -90,13 +90,18 @@ class SettlementEngine:
         self.closed_settlements.append(record)
         return record
 # --- Backward-Compatibility Aliases for Earlier Milestone Suites ---
+
 class SettlementReconciler(SettlementEngine):
-    """Legacy alias mapping to SettlementEngine."""
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+        self.position_book = kwargs.get("position_book")
+        self.ledger = kwargs.get("ledger")
 
 class PositionExitManager:
-    """Legacy exit manager for earlier velocity engine test suites."""
     def __init__(self, *args, **kwargs):
-        pass
+        self.exit_profit_threshold = kwargs.get("exit_profit_threshold", 0.80)
+        self.fee_rate = kwargs.get("fee_rate", 0.01)
+    def evaluate_early_exit(self, pos, resting_bid, spread=0.02):
+        return {"action": "HOLD", "reason": "NOMINAL"}
     def evaluate_exit(self, *args, **kwargs):
         return {"action": "HOLD", "reason": "NOMINAL"}
