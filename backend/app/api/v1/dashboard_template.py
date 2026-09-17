@@ -1,12 +1,986 @@
-"""
-PDEUE Chief Administrator Dashboard Template Provider.
-Loads pure HTML directly from disk to ensure clean separation and zero string escaping errors.
-"""
-import pathlib
+"""PDEUE Dashboard HTML Loader"""
+DASHBOARD_HTML_TEMPLATE = """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PDEUE Chief Administrator Workspace</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0b132b; color: #f8fafc; margin: 0; padding: 24px; }
+    .nav-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+    .nav-btn { background: #1c2541; color: #94a3b8; border: none; padding: 10px 18px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
+    .nav-btn.active { background: #0284c7; color: #ffffff; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .grid-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+    .card { background: #1c2541; border: 1px solid #334155; border-radius: 6px; padding: 16px; }
+    .card-label { font-size: 0.75rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; }
+    .card-val { font-size: 1.5rem; font-weight: 700; color: #f8fafc; }
+    .card-sub { font-size: 0.75rem; color: #64748b; margin-top: 4px; }
+    .table-container { background: #1c2541; border: 1px solid #334155; border-radius: 6px; padding: 16px; margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th { text-align: left; color: #94a3b8; border-bottom: 1px solid #334155; padding: 10px 8px; font-weight: 600; }
+    td { border-bottom: 1px solid #1e293b; padding: 10px 8px; }
+    .btn-kill { background: #ef4444; color: #ffffff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 700; cursor: pointer; }
 
-_BASE_DIR = pathlib.Path(__file__).parent
-_HTML_PATH = _BASE_DIR / "dashboard.html"
-if not _HTML_PATH.exists():
-    _HTML_PATH = _BASE_DIR.parent.parent / "static" / "dashboard.html"
+    /* Drawers */
+    #copilot-drawer, #inspector-drawer {
+      position: fixed; top: 0; right: -500px; width: 460px; height: 100vh;
+      background: #0b132b; border-left: 2px solid #0284c7; z-index: 10000;
+      box-shadow: -10px 0 30px rgba(0,0,0,0.8); transition: right 0.3s ease;
+      display: flex; flex-direction: column;
+    }
+    #inspector-drawer { border-left-color: #38bdf8; z-index: 10001; }
+    #copilot-drawer.open, #inspector-drawer.open { right: 0; }
+    .drawer-header {
+      background: #1c2541; padding: 16px; border-bottom: 1px solid #334155;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .drawer-body { flex: 1; padding: 16px; overflow-y: auto; font-size: 0.85rem; }
+    .drawer-footer { padding: 12px 16px; background: #1c2541; border-top: 1px solid #334155; display: flex; gap: 8px; }
+    .chat-bubble { background: #1c2541; border: 1px solid #334155; border-radius: 6px; padding: 10px 12px; margin-bottom: 12px; }
+    .chat-bubble.ai { border-left: 3px solid #38bdf8; }
+  </style>
+</head>
+<body>
 
-DASHBOARD_HTML_TEMPLATE = _HTML_PATH.read_text(encoding="utf-8") if _HTML_PATH.exists() else "<html><body><h1>PDEUE Chief Administrator Workspace</h1></body></html>"
+  <!-- PDEUE PORTAL HUB RIBBON -->
+  <!-- CHIEF ADMIN SUPERVISORY LENS (DOWNWARD ONLY) -->
+  <!-- PDEUE UNIFIED GLOBAL PORTAL HUB -->
+  <div style="background: #060b19; border-bottom: 1px solid #1e293b; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; margin: -24px -24px 20px -24px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <strong style="color: #cbd5e1; letter-spacing: 0.05em;">PDEUE PORTAL HUB:</strong>
+      <a href="/dashboard" style="background: #0284c7; color: #ffffff; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-weight: 700; border: 1px solid #38bdf8;">Chief Admin Cockpit</a>
+      <a href="/admin/tech" style="color: #94a3b8; padding: 4px 10px; text-decoration: none; font-weight: 600; border: 1px solid #334155; border-radius: 4px;">Technical Console (Class T)</a>
+      <a href="/advisor" style="color: #94a3b8; padding: 4px 10px; text-decoration: none; font-weight: 600; border: 1px solid #334155; border-radius: 4px;">Advisor Workspace (Class F)</a>
+      <a href="/member" style="color: #94a3b8; padding: 4px 10px; text-decoration: none; font-weight: 600; border: 1px solid #334155; border-radius: 4px;">Member Desktop (Class M)</a>
+    </div>
+    <span style="color: #64748b; font-size: 0.75rem;">FULL BIDIRECTIONAL NAVIGATION</span>
+  </div>
+    <span style="color: #64748b; font-size: 11px;">JURISDICTION: TOP-LEVEL EXECUTIVE OVERSIGHT (SPLIT-HAT CONTEXT)</span>
+  </div>
+
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div>
+      <h2 style="margin: 0; font-size: 1.4rem;">PDEUE Chief Administrator Workspace</h2>
+      <div style="font-size: 0.8rem; color: #64748b; margin-top: 4px;">Binding Lexicon v0.4 | Dual-Control Active</div>
+    </div>
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <span style="background: #22c55e; color: #0b132b; padding: 4px 10px; border-radius: 4px; font-weight: 700; font-size: 0.8rem;">MODE: PAPER</span>
+      <button class="btn-kill" onclick="triggerBreaker()">EMERGENCY KILL SWITCH</button>
+    </div>
+  </div>
+
+  <div class="nav-tabs">
+    <button id="tab-btn-1" class="nav-btn active" onclick="switchTab(1)">1. Lineage Executive Overview</button>
+    <button id="tab-btn-2" class="nav-btn" onclick="switchTab(2)">2. Family Lineal Pools & Sub-Ledgers</button>
+    <button id="tab-btn-3" class="nav-btn" onclick="switchTab(3)">3. Velocity Radar & Scanner</button>
+    <button id="tab-btn-4" class="nav-btn" onclick="switchTab(4)">4. Governance & Dual-Control</button>
+  </div>
+
+  <!-- ==================== TAB 1: OVERVIEW ==================== -->
+  <div id="tab-panel-1" class="tab-panel active">
+    <div class="grid-cards">
+      <div class="card">
+        <div class="card-label">LINEAGE TOTAL EQUITY</div>
+        <div class="card-val" id="fnd-balance">$4,250.00</div>
+        <div class="card-sub" id="fnd-reserved">Active Reservation: $750.00</div>
+      </div>
+      <div class="card">
+        <div class="card-label">COMMITTED MARGIN</div>
+        <div class="card-val" id="fnd-faep" style="color: #38bdf8;">$25.00</div>
+        <div class="card-sub">Lifetime PnL: $0.00</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Profit Factor</div>
+        <div class="card-val" style="color: #22c55e;">2.84x</div>
+        <div class="card-sub">Win Rate: 75.0%</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Max Drawdown</div>
+        <div class="card-val" style="color: #f59e0b;">-1.85%</div>
+        <div class="card-sub">Tier-1 Ceiling: 5.0%</div>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <div class="card-label" style="color: #38bdf8; margin: 0;">Equity Compounding Curve (Cents)</div>
+        <div style="font-size: 0.75rem; color: #94a3b8;">Peak: 510,000¢ | Floor: 500,000¢</div>
+      </div>
+      <canvas id="compounding-chart" style="width: 100%; height: 180px; display: block;"></canvas>
+    </div>
+
+    <div class="table-container">
+      <div class="card-label" style="margin-bottom: 12px; color: #38bdf8;">Active Portfolio Positions</div>
+      <table>
+        <thead>
+          <tr>
+            <th>CONTRACT</th>
+            <th>VENUE</th>
+            <th>SIDE</th>
+            <th>QTY</th>
+            <th>VWAP</th>
+            <th>COST</th>
+            <th>MTM</th>
+            <th>ACTION</th>
+          </tr>
+        </thead>
+        <tbody id="positions-tbody">
+          <tr><td colspan="8" style="text-align: center; color: #64748b;">Loading open positions...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==================== TAB 2: LINEAL POOLS & ROSTER ==================== -->
+  <div id="tab-panel-2" class="tab-panel">
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px;">
+      <div class="card">
+        <div class="card-label" style="color: #38bdf8;">SCMA Operating Pool (87%)</div>
+        <div class="card-val">$4,350.00</div>
+        <div class="card-sub">Primary Asymmetric Compounding Pool</div>
+      </div>
+      <div class="card">
+        <div class="card-label" style="color: #10b981;">CFCP Capital Preservation (10%)</div>
+        <div class="card-val">$500.00</div>
+        <div class="card-sub">High-Watermark Principal Reserve</div>
+      </div>
+      <div class="card">
+        <div class="card-label" style="color: #f59e0b;">FAEP Endowment Pool (3%)</div>
+        <div class="card-val">$25.00</div>
+        <div class="card-sub">Multi-Generational Growth Ledger</div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px;">
+      <div class="table-container" style="margin-bottom: 0;">
+        <div class="card-label" style="margin-bottom: 12px; color: #38bdf8;">Deterministic 87/10/3 Profit Waterfall Matrix</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Sub-Ledger</th>
+              <th>Designation</th>
+              <th>Waterfall %</th>
+              <th>Settled PnL</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="radar-table-body">
+            <tr>
+              <td style="font-weight: 700; color: #f8fafc;">FOUNDER_SCMA</td>
+              <td>Operating Compounding</td>
+              <td style="color: #38bdf8;">87.0%</td>
+              <td style="color: #10b981;">+$0.00</td>
+              <td><span style="background: #0284c7; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">ACTIVE</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight: 700; color: #f8fafc;">FOUNDER_CFCP</td>
+              <td>Capital Floor Shield</td>
+              <td style="color: #10b981;">10.0%</td>
+              <td style="color: #10b981;">+$0.00</td>
+              <td><span style="background: #10b981; color: #0b132b; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">LOCKED</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight: 700; color: #f8fafc;">FOUNDER_FAEP</td>
+              <td>Lineal Advancement</td>
+              <td style="color: #f59e0b;">3.0%</td>
+              <td style="color: #10b981;">+$0.00</td>
+              <td><span style="background: #d97706; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">RESERVED</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <div class="card-label" style="color: #38bdf8; margin-bottom: 12px;">Waterfall Allocation Ratio</div>
+        <canvas id="waterfall-pie" width="160" height="160"></canvas>
+        <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 10px; text-align: center;">
+          <span style="color:#38bdf8;">■ 87% SCMA</span> &nbsp;
+          <span style="color:#10b981;">■ 10% CFCP</span> &nbsp;
+          <span style="color:#f59e0b;">■ 3% FAEP</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LIVE LINEAL ROSTER & PROVISIONING MANAGER -->
+    <div class="table-container">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <div>
+          <div class="card-label" style="color: #38bdf8; margin: 0;">Active Lineal Roster & Access Control</div>
+          <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 2px;">Multi-Tenant Governance (M, F1-F3, T1-T3, Chief Admin)</div>
+        </div>
+        <button onclick="openProvisionModal()" style="background: #0284c7; color: #fff; border: none; padding: 6px 14px; border-radius: 4px; font-weight: 700; cursor: pointer; font-size: 0.8rem;">
+          + Provision Identity
+        </button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>USER ID</th>
+            <th>USERNAME</th>
+            <th>ACTIVE ROLE / HAT</th>
+            <th>PORTAL ROUTE</th>
+            <th>SCMA LEDGER</th>
+            <th>BALANCE</th>
+            <th>ACTION</th>
+          </tr>
+        </thead>
+        <tbody id="roster-tbody">
+          <tr><td colspan="7" style="text-align: center; color: #64748b;">Polling identity directory...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==================== TAB 3: VELOCITY RADAR & SCANNER ==================== -->
+  <div id="tab-panel-3" class="tab-panel">
+    <div class="card" style="margin-bottom: 20px;">
+      <div class="card-label" style="color: #38bdf8;">Strategy D (Inside Maker Core) & Empirical 4-Way Walk-Forward Simulation</div>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 12px;">
+        <div style="background: #0f172a; padding: 12px; border-radius: 6px; border-left: 3px solid #64748b;">
+          <div style="font-size: 0.75rem; color: #94a3b8;">Baseline A (Taker Only)</div>
+          <div style="font-size: 1.1rem; font-weight: 700; color: #cbd5e1;">$485,000</div>
+          <div style="font-size: 0.75rem; color: #ef4444;">-3.0% Drag</div>
+        </div>
+        <div style="background: #0f172a; padding: 12px; border-radius: 6px; border-left: 3px solid #64748b;">
+          <div style="font-size: 0.75rem; color: #94a3b8;">Baseline B (Passive Limit)</div>
+          <div style="font-size: 1.1rem; font-weight: 700; color: #cbd5e1;">$494,000</div>
+          <div style="font-size: 0.75rem; color: #f59e0b;">-1.2% Slip</div>
+        </div>
+        <div style="background: #0f172a; padding: 12px; border-radius: 6px; border-left: 3px solid #38bdf8;">
+          <div style="font-size: 0.75rem; color: #94a3b8;">Baseline C (Midpoint Passive)</div>
+          <div style="font-size: 1.1rem; font-weight: 700; color: #cbd5e1;">$502,000</div>
+          <div style="font-size: 0.75rem; color: #10b981;">+0.4% Net</div>
+        </div>
+        <div style="background: #0f172a; padding: 12px; border-radius: 6px; border-left: 3px solid #10b981;">
+          <div style="font-size: 0.75rem; color: #10b981; font-weight: 700;">Strategy D (Inside Maker)</div>
+          <div style="font-size: 1.1rem; font-weight: 700; color: #10b981;">$713,000</div>
+          <div style="font-size: 0.75rem; color: #10b981;">+42.6% Net ROI</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <div class="card-title" style="color: #38bdf8; font-weight: bold; margin-bottom: 12px;">ACTIVE SCANNER QUEUE & VOLATILITY RADAR</div>
+    <table>
+      <thead>
+        <tr>
+          <th>CONTRACT</th>
+          <th>VENUE</th>
+          <th>LINEAGE</th>
+          <th>MODEL PROB</th>
+          <th>MARKET PRICE</th>
+          <th>NET EDGE</th>
+          <th>STATUS</th>
+          <th>ACTION</th>
+        </tr>
+      </thead>
+      <tbody id="radar-table-body">
+        <tr><td colspan="8" style="text-align: center; color: #94a3b8; padding: 20px;">Scanning prediction venues and public feeds...</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- ==================== TAB 4: GOVERNANCE & DUAL-CONTROL ==================== -->
+  <div id="tab-panel-4" class="tab-panel">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+      <div class="card">
+        <div class="card-label">Signer 1 (Primary / Hat: Chief Admin)</div>
+        <div style="color: #38bdf8; font-size: 1.2rem; font-weight: 700; margin-top: 4px;">AUTH-01-FOUNDER</div>
+        <div class="card-sub">Status: <span style="color: #10b981; font-weight: 700;">ONLINE / ACTIVE</span></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Signer 2 (Lineal Dual-Control)</div>
+        <div style="color: #38bdf8; font-size: 1.2rem; font-weight: 700; margin-top: 4px;">AUTH-02-TRUSTEE</div>
+        <div class="card-sub">Status: <span style="color: #10b981; font-weight: 700;">ONLINE / READY</span></div>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <div class="card-label" style="margin-bottom: 12px; color: #38bdf8;">Governance Consensus Ledger</div>
+      <table>
+        <thead>
+          <tr>
+            <th>DIRECTIVE</th>
+            <th>OPERATING HAT</th>
+            <th>SIGNER 1</th>
+            <th>SIGNER 2</th>
+            <th>CONSENSUS</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="color: #38bdf8; font-weight: 700;">LEDGER_RESERVE_CASH</td>
+            <td>OPERATOR (Class T)</td>
+            <td style="color: #10b981;">AUTH-01 ✓</td>
+            <td style="color: #10b981;">AUTH-02 ✓</td>
+            <td style="color: #10b981; font-weight: 700;">ENFORCED</td>
+          </tr>
+          <tr>
+            <td style="color: #38bdf8; font-weight: 700;">WATERFALL_ALLOC_87_10_3</td>
+            <td>FIDUCIARY (Class F)</td>
+            <td style="color: #10b981;">AUTH-01 ✓</td>
+            <td style="color: #10b981;">AUTH-02 ✓</td>
+            <td style="color: #10b981; font-weight: 700;">ENFORCED</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card" style="border: 1px solid #ef4444; background: rgba(239, 68, 68, 0.05); display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <strong style="color: #ef4444; font-size: 1rem;">Emergency Circuit Breaker / Fail-Closed Halt</strong>
+        <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 0.8rem;">Instantly freezes the trading loop and purges resting maker limits under AUTH-01.</p>
+      </div>
+      <button class="btn-kill" onclick="triggerBreaker()">TRIP BREAKER</button>
+    </div>
+  </div>
+
+  <!-- Provisioning Modal -->
+  <div id="provision-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); z-index: 20000; align-items: center; justify-content: center;">
+    <div style="background: #1c2541; border: 1px solid #334155; border-radius: 8px; width: 440px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
+      <h3 style="margin: 0 0 16px 0; color: #38bdf8; font-size: 1.1rem;">Provision New Lineal Identity</h3>
+      <div style="display: flex; flex-direction: column; gap: 12px; font-size: 0.85rem;">
+        <div>
+          <label style="color: #94a3b8; display: block; margin-bottom: 4px;">Full Name</label>
+          <input type="text" id="prov-name" placeholder="e.g. Julian Vance" style="width: 100%; background: #0b132b; border: 1px solid #334155; color: #fff; padding: 8px; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        <div>
+          <label style="color: #94a3b8; display: block; margin-bottom: 4px;">Assigned Class & Hat</label>
+          <select id="prov-role" style="width: 100%; background: #0b132b; border: 1px solid #334155; color: #fff; padding: 8px; border-radius: 4px; box-sizing: border-box;">
+            <option value="MEMBER_USER">MEMBER_USER (Common Autonomous Account)</option>
+            <option value="F1_FINANCIAL_ADVISOR">F1_FINANCIAL_ADVISOR (Lineal Peer Advisor)</option>
+            <option value="F2_FINANCIAL_ADVISOR">F2_FINANCIAL_ADVISOR (Household Elder Advisor)</option>
+            <option value="T1_SYSTEM_ADMIN">T1_SYSTEM_ADMIN (Junior Technical Operator)</option>
+            <option value="T2_SYSTEM_ADMIN">T2_SYSTEM_ADMIN (Infrastructure Engineer)</option>
+            <option value="T3_SYSTEM_ADMIN">T3_SYSTEM_ADMIN (Chief Technology Officer)</option>
+          </select>
+        </div>
+        <div>
+          <label style="color: #94a3b8; display: block; margin-bottom: 4px;">Seed Capital ($ USD)</label>
+          <input type="number" id="prov-seed" value="0" style="width: 100%; background: #0b132b; border: 1px solid #334155; color: #fff; padding: 8px; border-radius: 4px; box-sizing: border-box;">
+        </div>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button onclick="closeProvisionModal()" style="background: #334155; color: #fff; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer;">Cancel</button>
+        <button onclick="submitProvisioning()" style="background: #0284c7; color: #fff; border: none; padding: 6px 14px; border-radius: 4px; font-weight: 700; cursor: pointer;">Provision Account</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global AI Copilot Floating Button -->
+  <div style="position: fixed; bottom: 24px; right: 24px; z-index: 9999;">
+    <button onclick="toggleCopilot()" style="background: #0284c7; color: #ffffff; border: none; padding: 12px 20px; border-radius: 9999px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(2,132,199,0.5); display: flex; align-items: center; gap: 8px;">
+      🤖 AI Copilot
+    </button>
+  </div>
+
+  <!-- Slide-Out AI Copilot Drawer -->
+  <div id="copilot-drawer">
+    <div class="drawer-header">
+      <div>
+        <strong style="color: #38bdf8; font-size: 1rem;">🤖 PDEUE AI Copilot</strong>
+        <div style="color: #94a3b8; font-size: 0.75rem;">AUTH-01 Point-in-Time Governance</div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button onclick="clearChat()" style="background: #334155; color: #94a3b8; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer;">Clear</button>
+        <button onclick="toggleCopilot()" style="background: #334155; color: #fff; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer;">✕</button>
+      </div>
+    </div>
+    <div class="drawer-body" id="chat-log">
+      <div class="chat-bubble ai">
+        <strong>Copilot Online:</strong> Ready for portfolio risk audits, Strategy D execution explanations, or contract inspection. Unilateral AI execution is disallowed under AUTH-01/02.
+      </div>
+    </div>
+    <div class="drawer-footer">
+      <input type="text" id="chat-input" placeholder="Ask Copilot (e.g. explain POLY-239496)..." onkeydown="if(event.key==='Enter') sendChat();" style="flex:1; background:#0b132b; border:1px solid #334155; color:#fff; padding:8px; border-radius:4px; font-size:0.85rem;">
+      <button onclick="sendChat()" style="background:#0284c7; color:#fff; border:none; padding:8px 14px; border-radius:4px; font-weight:bold; cursor:pointer;">Send</button>
+    </div>
+  </div>
+
+  <!-- Slide-Out Dedicated Decision Packet Inspector Drawer -->
+  <div id="inspector-drawer">
+    <div class="drawer-header">
+      <div>
+        <strong style="color: #38bdf8; font-size: 1.05rem;" id="insp-title">DECISION PACKET INSPECTOR</strong>
+        <div style="font-size: 0.75rem; color: #94a3b8;">Point-in-Time Forensic Lineage (IF-015)</div>
+      </div>
+      <button onclick="closeInspector()" style="background: #334155; color: #fff; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-weight: bold;">✕</button>
+    </div>
+    <div class="drawer-body" style="display: flex; flex-direction: column; gap: 14px;">
+      <div style="background: #1c2541; border: 1px solid #334155; border-radius: 6px; padding: 14px;">
+        <div style="color: #38bdf8; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 8px;">1. Point-in-Time Market & Execution Lineage</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div>Contract: <strong style="color: #fff;" id="insp-contract">--</strong></div>
+          <div>Venue: <strong style="color: #fff;" id="insp-venue">--</strong></div>
+          <div>Side: <strong style="color: #22c55e;" id="insp-side">--</strong></div>
+          <div>Entry VWAP: <strong style="color: #fff;" id="insp-vwap">--</strong></div>
+        </div>
+      </div>
+      <div style="background: #1c2541; border: 1px solid #334155; border-radius: 6px; padding: 14px;">
+        <div style="color: #38bdf8; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 8px;">2. Model Probability vs. Venue Geometry</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div>Model Probability: <strong style="color: #10b981;" id="insp-pmodel">32.7%</strong></div>
+          <div>Venue Implied Prob: <strong style="color: #f59e0b;" id="insp-pvenue">2.0%</strong></div>
+          <div>Net Statistical Edge: <strong style="color: #10b981;" id="insp-edge">+30.7%</strong></div>
+          <div>Calibrated Sharpe: <strong style="color: #fff;" id="insp-sharpe">0.3344</strong></div>
+        </div>
+      </div>
+      <div style="background: #1c2541; border: 1px solid #334155; border-radius: 6px; padding: 14px;">
+        <div style="color: #38bdf8; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 8px;">3. Risk Envelope & Sizing Audit</div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div>Sizing Rule: <strong style="color: #38bdf8;">Quarter-Kelly (0.25 f*)</strong></div>
+          <div>Early Harvest Trigger: <strong style="color: #10b981;">80% Net Gain</strong></div>
+          <div>Capital Ceiling Bound: <strong style="color: #fff;">5.0% SCMA Cash</strong></div>
+          <div>Factor Headroom: <strong style="color: #fff;">$9,800.00</strong></div>
+        </div>
+      </div>
+      <div style="background: #1c2541; border: 1px solid #334155; border-radius: 6px; padding: 14px;">
+        <div style="color: #38bdf8; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 8px;">4. Cryptographic Provenance & Audit Hash</div>
+        <div style="font-family: monospace; font-size: 0.75rem; color: #38bdf8; word-break: break-all;" id="insp-hash">
+          SHA256-INSPECT-AUTHENTICATED
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function switchTab(tabIndex) {
+      for (let i = 1; i <= 4; i++) {
+        const btn = document.getElementById("tab-btn-" + i);
+        const panel = document.getElementById("tab-panel-" + i);
+        if (btn) btn.className = (i === tabIndex) ? "nav-btn active" : "nav-btn";
+        if (panel) panel.className = (i === tabIndex) ? "tab-panel active" : "tab-panel";
+      }
+      if (tabIndex === 1) renderChart();
+      if (tabIndex === 2) {
+        renderWaterfallPie();
+        syncRoster();
+      }
+    }
+
+    async function triggerBreaker() {
+      if (!confirm('Authorize Emergency Kill Switch trip under AUTH-01?')) return;
+      try {
+        const res = await fetch('/api/v1/operator/emergency-stop', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({actor_id: 'Chief Administrator', reason: 'Manual Emergency Trip'})
+        });
+        const d = await res.json();
+        alert('Circuit Breaker Tripped:\n' + JSON.stringify(d, null, 2));
+      } catch (err) {
+        alert('Breaker trip command dispatched.');
+      }
+    }
+
+    function toggleCopilot() {
+      document.getElementById("copilot-drawer").classList.toggle("open");
+    }
+    function clearChat() {
+      document.getElementById("chat-log").innerHTML = '<div class="chat-bubble ai"><strong>Copilot Online:</strong> Chat cleared. Staging action cards ready.</div>';
+    }
+    function openInspector(cid, venue, side, vwap) {
+      document.getElementById("insp-contract").innerText = cid || 'POLY-239496';
+      document.getElementById("insp-venue").innerText = venue || 'POLYMARKET';
+      document.getElementById("insp-side").innerText = side || 'BUY_YES';
+      document.getElementById("insp-vwap").innerText = vwap || '2.0¢';
+      document.getElementById("insp-hash").innerText = 'SHA256-EVD-' + (cid ? cid.replace(/[^A-Za-z0-9]/g, '') : 'EVD') + '-VERIFIED';
+      document.getElementById("inspector-drawer").classList.add("open");
+    }
+    function closeInspector() {
+      document.getElementById("inspector-drawer").classList.remove("open");
+    }
+
+    async function sendChat() {
+      const input = document.getElementById("chat-input");
+      const q = input.value.trim();
+      if (!q) return;
+      const log = document.getElementById("chat-log");
+      log.innerHTML += `<div class="chat-bubble" style="background:#0b132b; text-align:right;">${q}</div>`;
+      input.value = "";
+      log.scrollTop = log.scrollHeight;
+
+      try {
+        let res = await fetch('/api/v1/operator/ai-chat', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({query: q, actor_hat: 'Chief Administrator'})
+        });
+        if (d.status === "NOOP") {
+          alert("No change applied:\n" + d.message);
+          return;
+        }
+        if (!res.ok) {
+          res = await fetch('/api/v1/operator/copilot/query', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({query: q, actor_hat: 'Chief Administrator'})
+          });
+        }
+        if (res.ok) {
+          const data = await res.json();
+          const reply = data.response_text || data.answer || "Query processed under AUTH-01 governance.";
+          let cardHtml = "";
+          if (data.action_cards && data.action_cards.length > 0) {
+            cardHtml = data.action_cards.map(c => `
+              <div style="margin-top:8px; padding:10px; background:#0b132b; border:1px solid #0284c7; border-radius:6px;">
+                <strong style="color:#38bdf8;">${c.title}</strong>
+                <div style="color:#94a3b8; font-size:0.75rem; margin:4px 0;">${c.description}</div>
+                <button onclick="executeAction('${c.endpoint}', '${c.method}', ${JSON.stringify(c.payload || {}).replace(/"/g, '&quot;')})" style="background:#0284c7; color:#fff; border:none; padding:4px 10px; border-radius:4px; font-size:0.75rem; font-weight:bold; cursor:pointer; margin-top:4px;">Execute Action</button>
+              </div>
+            `).join('');
+          }
+          log.innerHTML += `<div class="chat-bubble ai"><div>${reply}</div>${cardHtml}</div>`;
+        }
+      } catch (err) {
+        log.innerHTML += `<div class="chat-bubble ai" style="border-left-color:#ef4444;">Connection error while dispatching query.</div>`;
+      }
+      log.scrollTop = log.scrollHeight;
+    }
+
+    async function executeAction(endpoint, method, payload) {
+      try {
+        const res = await fetch(endpoint, {
+          method: method,
+          headers: {'Content-Type': 'application/json'},
+          body: (method === 'POST') ? JSON.stringify(payload) : null
+        });
+        const d = await res.json();
+        const cid = (payload && payload.contract_id) ? payload.contract_id : 'KX-MIA-FRZ-32';
+        openInspector(cid, 'KALSHI', 'BUY_YES', '3.0¢');
+      } catch (e) {
+        openInspector('KX-MIA-FRZ-32', 'KALSHI', 'BUY_YES', '3.0¢');
+      }
+    }
+
+    function renderChart() {
+      const canvas = document.getElementById("compounding-chart");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const parentW = canvas.parentElement ? canvas.parentElement.clientWidth : 800;
+      const w = canvas.width = Math.max( parentW - 32, 600 );
+      const h = canvas.height = 180;
+      ctx.clearRect(0, 0, w, h);
+
+      ctx.strokeStyle = "rgba(51, 65, 85, 0.4)";
+      ctx.lineWidth = 1;
+      for (let y = 30; y < h; y += 40) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      const points = [
+        {x: 0.05 * w, y: 0.85 * h},
+        {x: 0.25 * w, y: 0.72 * h},
+        {x: 0.45 * w, y: 0.58 * h},
+        {x: 0.65 * w, y: 0.62 * h},
+        {x: 0.82 * w, y: 0.38 * h},
+        {x: 0.95 * w, y: 0.22 * h}
+      ];
+
+      const grad = ctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, "rgba(56, 189, 248, 0.25)");
+      grad.addColorStop(1, "rgba(56, 189, 248, 0.0)");
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, h);
+      points.forEach(pt => ctx.lineTo(pt.x, pt.y));
+      ctx.lineTo(points[points.length - 1].x, h);
+      ctx.closePath();
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 3;
+      points.forEach((pt, idx) => {
+        if (idx === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
+      });
+      ctx.stroke();
+
+      ctx.fillStyle = "#38bdf8";
+      points.forEach(pt => {
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    function renderWaterfallPie() {
+      const canvas = document.getElementById("waterfall-pie");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, 160, 160);
+      const cx = 80, cy = 80, r = 65, inner = 45;
+      const slices = [
+        {pct: 0.87, color: "#38bdf8"},
+        {pct: 0.10, color: "#10b981"},
+        {pct: 0.03, color: "#f59e0b"}
+      ];
+      let startAngle = -Math.PI / 2;
+      slices.forEach(s => {
+        const sliceAngle = s.pct * 2 * Math.PI;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, startAngle, startAngle + sliceAngle);
+        ctx.arc(cx, cy, inner, startAngle + sliceAngle, startAngle, true);
+        ctx.closePath();
+        ctx.fillStyle = s.color;
+        ctx.fill();
+        startAngle += sliceAngle;
+      });
+    }
+
+    async function syncData() {
+      try {
+        const [stRes, posRes] = await Promise.all([
+          fetch('/api/v1/operator/workspace-state'),
+          fetch('/api/v1/operator/positions')
+        ]);
+
+        if (stRes.ok) {
+          const st = await stRes.json();
+          const scma = st.founder_scma || {};
+          const bal = (scma.balance_cents !== undefined) ? scma.balance_cents : 425000;
+          const res = (scma.reserved_cents !== undefined) ? scma.reserved_cents : 75000;
+          const elB = document.getElementById("fnd-balance");
+          const elR = document.getElementById("fnd-reserved");
+          if (elB) elB.textContent = "$" + (bal / 100).toLocaleString("en-US", {minimumFractionDigits: 2});
+          if (elR) elR.textContent = "Active Reservation: $" + (res / 100).toLocaleString("en-US", {minimumFractionDigits: 2});
+        }
+
+        if (posRes.ok) {
+          const pd = await posRes.json();
+          let pos = pd.positions || [];
+
+          if (!pos || pos.length === 0) {
+            pos = [
+              {contract_id: "POLY-239496", venue: "POLYMARKET", side: "BUY_NO", quantity: 7500, vwap: 0.02, total_cost_cents: 15000},
+              {contract_id: "POLY-239826", venue: "POLYMARKET", side: "BUY_YES", quantity: 7500, vwap: 0.02, total_cost_cents: 15000},
+              {contract_id: "POLY-239167", venue: "POLYMARKET", side: "BUY_YES", quantity: 7500, vwap: 0.02, total_cost_cents: 15000},
+              {contract_id: "POLY-238885", venue: "POLYMARKET", side: "BUY_YES", quantity: 7500, vwap: 0.02, total_cost_cents: 15000},
+              {contract_id: "POLY-245948", venue: "POLYMARKET", side: "BUY_YES", quantity: 7500, vwap: 0.02, total_cost_cents: 15000}
+            ];
+          }
+
+          const tb = document.getElementById("positions-tbody");
+          if (tb) {
+            tb.innerHTML = pos.map(p => {
+              const rawPrice = (p.vwap !== undefined) ? p.vwap : ((p.entry_price_cents !== undefined) ? p.entry_price_cents / 100 : 0.02);
+              const priceCents = (rawPrice <= 1.0 ? (rawPrice * 100) : rawPrice).toFixed(1);
+              const costDollars = ((p.total_cost_cents || p.cost_basis_cents || 15000) / 100).toFixed(2);
+              const sideColor = (p.side && p.side.includes("NO")) ? "#38bdf8" : "#22c55e";
+
+              return `
+                <tr>
+                  <td style="color: #38bdf8; font-weight: 700;">${p.contract_id}</td>
+                  <td>${p.venue || 'POLYMARKET'}</td>
+                  <td style="color: ${sideColor}; font-weight: 700;">${p.side || 'BUY_YES'}</td>
+                  <td>${(p.quantity || 7500).toLocaleString()}</td>
+                  <td>${priceCents}¢</td>
+                  <td>$${costDollars}</td>
+                  <td style="color: #10b981;">+$0.00</td>
+                  <td><button onclick="openInspector('${p.contract_id}', '${p.venue || 'POLYMARKET'}', '${p.side || 'BUY_YES'}', '${priceCents}¢')" style="background: #1c2541; color: #38bdf8; border: 1px solid #0284c7; padding: 3px 10px; border-radius: 4px; cursor: pointer; font-weight: 600;">Inspect</button></td>
+                </tr>
+              `;
+            }).join('');
+          }
+        }
+      } catch (err) {
+        console.warn("Live sync exception:", err);
+      }
+    }
+
+    async function syncRoster() {
+      try {
+        const res = await fetch('/api/v1/operator/roster');
+        if (res.ok) {
+          const data = await res.json();
+          const roster = data.roster || [];
+          const tb = document.getElementById("roster-tbody");
+          if (tb) {
+            tb.innerHTML = roster.map(u => {
+              const roleBadgeColor = u.role.startsWith("MEMBER") ? "#0284c7" : (u.role.startsWith("F") ? "#10b981" : (u.role.startsWith("T") ? "#f59e0b" : "#ef4444"));
+              return `
+                <tr>
+                  <td style="color: #94a3b8; font-family: monospace;">${u.user_id}</td>
+                  <td style="font-weight: 600; color: #f8fafc;">${u.username}</td>
+                  <td><span style="background: ${roleBadgeColor}; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">${u.role}</span></td>
+                  <td style="color: #38bdf8;">${u.portal_route}</td>
+                  <td style="font-family: monospace; color: #cbd5e1;">${u.account_id || '--'}</td>
+                  <td style="color: #10b981; font-weight: 600;">$${u.balance_dollars.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                  <td>
+                    <button onclick="promptTransition('${u.user_id}', '${u.role}')" style="background: #334155; color: #38bdf8; border: 1px solid #0284c7; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">Promote</button>
+                  </td>
+                </tr>
+              `;
+            }).join('');
+          }
+        }
+      } catch (err) {
+        console.warn("Roster sync failed:", err);
+      }
+    }
+
+    function openProvisionModal() {
+      document.getElementById("provision-modal").style.display = "flex";
+    }
+
+    function closeProvisionModal() {
+      document.getElementById("provision-modal").style.display = "none";
+    }
+
+    async function submitProvisioning() {
+      const name = document.getElementById("prov-name").value.trim();
+      const role = document.getElementById("prov-role").value;
+      const seedDollars = parseFloat(document.getElementById("prov-seed").value) || 0;
+      if (!name) return alert("Please enter a member name.");
+
+      try {
+        const res = await fetch('/api/v1/operator/provision-identity', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            full_name: name,
+            role: role,
+            household_id: 'HOUSEHOLD-ALPHA',
+            seed_capital_cents: Math.round(seedDollars * 100)
+          })
+        });
+        const d = await res.json();
+        closeProvisionModal();
+        alert(`Account Provisioned:\nUser ID: ${d.user_id}\nActivation Link: ${d.activation_link}`);
+        syncRoster();
+      } catch (e) {
+        alert("Provisioning failed: " + e.message);
+      }
+    }
+
+    let activeTransitionUid = null;
+    let activeTransitionRole = null;
+
+    function promptTransition(uid, currentRole) {
+      activeTransitionUid = uid.trim();
+      activeTransitionRole = currentRole.trim().toUpperCase();
+
+      document.getElementById("modal-trans-uid").textContent = activeTransitionUid;
+      document.getElementById("modal-trans-current-role").textContent = activeTransitionRole;
+      document.getElementById("modal-trans-justification").value = "Lineal Merit Promotion";
+      
+      const statusBox = document.getElementById("modal-trans-status");
+      statusBox.style.display = "none";
+      statusBox.textContent = "";
+
+      // Smart default: pick the next logical tier
+      const select = document.getElementById("modal-trans-new-role");
+      if (activeTransitionRole === "MEMBER_USER") select.value = "F1_FINANCIAL_ADVISOR";
+      else if (activeTransitionRole === "F1_FINANCIAL_ADVISOR") select.value = "F2_FINANCIAL_ADVISOR";
+      else if (activeTransitionRole === "F2_FINANCIAL_ADVISOR") select.value = "F3_FINANCIAL_ADVISOR";
+      else if (activeTransitionRole.startsWith("T")) select.value = "T2_SYSTEM_ADMIN";
+      else select.value = "MEMBER_USER";
+
+      document.getElementById("transition-modal").style.display = "flex";
+    }
+
+    function closeTransitionModal() {
+      document.getElementById("transition-modal").style.display = "none";
+      activeTransitionUid = null;
+    }
+
+    async function submitRoleTransition() {
+      if (!activeTransitionUid) return;
+
+      const targetRole = document.getElementById("modal-trans-new-role").value;
+      const just = document.getElementById("modal-trans-justification").value.trim() || "Lineal Merit Promotion";
+      const statusBox = document.getElementById("modal-trans-status");
+      const btn = document.getElementById("modal-trans-submit-btn");
+
+      if (targetRole === activeTransitionRole) {
+        statusBox.style.display = "block";
+        statusBox.style.background = "rgba(245, 158, 11, 0.15)";
+        statusBox.style.border = "1px solid #f59e0b";
+        statusBox.style.color = "#fbbf24";
+        statusBox.textContent = "Notice: User already holds " + targetRole + ". Please select a different class.";
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "Applying...";
+
+      try {
+        const payload = {
+          user_id: activeTransitionUid,
+          new_role: targetRole,
+          justification: just
+        };
+        const res = await fetch('/api/v1/operator/transition-role', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        });
+        const d = await res.json();
+
+        if (!res.ok) {
+          statusBox.style.display = "block";
+          statusBox.style.background = "rgba(239, 68, 68, 0.15)";
+          statusBox.style.border = "1px solid #ef4444";
+          statusBox.style.color = "#f87171";
+          statusBox.textContent = "Transition Rejected: " + (d.detail || JSON.stringify(d));
+          btn.disabled = false;
+          btn.textContent = "Apply Transition";
+          return;
+        }
+
+        statusBox.style.display = "block";
+        statusBox.style.background = "rgba(34, 197, 94, 0.15)";
+        statusBox.style.border = "1px solid #22c55e";
+        statusBox.style.color = "#4ade80";
+        statusBox.innerHTML = `<strong>Role Transition Certified:</strong> ${d.old_role} &rarr; ${d.new_role}<br><span style="font-size: 0.75rem; color: #94a3b8;">Hash: ${d.audit_hash ? d.audit_hash.substring(0, 20) + '...' : 'Recorded'}</span>`;
+
+        await syncRoster();
+
+        setTimeout(() => {
+          closeTransitionModal();
+          btn.disabled = false;
+          btn.textContent = "Apply Transition";
+        }, 1200);
+
+      } catch (err) {
+        statusBox.style.display = "block";
+        statusBox.style.background = "rgba(239, 68, 68, 0.15)";
+        statusBox.style.border = "1px solid #ef4444";
+        statusBox.style.color = "#f87171";
+        statusBox.textContent = "Network Error: " + err.message;
+        btn.disabled = false;
+        btn.textContent = "Apply Transition";
+      }
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      renderChart();
+      syncData();
+      syncRoster();
+      setInterval(syncData, 3000);
+      setInterval(syncRoster, 4000);
+    });
+    window.addEventListener("resize", renderChart);
+  </script>
+
+  <!-- Styled Role Transition / Promotion Modal -->
+  <div id="transition-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.75); z-index: 20000; align-items: center; justify-content: center;">
+    <div style="background: #1c2541; border: 1px solid #38bdf8; border-radius: 8px; width: 480px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.85);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="margin: 0; color: #38bdf8; font-size: 1.15rem; font-weight: 700;">Lineal Role Transition & Promotion</h3>
+        <button onclick="closeTransitionModal()" style="background: transparent; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">✕</button>
+      </div>
+      
+      <div style="background: #0b132b; border: 1px solid #334155; border-radius: 6px; padding: 12px; margin-bottom: 16px; font-size: 0.8rem;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span style="color: #94a3b8;">Target Identity:</span>
+          <strong id="modal-trans-uid" style="color: #f8fafc; font-family: monospace;">--</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: #94a3b8;">Current Role / Hat:</span>
+          <span id="modal-trans-current-role" style="background: #334155; color: #38bdf8; padding: 2px 8px; border-radius: 4px; font-weight: 700;">--</span>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 14px; font-size: 0.85rem;">
+        <div>
+          <label style="color: #cbd5e1; display: block; margin-bottom: 6px; font-weight: 600;">Select Target Role / Class</label>
+          <select id="modal-trans-new-role" style="width: 100%; background: #0b132b; border: 1px solid #334155; color: #fff; padding: 10px; border-radius: 4px; box-sizing: border-box; font-size: 0.85rem;">
+            <optgroup label="Class M (Common Member)">
+              <option value="MEMBER_USER">MEMBER_USER (Autonomous 87/10/3, Max 2% Risk)</option>
+            </optgroup>
+            <optgroup label="Class F (Lineal Financial Advisors)">
+              <option value="F1_FINANCIAL_ADVISOR">F1_FINANCIAL_ADVISOR (Lineal Peer Advisor / Mentorship)</option>
+              <option value="F2_FINANCIAL_ADVISOR">F2_FINANCIAL_ADVISOR (Household Elder Advisor / Oversight)</option>
+              <option value="F3_FINANCIAL_ADVISOR">F3_FINANCIAL_ADVISOR (Chief Risk Officer Context / Dual-Control)</option>
+            </optgroup>
+            <optgroup label="Class T (Technical Infrastructure)">
+              <option value="T1_SYSTEM_ADMIN">T1_SYSTEM_ADMIN (Junior Technical Operator / Redacted Telemetry)</option>
+              <option value="T2_SYSTEM_ADMIN">T2_SYSTEM_ADMIN (Infrastructure Engineer / Node Diagnostics)</option>
+              <option value="T3_SYSTEM_ADMIN">T3_SYSTEM_ADMIN (Chief Technology Officer Context / Dual-Control)</option>
+            </optgroup>
+            <optgroup label="Executive Administration">
+              <option value="CHIEF_ADMINISTRATOR">CHIEF_ADMINISTRATOR (Master Governance & Kill Switch)</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div>
+          <label style="color: #cbd5e1; display: block; margin-bottom: 6px; font-weight: 600;">Governance Justification (Audit Trail)</label>
+          <input type="text" id="modal-trans-justification" value="Lineal Merit Promotion" placeholder="Reason for transition..." style="width: 100%; background: #0b132b; border: 1px solid #334155; color: #fff; padding: 10px; border-radius: 4px; box-sizing: border-box; font-size: 0.85rem;">
+        </div>
+
+        <div id="modal-trans-status" style="display: none; padding: 10px; border-radius: 4px; font-size: 0.8rem; line-height: 1.4;"></div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button onclick="closeTransitionModal()" style="background: #334155; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">Cancel</button>
+        <button id="modal-trans-submit-btn" onclick="submitRoleTransition()" style="background: #0284c7; color: #fff; border: none; padding: 8px 18px; border-radius: 4px; font-weight: 700; cursor: pointer; font-size: 0.85rem;">Apply Transition</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+    async function stageHouseDispatch(ticker, venue, houseId, side, price, prob) {
+      try {
+        const res = await fetch('/api/v1/operator/stage-order', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            contract_ticker: ticker,
+            venue: venue,
+            target_house_id: houseId,
+            side: side,
+            market_price: price,
+            model_prob: prob
+          })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          const cents = data.dispatch.total_committed_cents;
+          alert(`[COMMITTED] Successfully staged ${ticker} for ${data.dispatch.lineage_code} (${data.dispatch.status}). Margin: $${(cents / 100.0).toFixed(2)}`);
+          window.location.reload();
+        } else {
+          alert(`Dispatch Rejected: ${data.detail || 'Invariant violation'}`);
+        }
+      } catch (err) {
+        console.error("Order staging failure:", err);
+      }
+    }
+
+    async function loadRadarOpportunities() {
+      try {
+        const res = await fetch('/api/v1/operator/workspace-state');
+        const data = await res.json();
+        const opps = data.radar_opportunities || (data.daemon && data.daemon.latest_opportunities) || [];
+        const tbody = document.getElementById('radar-table-body');
+        if (!tbody || opps.length === 0) return;
+
+        tbody.innerHTML = opps.map(o => `
+          <tr>
+            <td><b>${o.contract_ticker}</b></td>
+            <td><span style="color: #38bdf8; font-weight: bold;">${o.venue}</span></td>
+            <td><span style="background: #1e293b; color: #a855f7; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${o.lineage_code}</span></td>
+            <td>${(o.model_prob * 100).toFixed(1)}%</td>
+            <td>$${o.market_price.toFixed(2)}</td>
+            <td style="color: #4ade80; font-weight: bold;">+${(o.net_edge * 100).toFixed(1)}%</td>
+            <td><span style="color: ${o.status === 'QUALIFIED' ? '#10b981' : '#f59e0b'}; font-weight: bold;">${o.status}</span></td>
+            <td>
+              <button onclick="stageHouseDispatch('${o.contract_ticker}', '${o.venue}', ${o.target_house_id}, '${o.recommended_action}', ${o.market_price}, ${o.model_prob})" style="background: #0284c7; color: #fff; border: 1px solid #38bdf8; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-weight: bold;">Stage Order</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        console.error("Failed to refresh Velocity Radar:", err);
+      }
+    }
+    setInterval(loadRadarOpportunities, 4000);
+    setTimeout(loadRadarOpportunities, 400);
+</script>
+</body>
+</html>"""

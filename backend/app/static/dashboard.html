@@ -259,45 +259,24 @@
     </div>
 
     <div class="table-container">
-      <div class="card-label" style="margin-bottom: 12px; color: #38bdf8;">Active Scanner Queue & Volatility Radar</div>
-      <table>
-        <thead>
-          <tr>
-            <th>VENUE</th>
-            <th>CONTRACT ID</th>
-            <th>CATEGORY</th>
-            <th>BEST BID / ASK</th>
-            <th>MODEL EDGE</th>
-            <th>STATUS</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td style="font-weight: 700;">KALSHI</td>
-            <td style="color: #38bdf8; cursor: pointer;" onclick="openInspector('KX-MIA-FRZ-32', 'KALSHI', 'BUY_YES', '3.0¢')">KX-MIA-FRZ-32</td>
-            <td>WEATHER</td>
-            <td>2¢ / 3¢</td>
-            <td style="color: #10b981; font-weight: 700;">+28.5%</td>
-            <td><span style="background: #10b981; color: #0b132b; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">ORC_VALIDATED</span></td>
-          </tr>
-          <tr>
-            <td style="font-weight: 700;">POLYMARKET</td>
-            <td style="color: #38bdf8; cursor: pointer;" onclick="openInspector('POLY-239496', 'POLYMARKET', 'BUY_NO', '2.0¢')">POLY-239496</td>
-            <td>CRYPTO</td>
-            <td>1¢ / 2¢</td>
-            <td style="color: #10b981; font-weight: 700;">+30.7%</td>
-            <td><span style="background: #0284c7; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">ROUTING_RESTING</span></td>
-          </tr>
-          <tr>
-            <td style="font-weight: 700;">KALSHI</td>
-            <td style="color: #38bdf8; cursor: pointer;" onclick="openInspector('KX-ORD-26', 'KALSHI', 'BUY_YES', '12.0¢')">KX-ORD-26</td>
-            <td>MACRO</td>
-            <td>11¢ / 12¢</td>
-            <td style="color: #10b981; font-weight: 700;">+14.8%</td>
-            <td><span style="background: #334155; color: #cbd5e1; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">MONITORED</span></td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="card-title" style="color: #38bdf8; font-weight: bold; margin-bottom: 12px;">ACTIVE SCANNER QUEUE & VOLATILITY RADAR</div>
+    <table>
+      <thead>
+        <tr>
+          <th>CONTRACT</th>
+          <th>VENUE</th>
+          <th>LINEAGE</th>
+          <th>MODEL PROB</th>
+          <th>MARKET PRICE</th>
+          <th>NET EDGE</th>
+          <th>STATUS</th>
+          <th>ACTION</th>
+        </tr>
+      </thead>
+      <tbody id="radar-table-body">
+        <tr><td colspan="8" style="text-align: center; color: #94a3b8; padding: 20px;">Scanning prediction venues and public feeds...</td></tr>
+      </tbody>
+    </table>
     </div>
   </div>
 
@@ -964,11 +943,7 @@
         if (res.ok) {
           const cents = data.dispatch.total_committed_cents;
           alert(`[COMMITTED] Successfully staged ${ticker} for ${data.dispatch.lineage_code} (${data.dispatch.status}). Margin: $${(cents / 100.0).toFixed(2)}`);
-          if (typeof loadWorkspaceState === 'function') {
-            loadWorkspaceState();
-          } else {
-            setTimeout(() => window.location.reload(), 600);
-          }
+          window.location.reload();
         } else {
           alert(`Dispatch Rejected: ${data.detail || 'Invariant violation'}`);
         }
@@ -995,7 +970,7 @@
             <td style="color: #4ade80; font-weight: bold;">+${(o.net_edge * 100).toFixed(1)}%</td>
             <td><span style="color: ${o.status === 'QUALIFIED' ? '#10b981' : '#f59e0b'}; font-weight: bold;">${o.status}</span></td>
             <td>
-              <button onclick="stageHouseDispatch('${o.contract_ticker}', '${o.venue}', ${o.target_house_id}, '${o.recommended_action}', ${o.market_price}, ${o.model_prob})" style="background: #0284c7; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-weight: bold;">Stage Order</button>
+              <button onclick="stageHouseDispatch('${o.contract_ticker}', '${o.venue}', ${o.target_house_id}, '${o.recommended_action}', ${o.market_price}, ${o.model_prob})" style="background: #0284c7; color: #fff; border: 1px solid #38bdf8; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-weight: bold;">Stage Order</button>
             </td>
           </tr>
         `).join('');
@@ -1003,8 +978,8 @@
         console.error("Failed to refresh Velocity Radar:", err);
       }
     }
-    setInterval(loadRadarOpportunities, 5000);
-    setTimeout(loadRadarOpportunities, 500);
+    setInterval(loadRadarOpportunities, 4000);
+    setTimeout(loadRadarOpportunities, 400);
 </script>
 </body>
 </html>
