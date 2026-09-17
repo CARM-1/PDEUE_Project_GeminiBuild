@@ -59,6 +59,6 @@ class PositionBook:
                 pos['last_updated'] = datetime.now(timezone.utc).isoformat()
 
     def get_summary(self) -> Dict[str, Any]:
-        total_inv = sum(p['total_cost_cents'] for p in self.positions.values())
-        total_mtm = sum(p['mtm_value_cents'] for p in self.positions.values())
+        total_inv = sum(p.get('total_cost_cents', 0) for p in self.positions.values())
+        total_mtm = sum(p.get('mtm_value_cents', p.get('total_cost_cents', 0)) for p in self.positions.values())
         return {'open_positions_count': len(self.positions), 'settled_positions_count': len(self.settled_positions), 'total_invested_cents': total_inv, 'total_mtm_value_cents': total_mtm, 'total_unrealized_pnl_cents': total_mtm - total_inv, 'realized_pnl_cents': self.realized_pnl_cents, 'positions': list(self.positions.values()), 'settled_positions': self.settled_positions}

@@ -946,6 +946,37 @@
   </div>
 
 <script>
+    async function stageHouseDispatch(ticker, venue, houseId, side, price, prob) {
+      try {
+        const res = await fetch('/api/v1/operator/stage-order', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            contract_ticker: ticker,
+            venue: venue,
+            target_house_id: houseId,
+            side: side,
+            market_price: price,
+            model_prob: prob
+          })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          const cents = data.dispatch.total_committed_cents;
+          alert(`[COMMITTED] Successfully staged ${ticker} for ${data.dispatch.lineage_code} (${data.dispatch.status}). Margin: $${(cents / 100.0).toFixed(2)}`);
+          if (typeof loadWorkspaceState === 'function') {
+            loadWorkspaceState();
+          } else {
+            setTimeout(() => window.location.reload(), 600);
+          }
+        } else {
+          alert(`Dispatch Rejected: ${data.detail || 'Invariant violation'}`);
+        }
+      } catch (err) {
+        console.error("Order staging failure:", err);
+      }
+    }
+
     async function loadRadarOpportunities() {
       try {
         const res = await fetch('/api/v1/operator/workspace-state');
@@ -964,7 +995,7 @@
             <td style="color: #4ade80; font-weight: bold;">+${(o.net_edge * 100).toFixed(1)}%</td>
             <td><span style="color: ${o.status === 'QUALIFIED' ? '#10b981' : '#f59e0b'}; font-weight: bold;">${o.status}</span></td>
             <td>
-              <button onclick="alert('Staging 12-House dispatch for ' + '${o.contract_ticker}' + ' (' + '${o.lineage_code}' + ')')" style="background: #0284c7; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-weight: bold;">Stage Order</button>
+              <button onclick="stageHouseDispatch('${o.contract_ticker}', '${o.venue}', ${o.target_house_id}, '${o.recommended_action}', ${o.market_price}, ${o.model_prob})" style="background: #0284c7; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-weight: bold;">Stage Order</button>
             </td>
           </tr>
         `).join('');
@@ -972,7 +1003,6 @@
         console.error("Failed to refresh Velocity Radar:", err);
       }
     }
-    // Poll radar periodically
     setInterval(loadRadarOpportunities, 5000);
     setTimeout(loadRadarOpportunities, 500);
 </script>

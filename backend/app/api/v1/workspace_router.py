@@ -1,21 +1,22 @@
 """
 PDEUE Operator Workspace Router
-Authoritative endpoints for operator workspace state, daemon telemetry,
-kill-switch execution, and position ledger access.
+Unifies operator cockpit state, Velocity Radar live streaming,
+Quarter-Kelly lineage order dispatching, and active portfolio ledger synchronization.
 """
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import HTMLResponse
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from app.domain.operator_workspace import OperatorWorkspaceService
 from app.domain.scan_worker import AutonomousScanWorker
 from app.domain.quarter_kelly_dispatcher import QuarterKellyDispatcher
 from app.api.v1.dashboard_template import DASHBOARD_HTML_TEMPLATE
 
-workspace_router = APIRouter(tags=["Operator Workspace"])
+workspace_router = APIRouter()
 _service = OperatorWorkspaceService()
 _worker = AutonomousScanWorker()
-_position_book = _service.position_book
 _dispatcher = QuarterKellyDispatcher()
+_position_book = getattr(_service, "position_book", None)
+_staged_portfolio_orders: List[Dict[str, Any]] = []
 
 @workspace_router.get("/dashboard", response_class=HTMLResponse)
 def get_dashboard_html():
@@ -27,6 +28,22 @@ def get_workspace_state():
     tel = _worker.get_telemetry()
     state["daemon"] = tel
     state["radar_opportunities"] = tel.get("latest_opportunities", [])
+
+    # Ensure state["positions"] is initialized as a list
+    if "positions" not in state or not isinstance(state["positions"], list):
+        if _position_book is not None and hasattr(_position_book, "positions"):
+            state["positions"] = list(_position_book.positions.values())
+        else:
+            state["positions"] = []
+
+    # Merge staged ledger positions into Tab 1 active view
+    active_ids = {p.get("contract") or p.get("contract_id") for p in state["positions"]}
+    for staged in _staged_portfolio_orders:
+        staged_id = staged.get("contract") or staged.get("contract_id")
+        if staged_id not in active_ids:
+            state["positions"].insert(0, staged)
+            active_ids.add(staged_id)
+
     return state
 
 @workspace_router.post("/api/v1/operator/emergency-stop")
@@ -95,32 +112,31 @@ def stage_order(payload: Dict[str, Any]):
         model_prob=prob
     )
 
-    # Register into active position ledger
     pos_record = {
         "contract": ticker,
+        "contract_id": ticker,
         "venue": venue,
         "side": side,
         "qty": dispatch["total_quantity"],
+        "quantity": dispatch["total_quantity"],
         "vwap": f"{int(round(price * 100))}¢",
         "cost": f"${dispatch['total_committed_cents'] / 100.0:.2f}",
         "mtm": "+$0.00",
         "status": "RESTING_MAKER",
-        "lineage_code": dispatch["lineage_code"]
+        "lineage_code": dispatch["lineage_code"],
+        "total_cost_cents": dispatch["total_committed_cents"],
+        "mtm_value_cents": dispatch["total_committed_cents"],
+        "unrealized_pnl_cents": 0,
+        "realized_pnl_cents": 0
     }
-    
-    # Store on position book if positions attribute is accessible
-    if hasattr(_position_book, "positions") and isinstance(_position_book.positions, dict):
+
+    if _position_book is not None and hasattr(_position_book, "positions") and isinstance(_position_book.positions, dict):
         _position_book.positions[ticker] = pos_record
+
+    _staged_portfolio_orders.append(pos_record)
 
     return {
         "status": "ORDER_STAGED",
         "dispatch": dispatch,
         "position_record": pos_record
     }
-
-@workspace_router.get("/api/v1/operator/roster")
-def get_roster():
-    state = _service.get_workspace_state()
-    return {"status": "SUCCESS", "roster": state.get("roster", [])}
-
-__all__ = ["workspace_router", "_service", "_worker", "_position_book"]
