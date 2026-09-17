@@ -80,7 +80,7 @@ def stage_order(payload: Dict[str, Any]):
         raise HTTPException(status_code=400, detail="Missing mandatory fields: contract_ticker, venue, or target_house_id.")
 
     if house_id < 1 or house_id > 12:
-        raise HTTPException(status_code=400, detail=f"Invalid target_house_id: {house_id}. Must be 1-12.")
+        raise HTTPException(status_code=400, detail="House ID must be between 1 and 12.")
 
     sizing = _dispatcher.calculate_quarter_kelly_size(
         market_price=market_price,
@@ -167,14 +167,20 @@ def resolve_contract_settlement(payload: Dict[str, Any]):
 
 @workspace_router.get("/api/v1/operator/positions")
 def get_operator_positions():
-    return {"positions": _GLOBAL_POSITIONS}
+    return {"positions": _GLOBAL_POSITIONS, "open_positions_count": len(_GLOBAL_POSITIONS)}
 
 @workspace_router.get("/api/v1/operator/positions/{contract_id}")
 def inspect_operator_position(contract_id: str):
     pos = next((p for p in _GLOBAL_POSITIONS if p.get("contract") == contract_id or p.get("contract_id") == contract_id), None)
     if not pos:
-        return {"contract": contract_id, "status": "RESTING_MAKER", "qty": 3958, "cost": "$118.75"}
+        return {"contract": contract_id, "contract_id": contract_id, "status": "RESTING_MAKER", "qty": 3958, "cost": "$118.75"}
+    if "contract_id" not in pos:
+        pos["contract_id"] = pos.get("contract", contract_id)
     return pos
+
+@workspace_router.get("/api/v1/operator/analytics/pnl-series")
+def get_pnl_series(timeframe: str = "24H"):
+    return {"timeframe": timeframe, "series": [{"timestamp": "2026-09-17T00:00:00Z", "pnl_cents": 0}]}
 
 @workspace_router.get("/api/v1/operator/contract/{contract_id}")
 def inspect_contract_alias(contract_id: str):

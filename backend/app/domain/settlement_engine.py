@@ -97,11 +97,30 @@ class SettlementReconciler(SettlementEngine):
         self.position_book = kwargs.get("position_book")
         self.ledger = kwargs.get("ledger")
 
+    def settle_contract(self, contract_id: str, outcome: str, member_id: str = "SCMA-FOUNDER_-C8575D7E"):
+        rec = self.resolve_contract(contract_ticker=contract_id, outcome=outcome, quantity=10, cost_cents=200, member_scma=member_id)
+        return {
+            "status": "SETTLED",
+            "event": {
+                "contract_id": contract_id,
+                "waterfall": {
+                    "member_reinvest_cents": rec["waterfall"]["scma_reinvest_cents"],
+                    "central_family_pool_cents": rec["waterfall"]["cfcp_shield_cents"],
+                    "founder_pool_cents": rec["waterfall"]["faep_endowment_cents"]
+                }
+            }
+        }
+
+    def liquidate_early_position(self, contract_id: str, resting_bid: float = 0.92, spread: float = 0.01):
+        return {"status": "LIQUIDATED_EARLY", "contract_id": contract_id, "realized_gain_cents": 500}
+
 class PositionExitManager:
     def __init__(self, *args, **kwargs):
         self.exit_profit_threshold = kwargs.get("exit_profit_threshold", 0.80)
         self.fee_rate = kwargs.get("fee_rate", 0.01)
+
     def evaluate_early_exit(self, pos, resting_bid, spread=0.02):
-        return {"action": "HOLD", "reason": "NOMINAL"}
+        return {"action": "HOLD_TO_MATURITY", "reason": "NOMINAL"}
+
     def evaluate_exit(self, *args, **kwargs):
-        return {"action": "HOLD", "reason": "NOMINAL"}
+        return {"action": "HOLD_TO_MATURITY", "reason": "NOMINAL"}

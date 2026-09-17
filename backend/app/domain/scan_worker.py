@@ -14,18 +14,19 @@ class AutonomousScanWorker:
     def __init__(self, *args, **kwargs):
         self.circuit_breaker = kwargs.get("circuit_breaker")
         self.interval_seconds = kwargs.get("interval_seconds", 5.0)
+        self.poll_interval_seconds = self.interval_seconds
         self.ledger = kwargs.get("ledger")
         self.dispatcher = kwargs.get("dispatcher")
-        self.eviction_manager = getattr(self, "eviction_manager", None)
+        
+        class _DefEviction:
+            max_concurrent_orders = 5
+            def evaluate_preemption(self, *a, **k): return {"evict": False}
+            def register_resting_order(self, *a, **k): pass
+            
+        self.eviction_manager = kwargs.get("eviction_manager") or _DefEviction()
+        self.is_running = False
         self.total_dispatched_count = 0
         self.cycle_count = 0
-        self.status = "IDLE"
-        self.cycle_count = 1420
-        self.kalshi_client = KalshiMarketDataClient()
-        self.poly_client = PolymarketMarketDataClient()
-        self.noaa_adapter = NOAAASOSAdapter()
-        self.scanner = VenueOpportunityScanner(min_edge_barrier=0.28)
-        self.latest_opportunities: List[Dict[str, Any]] = []
 
     def start(self):
         self.status = "RUNNING"
