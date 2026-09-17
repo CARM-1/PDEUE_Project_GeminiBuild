@@ -1,4 +1,14 @@
-"""
+import pathlib
+import subprocess
+import sys
+import os
+
+REPO_ROOT = pathlib.Path(r"C:\PDEUE_Gemini")
+BACKEND_DIR = REPO_ROOT / "backend"
+ROUTER_PATH = BACKEND_DIR / "app" / "api" / "v1" / "workspace_router.py"
+
+# 1. Authoritative, fully-contracted workspace router
+ROUTER_CODE = '''"""
 PDEUE Chief Administrator Workspace Router
 Authoritative endpoint provider for Operator Workspace, Active Positions Ledger,
 Velocity Radar Telemetry, Stage Dispatch, and Settlement Waterfall Reconciler.
@@ -9,7 +19,7 @@ from typing import Dict, Any, List
 import pathlib
 
 from app.domain.operator_workspace import OperatorWorkspaceService
-from app.domain.scan_worker import AutonomousScanWorker
+from app.domain.autonomous_scan_worker import AutonomousScanWorker
 from app.domain.settlement_engine import SettlementEngine
 from app.domain.quarter_kelly_dispatcher import QuarterKellyDispatcher
 from app.api.v1.dashboard_template import DASHBOARD_HTML_TEMPLATE
@@ -164,3 +174,32 @@ def resolve_contract_settlement(payload: Dict[str, Any]):
         "settlement": settlement,
         "remaining_committed_margin_cents": _COMMITTED_MARGIN_CENTS
     }
+'''
+
+ROUTER_PATH.write_text(ROUTER_CODE.strip() + "\n", encoding="utf-8")
+print(f"[OK] Staged authoritative router: {ROUTER_PATH}")
+
+# 2. In-process direct API verification using FastAPI TestClient
+sys.path.insert(0, str(REPO_ROOT))
+sys.path.insert(0, str(BACKEND_DIR))
+from fastapi.testclient import TestClient
+from app.main import app
+
+client = TestClient(app)
+res = client.get("/api/v1/operator/workspace-state")
+assert res.status_code == 200, f"Status code error: {res.status_code}"
+state = res.json()
+positions = state.get("positions", [])
+
+print(f"\n[DIRECT API VERIFICATION]")
+print(f"  -> Total Positions in State: {len(positions)}")
+assert len(positions) >= 1, "Positions list must not be empty"
+seed = positions[0]
+print(f"  -> Contract: {seed.get('contract')}")
+print(f"  -> Status: {seed.get('status')}")
+print(f"  -> Lineage Code: {seed.get('lineage_code')}")
+print(f"  -> Committed Margin: ${state.get('committed_margin_cents', 0)/100:.2f}")
+
+assert seed["status"] == "RESTING_MAKER"
+assert seed["lineage_code"] == "HOUSE-01"
+print("[OK] Direct API contract verified successfully!")

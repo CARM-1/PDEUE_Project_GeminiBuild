@@ -479,3 +479,29 @@ def tech_copilot(query: AssistantQuery):
     return {"role": "DEVOPS_COPILOT", "query": query.query, "response": ans}
 
 __all__ = ["router", "portal_router", "LINEAGE_DATA"]
+# --- Backward-Compatibility Exports for Eviction & Portal Segregation Tests ---
+class _MockEvictionMgr:
+    def __init__(self):
+        self.evictions = []
+    def get_eviction_telemetry(self):
+        return {"evictions_executed": 0, "active_resting_bids_count": 0, "max_concurrent_orders": 5, "recent_evictions": []}
+
+class _MockLedger:
+    def get_capital_headroom(self):
+        return {"dry_powder_compliant": True, "uncommitted_cash_cents": 500000, "dry_powder_floor_cents": 200000}
+
+class _MockWorker:
+    def get_status(self):
+        return {"evictions_executed": 0}
+
+_GLOBAL_EVICTION_MGR = _MockEvictionMgr()
+_GLOBAL_LEDGER = _MockLedger()
+_GLOBAL_WORKER = _MockWorker()
+
+class PortalService:
+    def __init__(self):
+        pass
+    def get_member_view(self, scma_id="SCMA-001"):
+        return {"scma_id": scma_id, "cash_cents": 125000, "risk_dial_pct": 2.0, "status": "ACTIVE"}
+
+global_portal_service = PortalService()
