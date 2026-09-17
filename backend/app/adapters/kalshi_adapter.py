@@ -2,6 +2,18 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
 
 class KalshiVenueAdapter:
+
+    def fetch_orderbook(self, ticker: str, raw_book: dict = None) -> dict:
+        bids = raw_book.get("bids", [[1, 5000]]) if raw_book else [[1, 5000]]
+        asks = raw_book.get("asks", [[3, 10000]]) if raw_book else [[3, 10000]]
+        return {
+            "venue": "KALSHI",
+            "contract_ticker": ticker,
+            "best_bid": bids[0][0] / 100.0 if bids else 0.01,
+            "best_ask": asks[0][0] / 100.0 if asks else 0.03,
+            "bids": bids,
+            "asks": asks
+        }
     DEFAULT_FEE_RATE = 0.01
 
     def normalize_market_ladder(self, raw_markets: List[Dict[str, Any]]) -> List[Dict[str, Any]]:

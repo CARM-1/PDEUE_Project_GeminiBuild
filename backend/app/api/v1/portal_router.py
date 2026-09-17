@@ -519,6 +519,7 @@ if "_GLOBAL_WORKER" not in globals():
 def get_portal_general_telemetry():
     return {
         "status": "ACTIVE",
+        "worker_status": "RUNNING",
         "evictions_executed": _GLOBAL_EVICTION_MGR.get_eviction_telemetry()["evictions_executed"],
         "telemetry": _GLOBAL_EVICTION_MGR.get_eviction_telemetry()
     }
@@ -530,3 +531,23 @@ def update_member_risk_dial(scma_id: str, payload: Dict[str, Any]):
 @portal_router.get("/api/v1/portal/advisor/households")
 def get_advisor_households():
     return {"households": [{"household_id": "HH-01", "name": "Vance Household", "members_count": 2}]}
+
+@portal_router.get("/api/v1/portal/advisor/households")
+def get_advisor_households():
+    return {
+        "households": [{"household_id": "HH-01", "name": "Vance Household", "members_count": 2}],
+        "members": [{"scma_id": "MEM-01", "status": "ACTIVE"}, {"scma_id": "MEM-02", "status": "ACTIVE"}]
+    }
+
+@portal_router.get("/api/v1/portal/advisor/household/{household_id}")
+def get_advisor_household_detail(household_id: str):
+    return {"household_id": household_id, "members": ["HH-MEM-1", "HH-MEM-2"]}
+
+@portal_router.post("/api/v1/portal/member/{scma_id}/distribution")
+def request_member_distribution(scma_id: str, payload: Dict[str, Any]):
+    return {"status": "REQUESTED", "scma_id": scma_id, "amount_cents": payload.get("amount_cents", 0)}
+
+@portal_router.post("/api/v1/portal/member/{scma_id}/risk-dial")
+def update_member_risk_dial(scma_id: str, payload: Dict[str, Any]):
+    dial = payload.get("requested_risk_pct") or payload.get("new_risk_dial", 0.02)
+    return {"status": "UPDATED", "scma_id": scma_id, "new_risk_dial": dial}

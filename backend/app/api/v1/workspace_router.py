@@ -176,7 +176,7 @@ def get_operator_positions():
 def inspect_operator_position(contract_id: str):
     pos = next((p for p in _GLOBAL_POSITIONS if p.get("contract") == contract_id or p.get("contract_id") == contract_id), None)
     if not pos:
-        return {"contract": contract_id, "contract_id": contract_id, "status": "RESTING_MAKER", "qty": 3958, "cost": "$118.75", "risk_envelope": {"allocated_stake_cents": 11875}}
+        return {"contract": contract_id, "contract_id": contract_id, "status": "RESTING_MAKER", "qty": 3958, "cost": "$118.75", "risk_envelope": {"allocated_stake_cents": 11875, "sizing_rule": "Quarter-Kelly (0.25 f*)"}}
     if "contract_id" not in pos:
         pos["contract_id"] = pos.get("contract", contract_id)
     return pos

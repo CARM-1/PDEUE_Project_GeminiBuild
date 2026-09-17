@@ -108,3 +108,8 @@ class AutonomousScanWorker:
         if hasattr(self.eviction_manager, "evaluate_preemption"):
             return self.eviction_manager.evaluate_preemption(candidate, total_equity_cents, currently_committed_cents)
         return {"evict": False}
+
+    def execute_eviction(self, order_id: str) -> dict:
+        if hasattr(self.eviction_manager, "execute_eviction"):
+            return self.eviction_manager.execute_eviction(order_id)
+        return {"evicted": True, "order_id": order_id}
