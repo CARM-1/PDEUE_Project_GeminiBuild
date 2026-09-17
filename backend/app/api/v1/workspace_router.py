@@ -8,12 +8,14 @@ from fastapi.responses import HTMLResponse
 from typing import Dict, Any, Optional
 from app.domain.operator_workspace import OperatorWorkspaceService
 from app.domain.scan_worker import AutonomousScanWorker
+from app.domain.quarter_kelly_dispatcher import QuarterKellyDispatcher
 from app.api.v1.dashboard_template import DASHBOARD_HTML_TEMPLATE
 
 workspace_router = APIRouter(tags=["Operator Workspace"])
 _service = OperatorWorkspaceService()
 _worker = AutonomousScanWorker()
 _position_book = _service.position_book
+_dispatcher = QuarterKellyDispatcher()
 
 @workspace_router.get("/dashboard", response_class=HTMLResponse)
 def get_dashboard_html():
@@ -74,7 +76,47 @@ def run_daemon_cycle():
 
 @workspace_router.post("/api/v1/operator/stage-order")
 def stage_order(payload: Dict[str, Any]):
-    return {"status": "ORDER_STAGED", "payload": payload}
+    ticker = payload.get("contract_ticker", payload.get("ticker", "KX-MIA-FRZ-32"))
+    venue = payload.get("venue", "KALSHI")
+    house_id = int(payload.get("target_house_id", payload.get("house_id", 1)))
+    side = payload.get("side", "BUY_YES")
+    price = float(payload.get("market_price", payload.get("price", 0.03)))
+    prob = float(payload.get("model_prob", 0.315))
+
+    if house_id < 1 or house_id > 12:
+        raise HTTPException(status_code=400, detail="House ID must be between 1 and 12.")
+
+    dispatch = _dispatcher.dispatch_opportunity(
+        contract_ticker=ticker,
+        venue=venue,
+        target_house_id=house_id,
+        side=side,
+        market_price=price,
+        model_prob=prob
+    )
+
+    # Register into active position ledger
+    pos_record = {
+        "contract": ticker,
+        "venue": venue,
+        "side": side,
+        "qty": dispatch["total_quantity"],
+        "vwap": f"{int(round(price * 100))}¢",
+        "cost": f"${dispatch['total_committed_cents'] / 100.0:.2f}",
+        "mtm": "+$0.00",
+        "status": "RESTING_MAKER",
+        "lineage_code": dispatch["lineage_code"]
+    }
+    
+    # Store on position book if positions attribute is accessible
+    if hasattr(_position_book, "positions") and isinstance(_position_book.positions, dict):
+        _position_book.positions[ticker] = pos_record
+
+    return {
+        "status": "ORDER_STAGED",
+        "dispatch": dispatch,
+        "position_record": pos_record
+    }
 
 @workspace_router.get("/api/v1/operator/roster")
 def get_roster():
