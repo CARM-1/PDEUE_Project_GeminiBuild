@@ -27,11 +27,11 @@
     th { border-bottom: 1px solid #334155; text-align: left; padding: 8px; color: #94a3b8; font-size: 12px; }
     td { padding: 8px; border-bottom: 1px solid #1e293b; font-size: 13px; }
     .btn-stage { background: #0284c7; color: #fff; border: 1px solid #38bdf8; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .btn-settle { background: #10b981; color: #020617; border: 1px solid #34d399; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px; }
     .copilot-btn { position: fixed; bottom: 20px; right: 20px; background: #0284c7; color: #fff; border: none; border-radius: 20px; padding: 10px 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
 
-    /* Modal Backdrop & Container */
     .modal-backdrop { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(4px); z-index: 20000; align-items: center; justify-content: center; }
-    .modal-box { background: #111c44; border: 1px solid #38bdf8; border-radius: 10px; width: 560px; max-width: 90vw; padding: 24px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7); animation: modalIn 0.2s ease-out; }
+    .modal-box { background: #111c44; border-radius: 10px; width: 560px; max-width: 90vw; padding: 24px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7); animation: modalIn 0.2s ease-out; }
     @keyframes modalIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
   </style>
 </head>
@@ -75,17 +75,17 @@
       <div class="card">
         <div class="card-title">LINEAGE TOTAL EQUITY</div>
         <div class="card-value" id="fnd-balance">$4,250.00</div>
-        <div class="card-sub">Active Reservation: <span id="fnd-reserved" style="color: #38bdf8;">$750.00</span></div>
+        <div class="card-sub">Active Reservation: <span id="fnd-reserved" style="color: #38bdf8;">$0.00</span></div>
       </div>
       <div class="card">
         <div class="card-title">COMMITTED MARGIN</div>
-        <div class="card-value" id="fnd-committed" style="color: #38bdf8;">$25.00</div>
-        <div class="card-sub">Lifetime PnL: $0.00</div>
+        <div class="card-value" id="fnd-committed" style="color: #38bdf8;">$0.00</div>
+        <div class="card-sub">Active Resting Exposure</div>
       </div>
       <div class="card">
-        <div class="card-title">PROFIT FACTOR</div>
-        <div class="card-value" style="color: #4ade80;">2.84x</div>
-        <div class="card-sub">Win Rate: 75.0%</div>
+        <div class="card-title">REALIZED LIFETIME PNL</div>
+        <div class="card-value" id="fnd-pnl" style="color: #4ade80;">+$0.00</div>
+        <div class="card-sub">Exact-Cent Reconciled</div>
       </div>
       <div class="card">
         <div class="card-title">MAX DRAWDOWN</div>
@@ -103,7 +103,7 @@
     </div>
 
     <div class="card">
-      <div class="card-title" style="color: #38bdf8; margin-bottom: 8px;">ACTIVE PORTFOLIO POSITIONS</div>
+      <div class="card-title" style="color: #38bdf8; margin-bottom: 8px;">ACTIVE PORTFOLIO POSITIONS &amp; SETTLEMENT RECONCILIATION</div>
       <table>
         <thead>
           <tr><th>CONTRACT</th><th>VENUE</th><th>SIDE</th><th>QTY</th><th>VWAP</th><th>COST</th><th>MTM</th><th>ACTION</th></tr>
@@ -120,12 +120,12 @@
     <div class="grid-4">
       <div class="card">
         <div class="card-title">CFCP Family Pool (10%)</div>
-        <div class="card-value" style="color: #4ade80;">$500.00</div>
+        <div class="card-value" id="cfcp-balance" style="color: #4ade80;">$500.00</div>
         <div class="card-sub">Central Lineage Growth</div>
       </div>
       <div class="card">
         <div class="card-title">Founder FAEP Pool (3%)</div>
-        <div class="card-value" style="color: #38bdf8;">$150.00</div>
+        <div class="card-value" id="faep-balance" style="color: #38bdf8;">$150.00</div>
         <div class="card-sub">Endowment Growth</div>
       </div>
       <div class="card">
@@ -182,7 +182,7 @@
     </div>
   </div>
 
-    <!-- TAB 4: SOVEREIGN GOVERNANCE & SETTLOR DUAL-CONTROL -->
+  <!-- TAB 4: SOVEREIGN GOVERNANCE & DUAL CONTROL -->
   <div id="tab-panel-4" style="display: none;">
     <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
       <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -193,9 +193,7 @@
             House quorums (75% threshold) function strictly as non-binding petition filters. All capital distributions and policy approvals require your explicit affirmative digital signature.
           </p>
         </div>
-        <div style="text-align: right;">
-          <span style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid #10b981; font-weight: bold; font-size: 12px; padding: 6px 12px; border-radius: 6px;">FOUNDER VETO: ACTIVE</span>
-        </div>
+        <span style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid #10b981; font-weight: bold; font-size: 12px; padding: 6px 12px; border-radius: 6px;">FOUNDER VETO: ACTIVE</span>
       </div>
     </div>
 
@@ -231,15 +229,7 @@
       <div class="card-title" style="color: #38bdf8; margin-bottom: 12px;">ACTIVE HOUSE PETITIONS AWAITING SOVEREIGN DETERMINATION</div>
       <table>
         <thead>
-          <tr>
-            <th>PETITION ID</th>
-            <th>PROPOSAL TITLE</th>
-            <th>TARGET LINEAGE</th>
-            <th>REQUESTED SUM</th>
-            <th>HOUSE QUORUM</th>
-            <th>PETITION STATUS</th>
-            <th>SOVEREIGN ACTIONS</th>
-          </tr>
+          <tr><th>PETITION ID</th><th>PROPOSAL TITLE</th><th>TARGET LINEAGE</th><th>REQUESTED SUM</th><th>HOUSE QUORUM</th><th>PETITION STATUS</th><th>SOVEREIGN ACTIONS</th></tr>
         </thead>
         <tbody id="governance-tbody">
           <tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 15px;">Loading governance petitions...</td></tr>
@@ -248,53 +238,72 @@
     </div>
   </div>
 
-  <!-- PROFESSIONAL ORDER STAGING TICKET MODAL -->
+  <!-- ORDER DISPATCH MODAL -->
   <div id="dispatch-modal" class="modal-backdrop">
-    <div class="modal-box">
+    <div class="modal-box" style="border: 1px solid #38bdf8;">
       <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 12px; margin-bottom: 16px;">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="background: #0284c7; color: #fff; font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 4px;">DISPATCH TICKET</span>
-          <strong style="color: #38bdf8; font-size: 16px;" id="modal-ticket-id">KX-MIA-FRZ-32</strong>
-        </div>
+        <strong style="color: #38bdf8; font-size: 16px;" id="modal-ticket-id">KX-MIA-FRZ-32</strong>
         <button onclick="closeDispatchModal()" style="background: transparent; border: none; color: #94a3b8; font-size: 18px; cursor: pointer;">✕</button>
       </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
-        <div style="background: #0b132b; padding: 10px; border-radius: 6px; border: 1px solid #1e293b;">
-          <div style="font-size: 11px; color: #94a3b8;">Target Venue</div>
-          <div id="modal-venue" style="font-size: 14px; font-weight: bold; color: #38bdf8; margin-top: 2px;">KALSHI</div>
-        </div>
-        <div style="background: #0b132b; padding: 10px; border-radius: 6px; border: 1px solid #1e293b;">
-          <div style="font-size: 11px; color: #94a3b8;">Lineage Allocation</div>
-          <div id="modal-lineage" style="font-size: 14px; font-weight: bold; color: #a855f7; margin-top: 2px;">HOUSE-01</div>
-        </div>
-        <div style="background: #0b132b; padding: 10px; border-radius: 6px; border: 1px solid #1e293b;">
-          <div style="font-size: 11px; color: #94a3b8;">Model Edge / Probability</div>
-          <div id="modal-edge" style="font-size: 14px; font-weight: bold; color: #4ade80; margin-top: 2px;">+28.5% (31.5%)</div>
-        </div>
-        <div style="background: #0b132b; padding: 10px; border-radius: 6px; border: 1px solid #1e293b;">
-          <div style="font-size: 11px; color: #94a3b8;">Sizing Protocol</div>
-          <div style="font-size: 14px; font-weight: bold; color: #f8fafc; margin-top: 2px;">Quarter-Kelly (0.25 f*)</div>
-        </div>
+      <div style="background: #0b132b; padding: 12px; border-radius: 6px; margin-bottom: 16px;">
+        <div>Target Venue: <b id="modal-venue" style="color: #38bdf8;">KALSHI</b></div>
+        <div>Allocation: <b id="modal-lineage" style="color: #a855f7;">HOUSE-01</b></div>
       </div>
-
-      <div style="background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 12px; margin-bottom: 20px;">
-        <div style="font-size: 11px; color: #38bdf8; font-weight: bold; margin-bottom: 6px; text-transform: uppercase;">Deterministic Member Capital Allocation</div>
-        <div style="font-size: 12px; color: #94a3b8; line-height: 1.5;">
-          • Founder Chief Admin SCMA: <strong style="color: #f8fafc;">$100.00</strong> (3,333 contracts @ 3.0¢)<br>
-          • Eleanor Vance SCMA: <strong style="color: #f8fafc;">$18.75</strong> (625 contracts @ 3.0¢)<br>
-          • Total Target Commitment: <strong style="color: #10b981;">$118.75</strong> &nbsp;|&nbsp; Status: <span style="color: #38bdf8; font-weight: bold;">RESTING_MAKER</span>
-        </div>
-      </div>
-
       <div id="modal-actions" style="display: flex; justify-content: flex-end; gap: 10px;">
-        <button onclick="closeDispatchModal()" style="background: #334155; color: #cbd5e1; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">Dismiss</button>
-        <button id="modal-confirm-btn" onclick="confirmDispatchExecution()" style="background: #0284c7; color: #ffffff; border: 1px solid #38bdf8; padding: 8px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">Authorize &amp; Dispatch Order</button>
+        <button onclick="closeDispatchModal()" style="background: #334155; color: #cbd5e1; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold;">Dismiss</button>
+        <button id="modal-confirm-btn" onclick="confirmDispatchExecution()" style="background: #0284c7; color: #fff; border: none; padding: 8px 18px; border-radius: 6px; cursor: pointer; font-weight: bold;">Authorize &amp; Dispatch</button>
       </div>
-
       <div id="modal-receipt" style="display: none; background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; border-radius: 6px; padding: 12px; margin-top: 12px;">
-        <div style="color: #10b981; font-weight: bold; font-size: 13px;">✓ Ledger Commitment Authenticated</div>
+        <div style="color: #10b981; font-weight: bold;">✓ Ledger Commitment Authenticated</div>
         <div id="receipt-details" style="font-size: 12px; color: #cbd5e1; margin-top: 4px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTLEMENT RECONCILER MODAL -->
+  <div id="settle-modal" class="modal-backdrop">
+    <div class="modal-box" style="border: 1px solid #10b981;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 12px; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="background: #10b981; color: #020617; font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 4px;">SETTLEMENT RECONCILER</span>
+          <strong style="color: #34d399; font-size: 16px;" id="settle-ticker">KX-MIA-FRZ-32</strong>
+        </div>
+        <button onclick="closeSettleModal()" style="background: transparent; border: none; color: #94a3b8; font-size: 18px; cursor: pointer;">✕</button>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+        <div style="background: #0b132b; padding: 10px; border-radius: 6px; border: 1px solid #1e293b;">
+          <div style="font-size: 11px; color: #94a3b8;">Total Contracts</div>
+          <div id="settle-qty" style="font-size: 15px; font-weight: bold; color: #f8fafc; margin-top: 2px;">3,958</div>
+        </div>
+        <div style="background: #0b132b; padding: 10px; border-radius: 6px; border: 1px solid #1e293b;">
+          <div style="font-size: 11px; color: #94a3b8;">Committed Cost Basis</div>
+          <div id="settle-cost" style="font-size: 15px; font-weight: bold; color: #38bdf8; margin-top: 2px;">$118.75</div>
+        </div>
+      </div>
+      <div style="background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 12px; margin-bottom: 16px;">
+        <div style="font-size: 11px; color: #38bdf8; font-weight: bold; margin-bottom: 6px;">SELECT BINARY CONTRACT OUTCOME</div>
+        <div style="display: flex; gap: 12px;">
+          <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+            <input type="radio" name="settle_outcome" value="YES" checked onchange="previewWaterfall()">
+            <span style="color: #4ade80; font-weight: bold;">Outcome: YES ($1.00 Payout / WIN)</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+            <input type="radio" name="settle_outcome" value="NO" onchange="previewWaterfall()">
+            <span style="color: #f87171; font-weight: bold;">Outcome: NO ($0.00 / LOSS)</span>
+          </label>
+        </div>
+      </div>
+      <div id="waterfall-preview-box" style="background: #0b132b; border: 1px solid #1e293b; border-radius: 6px; padding: 12px; margin-bottom: 18px;">
+        <div style="font-size: 11px; color: #94a3b8; margin-bottom: 6px; font-weight: bold;">87/10/3 WATERFALL DISTRIBUTION PREVIEW</div>
+        <div id="waterfall-preview-text" style="font-size: 12px; color: #cbd5e1; line-height: 1.5;"></div>
+      </div>
+      <div id="settle-actions" style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button onclick="closeSettleModal()" style="background: #334155; color: #cbd5e1; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">Dismiss</button>
+        <button id="settle-confirm-btn" onclick="executeSettlement()" style="background: #10b981; color: #020617; border: 1px solid #34d399; padding: 8px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">Execute Settlement &amp; Waterfall</button>
+      </div>
+      <div id="settle-receipt" style="display: none; background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; border-radius: 6px; padding: 12px; margin-top: 12px;">
+        <div style="color: #10b981; font-weight: bold; font-size: 13px;">✓ Settlement Reconciled &amp; Margin Restored</div>
+        <div id="settle-receipt-details" style="font-size: 12px; color: #cbd5e1; margin-top: 4px;"></div>
       </div>
     </div>
   </div>
@@ -304,9 +313,9 @@
   <script>
     let chartInstance = null;
     let pendingDispatch = null;
+    let activeSettleTarget = null;
 
     function switchTab(idx) {
-      if (idx === 4) loadGovernanceProposals();
       for (let i = 1; i <= 4; i++) {
         const btn = document.getElementById("tab-btn-" + i);
         const panel = document.getElementById("tab-panel-" + i);
@@ -321,11 +330,14 @@
             btn.style.color = "#94a3b8";
           }
         }
-        if (panel) {
-          panel.style.display = (i === idx) ? "block" : "none";
-        }
+        if (panel) panel.style.display = (i === idx) ? "block" : "none";
       }
       if (idx === 3) loadRadarOpportunities();
+      if (idx === 4) loadGovernanceProposals();
+    }
+
+    function loadRadarOpportunities() {
+      loadWorkspaceState();
     }
 
     function renderChart() {
@@ -363,12 +375,11 @@
         if (!res.ok) return;
         const data = await res.json();
 
-        // Populate Active Positions
         const positions = data.positions || [];
         const posTbody = document.getElementById("pos-tbody");
         if (posTbody) {
           if (positions.length === 0) {
-            posTbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:15px;">No active open positions</td></tr>';
+            posTbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:15px;">No active open positions (All Contracts Settled)</td></tr>';
           } else {
             posTbody.innerHTML = positions.map(p => `
               <tr>
@@ -379,13 +390,14 @@
                 <td>${p.vwap}</td>
                 <td>${p.cost}</td>
                 <td style="color:#10b981;">${p.mtm}</td>
-                <td><button style="background:#334155; color:#fff; border:none; padding:3px 8px; border-radius:3px; cursor:pointer;">Inspect</button></td>
+                <td>
+                  <button class="btn-settle" onclick="openSettleModal('${p.contract || p.contract_id}', ${p.qty || p.quantity || 3958}, '${p.cost || '$118.75'}')">Settle Contract</button>
+                </td>
               </tr>
             `).join('');
           }
         }
 
-        // Populate Radar Opportunities
         const opps = data.radar_opportunities || (data.daemon && data.daemon.latest_opportunities) || [];
         const radarTbody = document.getElementById("radar-table-body");
         if (radarTbody && opps.length > 0) {
@@ -405,21 +417,105 @@
           `).join('');
         }
       } catch (err) {
-        console.error("Workspace state poll error:", err);
+        console.error("Poll error:", err);
       }
     }
 
-    function loadRadarOpportunities() {
-      loadWorkspaceState();
+    function openSettleModal(ticker, qty, costStr) {
+      const costCents = Math.round(parseFloat(String(costStr).replace(/[^0-9.]/g, '')) * 100) || 11875;
+      activeSettleTarget = { ticker, qty, costCents };
+      document.getElementById("settle-ticker").textContent = ticker;
+      document.getElementById("settle-qty").textContent = Number(qty).toLocaleString();
+      document.getElementById("settle-cost").textContent = `$${(costCents / 100.0).toFixed(2)}`;
+      document.getElementById("settle-receipt").style.display = "none";
+      document.getElementById("settle-actions").style.display = "flex";
+      previewWaterfall();
+      document.getElementById("settle-modal").style.display = "flex";
     }
 
-    // Professional Modal Handlers
+    function closeSettleModal() {
+      document.getElementById("settle-modal").style.display = "none";
+      activeSettleTarget = null;
+    }
+
+    function previewWaterfall() {
+      if (!activeSettleTarget) return;
+      const outcome = document.querySelector('input[name="settle_outcome"]:checked').value;
+      const qty = activeSettleTarget.qty;
+      const cost = activeSettleTarget.costCents;
+
+      if (outcome === "YES") {
+        const gross = qty * 100;
+        const net = gross - cost;
+        const scma = Math.floor(net * 0.87);
+        const cfcp = Math.floor(net * 0.10);
+        const faep = net - scma - cfcp;
+
+        document.getElementById("waterfall-preview-text").innerHTML = `
+          • Gross Proceeds: <strong style="color: #4ade80;">$${(gross / 100.0).toFixed(2)}</strong> | Net Profit: <strong style="color: #4ade80;">+$${(net / 100.0).toFixed(2)}</strong><br>
+          • SCMA Compounding (87%): <strong style="color: #f8fafc;">+$${(scma / 100.0).toFixed(2)}</strong><br>
+          • CFCP Principal Shield (10%): <strong style="color: #38bdf8;">+$${(cfcp / 100.0).toFixed(2)}</strong><br>
+          • FAEP Endowment (3%): <strong style="color: #fbbf24;">+$${(faep / 100.0).toFixed(2)}</strong>
+        `;
+      } else {
+        document.getElementById("waterfall-preview-text").innerHTML = `
+          • Gross Proceeds: <strong style="color: #f87171;">$0.00</strong> | Realized Loss: <strong style="color: #ef4444;">-$${(cost / 100.0).toFixed(2)}</strong><br>
+          • Loss absorbed exclusively by executing SCMA sub-ledger.<br>
+          • CFCP & FAEP Principal Shields are <b>100% insulated</b> ($0.00 impact).
+        `;
+      }
+    }
+
+    async function executeSettlement() {
+      if (!activeSettleTarget) return;
+      const outcome = document.querySelector('input[name="settle_outcome"]:checked').value;
+      const btn = document.getElementById("settle-confirm-btn");
+      btn.textContent = "Reconciling Waterfall...";
+      btn.disabled = true;
+
+      try {
+        const res = await fetch("/api/v1/operator/settlement/resolve", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contract_ticker: activeSettleTarget.ticker,
+            outcome: outcome,
+            quantity: activeSettleTarget.qty,
+            cost_cents: activeSettleTarget.costCents
+          })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          const s = data.settlement;
+          document.getElementById("settle-receipt-details").innerHTML = `
+            Resolution: <b>${s.outcome}</b> | Realized PnL: <b style="color:${s.net_pnl_cents >= 0 ? '#10b981' : '#ef4444'}">${s.net_pnl_formatted}</b><br>
+            SCMA Reinvest: <b>${s.waterfall.scma_reinvest_formatted}</b> | CFCP: <b>${s.waterfall.cfcp_shield_formatted}</b> | FAEP: <b>${s.waterfall.faep_endowment_formatted}</b><br>
+            Settlement Hash: <span style="font-family:monospace; color:#38bdf8;">${s.settlement_id}</span>
+          `;
+          document.getElementById("settle-receipt").style.display = "block";
+          document.getElementById("settle-actions").style.display = "none";
+          setTimeout(() => {
+            closeSettleModal();
+            loadWorkspaceState();
+          }, 1400);
+        } else {
+          alert(`Settlement Rejected: ${data.detail || 'Invariant failure'}`);
+          closeSettleModal();
+        }
+      } catch (err) {
+        console.error("Settlement failed:", err);
+        closeSettleModal();
+      } finally {
+        btn.textContent = "Execute Settlement & Waterfall";
+        btn.disabled = false;
+      }
+    }
+
     function stageHouseDispatch(ticker, venue, houseId, side, price, prob) {
       pendingDispatch = { ticker, venue, houseId, side, price, prob };
       document.getElementById("modal-ticket-id").textContent = ticker;
       document.getElementById("modal-venue").textContent = venue;
       document.getElementById("modal-lineage").textContent = "HOUSE-" + String(houseId).padStart(2, "0");
-      document.getElementById("modal-edge").textContent = `+${((prob - price) * 100).toFixed(1)}% (${(prob * 100).toFixed(1)}%)`;
       document.getElementById("modal-receipt").style.display = "none";
       document.getElementById("modal-actions").style.display = "flex";
       document.getElementById("dispatch-modal").style.display = "flex";
@@ -451,35 +547,23 @@
         });
         const data = await res.json();
         if (res.ok) {
-          const d = data.dispatch;
-          const dollars = (d.total_committed_cents / 100.0).toFixed(2);
-          document.getElementById("receipt-details").innerHTML = `
-            Dispatched to: <b>${d.lineage_code}</b> | Status: <span style="color:#10b981;">${d.status}</span><br>
-            Total Contracts: <b>${d.total_quantity.toLocaleString()}</b> | Committed Margin: <b>$${dollars}</b><br>
-            Audit Hash: <span style="font-family:monospace; color:#38bdf8;">${d.dispatch_id}</span>
-          `;
+          document.getElementById("receipt-details").innerHTML = `Dispatched: <b>${data.dispatch.lineage_code}</b> | Margin: <b>$${(data.dispatch.total_committed_cents / 100.0).toFixed(2)}</b>`;
           document.getElementById("modal-receipt").style.display = "block";
           document.getElementById("modal-actions").style.display = "none";
-
           setTimeout(() => {
             closeDispatchModal();
             loadWorkspaceState();
             switchTab(1);
-          }, 1400);
-        } else {
-          alert(`Dispatch Rejected: ${data.detail || "Invariant error"}`);
-          closeDispatchModal();
+          }, 1200);
         }
       } catch (err) {
-        console.error("Order staging failure:", err);
-        closeDispatchModal();
+        console.error("Dispatch error:", err);
       } finally {
-        btn.textContent = "Authorize & Dispatch Order";
+        btn.textContent = "Authorize & Dispatch";
         btn.disabled = false;
       }
     }
 
-    
     async function loadGovernanceProposals() {
       try {
         const res = await fetch("/api/v1/lineage/governance/proposals");
@@ -494,38 +578,31 @@
           return;
         }
 
-        tbody.innerHTML = proposals.map(p => {
-          const isPending = p.status === "PENDING_CHIEF_ADMIN_AUTHORIZATION";
-          const statusColor = p.status === "SOVEREIGN_EXECUTED" ? "#10b981" : (p.status === "SOVEREIGN_VETOED" ? "#ef4444" : "#fbbf24");
-          const votes = p.affirmative_house_ids ? p.affirmative_house_ids.length : 0;
-          return `
-            <tr>
-              <td><b>${p.proposal_id}</b></td>
-              <td><b>${p.title}</b><br><span style="font-size: 11px; color: #94a3b8;">${p.description}</span></td>
-              <td><span style="background: #1e293b; color: #a855f7; padding: 2px 6px; border-radius: 4px; font-weight: bold;">HOUSE-${String(p.target_house_id).padStart(2, '0')}</span></td>
-              <td style="color: #38bdf8; font-weight: bold;">$${(p.amount_cents / 100.0).toFixed(2)}</td>
-              <td><b style="color: #4ade80;">${votes} / 12 Houses</b> (${p.house_ratified ? 'Ratified' : 'Rejected'})</td>
-              <td><span style="color: ${statusColor}; font-weight: bold;">${p.status.replace(/_/g, ' ')}</span></td>
-              <td>
-                ${isPending ? `
-                  <div style="display: flex; gap: 6px;">
-                    <button onclick="adjudicatePetition('${p.proposal_id}', 'APPROVE_AND_EXECUTE')" style="background: #10b981; color: #020617; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">Authorize Sweep</button>
-                    <button onclick="adjudicatePetition('${p.proposal_id}', 'SOVEREIGN_VETO')" style="background: #ef4444; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">Sovereign Veto</button>
-                  </div>
-                ` : `<span style="font-size: 11px; color: #64748b;">Closed (${p.settled_by || 'Settlor'})</span>`}
-              </td>
-            </tr>
-          `;
-        }).join('');
+        tbody.innerHTML = proposals.map(p => `
+          <tr>
+            <td><b>${p.proposal_id}</b></td>
+            <td><b>${p.title}</b><br><span style="font-size: 11px; color: #94a3b8;">${p.description}</span></td>
+            <td><span style="background: #1e293b; color: #a855f7; padding: 2px 6px; border-radius: 4px; font-weight: bold;">HOUSE-${String(p.target_house_id).padStart(2, '0')}</span></td>
+            <td style="color: #38bdf8; font-weight: bold;">$${(p.amount_cents / 100.0).toFixed(2)}</td>
+            <td><b style="color: #4ade80;">${p.affirmative_house_ids ? p.affirmative_house_ids.length : 0} / 12 Houses</b> (${p.house_ratified ? 'Ratified' : 'Rejected'})</td>
+            <td><span style="color: ${p.status === 'SOVEREIGN_EXECUTED' ? '#10b981' : (p.status === 'SOVEREIGN_VETOED' ? '#ef4444' : '#fbbf24')}; font-weight: bold;">${p.status.replace(/_/g, ' ')}</span></td>
+            <td>
+              ${p.status === 'PENDING_CHIEF_ADMIN_AUTHORIZATION' ? `
+                <div style="display: flex; gap: 6px;">
+                  <button onclick="adjudicatePetition('${p.proposal_id}', 'APPROVE_AND_EXECUTE')" style="background: #10b981; color: #020617; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">Authorize Sweep</button>
+                  <button onclick="adjudicatePetition('${p.proposal_id}', 'SOVEREIGN_VETO')" style="background: #ef4444; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">Sovereign Veto</button>
+                </div>
+              ` : `<span style="font-size: 11px; color: #64748b;">Closed (${p.settled_by || 'Settlor'})</span>`}
+            </td>
+          </tr>
+        `).join('');
       } catch (err) {
-        console.error("Failed to load governance proposals:", err);
+        console.error("Proposals poll error:", err);
       }
     }
 
     async function adjudicatePetition(proposalId, action) {
-      const verb = action === "APPROVE_AND_EXECUTE" ? "authorize and disburse" : "permanently veto";
-      if (!confirm(`Are you sure you want to ${verb} petition ${proposalId}?`)) return;
-
+      if (!confirm(`Confirm decision to ${action === 'APPROVE_AND_EXECUTE' ? 'authorize' : 'veto'} petition ${proposalId}?`)) return;
       try {
         const res = await fetch("/api/v1/lineage/governance/adjudicate", {
           method: "POST",
@@ -538,20 +615,20 @@
         });
         const data = await res.json();
         if (res.ok) {
-          alert(`[SOVEREIGN DECISION RECORDED] Proposal ${proposalId} status: ${data.status}`);
+          alert(`[SOVEREIGN RECORDED] Status: ${data.status}`);
           loadGovernanceProposals();
         } else {
-          alert(`Adjudication Rejected: ${data.detail || 'Invariant failure'}`);
+          alert(`Rejected: ${data.detail || 'Invariant failure'}`);
         }
       } catch (err) {
-        console.error("Adjudication failure:", err);
+        console.error("Adjudicate failure:", err);
       }
     }
 
     window.addEventListener("DOMContentLoaded", () => {
-      loadGovernanceProposals();
       renderChart();
       loadWorkspaceState();
+      loadGovernanceProposals();
       setInterval(loadWorkspaceState, 4000);
     });
   </script>

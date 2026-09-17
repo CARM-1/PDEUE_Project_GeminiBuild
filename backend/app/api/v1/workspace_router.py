@@ -140,3 +140,50 @@ def stage_order(payload: Dict[str, Any]):
         "dispatch": dispatch,
         "position_record": pos_record
     }
+from app.domain.settlement_engine import SettlementEngine
+_GLOBAL_SETTLEMENT_ENGINE = SettlementEngine()
+from app.domain.settlement_engine import SettlementEngine
+_GLOBAL_SETTLEMENT_ENGINE = SettlementEngine()
+
+@workspace_router.get("/api/v1/operator/settlements")
+def get_closed_settlements():
+    return {"settlements": _GLOBAL_SETTLEMENT_ENGINE.closed_settlements}
+
+@workspace_router.post("/api/v1/operator/settlement/resolve")
+def resolve_contract_settlement(payload: Dict[str, Any]):
+    ticker = payload.get("contract_ticker")
+    outcome = payload.get("outcome", "YES")
+    if not ticker:
+        raise HTTPException(status_code=400, detail="Missing contract_ticker in payload.")
+
+    qty = int(payload.get("quantity", 3958))
+    cost_cents = int(payload.get("cost_cents", 11875))
+    house_id = int(payload.get("target_house_id", 1))
+
+    global _GLOBAL_POSITIONS, _COMMITTED_MARGIN_CENTS
+    if "_GLOBAL_POSITIONS" in globals() and isinstance(_GLOBAL_POSITIONS, list):
+        pos_idx = next((i for i, p in enumerate(_GLOBAL_POSITIONS) if p.get("contract") == ticker or p.get("contract_id") == ticker), -1)
+        if pos_idx != -1:
+            pos = _GLOBAL_POSITIONS.pop(pos_idx)
+            qty = int(pos.get("qty") or pos.get("quantity") or qty)
+            cost_raw = str(pos.get("cost", "$118.75")).replace("$", "").replace(",", "")
+            cost_cents = int(float(cost_raw) * 100) if cost_raw else cost_cents
+
+    settlement = _GLOBAL_SETTLEMENT_ENGINE.resolve_contract(
+        contract_ticker=ticker,
+        outcome=outcome,
+        quantity=qty,
+        cost_cents=cost_cents,
+        target_house_id=house_id
+    )
+
+    if "_COMMITTED_MARGIN_CENTS" in globals():
+        _COMMITTED_MARGIN_CENTS = max(0, _COMMITTED_MARGIN_CENTS - cost_cents)
+    else:
+        _COMMITTED_MARGIN_CENTS = 0
+
+    return {
+        "status": "SETTLEMENT_RESOLVED",
+        "settlement": settlement,
+        "remaining_committed_margin_cents": _COMMITTED_MARGIN_CENTS
+    }
