@@ -1,3 +1,8 @@
+"""
+PDEUE Lineage & House Leader Desk Router (Class H)
+Enforces strict Lineal branch confinement, subordinate roster controls,
+institutional intervention modals with zero native alerts, and bicameral consensus.
+"""
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse
 from typing import Dict, Any, List
@@ -17,6 +22,7 @@ def _build_member_table_rows(members: List[Dict[str, Any]], house_id: int) -> st
         dial = f"{m.get('risk_dial', 0.0) * 100:.1f}%"
         scma = m.get("scma_id", "")
         name = m.get("name", "")
+        order_count = len(orders)
 
         r = (
             f"<tr>"
@@ -24,11 +30,11 @@ def _build_member_table_rows(members: List[Dict[str, Any]], house_id: int) -> st
             f"<td style='font-family: monospace; color: #38bdf8;'>{scma}</td>"
             f"<td>{cash}</td>"
             f"<td><b>{dial}</b></td>"
-            f"<td>{len(orders)} resting ({orders_str})</td>"
+            f"<td>{order_count} resting ({orders_str})</td>"
             f"<td><span style='color: {status_color}; font-weight: bold;'>{status}</span></td>"
             f"<td><div style='display: flex; gap: 6px;'>"
-            f"<button class='btn-cancel' onclick=\"cancelOrders({house_id}, '{scma}')\">Cancel Orders</button>"
-            f"<button class='btn-freeze' onclick=\"freezeRisk({house_id}, '{scma}')\">Freeze Dial (0%)</button>"
+            f"<button class='btn-cancel' onclick=\"openCancelModal('{name}', '{scma}', {order_count}, '{orders_str}')\">Cancel Orders</button>"
+            f"<button class='btn-freeze' onclick=\"openFreezeModal('{name}', '{scma}', '{dial}')\">Freeze Dial (0%)</button>"
             f"</div></td>"
             f"</tr>"
         )
@@ -78,7 +84,7 @@ def get_house_leader_portal(house_id: int = 1):
     house = _lineage_service.get_house_summary(house_id)
     member_rows = _build_member_table_rows(house["members"], house["house_id"])
 
-    html = f"""<!DOCTYPE html>
+    return HTMLResponse(content=f"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -96,11 +102,15 @@ def get_house_leader_portal(house_id: int = 1):
     table {{ width: 100%; border-collapse: collapse; margin-top: 12px; }}
     th {{ border-bottom: 1px solid #334155; text-align: left; padding: 10px 8px; color: #94a3b8; font-size: 12px; }}
     td {{ padding: 10px 8px; border-bottom: 1px solid #1e293b; font-size: 13px; }}
-    .btn-cancel {{ background: #ef4444; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }}
-    .btn-freeze {{ background: #f59e0b; color: #020617; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }}
+    .btn-cancel {{ background: #ef4444; color: #fff; border: 1px solid #f87171; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }}
+    .btn-freeze {{ background: #f59e0b; color: #020617; border: 1px solid #fbbf24; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }}
+    .modal-backdrop {{ display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(4px); z-index: 20000; align-items: center; justify-content: center; }}
+    .modal-box {{ background: #111c44; border-radius: 10px; width: 540px; max-width: 90vw; padding: 24px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7); animation: modalIn 0.2s ease-out; }}
+    @keyframes modalIn {{ from {{ opacity: 0; transform: scale(0.96); }} to {{ opacity: 1; transform: scale(1); }} }}
   </style>
 </head>
 <body>
+
   <div class="class-h-banner">
     <div style="display: flex; align-items: center; gap: 12px;">
       <span class="class-badge">CLASS H SOVEREIGN DESK</span>
@@ -152,47 +162,211 @@ def get_house_leader_portal(house_id: int = 1):
     </table>
   </div>
 
+  <!-- CANCEL ORDERS MODAL -->
+  <div id="cancel-modal" class="modal-backdrop">
+    <div class="modal-box" style="border: 1px solid #ef4444;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 12px; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="background: #ef4444; color: #fff; font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 4px;">CIRCUIT BREAKER</span>
+          <strong style="color: #f87171; font-size: 15px;">CANCEL RESTING MAKER ORDERS</strong>
+        </div>
+        <button onclick="closeModals()" style="background: transparent; border: none; color: #94a3b8; font-size: 18px; cursor: pointer;">✕</button>
+      </div>
+
+      <div style="background: #0b132b; border: 1px solid #1e293b; border-radius: 6px; padding: 12px; margin-bottom: 14px;">
+        <div style="font-size: 12px; color: #94a3b8; margin-bottom: 4px;">Target Subordinate</div>
+        <div style="font-size: 15px; font-weight: bold; color: #f8fafc;" id="cancel-subordinate-name">--</div>
+        <div style="font-family: monospace; font-size: 12px; color: #38bdf8; margin-top: 2px;" id="cancel-subordinate-scma">--</div>
+      </div>
+
+      <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; padding: 12px; margin-bottom: 16px;">
+        <div style="font-size: 12px; color: #fca5a5; line-height: 1.4;">
+          This action will immediately revoke all <b>resting inside-maker orders</b> (<span id="cancel-orders-detail">None</span>) on venue books for this subordinate and release committed margin back into available cash.
+        </div>
+      </div>
+
+      <div id="cancel-actions" style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button onclick="closeModals()" style="background: #334155; color: #cbd5e1; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">Dismiss</button>
+        <button id="cancel-confirm-btn" onclick="executeCancelOrders()" style="background: #ef4444; color: #ffffff; border: 1px solid #f87171; padding: 8px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">Confirm Order Revocation</button>
+      </div>
+
+      <div id="cancel-receipt" style="display: none; background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; border-radius: 6px; padding: 12px; margin-top: 12px;">
+        <div style="color: #10b981; font-weight: bold; font-size: 13px;">✓ Orders Revoked &amp; Margin Restored</div>
+        <div id="cancel-receipt-text" style="font-size: 12px; color: #cbd5e1; margin-top: 4px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FREEZE RISK MODAL -->
+  <div id="freeze-modal" class="modal-backdrop">
+    <div class="modal-box" style="border: 1px solid #f59e0b;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 12px; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="background: #f59e0b; color: #020617; font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 4px;">GOVERNOR CLAMP</span>
+          <strong style="color: #fbbf24; font-size: 15px;">FREEZE SUBORDINATE RISK DIAL</strong>
+        </div>
+        <button onclick="closeModals()" style="background: transparent; border: none; color: #94a3b8; font-size: 18px; cursor: pointer;">✕</button>
+      </div>
+
+      <div style="background: #0b132b; border: 1px solid #1e293b; border-radius: 6px; padding: 12px; margin-bottom: 14px;">
+        <div style="font-size: 12px; color: #94a3b8; margin-bottom: 4px;">Target Subordinate</div>
+        <div style="font-size: 15px; font-weight: bold; color: #f8fafc;" id="freeze-subordinate-name">--</div>
+        <div style="font-family: monospace; font-size: 12px; color: #38bdf8; margin-top: 2px;" id="freeze-subordinate-scma">--</div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+        <div style="background: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #334155;">
+          <div style="font-size: 11px; color: #94a3b8;">Current Risk Dial</div>
+          <div id="freeze-current-dial" style="font-size: 16px; font-weight: bold; color: #38bdf8; margin-top: 2px;">--</div>
+        </div>
+        <div style="background: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #f59e0b;">
+          <div style="font-size: 11px; color: #f59e0b; font-weight: bold;">Clamped Risk Dial</div>
+          <div style="font-size: 16px; font-weight: bold; color: #fbbf24; margin-top: 2px;">0.0% (Exclusion)</div>
+        </div>
+      </div>
+
+      <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 6px; padding: 12px; margin-bottom: 16px;">
+        <div style="font-size: 12px; color: #fde68a; line-height: 1.4;">
+          Clamping risk to <b>0.0%</b> excludes this subordinate account from subsequent Quarter-Kelly dispatch batches until un-clamped by the House Leader.
+        </div>
+      </div>
+
+      <div id="freeze-actions" style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button onclick="closeModals()" style="background: #334155; color: #cbd5e1; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">Dismiss</button>
+        <button id="freeze-confirm-btn" onclick="executeFreezeRisk()" style="background: #f59e0b; color: #020617; border: 1px solid #fbbf24; padding: 8px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">Apply Governor Clamp</button>
+      </div>
+
+      <div id="freeze-receipt" style="display: none; background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; border-radius: 6px; padding: 12px; margin-top: 12px;">
+        <div style="color: #10b981; font-weight: bold; font-size: 13px;">✓ Subordinate Risk Clamped to 0.0%</div>
+        <div id="freeze-receipt-text" style="font-size: 12px; color: #cbd5e1; margin-top: 4px;"></div>
+      </div>
+    </div>
+  </div>
+
   <script>
-    async function cancelOrders(houseId, scmaId) {{
-      if (!confirm(`Cancel all active resting maker orders for subordinate ${{scmaId}}?`)) return;
+    const currentHouseId = {house['house_id']};
+    let activeTarget = null;
+
+    function openCancelModal(name, scma, count, ordersStr) {{
+      activeTarget = {{ name, scma }};
+      document.getElementById('cancel-subordinate-name').textContent = name;
+      document.getElementById('cancel-subordinate-scma').textContent = scma;
+      document.getElementById('cancel-orders-detail').textContent = count > 0 ? `${{count}} resting (${{ordersStr}})` : '0 resting orders';
+      document.getElementById('cancel-receipt').style.display = 'none';
+      document.getElementById('cancel-actions').style.display = 'flex';
+      document.getElementById('cancel-modal').style.display = 'flex';
+    }}
+
+    function openFreezeModal(name, scma, dial) {{
+      activeTarget = {{ name, scma }};
+      document.getElementById('freeze-subordinate-name').textContent = name;
+      document.getElementById('freeze-subordinate-scma').textContent = scma;
+      document.getElementById('freeze-current-dial').textContent = dial;
+      document.getElementById('freeze-receipt').style.display = 'none';
+      document.getElementById('freeze-actions').style.display = 'flex';
+      document.getElementById('freeze-modal').style.display = 'flex';
+    }}
+
+    function closeModals() {{
+      document.getElementById('cancel-modal').style.display = 'none';
+      document.getElementById('freeze-modal').style.display = 'none';
+      activeTarget = null;
+    }}
+
+    async function executeCancelOrders() {{
+      if (!activeTarget) return;
+      const btn = document.getElementById('cancel-confirm-btn');
+      btn.textContent = 'Revoking...';
+      btn.disabled = true;
+
       try {{
-        const res = await fetch(`/api/v1/lineage/house/${{houseId}}/subordinate/cancel-orders`, {{
+        const res = await fetch(`/api/v1/lineage/house/${{currentHouseId}}/subordinate/cancel-orders`, {{
           method: 'POST',
           headers: {{ 'Content-Type': 'application/json' }},
-          body: JSON.stringify({{ scma_id: scmaId }})
+          body: JSON.stringify({{ scma_id: activeTarget.scma }})
         }});
         const data = await res.json();
         if (res.ok) {{
-          alert(`[CIRCUIT BREAKER] Cancelled ${{data.cancelled_orders.length}} open orders for ${{scmaId}}.`);
-          window.location.reload();
+          document.getElementById('cancel-receipt-text').innerHTML = `
+            Cancelled <b>${{data.cancelled_orders.length}}</b> active orders for <b>${{activeTarget.scma}}</b>.<br>
+            Ledger Audit Logged: <span style="color:#38bdf8; font-family:monospace;">${{data.timestamp}}</span>
+          `;
+          document.getElementById('cancel-receipt').style.display = 'block';
+          document.getElementById('cancel-actions').style.display = 'none';
+          setTimeout(() => window.location.reload(), 1200);
         }} else {{
-          alert(`Action Failed: ${{data.detail || 'Invariant rejection'}}`);
+          document.getElementById('cancel-receipt-text').innerHTML = `<span style="color:#ef4444;">Revocation Rejected: ${{data.detail || 'Invariant error'}}</span>`;
+          document.getElementById('cancel-receipt').style.display = 'block';
         }}
       }} catch (err) {{
-        console.error("Cancel orders error:", err);
+        console.error("Cancel orders failed:", err);
+      }} finally {{
+        btn.textContent = 'Confirm Order Revocation';
+        btn.disabled = false;
       }}
     }}
 
-    async function freezeRisk(houseId, scmaId) {{
-      if (!confirm(`Freeze risk dial to 0.0% for subordinate ${{scmaId}}? This excludes them from future Kelly sizing cycles.`)) return;
+    async function executeFreezeRisk() {{
+      if (!activeTarget) return;
+      const btn = document.getElementById('freeze-confirm-btn');
+      btn.textContent = 'Applying Clamp...';
+      btn.disabled = true;
+
       try {{
-        const res = await fetch(`/api/v1/lineage/house/${{houseId}}/subordinate/freeze-risk`, {{
+        const res = await fetch(`/api/v1/lineage/house/${{currentHouseId}}/subordinate/freeze-risk`, {{
           method: 'POST',
           headers: {{ 'Content-Type': 'application/json' }},
-          body: JSON.stringify({{ scma_id: scmaId }})
+          body: JSON.stringify({{ scma_id: activeTarget.scma }})
         }});
         const data = await res.json();
         if (res.ok) {{
-          alert(`[GOVERNOR CLAMP] Subordinate ${{scmaId}} risk frozen to 0.0% (${{data.member_status}}).`);
-          window.location.reload();
+          document.getElementById('freeze-receipt-text').innerHTML = `
+            Status: <b style="color:#fbbf24;">${{data.member_status}}</b> | Dial: <b>0.0%</b><br>
+            Governor Lock Logged: <span style="color:#38bdf8; font-family:monospace;">${{data.timestamp}}</span>
+          `;
+          document.getElementById('freeze-receipt').style.display = 'block';
+          document.getElementById('freeze-actions').style.display = 'none';
+          setTimeout(() => window.location.reload(), 1200);
         }} else {{
-          alert(`Action Failed: ${{data.detail || 'Invariant rejection'}}`);
+          document.getElementById('freeze-receipt-text').innerHTML = `<span style="color:#ef4444;">Freeze Rejected: ${{data.detail || 'Invariant error'}}</span>`;
+          document.getElementById('freeze-receipt').style.display = 'block';
         }}
       }} catch (err) {{
-        console.error("Freeze risk error:", err);
+        console.error("Freeze risk failed:", err);
+      }} finally {{
+        btn.textContent = 'Apply Governor Clamp';
+        btn.disabled = false;
       }}
     }}
   </script>
 </body>
-</html>"""
-    return HTMLResponse(content=html)
+</html>""")
+
+
+@lineage_router.get("/api/v1/lineage/governance/proposals")
+def get_governance_proposals():
+    return {"proposals": _lineage_service.list_proposals()}
+
+@lineage_router.post("/api/v1/lineage/governance/petition")
+def submit_petition(payload: Dict[str, Any]):
+    return _lineage_service.submit_house_petition(
+        title=payload.get("title", "Untitled Petition"),
+        description=payload.get("description", ""),
+        target_house_id=payload.get("target_house_id", 1),
+        amount_cents=payload.get("amount_cents", 0),
+        affirmative_house_ids=payload.get("affirmative_house_ids", [])
+    )
+
+@lineage_router.post("/api/v1/lineage/governance/adjudicate")
+def adjudicate_governance_proposal(payload: Dict[str, Any]):
+    proposal_id = payload.get("proposal_id")
+    action = payload.get("action")
+    caller_scma = payload.get("caller_scma", "SCMA-FOUNDER_-C8575D7E")
+    if not proposal_id or not action:
+        raise HTTPException(status_code=400, detail="Missing proposal_id or action.")
+    try:
+        return _lineage_service.adjudicate_proposal(proposal_id=proposal_id, action=action, caller_scma=caller_scma)
+    except PermissionError as pe:
+        raise HTTPException(status_code=403, detail=str(pe))
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))

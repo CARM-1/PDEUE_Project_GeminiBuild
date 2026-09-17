@@ -20,7 +20,27 @@ def test_house_1_founder_capital_aggregation():
     assert h1["total_cash_cents"] == 625000
     assert h1["total_cash_formatted"] == "$6,250.00"
 
-def test_house_leader_cancel_subordinate_orders():
+def test_house_leader_ui_contains_institutional_modals_and_zero_native_prompts():
+    """Validates that native browser alert/confirm calls are removed and institutional modals exist."""
+    res = client.get("/lineage/house/1")
+    assert res.status_code == 200
+    html = res.text
+
+    # 1. Assert Modal Containers Exist in DOM
+    assert 'id="cancel-modal"' in html
+    assert 'id="freeze-modal"' in html
+
+    # 2. Assert Modal Triggers Exist on Buttons
+    assert "openCancelModal" in html
+    assert "openFreezeModal" in html
+
+    # 3. Assert Blocking Native Prompts Are Completely Removed
+    assert "confirm(" not in html
+    assert "alert(" not in html
+
+def test_subordinate_order_cancellation_end_to_end():
+    """Proves order revocation clears orders and verifies state via GET /api/v1/lineage/house/1."""
+    # 1. Execute cancel action
     res = client.post(
         "/api/v1/lineage/house/1/subordinate/cancel-orders",
         json={"scma_id": "SCMA-FOUNDER_-C8575D7E"}
@@ -28,9 +48,17 @@ def test_house_leader_cancel_subordinate_orders():
     assert res.status_code == 200
     data = res.json()
     assert data["status"] == "SUBORDINATE_ORDERS_CANCELLED"
-    assert "KX-MIA-FRZ-32" in data["cancelled_orders"]
 
-def test_house_leader_freeze_subordinate_risk():
+    # 2. Query House State to certify database/domain state is updated
+    state_res = client.get("/api/v1/lineage/house/1")
+    assert state_res.status_code == 200
+    h1 = state_res.json()
+    founder = next(m for m in h1["members"] if m["scma_id"] == "SCMA-FOUNDER_-C8575D7E")
+    assert founder["open_orders"] == []
+
+def test_subordinate_risk_freeze_end_to_end():
+    """Proves risk clamp sets dial to 0.0% and verifies status via GET /api/v1/lineage/house/1."""
+    # 1. Execute freeze action
     res = client.post(
         "/api/v1/lineage/house/1/subordinate/freeze-risk",
         json={"scma_id": "SCMA-FOUNDER_-C8575D7E"}
@@ -39,7 +67,14 @@ def test_house_leader_freeze_subordinate_risk():
     data = res.json()
     assert data["status"] == "SUBORDINATE_RISK_FROZEN"
     assert data["new_risk_dial"] == 0.0
-    assert data["member_status"] == "FROZEN_BY_HOUSE_LEADER"
+
+    # 2. Query House State to certify domain state
+    state_res = client.get("/api/v1/lineage/house/1")
+    assert state_res.status_code == 200
+    h1 = state_res.json()
+    founder = next(m for m in h1["members"] if m["scma_id"] == "SCMA-FOUNDER_-C8575D7E")
+    assert founder["risk_dial"] == 0.0
+    assert founder["status"] == "FROZEN_BY_HOUSE_LEADER"
 
 def test_bicameral_75_percent_consensus_rule():
     svc = LineageHierarchyService()

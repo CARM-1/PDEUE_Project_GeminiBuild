@@ -1,8 +1,13 @@
+"""
+PDEUE 12-House Lineage Hierarchy & Sovereign Settlor Governance Engine
+Enforces tribal partitioning, subordinate risk controls, and the
+Sovereign Settlor / Trust Protector veto pattern over all House petitions.
+"""
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
 
 class LineageHierarchyService:
-    """Authoritative registry for House lines, subordinate management, and consensus."""
+    """Authoritative registry for House lines, subordinate management, and sovereign governance."""
 
     CANONICAL_HOUSES: Dict[int, Dict[str, Any]] = {
         1: {
@@ -48,6 +53,21 @@ class LineageHierarchyService:
                 }
             ],
             "governance_seat": True
+        }
+    }
+
+    # In-memory proposal ledger
+    PROPOSALS: Dict[str, Dict[str, Any]] = {
+        "PROP-2026-001": {
+            "proposal_id": "PROP-2026-001",
+            "title": "Quarterly CFCP Educational Grant Sweep ($500.00)",
+            "description": "Petition to disburse $500.00 from CFCP treasury to House 2 youth education fund.",
+            "target_house_id": 2,
+            "amount_cents": 50000,
+            "affirmative_house_ids": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            "house_ratified": True,
+            "status": "PENDING_CHIEF_ADMIN_AUTHORIZATION",
+            "created_at": "2026-09-17T03:00:00Z"
         }
     }
 
@@ -142,7 +162,63 @@ class LineageHierarchyService:
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
 
+    def list_proposals(self) -> List[Dict[str, Any]]:
+        return list(self.PROPOSALS.values())
+
+    def submit_house_petition(self, title: str, description: str, target_house_id: int, amount_cents: int, affirmative_house_ids: List[int]) -> Dict[str, Any]:
+        """House petition intake: 75% quorum qualifies proposal for Chief Admin review."""
+        unique_votes = set(hid for hid in affirmative_house_ids if 1 <= hid <= 12)
+        vote_count = len(unique_votes)
+        ratified = vote_count >= 9
+        proposal_id = f"PROP-2026-{len(self.PROPOSALS) + 1:03d}"
+
+        record = {
+            "proposal_id": proposal_id,
+            "title": title,
+            "description": description,
+            "target_house_id": target_house_id,
+            "amount_cents": amount_cents,
+            "affirmative_house_ids": list(unique_votes),
+            "affirmative_count": vote_count,
+            "house_ratified": ratified,
+            "status": "PENDING_CHIEF_ADMIN_AUTHORIZATION" if ratified else "QUORUM_REJECTED",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        self.PROPOSALS[proposal_id] = record
+        return record
+
+    def adjudicate_proposal(self, proposal_id: str, action: str, caller_scma: str) -> Dict[str, Any]:
+        """
+        Sovereign Settlor Adjudication:
+        Only the Founder/Chief Admin can sign (EXECUTE) or permanently VETO petitions.
+        A 75% House ratification without Founder authorization CANNOT execute.
+        """
+        prop = self.PROPOSALS.get(proposal_id)
+        if not prop:
+            raise ValueError(f"Proposal {proposal_id} does not exist.")
+
+        # Invariant: Non-Founder cannot execute
+        if not caller_scma.startswith("SCMA-FOUNDER"):
+            raise PermissionError("Access Denied: Only Founder/Chief Administrator possesses Sovereign Veto and Execution authority.")
+
+        action_upper = action.upper()
+        if action_upper == "APPROVE_AND_EXECUTE":
+            if not prop["house_ratified"]:
+                raise ValueError("Invariant Violation: Proposal lacks the mandatory 75% House petition threshold.")
+            prop["status"] = "SOVEREIGN_EXECUTED"
+            prop["settled_by"] = caller_scma
+            prop["settled_at"] = datetime.now(timezone.utc).isoformat()
+        elif action_upper == "SOVEREIGN_VETO":
+            prop["status"] = "SOVEREIGN_VETOED"
+            prop["settled_by"] = caller_scma
+            prop["settled_at"] = datetime.now(timezone.utc).isoformat()
+        else:
+            raise ValueError(f"Unknown adjudication action: {action}. Must be APPROVE_AND_EXECUTE or SOVEREIGN_VETO.")
+
+        return prop
+
     def evaluate_bicameral_proposal(self, affirmative_house_ids: List[int]) -> Dict[str, Any]:
+        """Evaluates whether the 75% House threshold (9 of 12) was achieved."""
         unique_votes = set(hid for hid in affirmative_house_ids if 1 <= hid <= 12)
         vote_count = len(unique_votes)
         ratified = vote_count >= 9

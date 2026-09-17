@@ -182,11 +182,69 @@
     </div>
   </div>
 
-  <!-- TAB 4: GOVERNANCE & DUAL CONTROL -->
+    <!-- TAB 4: SOVEREIGN GOVERNANCE & SETTLOR DUAL-CONTROL -->
   <div id="tab-panel-4" style="display: none;">
+    <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <span style="background: #0284c7; color: #fff; font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 4px;">SOVEREIGN SETTLOR JURISDICTION</span>
+          <h2 style="font-size: 18px; margin-top: 6px;">Chief Administrator Sovereign Adjudication Chamber</h2>
+          <p style="color: #94a3b8; font-size: 13px; margin-top: 2px;">
+            House quorums (75% threshold) function strictly as non-binding petition filters. All capital distributions and policy approvals require your explicit affirmative digital signature.
+          </p>
+        </div>
+        <div style="text-align: right;">
+          <span style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid #10b981; font-weight: bold; font-size: 12px; padding: 6px 12px; border-radius: 6px;">FOUNDER VETO: ACTIVE</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- IMMUTABLE INVARIANTS PANEL -->
+    <div class="card" style="margin-bottom: 20px; border-color: #334155;">
+      <div class="card-title" style="color: #38bdf8; margin-bottom: 10px;">IMMUTABLE ARCHITECTURAL INVARIANTS (NON-AMENDABLE)</div>
+      <div class="grid-4" style="margin-bottom: 0;">
+        <div style="background: #0b132b; padding: 12px; border-radius: 6px; border: 1px solid #1e293b;">
+          <div style="font-size: 11px; color: #94a3b8;">Profit Distribution</div>
+          <div style="font-size: 16px; font-weight: bold; color: #4ade80; margin-top: 2px;">87 / 10 / 3 Waterfall</div>
+          <div style="font-size: 11px; color: #64748b;">Hard-Locked in Ledger</div>
+        </div>
+        <div style="background: #0b132b; padding: 12px; border-radius: 6px; border: 1px solid #1e293b;">
+          <div style="font-size: 11px; color: #94a3b8;">Founder Endowment Pool</div>
+          <div style="font-size: 16px; font-weight: bold; color: #38bdf8; margin-top: 2px;">3% Realized Net</div>
+          <div style="font-size: 11px; color: #64748b;">Exclusive Settlor Property</div>
+        </div>
+        <div style="background: #0b132b; padding: 12px; border-radius: 6px; border: 1px solid #1e293b;">
+          <div style="font-size: 11px; color: #94a3b8;">Risk Ceilings</div>
+          <div style="font-size: 16px; font-weight: bold; color: #fbbf24; margin-top: 2px;">5% System Ceiling</div>
+          <div style="font-size: 11px; color: #64748b;">Quarter-Kelly Sizing Bound</div>
+        </div>
+        <div style="background: #0b132b; padding: 12px; border-radius: 6px; border: 1px solid #1e293b;">
+          <div style="font-size: 11px; color: #94a3b8;">Emergency Stop</div>
+          <div style="font-size: 16px; font-weight: bold; color: #ef4444; margin-top: 2px;">Founder Unilateral</div>
+          <div style="font-size: 11px; color: #64748b;">Zero-Committee Override</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PETITION INTAKE & RATIFICATION QUEUE -->
     <div class="card">
-      <div class="card-title" style="color: #38bdf8;">GOVERNANCE CONSENSUS LEDGER &amp; DUAL CONTROL</div>
-      <p style="color: #94a3b8; font-size: 13px; margin-top: 8px;">Bicameral consensus: 75% House Ratification required for CFCP pool distributions.</p>
+      <div class="card-title" style="color: #38bdf8; margin-bottom: 12px;">ACTIVE HOUSE PETITIONS AWAITING SOVEREIGN DETERMINATION</div>
+      <table>
+        <thead>
+          <tr>
+            <th>PETITION ID</th>
+            <th>PROPOSAL TITLE</th>
+            <th>TARGET LINEAGE</th>
+            <th>REQUESTED SUM</th>
+            <th>HOUSE QUORUM</th>
+            <th>PETITION STATUS</th>
+            <th>SOVEREIGN ACTIONS</th>
+          </tr>
+        </thead>
+        <tbody id="governance-tbody">
+          <tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 15px;">Loading governance petitions...</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
@@ -248,6 +306,7 @@
     let pendingDispatch = null;
 
     function switchTab(idx) {
+      if (idx === 4) loadGovernanceProposals();
       for (let i = 1; i <= 4; i++) {
         const btn = document.getElementById("tab-btn-" + i);
         const panel = document.getElementById("tab-panel-" + i);
@@ -420,7 +479,77 @@
       }
     }
 
+    
+    async function loadGovernanceProposals() {
+      try {
+        const res = await fetch("/api/v1/lineage/governance/proposals");
+        if (!res.ok) return;
+        const data = await res.json();
+        const proposals = data.proposals || [];
+        const tbody = document.getElementById("governance-tbody");
+        if (!tbody) return;
+
+        if (proposals.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 15px;">No active petitions</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = proposals.map(p => {
+          const isPending = p.status === "PENDING_CHIEF_ADMIN_AUTHORIZATION";
+          const statusColor = p.status === "SOVEREIGN_EXECUTED" ? "#10b981" : (p.status === "SOVEREIGN_VETOED" ? "#ef4444" : "#fbbf24");
+          const votes = p.affirmative_house_ids ? p.affirmative_house_ids.length : 0;
+          return `
+            <tr>
+              <td><b>${p.proposal_id}</b></td>
+              <td><b>${p.title}</b><br><span style="font-size: 11px; color: #94a3b8;">${p.description}</span></td>
+              <td><span style="background: #1e293b; color: #a855f7; padding: 2px 6px; border-radius: 4px; font-weight: bold;">HOUSE-${String(p.target_house_id).padStart(2, '0')}</span></td>
+              <td style="color: #38bdf8; font-weight: bold;">$${(p.amount_cents / 100.0).toFixed(2)}</td>
+              <td><b style="color: #4ade80;">${votes} / 12 Houses</b> (${p.house_ratified ? 'Ratified' : 'Rejected'})</td>
+              <td><span style="color: ${statusColor}; font-weight: bold;">${p.status.replace(/_/g, ' ')}</span></td>
+              <td>
+                ${isPending ? `
+                  <div style="display: flex; gap: 6px;">
+                    <button onclick="adjudicatePetition('${p.proposal_id}', 'APPROVE_AND_EXECUTE')" style="background: #10b981; color: #020617; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">Authorize Sweep</button>
+                    <button onclick="adjudicatePetition('${p.proposal_id}', 'SOVEREIGN_VETO')" style="background: #ef4444; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">Sovereign Veto</button>
+                  </div>
+                ` : `<span style="font-size: 11px; color: #64748b;">Closed (${p.settled_by || 'Settlor'})</span>`}
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        console.error("Failed to load governance proposals:", err);
+      }
+    }
+
+    async function adjudicatePetition(proposalId, action) {
+      const verb = action === "APPROVE_AND_EXECUTE" ? "authorize and disburse" : "permanently veto";
+      if (!confirm(`Are you sure you want to ${verb} petition ${proposalId}?`)) return;
+
+      try {
+        const res = await fetch("/api/v1/lineage/governance/adjudicate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            proposal_id: proposalId,
+            action: action,
+            caller_scma: "SCMA-FOUNDER_-C8575D7E"
+          })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert(`[SOVEREIGN DECISION RECORDED] Proposal ${proposalId} status: ${data.status}`);
+          loadGovernanceProposals();
+        } else {
+          alert(`Adjudication Rejected: ${data.detail || 'Invariant failure'}`);
+        }
+      } catch (err) {
+        console.error("Adjudication failure:", err);
+      }
+    }
+
     window.addEventListener("DOMContentLoaded", () => {
+      loadGovernanceProposals();
       renderChart();
       loadWorkspaceState();
       setInterval(loadWorkspaceState, 4000);
