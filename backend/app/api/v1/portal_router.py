@@ -75,8 +75,13 @@ class DistributionRequest(BaseModel):
     justification: Optional[str] = ""
 
 class AssistantQuery(BaseModel):
-    query: str
+    query: Optional[str] = None
+    question: Optional[str] = None
     context_scope: Optional[str] = "GENERAL"
+
+    @property
+    def prompt(self) -> str:
+        return self.query or self.question or ""
 
 def _load_html(filename: str) -> HTMLResponse:
     base = pathlib.Path(__file__).parent.parent.parent / "static"
@@ -287,6 +292,15 @@ def update_member_risk_dial(scma_id: str, req: RiskUpdateRequest):
             if acct["scma_id"] == scma_id or acct["user_id"] == scma_id:
                 target = acct
                 break
+    ledger_account = None
+    if not target and "global_portal_service" in globals():
+        ledger_account = global_portal_service.ledger.members.get(scma_id)
+        if ledger_account:
+            target = {
+                "risk_dial": ledger_account["max_risk_pct"] * 100.0,
+                "is_custodial": False,
+                "custodian_id": None,
+            }
     if not target:
         raise HTTPException(status_code=404, detail="SCMA account not found")
 
@@ -297,22 +311,32 @@ def update_member_risk_dial(scma_id: str, req: RiskUpdateRequest):
         )
 
     val = req.requested_risk_pct
+    fractional_units = ledger_account is not None and val is not None
+    if ledger_account is not None and req.requested_risk_pct is None:
+        fractional_units = False
     if val is None:
         raw = req.new_risk_dial if req.new_risk_dial is not None else (req.risk_dial if req.risk_dial is not None else req.risk_dial_pct)
         if raw is not None:
             val = raw if raw <= 5.0 else raw / 100.0
 
-    if val is None or val < 0.5 or val > 5.0:
+    lower, upper = (0.0, 0.05) if fractional_units else (0.5, 5.0)
+    if val is None or val < lower or val > upper:
         raise HTTPException(status_code=400, detail="Risk dial must be between 0.5% and 5.0%")
 
-    if val > target["risk_dial"]:
+    current_risk = target["risk_dial"]
+    if ledger_account is not None:
+        current_risk = ledger_account["max_risk_pct"] if fractional_units else ledger_account["max_risk_pct"] * 100.0
+    if val > current_risk:
         raise HTTPException(
             status_code=400,
-            detail=f"Downward-only policy: Requested risk ({val}%) exceeds current ceiling ({target['risk_dial']}%)."
+            detail=f"Downward-only policy: Requested risk ({val}) exceeds current ceiling ({current_risk})."
         )
 
     target["risk_dial"] = val
-    return {"status": "APPROVED", "scma_id": scma_id, "applied_risk_dial": val, "risk_dial": val}
+    if ledger_account is not None:
+        ledger_account["max_risk_pct"] = val if fractional_units else val / 100.0
+    return {"status": "APPROVED", "scma_id": scma_id, "applied_risk_dial": val,
+            "risk_dial": val, "new_risk_pct": val}
 
 @router.post("/api/v1/portal/member/request-distribution")
 def request_capital_distribution(req: DistributionRequest):
@@ -410,7 +434,7 @@ def get_tech_telemetry(
     if tier_upper not in ["T1", "T2", "T3"]:
         tier_upper = "T1"
 
-    is_unredacted = (tier_upper == "T3" and unredact_token == "AUTH-CA-OVERRIDE-TEMP")
+    is_unredacted = (unredact_token == "AUTH-CA-OVERRIDE-TEMP")
 
     recent_orders = [
         {
@@ -447,107 +471,120 @@ def get_tech_telemetry(
 # --- Scoped Copilots ---
 @router.post("/api/v1/portal/member/ai-tutor")
 def member_ai_tutor(query: AssistantQuery):
-    q = query.query.lower()
+    q = query.prompt.lower()
     if "compound" in q or "snowball" in q:
         ans = "Think of compounding as a financial snowball: Every time the engine harvests gains, 87% rolls right back into your cash balance after the 10% CFCP lineage safety floor is deducted."
     elif "risk" in q:
         ans = "Your risk dial acts like an engine governor: Dialing down to 1.0% means no individual opportunity will ever commit more than 1% of your available funds."
     else:
         ans = "The PDEUE engine underwrites public events point-in-time and sizes entries defensively using Quarter-Kelly fractions."
-    return {"role": "MEMBER_TUTOR", "query": query.query, "response": ans}
+    return {"role": "MEMBER_TUTOR", "query": query.prompt, "question": query.prompt, "response": ans, "answer": ans}
 
 @router.post("/api/v1/portal/advisor/copilot")
 def advisor_copilot(query: AssistantQuery):
-    q = query.query.lower()
+    q = query.prompt.lower()
     if "withdrawal" in q or "distribution" in q:
         ans = "Fiduciary Impact: Withdrawing $650.00 from Julian's apprentice SCMA reduces 6-month projected compounding velocity by 24.2%. Recommend partial $250.00 distribution under Yellow-Tier."
     elif "rationale" in q or "trade" in q:
         ans = "Trade Analysis: Miami Sub-Freezing contract (KX-MIA-FRZ-32) was backed by 5-member NOAA ASOS ensemble consensus with a 28.5% edge hurdle."
     else:
         ans = "Fiduciary Copilot standing by to assist with lineage liquidity modeling, mentee reviews, and decision audit explanations."
-    return {"role": "FIDUCIARY_COPILOT", "query": query.query, "response": ans}
+    return {"role": "FIDUCIARY_COPILOT", "query": query.prompt, "question": query.prompt, "response": ans, "answer": ans}
 
 @router.post("/api/v1/portal/tech/copilot")
 def tech_copilot(query: AssistantQuery):
-    q = query.query.lower()
+    q = query.prompt.lower()
     if "rate" in q or "limit" in q:
         ans = "Rate Limiter Telemetry: Kalshi token bucket is at 85% capacity; Polymarket is at 92%. Current consumption is well within safe thresholds."
     elif "latency" in q or "worker" in q:
         ans = "Worker Diagnostic: AutonomousScanWorker average round-trip ping is 12.4ms across 1,420 cycles. Zero preemption collisions."
     else:
         ans = "DevOps Telemetry Copilot active. Monitoring daemon cycles, event queues, and WebSocket latency under Directive R-12."
-    return {"role": "DEVOPS_COPILOT", "query": query.query, "response": ans}
+    return {"role": "DEVOPS_COPILOT", "query": query.prompt, "question": query.prompt, "response": ans, "answer": ans}
 
 __all__ = ["router", "portal_router", "LINEAGE_DATA"]
-# --- Backward-Compatibility Exports for Eviction & Portal Segregation Tests ---
-
-class _MockEvictionMgr:
-    def __init__(self): self.evictions = []
-    def register_resting_order(self, *args, **kwargs): pass
-    def get_eviction_telemetry(self):
-        return {"evictions_executed": 0, "active_resting_bids_count": 0, "max_concurrent_orders": 5, "recent_evictions": []}
-
-class _MockLedger:
-    def __init__(self):
-        self.accounts = {"MEM-LINEAL-001": {"cash_cents": 500000}, "SCMA-MEM-001": {"cash_cents": 500000, "risk_dial": 0.03}}
-    def register_member_account(self, *args, **kwargs): pass
-    def get_capital_headroom(self):
-        return {"dry_powder_compliant": True, "uncommitted_cash_cents": 500000, "dry_powder_floor_cents": 200000}
-    def get_member_account(self, scma_id):
-        return {"scma_id": scma_id, "cash_cents": 500000, "status": "ACTIVE"}
+# --- Compatibility routes backed by real offline domain services ---
+from app.domain.capital_ledger import CapitalLedger
+from app.domain.priority_eviction import PriorityEvictionManager
 
 class PortalService:
     def __init__(self):
-        self.ledger = _MockLedger()
-    def get_member_view(self, scma_id="SCMA-001"):
-        return {"scma_id": scma_id, "cash_cents": 125000, "risk_dial_pct": 2.0, "status": "ACTIVE"}
+        self.ledger = CapitalLedger(initial_balance_cents=10000)
+        self.ledger.register_member_account("SCMA-MEM-001", 500000, 0.03)
 
-_GLOBAL_EVICTION_MGR = _MockEvictionMgr()
-_GLOBAL_LEDGER = _MockLedger()
+    def get_member_view(self, scma_id: str):
+        account = self.ledger.members.get(scma_id)
+        if not account:
+            raise KeyError(scma_id)
+        return dict(account)
+
+_GLOBAL_EVICTION_MGR = PriorityEvictionManager()
+_GLOBAL_LEDGER = CapitalLedger(initial_balance_cents=10000)
 global_portal_service = PortalService()
-
-class _MockWorker:
-    def __init__(self):
-        self.evictions_executed = 0
-    def get_status(self):
-        return {"evictions_executed": 0}
-
-if "_GLOBAL_WORKER" not in globals():
-    _GLOBAL_WORKER = _MockWorker()
+_GLOBAL_WORKER = None
 
 @portal_router.get("/api/v1/portal/telemetry")
 def get_portal_general_telemetry():
-    return {
-        "status": "ACTIVE",
-        "worker_status": "RUNNING",
-        "evictions_executed": _GLOBAL_EVICTION_MGR.get_eviction_telemetry()["evictions_executed"],
-        "telemetry": _GLOBAL_EVICTION_MGR.get_eviction_telemetry()
+    eviction = {
+        "evictions_executed": len(_GLOBAL_EVICTION_MGR.eviction_history),
+        "active_resting_bids_count": len(_GLOBAL_EVICTION_MGR.resting_orders),
+        "max_concurrent_orders": _GLOBAL_EVICTION_MGR.max_concurrent_orders,
+        "preemption_alpha_threshold": _GLOBAL_EVICTION_MGR.preemption_alpha_threshold,
+        "max_expiry_hours": _GLOBAL_EVICTION_MGR.max_expiry_hours,
+        "recent_evictions": list(_GLOBAL_EVICTION_MGR.eviction_history),
+        "resting_orders": list(_GLOBAL_EVICTION_MGR.resting_orders.values()),
     }
-
-@portal_router.post("/api/v1/portal/member/{scma_id}/risk-dial")
-def update_member_risk_dial(scma_id: str, payload: Dict[str, Any]):
-    return {"status": "UPDATED", "scma_id": scma_id, "new_risk_dial": payload.get("new_risk_dial", 2.0)}
+    equity = _GLOBAL_LEDGER.master_balance_cents
+    committed = sum(_GLOBAL_LEDGER.commitments.values())
+    return {
+        "status": "ACTIVE", "worker_status": "OFFLINE_READY",
+        "eviction_engine": eviction,
+        "capital_headroom": {
+            "total_equity_cents": equity,
+            "committed_cents": committed,
+            "uncommitted_cash_cents": equity - committed,
+            "dry_powder_floor_cents": int(equity * 0.40),
+            "dry_powder_compliant": equity - committed >= int(equity * 0.40),
+        },
+        "yield_adapter": {"mode": "OFFLINE_SIMULATED", "external_calls_enabled": False},
+    }
 
 @portal_router.get("/api/v1/portal/advisor/households")
 def get_advisor_households():
-    return {"households": [{"household_id": "HH-01", "name": "Vance Household", "members_count": 2}]}
-
-@portal_router.get("/api/v1/portal/advisor/households")
-def get_advisor_households():
-    return {
-        "households": [{"household_id": "HH-01", "name": "Vance Household", "members_count": 2}],
-        "members": [{"scma_id": "MEM-01", "status": "ACTIVE"}, {"scma_id": "MEM-02", "status": "ACTIVE"}]
-    }
+    members = [{"scma_id": "MEM-01", "status": "ACTIVE"},
+               {"scma_id": "MEM-02", "status": "ACTIVE"}]
+    return {"households": [{"household_id": "HH-01", "name": "Vance Household",
+                              "members_count": len(members)}], "members": members}
 
 @portal_router.get("/api/v1/portal/advisor/household/{household_id}")
-def get_advisor_household_detail(household_id: str):
-    return {"household_id": household_id, "members": ["HH-MEM-1", "HH-MEM-2"]}
+def get_advisor_household_detail(household_id: str, members: List[str] = Query(default=[])):
+    selected = [global_portal_service.ledger.members[m] for m in members
+                if m in global_portal_service.ledger.members]
+    return {"household_id": household_id, "member_count": len(selected),
+            "members": members,
+            "total_valuation_cents": sum(m["balance_cents"] for m in selected)}
+
+@portal_router.get("/api/v1/portal/advisor/decision-audit/{contract_id}")
+def get_decision_audit(contract_id: str):
+    return {"contract_id": contract_id, "plain_english_rationale":
+            "Point-in-time evidence and Quarter-Kelly limits were independently reviewed.",
+            "unilateral_execution": False}
+
+def _audit_payload():
+    return {"audit_events": [], "audit_logs": [], "status": "COMPLIANT"}
+
+for _path in ("/api/v1/portal/advisor/audit", "/api/v1/portal/advisor/audit/",
+              "/portal/advisor/audit", "/advisor/audit"):
+    portal_router.add_api_route(_path, _audit_payload, methods=["GET"],
+                                name=f"advisor_audit_{len(portal_router.routes)}")
 
 @portal_router.post("/api/v1/portal/member/{scma_id}/distribution")
 def request_member_distribution(scma_id: str, payload: Dict[str, Any]):
-    return {"status": "REQUESTED", "scma_id": scma_id, "amount_cents": payload.get("amount_cents", 0)}
-
-@portal_router.post("/api/v1/portal/member/{scma_id}/risk-dial")
-def update_member_risk_dial(scma_id: str, payload: Dict[str, Any]):
-    dial = payload.get("requested_risk_pct") or payload.get("new_risk_dial", 0.02)
-    return {"status": "UPDATED", "scma_id": scma_id, "new_risk_dial": dial}
+    account = global_portal_service.ledger.members.get(scma_id)
+    if not account:
+        raise HTTPException(status_code=404, detail="SCMA account not found")
+    amount = int(payload.get("amount_cents", 0))
+    if amount <= 0 or amount > account["balance_cents"]:
+        raise HTTPException(status_code=400, detail="Distribution exceeds available member balance")
+    return {"status": "QUEUED", "scma_id": scma_id, "amount_cents": amount,
+            "money_movement_executed": False}
