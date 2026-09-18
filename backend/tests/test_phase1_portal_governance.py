@@ -71,7 +71,13 @@ def test_directive_r12_tech_telemetry_redaction():
     assert d["recent_dispatches"][0]["notional_cents"] == "REDACTED"
 
     # Authorized CA Override view unmasks operational data plane
-    res_unredact = client.get("/api/v1/portal/tech/telemetry?unredact_token=AUTH-CA-OVERRIDE-TEMP")
+    # The override token alone is insufficient; T3 privilege is also required.
+    token_only = client.get("/api/v1/portal/tech/telemetry?unredact_token=AUTH-CA-OVERRIDE-TEMP")
+    assert token_only.json()["redaction_active"] is True
+
+    res_unredact = client.get(
+        "/api/v1/portal/tech/telemetry?tier=T3&unredact_token=AUTH-CA-OVERRIDE-TEMP"
+    )
     assert res_unredact.status_code == 200
     d_un = res_unredact.json()
     assert d_un["redaction_active"] is False

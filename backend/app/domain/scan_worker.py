@@ -1,17 +1,37 @@
-from app.domain.priority_eviction import PriorityEvictionManager
+"""Deterministic, offline autonomous market-scanning worker.
+
+The worker exercises the same normalized venue contracts used by production code,
+but it only consumes local fixture payloads.  It never performs venue retrieval or
+order placement during R&D/MVP qualification.
 """
-PDEUE Autonomous Scan Worker
-Continuously ingests Kalshi v2 and Polymarket CLOB books, evaluates
-point-in-time NOAA ASOS weather evidence, and tags opportunities with
-canonical 12-House lineage routing metadata.
-"""
-from typing import Dict, Any, List
 from datetime import datetime, timezone
+from typing import Any, Dict
+
 from app.adapters.venue_connectors import KalshiMarketDataClient, PolymarketMarketDataClient
-from app.adapters.noaa_feed import NOAAASOSAdapter
+from app.domain.domain_registry import DomainRegistry
+from app.domain.priority_eviction import PriorityEvictionManager
 from app.domain.venue_scanner import VenueOpportunityScanner
 
+
 class AutonomousScanWorker:
+    """Run category-neutral scans while retaining 12-House routing metadata."""
+
+    OFFLINE_CONTRACTS = (
+        {"ticker": "KX-MIA-FRZ-32", "category": "WEATHER", "venue": "KALSHI",
+         "house_id": 1, "spec": {"strike_temp_c": 30.0,
+                                     "ensemble_members": [31.0, 31.5, 32.0], "station_id": "KMIA"}},
+        {"ticker": "POLY-239496", "category": "CRYPTO", "venue": "POLYMARKET",
+         "house_id": 2, "spec": {"spot_price": 120.0, "strike_price": 100.0,
+                                     "annualized_vol": 0.60, "days_to_expiry": 7.0}},
+        {"ticker": "KX-CPI-3.0", "category": "MACRO", "venue": "KALSHI",
+         "house_id": 3, "spec": {"threshold": 3.0, "evidence": [
+             {"source": "OFFLINE_CONSENSUS", "value": 3.5,
+              "available_at": "2026-09-01T12:00:00Z"}]}},
+        {"ticker": "KX-NFL-DEMO", "category": "SPORTS", "venue": "KALSHI",
+         "house_id": 4, "spec": {"projected_margin": 14.0, "target_spread": 3.0,
+                                     "sigma": 13.5}},
+    )
+
     def __init__(self, *args, **kwargs):
         self.circuit_breaker = kwargs.get("circuit_breaker")
         self.interval_seconds = kwargs.get("interval_seconds", 5.0)
@@ -19,97 +39,102 @@ class AutonomousScanWorker:
         self.ledger = kwargs.get("ledger")
         self.dispatcher = kwargs.get("dispatcher")
         self.eviction_manager = kwargs.get("eviction_manager") or PriorityEvictionManager()
-        self.kalshi_client = getattr(self, "kalshi_client", None)
-        if not self.kalshi_client:
-            from app.adapters.kalshi_adapter import KalshiVenueAdapter
-            self.kalshi_client = KalshiVenueAdapter()
+        self.kalshi_client = kwargs.get("kalshi_client") or KalshiMarketDataClient()
+        self.poly_client = kwargs.get("poly_client") or PolymarketMarketDataClient()
+        self.scanner = kwargs.get("scanner") or VenueOpportunityScanner()
+        self.domain_registry = kwargs.get("domain_registry") or DomainRegistry()
         self.is_running = False
-        self.total_dispatched_count = 0
+        self.status = "IDLE"
         self.cycle_count = 0
         self.latest_opportunities = []
+        self.stats = {
+            "cycles_completed": 0,
+            "total_contracts_scanned": 0,
+            "total_evictions_executed": 0,
+            "last_cycle_status": "NOT_STARTED",
+        }
 
     def start(self):
+        self.is_running = True
         self.status = "RUNNING"
+        return {"status": "STARTED"}
 
     def stop(self):
+        self.is_running = False
         self.status = "STOPPED"
+        return {"status": "STOPPED"}
 
     def run_single_cycle(self) -> Dict[str, Any]:
-        """Executes a single multi-venue scan cycle with 12-House lineage distribution."""
         self.cycle_count += 1
+        if self.circuit_breaker and not self.circuit_breaker.validate_execution_allowed():
+            self.stats["last_cycle_status"] = "HALTED_CIRCUIT_BREAKER"
+            return {
+                "cycle_number": self.cycle_count,
+                "cycle": self.cycle_count,
+                "status": "HALTED",
+                "reason": "CIRCUIT_BREAKER_TRIPPED",
+                "contracts_scanned": 0,
+                "opportunities": [],
+            }
+
         now_iso = datetime.now(timezone.utc).isoformat()
+        opportunities = []
+        for contract in self.OFFLINE_CONTRACTS:
+            ticker = contract["ticker"]
+            venue = contract["venue"]
+            if venue == "POLYMARKET":
+                book = self.poly_client.fetch_orderbook(ticker, {
+                    "bids": [{"price": "0.02", "size": "7500"}],
+                    "asks": [{"price": "0.04", "size": "15000"}],
+                })
+            else:
+                book = self.kalshi_client.fetch_orderbook(ticker, {
+                    "bids": [[1, 5000]], "asks": [[3, 10000]],
+                })
+            opportunity = self.scanner.evaluate_domain_opportunity(
+                orderbook=book,
+                category=contract["category"],
+                underwriting_spec=contract["spec"],
+                target_house_id=contract["house_id"],
+                registry=self.domain_registry,
+            )
+            opportunities.append(opportunity)
 
-        # 1. Fetch live normalized books
-        kalshi_book = self.kalshi_client.fetch_orderbook("KX-MIA-FRZ-32", {
-            "bids": [[1, 5000]],
-            "asks": [[3, 10000]]
-        })
-        poly_book = self.poly_client.fetch_orderbook("POLY-239496", {
-            "bids": [{"price": "0.02", "size": "7500"}],
-            "asks": [{"price": "0.04", "size": "15000"}]
-        })
-
-        # 2. Ingest PIT NOAA ASOS observation
-        noaa_obs = self.noaa_adapter.ingest_observation(
-            station_id="KMIA",
-            temp_f=30.5,
-            observed_at_iso=now_iso,
-            cutoff_iso="2026-09-30T23:59:59Z"
-        )
-
-        # 3. Underwrite opportunities and distribute to House Lines
-        opp_kalshi = self.scanner.evaluate_opportunity(
-            orderbook=kalshi_book,
-            weather_obs=noaa_obs,
-            model_prob=0.315,
-            target_house_id=1  # Tagged to House Alpha Line
-        )
-
-        opp_poly = self.scanner.evaluate_opportunity(
-            orderbook=poly_book,
-            weather_obs=noaa_obs,
-            model_prob=0.340,
-            target_house_id=2  # Tagged to House Beta Line
-        )
-
-        self.latest_opportunities = [opp_kalshi, opp_poly]
-
+        self.latest_opportunities = opportunities
+        scanned = len(opportunities)
+        self.stats["cycles_completed"] += 1
+        self.stats["total_contracts_scanned"] += scanned
+        self.stats["last_cycle_status"] = "COMPLETED"
         return {
-            'cycle_number': getattr(self, 'cycle_count', 1),
+            "cycle_number": self.cycle_count,
             "cycle": self.cycle_count,
-            "status": self.status if self.status != "IDLE" else "NOMINAL",
+            "status": "COMPLETED",
             "timestamp": now_iso,
-            "scanned_venues": ["KALSHI", "POLYMARKET"],
-            "qualified_count": len([o for o in self.latest_opportunities if o["status"] == "QUALIFIED"]),
-            "opportunities": self.latest_opportunities
+            "contracts_scanned": scanned,
+            "scanned_venues": sorted({c["venue"] for c in self.OFFLINE_CONTRACTS}),
+            "qualified_count": sum(o["status"] == "QUALIFIED" for o in opportunities),
+            "opportunities": opportunities,
         }
 
     def get_telemetry(self) -> Dict[str, Any]:
         if not self.latest_opportunities:
             self.run_single_cycle()
         return {
-            'cycle_number': getattr(self, 'cycle_count', 1),
+            "cycle_number": self.cycle_count,
             "worker": "AutonomousScanWorker",
             "status": self.status if self.status != "IDLE" else "NOMINAL",
+            "is_running": self.is_running,
             "cycle": self.cycle_count,
-            "latency_ms": 12.4,
-            "latest_opportunities": self.latest_opportunities
+            "latest_opportunities": self.latest_opportunities,
+            "stats": dict(self.stats),
         }
 
-    def start(self):
-        self.is_running = True
-        return {"status": "STARTED"}
-
-    def stop(self):
-        self.is_running = False
-        return {"status": "STOPPED"}
-
     def evaluate_candidate_preemption(self, candidate, total_equity_cents, currently_committed_cents):
-        if hasattr(self.eviction_manager, "evaluate_preemption"):
-            return self.eviction_manager.evaluate_preemption(candidate, total_equity_cents, currently_committed_cents)
-        return {"evict": False}
+        return self.eviction_manager.evaluate_preemption(
+            candidate, total_equity_cents, currently_committed_cents
+        )
 
     def execute_eviction(self, order_id: str) -> dict:
-        if hasattr(self.eviction_manager, "execute_eviction"):
-            return self.eviction_manager.execute_eviction(order_id)
-        return {"evicted": True, "order_id": order_id}
+        result = self.eviction_manager.execute_eviction(order_id)
+        self.stats["total_evictions_executed"] += 1
+        return result

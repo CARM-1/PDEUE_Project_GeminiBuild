@@ -4,6 +4,7 @@ Underwrites live venue depth against calibrated models and tags
 candidate dispatches with the canonical 12-House lineal lineage identifier.
 """
 from typing import Dict, Any, Optional
+from app.domain.domain_registry import DomainRegistry
 
 class VenueOpportunityScanner:
     """Multi-Venue Point-in-Time Underwriting & Lineal Allocation Scanner."""
@@ -31,6 +32,49 @@ class VenueOpportunityScanner:
                 "admissible": False
             }
 
+        return self._evaluate_priced_opportunity(
+            orderbook=orderbook,
+            model_prob=model_prob,
+            target_house_id=target_house_id,
+            category="WEATHER",
+            evidence_type="NOAA_ASOS",
+        )
+
+    def evaluate_domain_opportunity(
+        self,
+        orderbook: Dict[str, Any],
+        category: str,
+        underwriting_spec: Dict[str, Any],
+        target_house_id: int,
+        registry: Optional[DomainRegistry] = None,
+    ) -> Dict[str, Any]:
+        """Underwrite a normalized book with its native domain adapter.
+
+        ``underwriting_spec`` contains deterministic point-in-time fixture evidence;
+        no adapter in this path retrieves live data.
+        """
+        if target_house_id < 1 or target_house_id > 12:
+            raise ValueError(f"Invalid target_house_id: {target_house_id}. Must be between 1 and 12.")
+        registry = registry or DomainRegistry()
+        registry_category = "MACROECONOMIC" if category.upper() == "MACRO" else category.upper()
+        result = registry.calculate_probability(registry_category, underwriting_spec)
+        return self._evaluate_priced_opportunity(
+            orderbook=orderbook,
+            model_prob=result["model_probability"],
+            target_house_id=target_house_id,
+            category=category.upper(),
+            evidence_type=registry_category,
+        )
+
+    def _evaluate_priced_opportunity(
+        self,
+        orderbook: Dict[str, Any],
+        model_prob: float,
+        target_house_id: int,
+        category: str,
+        evidence_type: str,
+    ) -> Dict[str, Any]:
+        """Apply category-neutral venue pricing and 12-House routing."""
         yes_ask = orderbook.get("yes_ask", 1.0)
         yes_bid = orderbook.get("yes_bid", 0.0)
 
@@ -57,6 +101,8 @@ class VenueOpportunityScanner:
         return {
             "opportunity_id": f"OPP-{orderbook.get('venue')}-{orderbook.get('contract_ticker')}",
             "venue": orderbook.get("venue"),
+            "category": category,
+            "evidence_type": evidence_type,
             "contract_ticker": orderbook.get("contract_ticker"),
             "target_house_id": target_house_id,
             "lineage_code": house_code,

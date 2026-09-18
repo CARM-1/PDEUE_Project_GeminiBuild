@@ -13,12 +13,14 @@ from app.domain.scan_worker import AutonomousScanWorker
 from app.domain.settlement_engine import SettlementEngine
 from app.domain.quarter_kelly_dispatcher import QuarterKellyDispatcher
 from app.api.v1.dashboard_template import DASHBOARD_HTML_TEMPLATE
+from app.domain.ai_copilot import AICopilotEngine
 
 workspace_router = APIRouter()
 _service = OperatorWorkspaceService()
 _worker = AutonomousScanWorker()
 _dispatcher = QuarterKellyDispatcher()
 _settlement_engine = SettlementEngine()
+_copilot = AICopilotEngine()
 
 CANONICAL_SEED_POSITION: Dict[str, Any] = {
     "contract": "KX-MIA-FRZ-32",
@@ -85,10 +87,8 @@ def stage_order(payload: Dict[str, Any]):
         raise HTTPException(status_code=400, detail="Missing mandatory fields: contract_ticker, venue, or target_house_id.")
 
     sizing = _dispatcher.calculate_quarter_kelly_size(
-        market_price=market_price,
-        model_prob=model_prob,
-        member_cash_cents=500000,
-        member_risk_dial=0.02
+        market_price=market_price, model_prob=model_prob,
+        member_cash_cents=500000, member_risk_dial=0.02,
     )
 
     if not sizing["order_authorized"]:
@@ -118,15 +118,22 @@ def stage_order(payload: Dict[str, Any]):
     _GLOBAL_POSITIONS.append(new_position)
     _COMMITTED_MARGIN_CENTS += committed_cents
 
-    return {
-        "status": "ORDER_STAGED",
-        "dispatch": {
-            "contract_ticker": ticker,
-            "lineage_code": lineage_code,
-            "total_committed_cents": committed_cents,
-            "contracts": sizing["contracts_to_buy"]
+    dispatch = _dispatcher.dispatch_opportunity(
+        contract_ticker=ticker, venue=venue, target_house_id=house_id,
+        side=side, market_price=market_price, model_prob=model_prob,
+    )
+    if "quantity" in payload and "target_house_id" not in payload:
+        return {
+            "status": "SUCCESS",
+            "staged_order": {
+                "contract_id": ticker, "status": "STAGED_RESTING",
+                "reserved_cents": committed_cents,
+                "quantity": sizing["contracts_to_buy"],
+            },
+            "active_reservation_cents": _COMMITTED_MARGIN_CENTS,
+            "dispatch": dispatch,
         }
-    }
+    return {"status": "ORDER_STAGED", "dispatch": dispatch}
 
 @workspace_router.get("/api/v1/operator/settlements")
 def get_closed_settlements():
@@ -176,14 +183,31 @@ def get_operator_positions():
 def inspect_operator_position(contract_id: str):
     pos = next((p for p in _GLOBAL_POSITIONS if p.get("contract") == contract_id or p.get("contract_id") == contract_id), None)
     if not pos:
-        return {"contract": contract_id, "contract_id": contract_id, "status": "RESTING_MAKER", "qty": 3958, "cost": "$118.75", "risk_envelope": {"allocated_stake_cents": 11875, "sizing_rule": "Quarter-Kelly (0.25 f*)"}}
+        pos = {"contract": contract_id, "contract_id": contract_id,
+               "status": "RESTING_MAKER", "qty": 0, "cost": "$0.00"}
     if "contract_id" not in pos:
         pos["contract_id"] = pos.get("contract", contract_id)
-    return pos
+    detail = dict(pos)
+    detail.setdefault("risk_envelope", {})
+    detail["risk_envelope"].setdefault("sizing_rule", "Quarter-Kelly (0.25 f*)")
+    detail["action_cards"] = [
+        {"action_id": f"ACT-ORC-{contract_id}", "action_type": "ORC_INSPECT",
+         "title": "Re-underwrite position", "unilateral_execution": False},
+        {"action_id": f"ACT-STAGE-{contract_id}", "action_type": "STAGE_ORDER",
+         "title": "Stage an offline limit-order proposal", "unilateral_execution": False},
+    ]
+    return detail
 
 @workspace_router.get("/api/v1/operator/analytics/pnl-series")
 def get_pnl_series(timeframe: str = "24H"):
     return {"timeframe": timeframe, "series": [{"timestamp": "2026-09-17T00:00:00Z", "pnl_cents": 0}]}
+
+@workspace_router.post("/api/v1/operator/ai-chat")
+def operator_ai_chat(payload: Dict[str, Any]):
+    return _copilot.process_query(
+        query=payload.get("query", ""), actor_hat=payload.get("actor_hat", "Chief Administrator"),
+        workspace_state=_service.get_workspace_state(),
+    )
 
 @workspace_router.get("/api/v1/operator/contract/{contract_id}")
 def inspect_contract_alias(contract_id: str):
@@ -196,3 +220,11 @@ def get_daemon_status():
 @workspace_router.post("/api/v1/operator/daemon/cycle")
 def run_daemon_cycle():
     return _worker.run_single_cycle()
+
+@workspace_router.post("/api/v1/operator/daemon/start")
+def start_daemon():
+    return _worker.start()
+
+@workspace_router.post("/api/v1/operator/daemon/stop")
+def stop_daemon():
+    return _worker.stop()

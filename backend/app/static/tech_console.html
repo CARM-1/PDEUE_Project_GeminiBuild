@@ -21,6 +21,14 @@
   </style>
 </head>
 <body>
+  <section class="card" aria-label="Capital and eviction telemetry">
+    <strong>Capital Headroom</strong>
+    <span id="dry-powder-status">Loading</span>
+    <span id="active-bids-count">0</span>
+    <table><tbody id="resting-orders-body"></tbody></table>
+    <table><tbody id="eviction-history-body"></tbody></table>
+    <span data-source="/api/v1/portal/telemetry"></span>
+  </section>
 
   <!-- PDEUE UNIFIED GLOBAL PORTAL HUB -->
   <div style="background: #060b19; border-bottom: 1px solid #1e293b; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; margin: -24px -24px 20px -24px;">

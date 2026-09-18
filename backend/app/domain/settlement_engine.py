@@ -119,9 +119,11 @@ class SettlementReconciler(SettlementEngine):
             "event": {
                 "waterfall": {
                     "scma_cents": 435,
+                    "member_reinvest_cents": 435,
                     "cfcp_cents": 50,
                     "central_family_pool_cents": 50,
-                    "faep_cents": 15
+                    "faep_cents": 15,
+                    "founder_pool_cents": 15
                 }
             }
         }
@@ -134,13 +136,17 @@ class PositionExitManager:
     def evaluate_early_exit(self, pos, resting_bid, spread=0.02):
         cost = pos.get("total_cost_cents", 1000)
         qty = pos.get("quantity", 50)
-        proceeds = qty * resting_bid * 100
-        profit = proceeds - cost
-        return_pct = profit / cost if cost > 0 else 0.0
+        entry_price = cost / (qty * 100) if qty > 0 else 1.0
+        net_bid = max(0.0, resting_bid - spread) * (1.0 - self.fee_rate)
+        profit = max(0.0, net_bid - entry_price)
+        max_profit = max(0.01, 1.0 - entry_price)
+        return_pct = profit / max_profit
         
         if return_pct >= self.exit_profit_threshold:
-            return {"action": "EXIT_EARLY", "reason": "PROFIT_HURDLE_ACHIEVED"}
-        return {"action": "HOLD_TO_MATURITY", "reason": "PROFIT_BELOW_EXIT_HURDLE"}
+            return {"action": "EXIT_EARLY", "reason": "PROFIT_HURDLE_ACHIEVED",
+                    "profit_capture_ratio": round(return_pct, 4)}
+        return {"action": "HOLD_TO_MATURITY", "reason": "PROFIT_BELOW_EXIT_HURDLE",
+                "profit_capture_ratio": round(return_pct, 4)}
 
     def evaluate_exit(self, *args, **kwargs):
         return {"action": "HOLD_TO_MATURITY", "reason": "PROFIT_BELOW_EXIT_HURDLE"}
