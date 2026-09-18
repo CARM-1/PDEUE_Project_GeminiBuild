@@ -7,8 +7,8 @@ order placement during R&D/MVP qualification.
 from datetime import datetime, timezone
 from typing import Any, Dict
 
-from app.adapters.noaa_feed import NOAAASOSAdapter
 from app.adapters.venue_connectors import KalshiMarketDataClient, PolymarketMarketDataClient
+from app.domain.domain_registry import DomainRegistry
 from app.domain.priority_eviction import PriorityEvictionManager
 from app.domain.venue_scanner import VenueOpportunityScanner
 
@@ -16,11 +16,20 @@ from app.domain.venue_scanner import VenueOpportunityScanner
 class AutonomousScanWorker:
     """Run category-neutral scans while retaining 12-House routing metadata."""
 
-    OFFLINE_BOOKS = (
-        ("KX-MIA-FRZ-32", "WEATHER", "KALSHI", 0.315, 1),
-        ("POLY-239496", "CRYPTO", "POLYMARKET", 0.340, 2),
-        ("KX-CPI-3.0", "MACRO", "KALSHI", 0.330, 3),
-        ("KX-NFL-DEMO", "SPORTS", "KALSHI", 0.325, 4),
+    OFFLINE_CONTRACTS = (
+        {"ticker": "KX-MIA-FRZ-32", "category": "WEATHER", "venue": "KALSHI",
+         "house_id": 1, "spec": {"strike_temp_c": 30.0,
+                                     "ensemble_members": [31.0, 31.5, 32.0], "station_id": "KMIA"}},
+        {"ticker": "POLY-239496", "category": "CRYPTO", "venue": "POLYMARKET",
+         "house_id": 2, "spec": {"spot_price": 120.0, "strike_price": 100.0,
+                                     "annualized_vol": 0.60, "days_to_expiry": 7.0}},
+        {"ticker": "KX-CPI-3.0", "category": "MACRO", "venue": "KALSHI",
+         "house_id": 3, "spec": {"threshold": 3.0, "evidence": [
+             {"source": "OFFLINE_CONSENSUS", "value": 3.5,
+              "available_at": "2026-09-01T12:00:00Z"}]}},
+        {"ticker": "KX-NFL-DEMO", "category": "SPORTS", "venue": "KALSHI",
+         "house_id": 4, "spec": {"projected_margin": 14.0, "target_spread": 3.0,
+                                     "sigma": 13.5}},
     )
 
     def __init__(self, *args, **kwargs):
@@ -32,8 +41,8 @@ class AutonomousScanWorker:
         self.eviction_manager = kwargs.get("eviction_manager") or PriorityEvictionManager()
         self.kalshi_client = kwargs.get("kalshi_client") or KalshiMarketDataClient()
         self.poly_client = kwargs.get("poly_client") or PolymarketMarketDataClient()
-        self.noaa_adapter = kwargs.get("noaa_adapter") or NOAAASOSAdapter()
         self.scanner = kwargs.get("scanner") or VenueOpportunityScanner()
+        self.domain_registry = kwargs.get("domain_registry") or DomainRegistry()
         self.is_running = False
         self.status = "IDLE"
         self.cycle_count = 0
@@ -69,12 +78,10 @@ class AutonomousScanWorker:
             }
 
         now_iso = datetime.now(timezone.utc).isoformat()
-        evidence = self.noaa_adapter.ingest_observation(
-            station_id="KMIA", temp_f=30.5, observed_at_iso=now_iso,
-            cutoff_iso="2026-09-30T23:59:59Z",
-        )
         opportunities = []
-        for ticker, category, venue, probability, house_id in self.OFFLINE_BOOKS:
+        for contract in self.OFFLINE_CONTRACTS:
+            ticker = contract["ticker"]
+            venue = contract["venue"]
             if venue == "POLYMARKET":
                 book = self.poly_client.fetch_orderbook(ticker, {
                     "bids": [{"price": "0.02", "size": "7500"}],
@@ -84,11 +91,13 @@ class AutonomousScanWorker:
                 book = self.kalshi_client.fetch_orderbook(ticker, {
                     "bids": [[1, 5000]], "asks": [[3, 10000]],
                 })
-            opportunity = self.scanner.evaluate_opportunity(
-                orderbook=book, weather_obs=evidence, model_prob=probability,
-                target_house_id=house_id,
+            opportunity = self.scanner.evaluate_domain_opportunity(
+                orderbook=book,
+                category=contract["category"],
+                underwriting_spec=contract["spec"],
+                target_house_id=contract["house_id"],
+                registry=self.domain_registry,
             )
-            opportunity["category"] = category
             opportunities.append(opportunity)
 
         self.latest_opportunities = opportunities
@@ -102,7 +111,7 @@ class AutonomousScanWorker:
             "status": "COMPLETED",
             "timestamp": now_iso,
             "contracts_scanned": scanned,
-            "scanned_venues": sorted({o[2] for o in self.OFFLINE_BOOKS}),
+            "scanned_venues": sorted({c["venue"] for c in self.OFFLINE_CONTRACTS}),
             "qualified_count": sum(o["status"] == "QUALIFIED" for o in opportunities),
             "opportunities": opportunities,
         }

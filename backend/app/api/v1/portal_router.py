@@ -434,7 +434,9 @@ def get_tech_telemetry(
     if tier_upper not in ["T1", "T2", "T3"]:
         tier_upper = "T1"
 
-    is_unredacted = (unredact_token == "AUTH-CA-OVERRIDE-TEMP")
+    is_unredacted = (
+        tier_upper == "T3" and unredact_token == "AUTH-CA-OVERRIDE-TEMP"
+    )
 
     recent_orders = [
         {
@@ -523,6 +525,13 @@ _GLOBAL_LEDGER = CapitalLedger(initial_balance_cents=10000)
 global_portal_service = PortalService()
 _GLOBAL_WORKER = None
 
+# This authorization map, not caller-controlled query parameters, defines the
+# advisor household boundary. Accounts may exist in the ledger without being
+# visible to a household advisor.
+HOUSEHOLD_MEMBER_IDS = {
+    "HH-ALPHA": ("HH-MEM-1", "HH-MEM-2"),
+}
+
 @portal_router.get("/api/v1/portal/telemetry")
 def get_portal_general_telemetry():
     eviction = {
@@ -558,10 +567,13 @@ def get_advisor_households():
 
 @portal_router.get("/api/v1/portal/advisor/household/{household_id}")
 def get_advisor_household_detail(household_id: str, members: List[str] = Query(default=[])):
-    selected = [global_portal_service.ledger.members[m] for m in members
+    authorized_ids = HOUSEHOLD_MEMBER_IDS.get(household_id)
+    if authorized_ids is None:
+        raise HTTPException(status_code=404, detail="Household not found")
+    selected = [global_portal_service.ledger.members[m] for m in authorized_ids
                 if m in global_portal_service.ledger.members]
     return {"household_id": household_id, "member_count": len(selected),
-            "members": members,
+            "members": [m["member_id"] for m in selected],
             "total_valuation_cents": sum(m["balance_cents"] for m in selected)}
 
 @portal_router.get("/api/v1/portal/advisor/decision-audit/{contract_id}")

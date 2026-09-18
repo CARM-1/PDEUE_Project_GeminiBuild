@@ -37,9 +37,12 @@ def test_advisor_household_read_boundary():
     ledger = global_portal_service.ledger
     ledger.register_member_account('HH-MEM-1', seed_capital_cents=10000, max_risk_pct=0.03)
     ledger.register_member_account('HH-MEM-2', seed_capital_cents=20000, max_risk_pct=0.02)
+    ledger.register_member_account('OUTSIDE-MEM', seed_capital_cents=90000, max_risk_pct=0.02)
 
-    res = client.get('/api/v1/portal/advisor/household/HH-ALPHA?members=HH-MEM-1&members=HH-MEM-2')
+    # A caller cannot expand the authoritative HH-ALPHA membership boundary.
+    res = client.get('/api/v1/portal/advisor/household/HH-ALPHA?members=OUTSIDE-MEM')
     assert res.status_code == 200
     data = res.json()
     assert data['member_count'] == 2
     assert data['total_valuation_cents'] == 30000
+    assert 'OUTSIDE-MEM' not in data['members']
