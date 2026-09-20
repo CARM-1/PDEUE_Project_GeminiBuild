@@ -1,0 +1,19 @@
+{
+  "release_candidate": "RC-A",
+  "schema_version": "rca.acceptance.v1",
+  "authorized_starting_sha": "488ed908f4187b291ba4f5f5e41757cf6e38e5e0",
+  "source_mode": "OFFLINE",
+  "runtime_network_dependencies": [],
+  "money_contract": "INTEGER_CENTS",
+  "domains": ["WEATHER", "CRYPTO", "MACRO", "SPORTS"],
+  "active_hats": ["CHIEF_ADMINISTRATOR", "PERSONAL_SCMA"],
+  "old_session_revoked_on_switch": true,
+  "system_halt_scope": "IN_PROCESS_ONLY",
+  "external_cancellation": "NOT_AUTHORIZED_NOT_ATTEMPTED",
+  "dry_powder_policy": {
+    "qualification_state": "QUALIFICATION_PENDING",
+    "reason_code": "DRY_POWDER_POLICY_UNRESOLVED"
+  },
+  "mass_provisioning": "DEFERRED",
+  "forbidden_activations": []
+}
