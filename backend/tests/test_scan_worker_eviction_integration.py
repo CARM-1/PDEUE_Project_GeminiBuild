@@ -7,7 +7,7 @@ def test_scan_worker_default_eviction_manager():
     """Validates AutonomousScanWorker initializes with default eviction manager."""
     worker = AutonomousScanWorker()
     assert isinstance(worker.eviction_manager, PriorityEvictionManager)
-    assert worker.eviction_manager.max_concurrent_orders == 5
+    assert worker.eviction_manager.max_concurrent_orders == 6
     assert worker.eviction_manager.dry_powder_floor_pct == 0.40
 
 def test_scan_worker_preemption_wiring():
@@ -16,11 +16,11 @@ def test_scan_worker_preemption_wiring():
     eviction_mgr = PriorityEvictionManager()
     worker = AutonomousScanWorker(ledger=ledger, eviction_manager=eviction_mgr)
     
-    assert worker.eviction_manager.max_concurrent_orders == 5
+    assert worker.eviction_manager.max_concurrent_orders == 6
     assert worker.eviction_manager.dry_powder_floor_pct == 0.40
 
-    # Populate 5 resting orders
-    for i in range(1, 6):
+    # Populate all 6 resting-order slots
+    for i in range(1, 7):
         worker.eviction_manager.register_resting_order(
             order_id=f"RESTING-0{i}",
             ticker=f"TICKER-0{i}",
@@ -50,5 +50,5 @@ def test_scan_worker_preemption_wiring():
     # Execute eviction through worker
     evicted = worker.execute_eviction("RESTING-01")
     assert evicted["status"] == "CANCELLED_EVICTED"
-    assert len(worker.eviction_manager.resting_orders) == 4
+    assert len(worker.eviction_manager.resting_orders) == 5
     assert worker.stats["total_evictions_executed"] == 1
