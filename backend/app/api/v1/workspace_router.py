@@ -3,7 +3,8 @@ PDEUE Chief Administrator Workspace Router
 Authoritative endpoint provider for Operator Workspace, Active Positions Ledger,
 Velocity Radar Telemetry, Stage Dispatch, and Settlement Waterfall Reconciler.
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.responses import HTMLResponse
 from typing import Dict, Any, List
 import pathlib
@@ -14,6 +15,12 @@ from app.domain.settlement_engine import SettlementEngine
 from app.domain.quarter_kelly_dispatcher import QuarterKellyDispatcher
 from app.api.v1.dashboard_template import DASHBOARD_HTML_TEMPLATE
 from app.domain.ai_copilot import AICopilotEngine
+from app.domain.active_hat import ActiveHatSessionAuthority, FounderHat
+from app.domain.founder_workspace import FounderWorkspaceService
+from app.schemas.rca_workspace import (
+    ExecutiveCapitalEnvelope, PersonalScmaEnvelope, ScannerSummaryEnvelope,
+)
+from pydantic import BaseModel
 
 workspace_router = APIRouter()
 _service = OperatorWorkspaceService()
@@ -21,6 +28,75 @@ _worker = AutonomousScanWorker()
 _dispatcher = QuarterKellyDispatcher()
 _settlement_engine = SettlementEngine()
 _copilot = AICopilotEngine()
+_founder_service = FounderWorkspaceService()
+_hat_authority = ActiveHatSessionAuthority()
+_bearer = HTTPBearer()
+
+
+class HatSelectionRequest(BaseModel):
+    hat: FounderHat
+    confirmed: bool
+
+
+class HaltRequest(BaseModel):
+    reason: str
+
+
+class RevocationRequest(BaseModel):
+    subject: str
+
+
+def _token(credentials: HTTPAuthorizationCredentials = Depends(_bearer)) -> str:
+    return credentials.credentials
+
+
+def _chief_session(token: str = Depends(_token)):
+    return _hat_authority.authorize(token, "CHIEF_ADMINISTRATOR")
+
+
+def _personal_session(token: str = Depends(_token)):
+    return _hat_authority.authorize(token, "PERSONAL_SCMA")
+
+
+@workspace_router.post("/api/v1/workspace/hat-sessions/select")
+def select_founder_hat(request: HatSelectionRequest, identity_token: str = Depends(_token)):
+    """Select or switch hats; selecting a hat revokes the prior scoped token."""
+    return _hat_authority.select_hat(identity_token, request.hat, request.confirmed)
+
+
+@workspace_router.get("/api/v1/workspace/capital-summary", response_model=ExecutiveCapitalEnvelope)
+def get_capital_summary(_session=Depends(_chief_session)):
+    return _founder_service.capital_summary()
+
+
+@workspace_router.get("/api/v1/workspace/scanner-summary", response_model=ScannerSummaryEnvelope)
+def get_scanner_summary(_session=Depends(_chief_session)):
+    return _founder_service.scanner_summary()
+
+
+@workspace_router.get("/api/v1/workspace/personal-scma", response_model=PersonalScmaEnvelope)
+def get_personal_scma(session=Depends(_personal_session)):
+    return _founder_service.personal_summary(session.subject)
+
+
+@workspace_router.get("/api/v1/workspace/governance")
+def get_founder_governance(_session=Depends(_chief_session)):
+    return {
+        "schema_version": "rca.governance.v1",
+        "pending_dual_control": list(_founder_service.pending_approvals),
+        "privileged_sessions": _hat_authority.privileged_sessions(),
+    }
+
+
+@workspace_router.post("/api/v1/workspace/system-halt")
+def system_halt(request: HaltRequest, session=Depends(_chief_session)):
+    # Deliberately internal only: no venue adapter or cancellation API is called.
+    return _founder_service.system_halt(session.subject)
+
+
+@workspace_router.post("/api/v1/workspace/authority/revoke")
+def revoke_authority(request: RevocationRequest, _session=Depends(_chief_session)):
+    return {"revoked": _hat_authority.revoke_subject(request.subject), "subject": request.subject}
 
 CANONICAL_SEED_POSITION: Dict[str, Any] = {
     "contract": "KX-MIA-FRZ-32",
