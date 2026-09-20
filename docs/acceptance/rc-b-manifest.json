@@ -1,0 +1,35 @@
+{
+  "release_candidate": "RC-B",
+  "schema_version": "rcb.acceptance.v1",
+  "authorized_starting_sha": "aa734e31bc9edaa72c17e285f9ae23b72ffe2d8d",
+  "source_mode": "OFFLINE",
+  "runtime_network_dependencies": [],
+  "live_trading_actuation": false,
+  "money_contract": "SIGNED_64_BIT_INTEGER_CENTS",
+  "dynamic_spread_kelly": {
+    "waterfall_retention": 0.87,
+    "spread_fraction_bounds": [0.05, 0.25],
+    "maximum_equity_allocation": 0.05
+  },
+  "priority_eviction": {
+    "default_capacity": 6,
+    "minimum_net_edge": 0.03,
+    "minimum_preemption_edge_delta": 0.10,
+    "protected_statuses": ["FILLED", "PARTIALLY_FILLED"]
+  },
+  "atomic_legs": {
+    "leg_two_timeout_ms": 750,
+    "timeout_action": "IOC_MARKETABLE_LIMIT_SCRATCH"
+  },
+  "cross_venue": {
+    "venues": ["KALSHI_USD_CENTS", "POLYMARKET_USDC_CENTS"],
+    "rebalance_drift_threshold": 0.15,
+    "requests_per_second_per_venue": 10
+  },
+  "dry_powder_policy": {
+    "status": "QUALIFIED",
+    "version": "rcb.v1",
+    "minimum_cents": 4000,
+    "equity_fraction": 0.40
+  }
+}
