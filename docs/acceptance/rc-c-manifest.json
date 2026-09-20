@@ -1,0 +1,33 @@
+{
+  "release_candidate": "RC-C",
+  "title": "Endurance Soak & Qualification Harness",
+  "base_commit": "386eaaf83239580cfa81605399b28e24ed58dc01",
+  "runtime": "Python 3.12",
+  "modes": {
+    "accelerated_pit_replay": {
+      "deterministic": true,
+      "lookahead_allowed": false,
+      "external_trading": false
+    },
+    "continuous_cloud_paper_soak": {
+      "poll_interval_seconds": 5,
+      "duration_hours": 72,
+      "cycles": 51840,
+      "external_trading": false
+    }
+  },
+  "checkpoints": {
+    "interval_cycles": 4320,
+    "interval_hours": 6,
+    "atomic_serialization": "fsync-temp-and-replace",
+    "fifo_fill_ratio_expectation": 0.75
+  },
+  "invariants": {
+    "monetary_representation": "signed-64-bit-integer-cents",
+    "dry_powder_floor_percent": 40,
+    "bounded_equity_samples": 13,
+    "graceful_sigterm_flush": true,
+    "live_network_actions": 0
+  },
+  "qualification_status": "VERIFIED_BY_AUTOMATED_TESTS"
+}

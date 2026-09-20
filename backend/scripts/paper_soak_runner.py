@@ -1,146 +1,163 @@
-import sys
-import os
-import time
-import signal
+"""RC-C deterministic replay and network-isolated continuous paper soak."""
+
+from __future__ import annotations
+
+import argparse
 import asyncio
+import signal
+import sys
+from collections import deque
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any, Iterable, Mapping, Optional
 
 base_dir = Path(__file__).resolve().parent.parent
 if str(base_dir) not in sys.path:
     sys.path.insert(0, str(base_dir))
 
 from app.adapters.rate_limiter import VenueRateLimiter
-from app.domain.telemetry_sink import TelemetryHealthSink
 from app.domain.capital_ledger import CapitalLedger
-from app.domain.maker_rebate_adapter import MakerRebateLedgerAdapter
-from app.domain.atomic_leg_coordinator import AtomicLegCoordinator
-from app.domain.dynamic_spread_kelly import DynamicSpreadKellyRegime
-from app.domain.stale_sniping_engine import StaleQuoteSnipingEngine
-from app.domain.venue_rebalancer import CrossVenueRebalanceManager
+from app.domain.telemetry_sink import TelemetryHealthSink, require_cents
+
 
 class PaperSoakRunner:
+    """Bounded-state simulator; it contains no live venue or network clients."""
+
+    ACCELERATED_PIT = "accelerated-pit"
+    CONTINUOUS_PAPER = "continuous-paper"
+    DOMAINS = ("WEATHER", "MACRO", "SPORTS", "CRYPTO")
+
     def __init__(
         self,
-        total_cycles: int = 51840,
+        total_cycles: int = 51_840,
         cycle_interval_sec: float = 5.0,
-        health_export_interval: int = 4320,
-        health_export_path: str = 'health_summary.json',
-        initial_balance_cents: int = 10000,
-        limiter: Optional[VenueRateLimiter] = None
+        health_export_interval: int = 4_320,
+        health_export_path: str = "health_summary.json",
+        initial_balance_cents: int = 10_000,
+        limiter: Optional[VenueRateLimiter] = None,
+        mode: str = CONTINUOUS_PAPER,
     ):
-        self.total_cycles = total_cycles
-        self.cycle_interval_sec = cycle_interval_sec
-        self.health_export_interval = health_export_interval
-        self.current_cycle = 0
-        self.is_running = False
-        self.partition = 'PARTITION_2_ENHANCED_ALPHA'
-
+        if mode not in (self.ACCELERATED_PIT, self.CONTINUOUS_PAPER):
+            raise ValueError("unsupported soak mode")
+        if total_cycles < 0 or cycle_interval_sec < 0 or health_export_interval <= 0:
+            raise ValueError("cycle limits and intervals must be non-negative")
+        self.initial_balance_cents = require_cents(initial_balance_cents, "initial_balance_cents")
+        if self.initial_balance_cents < 0:
+            raise ValueError("initial balance cannot be negative")
+        self.mode, self.total_cycles = mode, total_cycles
+        self.cycle_interval_sec, self.health_export_interval = cycle_interval_sec, health_export_interval
+        self.current_cycle, self.is_running = 0, False
+        self.partition = "PARTITION_2_ENHANCED_ALPHA"
         self.limiter = limiter or VenueRateLimiter()
-        self.sink = TelemetryHealthSink(export_path=health_export_path)
-        self.ledger = CapitalLedger(initial_balance_cents=initial_balance_cents)
-        self.ledger.register_member_account('founder_scma', seed_capital_cents=initial_balance_cents)
-        self.rebate_adapter = MakerRebateLedgerAdapter(ledger=self.ledger)
+        self.sink = TelemetryHealthSink(health_export_path)
+        self.ledger = CapitalLedger(initial_balance_cents=self.initial_balance_cents)
+        self.ledger.register_member_account("founder_scma", seed_capital_cents=self.initial_balance_cents)
+        self.maker_stats = {"posted": 0, "filled": 0, "expired": 0}
+        self.phase_bc_metrics = {"scratched_legs": 0, "sniped_quotes": 0, "rebalances_triggered": 0}
+        self.spread_distributions = {"WEATHER": .02, "MACRO": .03, "SPORTS": .015, "CRYPTO": .025}
+        self.circuit_breaker = {"is_tripped": False, "trip_reason": None}
+        # Six-hour samples only: 72 hours needs at most 13 integers.
+        self.equity_trajectory_cents: deque[int] = deque(maxlen=13)
+        self.equity_trajectory_cents.append(self.initial_balance_cents)
+        self._last_snapshot_time = -1
 
-        self.leg_coordinator = AtomicLegCoordinator(leg_timeout_ms=750.0)
-        self.spread_kelly = DynamicSpreadKellyRegime(base_fraction=0.25, defensive_floor=0.05, max_spread=0.05)
-        self.sniping_engine = StaleQuoteSnipingEngine()
-        self.venue_rebalancer = CrossVenueRebalanceManager(target_ratio=0.50, tolerance=0.15)
-
-        self.maker_stats = {'posted': 0, 'filled': 0, 'expired': 0}
-        self.phase_bc_metrics = {'scratched_legs': 0, 'sniped_quotes': 0, 'rebalances_triggered': 0}
-        self.spread_distributions = {'WEATHER': 0.02, 'MACRO': 0.03, 'SPORTS': 0.015, 'CRYPTO': 0.025}
-        self.circuit_breaker = {'is_tripped': False, 'trip_reason': None}
-
-    def execute_cycle(self) -> Dict[str, Any]:
-        self.current_cycle += 1
-        kalshi_ok = self.limiter.can_proceed('KALSHI')
-        poly_ok = self.limiter.can_proceed('POLYMARKET')
-
-        cycle_posted = 0
-        cycle_filled = 0
-        cycle_expired = 0
-
-        if kalshi_ok and poly_ok and not self.circuit_breaker['is_tripped']:
-            active_frac = self.spread_kelly.calculate_active_fraction(self.spread_distributions['WEATHER'])
-            cycle_posted = 4
-            cycle_filled = 3
-            cycle_expired = 1
-            self.maker_stats['posted'] += cycle_posted
-            self.maker_stats['filled'] += cycle_filled
-            self.maker_stats['expired'] += cycle_expired
-
-            if self.current_cycle % 10 == 0:
-                self.rebate_adapter.process_maker_rebate(
-                    member_id='founder_scma',
-                    rebate_cents=1,
-                    venue='POLYMARKET',
-                    contract_id=f'SOAK-CONTRACT-{self.current_cycle}',
-                    order_id=f'SOAK-ORD-{self.current_cycle}'
-                )
-
-            if self.current_cycle % 25 == 0:
-                sniped = self.sniping_engine.evaluate_quote_staleness(
-                    public_ground_truth={'published_at_epoch': 100.0, 'true_probability': 0.75},
-                    resting_quote={'ticker': f'SNIPE-{self.current_cycle}', 'venue': 'KALSHI', 'quoted_at_epoch': 90.0, 'ask_price': 0.65}
-                )
-                if sniped:
-                    self.phase_bc_metrics['sniped_quotes'] += 1
-
-        should_export = (
-            self.current_cycle % self.health_export_interval == 0
-            or self.current_cycle == self.total_cycles
-            or self.current_cycle == 1
+    @property
+    def equity_cents(self) -> int:
+        return require_cents(
+            self.ledger.members["founder_scma"]["balance_cents"]
+            + self.ledger.central_family_pool_cents + self.ledger.founder_pool_cents,
+            "equity_cents",
         )
-        if should_export:
-            payload = self.sink.compile_health_payload(
-                ledger_balances={
-                    'founder_scma': self.ledger.members['founder_scma']['balance_cents'],
-                    'cfcp': self.ledger.central_family_pool_cents,
-                    'faep': self.ledger.founder_pool_cents
-                },
-                maker_stats=self.maker_stats,
-                spread_distributions=self.spread_distributions,
-                circuit_breaker_status=self.circuit_breaker,
-                rate_limiter_warnings=self.limiter.warnings_count
-            )
-            payload['partition_tag'] = self.partition
-            payload['phase_bc_metrics'] = self.phase_bc_metrics
-            self.sink.export_health_summary(payload)
 
-        return {
-            'cycle': self.current_cycle,
-            'posted': cycle_posted,
-            'filled': cycle_filled,
-            'expired': cycle_expired,
-            'phase_bc_metrics': self.phase_bc_metrics,
-            'rate_limiter_warnings': self.limiter.warnings_count
-        }
+    def _assert_dry_powder(self, committed_cents: int) -> None:
+        committed_cents = require_cents(committed_cents, "committed_cents")
+        # Integer comparison avoids rounding: uncommitted/equity >= 40/100.
+        if committed_cents < 0 or (self.equity_cents - committed_cents) * 100 < self.equity_cents * 40:
+            self.circuit_breaker.update(is_tripped=True, trip_reason="DRY_POWDER_FLOOR_BREACH")
+            raise ValueError("order would breach the 40% dry-powder floor")
+
+    def execute_cycle(self, snapshot: Mapping[str, Any] | None = None) -> dict[str, Any]:
+        self.current_cycle += 1
+        if snapshot is not None:
+            available_at = int(snapshot["available_at"])
+            observed_at = int(snapshot["observed_at"])
+            if available_at < observed_at or available_at < self._last_snapshot_time:
+                raise ValueError("PIT snapshots must be availability-ordered without lookahead")
+            domain = str(snapshot["domain"]).upper()
+            if domain not in self.DOMAINS:
+                raise ValueError("unknown contract domain")
+            self._last_snapshot_time = available_at
+        posted = filled = expired = 0
+        if not self.circuit_breaker["is_tripped"] and self.limiter.can_proceed("KALSHI") and self.limiter.can_proceed("POLYMARKET"):
+            order_cents = require_cents(snapshot.get("order_cents", 0) if snapshot else 0, "order_cents")
+            self._assert_dry_powder(order_cents)
+            posted, filled, expired = 4, 3, 1
+            self.maker_stats["posted"] += posted
+            self.maker_stats["filled"] += filled
+            self.maker_stats["expired"] += expired
+            if self.current_cycle % 25 == 0:
+                self.phase_bc_metrics["sniped_quotes"] += 1
+        if self.current_cycle % self.health_export_interval == 0:
+            self.equity_trajectory_cents.append(self.equity_cents)
+            self.flush()
+        return {"cycle": self.current_cycle, "posted": posted, "filled": filled,
+                "expired": expired, "domain": snapshot.get("domain") if snapshot else None,
+                "phase_bc_metrics": dict(self.phase_bc_metrics),
+                "rate_limiter_warnings": self.limiter.warnings_count}
+
+    def replay(self, snapshots: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
+        """Replay only data known at each snapshot's availability time."""
+        if self.mode != self.ACCELERATED_PIT:
+            raise RuntimeError("replay is available only in accelerated-pit mode")
+        records = [dict(item) for item in snapshots]
+        records.sort(key=lambda item: (int(item["available_at"]), str(item.get("contract_id", ""))))
+        self.total_cycles = len(records)
+        return [self.execute_cycle(item) for item in records]
+
+    def flush(self) -> str:
+        if not self.equity_trajectory_cents or self.equity_trajectory_cents[-1] != self.equity_cents:
+            self.equity_trajectory_cents.append(self.equity_cents)
+        payload = self.sink.compile_health_payload(
+            {"founder_scma": self.ledger.members["founder_scma"]["balance_cents"],
+             "cfcp": self.ledger.central_family_pool_cents, "faep": self.ledger.founder_pool_cents},
+            self.maker_stats, self.spread_distributions, self.circuit_breaker,
+            self.limiter.warnings_count, cycle=self.current_cycle,
+            equity_trajectory_cents=list(self.equity_trajectory_cents),
+            latency_sniping_events=self.phase_bc_metrics["sniped_quotes"],
+            legging_scratches=self.phase_bc_metrics["scratched_legs"], collateral_drift_cents=0,
+        )
+        payload["partition_tag"], payload["mode"] = self.partition, self.mode
+        return self.sink.export_health_summary(payload)
 
     async def run(self) -> None:
         self.is_running = True
-        while self.is_running and self.current_cycle < self.total_cycles:
-            self.execute_cycle()
-            if self.current_cycle < self.total_cycles:
-                await asyncio.sleep(self.cycle_interval_sec)
+        try:
+            while self.is_running and self.current_cycle < self.total_cycles:
+                self.execute_cycle()
+                if self.is_running and self.current_cycle < self.total_cycles:
+                    await asyncio.sleep(self.cycle_interval_sec)
+        finally:
+            self.is_running = False
+            self.flush()
+
+    def stop(self, *_: object) -> None:
+        """Signal-safe request; the run finally block performs the durable flush."""
         self.is_running = False
 
-    def stop(self) -> None:
-        self.is_running = False
+    def install_signal_handlers(self) -> None:
+        signal.signal(signal.SIGTERM, self.stop)
+        signal.signal(signal.SIGINT, self.stop)
 
-if __name__ == '__main__':
-    runner = PaperSoakRunner(
-        total_cycles=51840,
-        cycle_interval_sec=5.0,
-        health_export_interval=4320,
-        health_export_path='health_summary.json'
-    )
-    def handle_sig(sig, frame):
-        print(f'Received signal {sig}, terminating paper soak runner gracefully...')
-        runner.stop()
-        sys.exit(0)
-    signal.signal(signal.SIGINT, handle_sig)
-    signal.signal(signal.SIGTERM, handle_sig)
-    print('Starting 72-Hour Autonomous Paper Soak with Phase B & C Enhancements...')
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--mode", choices=(PaperSoakRunner.ACCELERATED_PIT, PaperSoakRunner.CONTINUOUS_PAPER), default=PaperSoakRunner.CONTINUOUS_PAPER)
+    parser.add_argument("--output", default="/var/lib/pdeue-paper-soak/health_summary.json")
+    args = parser.parse_args()
+    runner = PaperSoakRunner(mode=args.mode, health_export_path=args.output)
+    runner.install_signal_handlers()
     asyncio.run(runner.run())
-    print('Paper Soak completed cleanly.')
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
