@@ -1,0 +1,26 @@
+[Unit]
+Description=PDEUE RC-C continuous paper qualification soak
+After=local-fs.target
+
+[Service]
+Type=simple
+User=pdeue
+Group=pdeue
+WorkingDirectory=/opt/pdeue/backend
+ExecStart=/opt/pdeue/.venv/bin/python -m scripts.paper_soak_runner --mode continuous-paper --output /var/lib/pdeue-paper-soak/health_summary.json
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+KillSignal=SIGTERM
+StandardOutput=append:/var/log/pdeue/paper-soak.stdout.log
+StandardError=append:/var/log/pdeue/paper-soak.stderr.log
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/pdeue-paper-soak /var/log/pdeue
+LimitNOFILE=128
+MemoryMax=256M
+
+[Install]
+WantedBy=multi-user.target
