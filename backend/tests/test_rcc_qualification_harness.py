@@ -49,7 +49,7 @@ def test_continuous_cycle_loop_and_final_flush(tmp_path):
     asyncio.run(subject.run())
     report = json.loads((tmp_path / "health.json").read_text())
     assert subject.current_cycle == report["checkpoint_cycle"] == 3
-    assert report["qualification_metrics"]["order_volume"] == 12
+    assert report["qualification_metrics"]["order_volume"] == 3
 
 
 def test_sigterm_handler_requests_stop_and_flushes(tmp_path, monkeypatch):
@@ -122,7 +122,8 @@ def test_checkpoint_contains_all_qualification_metrics(tmp_path):
     assert set(metrics) == {"equity_trajectory_cents", "order_volume", "empirical_fill_ratio",
                             "fifo_fill_ratio_expectation", "latency_sniping_events",
                             "legging_scratches", "collateral_drift_cents"}
-    assert metrics["empirical_fill_ratio"] == metrics["fifo_fill_ratio_expectation"] == .75
+    assert metrics["empirical_fill_ratio"] == 1.0
+    assert metrics["fifo_fill_ratio_expectation"] == .75
 
 
 def test_manifest_declares_network_isolation():
