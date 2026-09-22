@@ -1,4 +1,4 @@
-﻿from datetime import datetime, timezone
+from datetime import datetime, timezone
 from app.domain.pit_selector import PITSelector
 
 def test_pit_selector_filters_future_data():

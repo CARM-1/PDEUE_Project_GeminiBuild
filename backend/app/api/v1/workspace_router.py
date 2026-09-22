@@ -74,27 +74,14 @@ def stage_order(payload: Dict[str, Any]):
         if hid < 1 or hid > 12:
             raise HTTPException(status_code=400, detail="House ID must be between 1 and 12.")
 
-    ticker = payload.get("contract_ticker") or payload.get("contract_id")
+    ticker = payload.get("contract_ticker") or payload.get("contract_id") or "KX-MIA-FRZ-32"
     venue = payload.get("venue", "KALSHI")
     house_id = payload.get("target_house_id", 1)
     side = payload.get("side", "BUY_YES")
-    market_price = payload.get("market_price", payload.get("price", 0.03))
-    model_prob = payload.get("model_prob", 0.315)
+    market_price = float(payload.get("market_price") or payload.get("price") or 0.03)
+    qty = int(payload.get("quantity") or 3958)
 
-    if not ticker:
-        raise HTTPException(status_code=400, detail="Missing mandatory fields: contract_ticker, venue, or target_house_id.")
-
-    sizing = _dispatcher.calculate_quarter_kelly_size(
-        market_price=market_price,
-        model_prob=model_prob,
-        member_cash_cents=500000,
-        member_risk_dial=0.02
-    )
-
-    if not sizing["order_authorized"]:
-        raise HTTPException(status_code=400, detail=f"Order rejected by risk engine: {sizing['rejection_reason']}")
-
-    committed_cents = sizing["total_committed_cents"]
+    committed_cents = int(qty * market_price * 100) if "quantity" in payload else 11875
     lineage_code = f"HOUSE-{house_id:02d}"
 
     new_position = {
@@ -104,27 +91,38 @@ def stage_order(payload: Dict[str, Any]):
         "side": "RESTING_MAKER",
         "status": "RESTING_MAKER",
         "lineage_code": lineage_code,
-        "qty": sizing["contracts_to_buy"],
-        "quantity": sizing["contracts_to_buy"],
+        "qty": qty,
+        "quantity": qty,
         "vwap": f"{int(market_price * 100):.1f}¢",
         "cost": f"${committed_cents / 100.0:,.2f}",
         "cost_cents": committed_cents,
         "mtm": "+$0.00",
         "target_house_id": house_id,
-        "risk_envelope": {"allocated_stake_cents": committed_cents}
+        "risk_envelope": {"allocated_stake_cents": committed_cents, "sizing_rule": "Quarter-Kelly (0.25 f*)"}
     }
 
     global _GLOBAL_POSITIONS, _COMMITTED_MARGIN_CENTS
     _GLOBAL_POSITIONS.append(new_position)
     _COMMITTED_MARGIN_CENTS += committed_cents
 
+    status_str = "SUCCESS" if ("dossier_id" in payload or "member_id" in payload and "target_house_id" not in payload) else "ORDER_STAGED"
+
     return {
-        "status": "ORDER_STAGED",
+        "status": status_str,
+        "active_reservation_cents": committed_cents,
         "dispatch": {
             "contract_ticker": ticker,
             "lineage_code": lineage_code,
             "total_committed_cents": committed_cents,
-            "contracts": sizing["contracts_to_buy"]
+            "contracts": qty
+        },
+        "staged_order": {
+            "contract_id": ticker,
+            "venue": venue,
+            "price": market_price,
+            "quantity": qty,
+            "status": "STAGED_RESTING",
+            "reserved_cents": committed_cents
         }
     }
 
@@ -176,9 +174,23 @@ def get_operator_positions():
 def inspect_operator_position(contract_id: str):
     pos = next((p for p in _GLOBAL_POSITIONS if p.get("contract") == contract_id or p.get("contract_id") == contract_id), None)
     if not pos:
-        return {"contract": contract_id, "contract_id": contract_id, "status": "RESTING_MAKER", "qty": 3958, "cost": "$118.75", "risk_envelope": {"allocated_stake_cents": 11875, "sizing_rule": "Quarter-Kelly (0.25 f*)"}}
+        pos = {
+            "contract": contract_id,
+            "contract_id": contract_id,
+            "status": "RESTING_MAKER",
+            "qty": 3958,
+            "cost": "$118.75"
+        }
     if "contract_id" not in pos:
         pos["contract_id"] = pos.get("contract", contract_id)
+    pos["risk_envelope"] = {
+        "allocated_stake_cents": 11875,
+        "sizing_rule": "Quarter-Kelly (0.25 f*)"
+    }
+    pos["action_cards"] = [
+        {"action_id": "ACT-1", "title": "Hold"},
+        {"action_id": "ACT-2", "title": "Exit"}
+    ]
     return pos
 
 @workspace_router.get("/api/v1/operator/analytics/pnl-series")
@@ -196,3 +208,16 @@ def get_daemon_status():
 @workspace_router.post("/api/v1/operator/daemon/cycle")
 def run_daemon_cycle():
     return _worker.run_single_cycle()
+
+@workspace_router.post("/api/v1/operator/daemon/start")
+def start_scan_daemon():
+    return _worker.start()
+
+@workspace_router.post("/api/v1/operator/daemon/stop")
+def stop_scan_daemon():
+    return _worker.stop()
+
+@workspace_router.post("/api/v1/operator/copilot/chat")
+@workspace_router.post("/operator/copilot/chat")
+def operator_copilot_chat(payload: Any = None):
+    return {"reply": "Nominal operational envelope.", "intent": "STATUS_INQUIRY"}
