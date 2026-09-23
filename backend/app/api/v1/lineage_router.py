@@ -71,6 +71,33 @@ def freeze_subordinate_risk(house_id: int, payload: Dict[str, Any]):
     except ValueError as err:
         raise HTTPException(status_code=404, detail=str(err))
 
+@lineage_router.post("/api/v1/lineage/house/{house_id}/freeze")
+def freeze_house(house_id: int):
+    try:
+        return _lineage_service.freeze_house(house_id)
+    except ValueError as err:
+        raise HTTPException(status_code=404, detail=str(err))
+
+@lineage_router.post("/api/v1/lineage/house/{house_id}/restore")
+def restore_house(house_id: int):
+    try:
+        return _lineage_service.restore_house(house_id)
+    except ValueError as err:
+        raise HTTPException(status_code=404, detail=str(err))
+
+@lineage_router.post("/api/v1/lineage/house/{house_id}/subordinate/restore-risk")
+def restore_subordinate_risk(house_id: int, payload: Dict[str, Any]):
+    scma_id = payload.get("scma_id")
+    target_risk_dial = payload.get("target_risk_dial")
+    if not scma_id or target_risk_dial is None:
+        raise HTTPException(status_code=400, detail="Missing scma_id or target_risk_dial in payload.")
+    try:
+        return _lineage_service.restore_subordinate_risk(
+            house_id, scma_id, float(target_risk_dial)
+        )
+    except (TypeError, ValueError) as err:
+        raise HTTPException(status_code=400, detail=str(err))
+
 @lineage_router.post("/api/v1/lineage/governance/propose")
 def evaluate_proposal(payload: Dict[str, Any]):
     votes = payload.get("affirmative_house_ids", [])

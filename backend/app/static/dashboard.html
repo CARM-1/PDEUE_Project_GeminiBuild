@@ -12,6 +12,7 @@
     .hub-btn { padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; text-decoration: none; border: 1px solid #334155; }
     .hub-btn.active { background: #0284c7; color: #fff; border-color: #38bdf8; }
     .hub-btn.inactive { background: #1e293b; color: #94a3b8; }
+    .currency-select { background:#0f172a; color:#e2e8f0; border:1px solid #475569; border-radius:4px; padding:5px 8px; }
     .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
     .header h1 { font-size: 22px; font-weight: bold; color: #f8fafc; }
     .header-controls { display: flex; gap: 10px; align-items: center; }
@@ -37,9 +38,14 @@
     .house-header:hover { background: #16213e; }
     .house-code { color: #38bdf8; font-family: monospace; font-weight: 800; }
     .house-freeze { background: #7f1d1d; border: 1px solid #ef4444; color: #fecaca; border-radius: 5px; padding: 6px 9px; cursor: pointer; font-weight: 700; }
+    .house-restore { background:#064e3b; border-color:#10b981; color:#a7f3d0; }
+    .house-status { border-radius:999px; padding:3px 8px; font-size:10px; font-weight:800; }
+    .house-status.active { background:#064e3b; color:#a7f3d0; }
+    .house-status.quarantined { background:#7f1d1d; color:#fecaca; }
     .subaccount-panel { padding: 0 14px 14px; }
     .lineage-action { border-radius: 4px; padding: 5px 8px; cursor: pointer; font-weight: 700; white-space: nowrap; }
     .freeze-risk { background: #78350f; color: #fde68a; border: 1px solid #f59e0b; }
+    .restore-risk { background:#064e3b; color:#a7f3d0; border:1px solid #10b981; }
     .revoke-orders { background: #7f1d1d; color: #fecaca; border: 1px solid #ef4444; }
     .lineage-status { display: none; margin-bottom: 12px; padding: 10px 14px; border: 1px solid #10b981; background: rgba(16,185,129,.1); color: #a7f3d0; border-radius: 6px; }
     .copilot-card { background:#020617; border:1px solid #334155; border-radius:7px; padding:10px; margin:8px 0; }
@@ -63,7 +69,11 @@
         <a href="/member" class="hub-btn inactive">Member Desktop (Class M)</a>
       </div>
     </div>
-    <span style="color: #64748b; font-size: 11px; font-weight: bold;">FULL BIDIRECTIONAL NAVIGATION</span>
+    <label style="color:#94a3b8;font-size:11px;font-weight:bold;">Currency:
+      <select id="currency-switcher" class="currency-select" onchange="setDisplayCurrency(this.value)">
+        <option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="CNY">CNY (¥)</option><option value="ZAR">ZAR (R)</option><option value="XAU">XAU/Gold (g)</option>
+      </select>
+    </label>
   </div>
 
   <div class="header">
@@ -446,7 +456,10 @@
       }
     }
 
-    function money(cents) { return `$${(Number(cents || 0) / 100).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`; }
+    const displayCurrencies = {USD:{factor:1,symbol:'$',digits:2},EUR:{factor:.92,symbol:'€',digits:2},CNY:{factor:7.24,symbol:'¥',digits:2},ZAR:{factor:18.1,symbol:'R',digits:2},XAU:{factor:1/2600,symbol:'',suffix:' g',digits:4}};
+    let displayCurrency = localStorage.getItem('pdeue-display-currency') || 'USD';
+    function money(cents) { const c=displayCurrencies[displayCurrency]; const value=(Number(cents||0)/100)*c.factor; return `${c.symbol}${value.toLocaleString(undefined,{minimumFractionDigits:c.digits,maximumFractionDigits:c.digits})}${c.suffix||''}`; }
+    function setDisplayCurrency(code) { displayCurrency=code; localStorage.setItem('pdeue-display-currency',code); loadWorkspaceState(); document.querySelectorAll('[data-cents]').forEach(el=>el.textContent=money(el.dataset.cents)); }
 
     function renderLineageTree(houses) {
       const tree = document.getElementById('lineage-house-tree');
@@ -465,12 +478,12 @@
             <span>${house.leader_name}<small style="display:block;color:#64748b">Designated Advisor / Lead</small></span>
             <span>${money(house.aggregated_equity_cents)}<small style="display:block;color:#64748b">Aggregated Equity</small></span>
             <span>${money(house.active_margin_cents)}<small style="display:block;color:#64748b">Active Margin</small></span>
-            <span style="color:#f87171">${Number(house.drawdown_pct).toFixed(2)}%<small style="display:block;color:#64748b">Drawdown</small></span>
-            <span class="house-freeze" role="button" onclick="event.stopPropagation(); freezeHouse(${house.house_id})">House Freeze</span>
+            <span><span class="house-status ${house.status.toLowerCase()}">${house.status}</span><small style="display:block;color:#64748b">${Number(house.drawdown_pct).toFixed(2)}% drawdown</small></span>
+            <span class="house-freeze ${house.status === 'QUARANTINED' ? 'house-restore' : ''}" role="button" onclick="event.stopPropagation(); setHouseQuarantine(${house.house_id}, '${house.status === 'QUARANTINED' ? 'restore' : 'freeze'}')">${house.status === 'QUARANTINED' ? '↺ Restore House' : '⚡ Freeze Entire House'}</span>
           </button>
           <div class="subaccount-panel" ${expandedHouseIds.has(house.house_id) || (isInitialRender && index === 0) ? '' : 'hidden'}>
             <table><thead><tr><th>SCMA ID</th><th>MEMBER NAME</th><th>ROLE / TAG</th><th>CURRENT BALANCE</th><th>RISK DIAL</th><th>RESTING MAKER ORDERS</th><th>ACTIONS</th></tr></thead>
-            <tbody>${house.members.map(member => `<tr data-scma="${member.scma_id}"><td class="house-code">${member.scma_id}</td><td>${member.name}</td><td>${member.role_tag || 'Lineal Member'}</td><td>${money(member.cash_cents)}</td><td class="risk-value">${(Number(member.risk_dial) * 100).toFixed(1)}%</td><td class="order-value">${(member.open_orders || []).length}</td><td><button class="lineage-action freeze-risk" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'freeze-risk', this)">⚡ Freeze Risk</button> <button class="lineage-action revoke-orders" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'cancel-orders', this)">✕ Revoke Orders</button></td></tr>`).join('')}</tbody></table>
+            <tbody>${house.members.map(member => `<tr data-scma="${member.scma_id}" data-baseline="${member.baseline_risk_dial || .01}"><td class="house-code">${member.scma_id}</td><td>${member.name}</td><td>${member.role_tag || 'Lineal Member'}</td><td>${money(member.cash_cents)}</td><td class="risk-value">${(Number(member.risk_dial) * 100).toFixed(1)}%</td><td class="order-value">${(member.open_orders || []).length}</td><td><button class="lineage-action freeze-risk" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'freeze-risk', this)">⚡ Freeze Risk</button> <button class="lineage-action restore-risk" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'restore-risk', this)">↺ Restore Risk</button> <button class="lineage-action revoke-orders" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'cancel-orders', this)">✕ Revoke Orders</button></td></tr>`).join('')}</tbody></table>
           </div>
         </section>`).join('');
     }
@@ -492,22 +505,28 @@
     async function runLineageAction(houseId, scmaId, action, button) {
       button.disabled = true;
       try {
-        const response = await fetch(`/api/v1/lineage/house/${houseId}/subordinate/${action}`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({scma_id:scmaId})});
+        const row = button.closest('tr');
+        const payload = {scma_id:scmaId};
+        if (action === 'restore-risk') payload.target_risk_dial = Number(row.dataset.baseline);
+        const response = await fetch(`/api/v1/lineage/house/${houseId}/subordinate/${action}`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
         const result = await response.json();
         if (!response.ok) throw new Error(result.detail || `HTTP ${response.status}`);
-        const row = button.closest('tr');
         if (action === 'freeze-risk') row.querySelector('.risk-value').textContent = '0.0%';
+        else if (action === 'restore-risk') row.querySelector('.risk-value').textContent = `${(result.new_risk_dial * 100).toFixed(1)}%`;
         else row.querySelector('.order-value').textContent = '0';
-        showLineageStatus(action === 'freeze-risk' ? `Governor clamp confirmed: ${scmaId} risk dial is 0.0%.` : `Order revocation confirmed: ${scmaId} has no active maker orders.`);
+        showLineageStatus(action === 'freeze-risk' ? `Governor clamp confirmed: ${scmaId} risk dial is 0.0%.` : action === 'restore-risk' ? `Risk restored for ${scmaId}.` : `Order revocation confirmed: ${scmaId} has no active maker orders.`);
       } catch (error) { showLineageStatus(`Lineage intervention failed: ${error.message}`, true); }
       finally { button.disabled = false; }
     }
 
-    async function freezeHouse(houseId) {
-      const house = document.querySelector(`[data-house-id="${houseId}"]`);
-      const buttons = [...house.querySelectorAll('.freeze-risk')];
-      for (const button of buttons) await runLineageAction(houseId, button.closest('tr').dataset.scma, 'freeze-risk', button);
-      showLineageStatus(`Emergency House freeze complete for HOUSE-${String(houseId).padStart(2,'0')}.`);
+    async function setHouseQuarantine(houseId, action) {
+      try {
+        const response = await fetch(`/api/v1/lineage/house/${houseId}/${action}`, {method:'POST'});
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.detail || `HTTP ${response.status}`);
+        showLineageStatus(`${result.house_status}: HOUSE-${String(houseId).padStart(2,'0')} controls updated.`);
+        await loadWorkspaceState();
+      } catch (error) { showLineageStatus(`House intervention failed: ${error.message}`, true); }
     }
 
     function openSettleModal(ticker, qty, costStr) {
@@ -715,6 +734,7 @@
     }
 
     window.addEventListener("DOMContentLoaded", () => {
+      document.getElementById('currency-switcher').value = displayCurrency;
       renderChart();
       loadWorkspaceState();
       loadGovernanceProposals();
@@ -748,7 +768,7 @@
       const citations = (result.citations || []).map(item => `<li>${escapeCopilot(item)}</li>`).join('') || '<span style="color:#64748b">No citations returned.</span>';
       const actions = (result.action_cards || []).map(item => `<div style="margin-top:5px"><b>${escapeCopilot(item.title)}</b><span style="color:#94a3b8"> · approval ${item.requires_settlor_approval ? 'required' : 'not required'}</span></div>`).join('') || '<span style="color:#64748b">No action proposals.</span>';
       const telemetry = result.risk_telemetry || {};
-      return `<section class="copilot-card"><div class="copilot-card-label">Answer Text</div>${escapeCopilot(result.answer_text)}</section><section class="copilot-card"><div class="copilot-card-label">Citations</div><ul style="padding-left:18px">${citations}</ul></section><section class="copilot-card"><div class="copilot-card-label">Action Proposals</div>${actions}</section><section class="copilot-card"><div class="copilot-card-label">Telemetry</div><span class="telemetry-badge">Risk ${Number(telemetry.current_risk_pct || 0).toFixed(1)}%</span><span class="telemetry-badge">Dry Powder $${(Number(telemetry.dry_powder_cents || 0)/100).toFixed(2)}</span><span class="telemetry-badge">${telemetry.downward_only_locked ? 'Downward-only locked' : 'Unlocked'}</span></section>`;
+      return `<section class="copilot-card"><div class="copilot-card-label">Answer Text</div>${escapeCopilot(result.answer_text)}</section><section class="copilot-card"><div class="copilot-card-label">Citations</div><ul style="padding-left:18px">${citations}</ul></section><section class="copilot-card"><div class="copilot-card-label">Action Proposals</div>${actions}</section><section class="copilot-card"><div class="copilot-card-label">Telemetry</div><span class="telemetry-badge">Risk ${Number(telemetry.current_risk_pct || 0).toFixed(1)}%</span><span class="telemetry-badge">Dry Powder ${money(telemetry.dry_powder_cents || 0)}</span><span class="telemetry-badge">${telemetry.downward_only_locked ? 'Downward-only locked' : 'Unlocked'}</span></section>`;
     }
     async function submitStage2Copilot(event) {
       event.preventDefault();

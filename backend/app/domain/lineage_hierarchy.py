@@ -97,6 +97,13 @@ class LineageHierarchyService:
                     ],
                     "governance_seat": True
                 }
+        # Preserve each member's normal operating limit independently of the
+        # current dial.  Quarantine can therefore be reversed without guessing
+        # or changing ADR-008 monetary state.
+        for house in self.CANONICAL_HOUSES.values():
+            house.setdefault("status", "ACTIVE")
+            for member in house["members"]:
+                member.setdefault("baseline_risk_dial", member["risk_dial"])
 
     def get_house_summary(self, house_id: int) -> Dict[str, Any]:
         if house_id < 1 or house_id > 12:
@@ -113,6 +120,7 @@ class LineageHierarchyService:
             "name": house["name"],
             "leader_name": house["leader_name"],
             "leader_role": house["leader_role"],
+            "status": house["status"],
             "member_count": len(house["members"]),
             "total_cash_cents": total_cash_cents,
             "total_cash_formatted": f"${total_cash_cents / 100.0:,.2f}",
@@ -168,6 +176,68 @@ class LineageHierarchyService:
             "new_risk_dial": 0.0,
             "member_status": target["status"],
             "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+
+    def freeze_house(self, house_id: int) -> Dict[str, Any]:
+        """Quarantine one lineage branch and revoke only its maker orders."""
+        house = self._get_house(house_id)
+        revoked_orders = []
+        for member in house["members"]:
+            revoked_orders.extend(member["open_orders"])
+            member["open_orders"] = []
+            member["risk_dial"] = 0.0
+            member["status"] = "FROZEN_BY_HOUSE_QUARANTINE"
+        house["status"] = "QUARANTINED"
+        return self._house_action_receipt(house, "HOUSE_QUARANTINED", revoked_orders)
+
+    def restore_house(self, house_id: int) -> Dict[str, Any]:
+        """Lift a branch quarantine and restore each active member's baseline."""
+        house = self._get_house(house_id)
+        house["status"] = "ACTIVE"
+        for member in house["members"]:
+            member["risk_dial"] = member["baseline_risk_dial"]
+            member["status"] = "ACTIVE"
+        return self._house_action_receipt(house, "HOUSE_RESTORED")
+
+    def restore_subordinate_risk(
+        self, house_id: int, scma_id: str, target_risk_dial: float
+    ) -> Dict[str, Any]:
+        """Restore one member while retaining the containing House's status."""
+        house = self._get_house(house_id)
+        target = next((m for m in house["members"] if m["scma_id"] == scma_id), None)
+        if target is None:
+            raise ValueError(f"Subordinate SCMA {scma_id} not found in House {house_id}.")
+        if not 0.0 < target_risk_dial <= 1.0:
+            raise ValueError("target_risk_dial must be greater than 0.0 and no greater than 1.0.")
+        target["risk_dial"] = target_risk_dial
+        target["baseline_risk_dial"] = target_risk_dial
+        target["status"] = "ACTIVE"
+        return {
+            "status": "SUBORDINATE_RISK_RESTORED",
+            "house_id": house_id,
+            "house_status": house["status"],
+            "scma_id": scma_id,
+            "new_risk_dial": target_risk_dial,
+            "member_status": target["status"],
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+
+    def _get_house(self, house_id: int) -> Dict[str, Any]:
+        house = self.CANONICAL_HOUSES.get(house_id)
+        if house is None:
+            raise ValueError(f"House {house_id} not found.")
+        return house
+
+    def _house_action_receipt(
+        self, house: Dict[str, Any], status: str, revoked_orders: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        return {
+            "status": status,
+            "house_id": house["house_id"],
+            "house_status": house["status"],
+            "revoked_orders": revoked_orders or [],
+            "members": house["members"],
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
 
