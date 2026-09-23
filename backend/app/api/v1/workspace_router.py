@@ -9,7 +9,7 @@ from typing import Dict, Any, List
 import pathlib
 
 from app.domain.operator_workspace import OperatorWorkspaceService
-from app.domain.lineage_hierarchy import LineageHierarchyService
+from app.domain.lineage_hierarchy import get_lineage_service
 from app.domain.scan_worker import AutonomousScanWorker
 from app.domain.settlement_engine import SettlementEngine
 from app.domain.quarter_kelly_dispatcher import QuarterKellyDispatcher
@@ -17,7 +17,7 @@ from app.api.v1.dashboard_template import DASHBOARD_HTML_TEMPLATE
 
 workspace_router = APIRouter()
 _service = OperatorWorkspaceService()
-_lineage_service = LineageHierarchyService()
+_lineage_service = get_lineage_service()
 _worker = AutonomousScanWorker()
 _dispatcher = QuarterKellyDispatcher()
 _settlement_engine = SettlementEngine()

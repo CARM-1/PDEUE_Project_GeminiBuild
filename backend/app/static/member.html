@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>PDEUE - Member User Desktop</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <style>
     body { background: #0a0f1d; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; margin: 0; padding: 24px; }
     .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 16px; margin-bottom: 24px; }
@@ -21,6 +22,15 @@
     th { color: #94a3b8; }
     .assistant-box { background: #0f172a; border: 1px solid #0284c7; border-radius: 8px; padding: 16px; margin-top: 24px; }
     .input-text { background: #1e293b; border: 1px solid #334155; color: #fff; padding: 8px 12px; border-radius: 4px; font-size: 13px; }
+    .view-selector { display:flex; gap:8px; flex-wrap:wrap; margin:-8px 0 16px; }
+    .view-selector button { background:#131c31; color:#94a3b8; border:1px solid #334155; border-radius:18px; }
+    .view-selector button.active { color:#fff; border-color:#38bdf8; background:#075985; }
+    .hud-view { min-height:300px; }
+    .chart-wrap { position:relative; height:280px; }
+    .engine-grid,.radar-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; }
+    .engine-ring { --progress:50%; width:112px; height:112px; margin:12px auto; border-radius:50%; display:grid; place-items:center; background:conic-gradient(#38bdf8 var(--progress),#1e293b 0); }
+    .engine-ring::after { content:attr(data-value); width:82px; height:82px; display:grid; place-items:center; background:#131c31; border-radius:50%; font-weight:800; }
+    .opportunity { border-left:4px solid #4ade80; }
   </style>
 <style>.copilot-card{background:#020617;border:1px solid #334155;border-radius:7px;padding:10px;margin:8px 0}.copilot-card-label{color:#38bdf8;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px}.telemetry-badge{display:inline-block;background:#172554;border:1px solid #3b82f6;border-radius:12px;padding:3px 7px;margin:2px;font-size:11px}</style>
 </head>
@@ -69,11 +79,39 @@
     </div>
   </div>
 
+  <nav class="view-selector" aria-label="Member HUD views">
+    <button id="view-trajectory" class="active" onclick="showHudView('trajectory', this)">● My Trajectory</button>
+    <button id="view-engines" onclick="showHudView('engines', this)">○ Asset Engine Rings</button>
+    <button id="view-radar" onclick="showHudView('radar', this)">○ High-Yield Radar</button>
+  </nav>
+  <section class="card hud-view" id="hud-trajectory">
+    <div class="card-title">Personal compounding growth · cents</div>
+    <div class="chart-wrap"><canvas id="trajectory-canvas" aria-label="Personal compounding trajectory in cents"></canvas></div>
+    <p style="color:#64748b;font-size:12px">Select any milestone point to ask the FSE Tutor what changed.</p>
+  </section>
+  <section class="card hud-view" id="hud-engines" hidden>
+    <div class="card-title">How each asset engine is progressing</div>
+    <div class="engine-grid">
+      <div><div class="engine-ring" style="--progress:78%" data-value="78%"></div><center>Weather / Kalshi</center></div>
+      <div><div class="engine-ring" style="--progress:64%" data-value="64%"></div><center>Equities</center></div>
+      <div><div class="engine-ring" style="--progress:51%" data-value="51%"></div><center>Bonds</center></div>
+      <div><div class="engine-ring" style="--progress:36%" data-value="36%"></div><center>Crypto</center></div>
+    </div>
+  </section>
+  <section class="card hud-view" id="hud-radar" hidden>
+    <div class="card-title">Active compounding opportunities</div>
+    <div class="radar-grid">
+      <article class="card opportunity"><b>Miami Freeze Protection</b><p>Weather pricing currently offers extra value with limited capital.</p><span class="badge">Strong fit</span></article>
+      <article class="card opportunity"><b>Short-Term Treasury Income</b><p>Steady interest can keep idle cash working while risk stays low.</p><span class="badge">Steady</span></article>
+      <article class="card opportunity"><b>Quality Equity Reinvestment</b><p>Reinvested distributions can add to long-term compounding.</p><span class="badge">Long term</span></article>
+    </div>
+  </section>
+
   <div class="card">
     <h3 style="margin-top: 0; color: #e2e8f0;">Autonomous Risk Dial (Downward-Only)</h3>
     <p style="font-size: 13px; color: #94a3b8; margin: 0;">Governs max capital stake per opportunity. Dial can only be reduced by member.</p>
     <div class="slider-box">
-      <input type="range" id="risk-slider" min="0.5" max="2.0" step="0.1" value="1.5" oninput="document.getElementById('risk-val').innerText = this.value">
+      <input type="range" id="risk-slider" min="0" max="2.0" step="0.1" value="1.5" oninput="document.getElementById('risk-val').innerText = this.value">
       <span style="font-size: 18px; font-weight: bold; min-width: 60px;"><span id="risk-val">1.5</span>%</span>
       <button id="risk-btn" onclick="saveRiskDial()">Apply Reduction</button>
     </div>
@@ -118,6 +156,31 @@
     const urlParams = new URLSearchParams(window.location.search);
     const userId = urlParams.get('user_id') || 'USR-eleanor_va-B2B31C9E';
     let currentScma = '';
+    let trajectoryChart = null;
+
+    function showHudView(name, button) {
+      document.querySelectorAll('.hud-view').forEach(view => { view.hidden = view.id !== `hud-${name}`; });
+      document.querySelectorAll('.view-selector button').forEach(item => {
+        item.classList.toggle('active', item === button);
+        item.textContent = `${item === button ? '●' : '○'} ${item.textContent.slice(2)}`;
+      });
+      if (name === 'trajectory' && trajectoryChart) trajectoryChart.resize();
+    }
+
+    function promptTutorForMilestone(label, cents) {
+      const input = document.getElementById('tutor-query');
+      input.value = `Explain my ${label} compounding milestone of ${cents.toLocaleString()} cents in novice-friendly terms.`;
+      input.scrollIntoView({behavior:'smooth', block:'center'});
+      askTutor();
+    }
+
+    function initTrajectoryChart() {
+      const canvas = document.getElementById('trajectory-canvas');
+      if (!canvas || typeof Chart === 'undefined') return;
+      const labels = ['Start','Month 1','Month 2','Month 3','Month 4','Today'];
+      const values = [125000,127400,130250,134100,139800,146500];
+      trajectoryChart = new Chart(canvas, {type:'line',data:{labels,datasets:[{label:'Personal balance (cents)',data:values,borderColor:'#38bdf8',backgroundColor:'rgba(56,189,248,.12)',fill:true,tension:.3,pointRadius:6,pointHoverRadius:9}]},options:{responsive:true,maintainAspectRatio:false,onClick:(_,points)=>{if(points.length){const i=points[0].index;promptTutorForMilestone(labels[i],values[i]);}},plugins:{legend:{labels:{color:'#cbd5e1'}}},scales:{x:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}},y:{ticks:{color:'#94a3b8',callback:value=>`${Number(value).toLocaleString()}¢`},grid:{color:'#1e293b'}}}}});
+    }
 
     async function loadState() {
       const res = await fetch(`/api/v1/portal/member/state?user_id=${userId}`);
@@ -132,11 +195,16 @@
       document.getElementById('risk-slider').value = data.risk_dial_pct;
       document.getElementById('risk-val').innerText = data.risk_dial_pct.toFixed(1);
 
-      if (data.is_custodial) {
+      const administrativelyFrozen = data.status === 'FROZEN_BY_HOUSE_LEADER';
+      if (data.is_custodial || administrativelyFrozen) {
         document.getElementById('custodial-alert').style.display = 'block';
-        document.getElementById('custodian-id').innerText = data.custodian_id;
+        document.getElementById('custodian-id').innerText = administrativelyFrozen ? 'House Leader' : data.custodian_id;
         document.getElementById('risk-slider').disabled = true;
         document.getElementById('risk-btn').disabled = true;
+      } else {
+        document.getElementById('custodial-alert').style.display = 'none';
+        document.getElementById('risk-slider').disabled = false;
+        document.getElementById('risk-btn').disabled = false;
       }
 
       const tbody = document.getElementById('pos-table');
@@ -188,6 +256,8 @@
       document.getElementById('tutor-ans').innerText = ret.response;
     }
     loadState();
+    initTrajectoryChart();
+    setInterval(loadState, 3000);
   </script>
 
   <!-- Stage 2 Copilot slide-out; guidance only, never autonomous execution. -->
