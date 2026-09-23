@@ -45,7 +45,11 @@
       <a href="/advisor" style="color: #94a3b8; padding: 4px 10px; text-decoration: none; font-weight: 600; border: 1px solid #334155; border-radius: 4px;">Advisor Workspace (Class F)</a>
       <a href="/member" style="background: #0284c7; color: #ffffff; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-weight: 700; border: 1px solid #38bdf8;">Member Desktop (Class M)</a>
     </div>
-    <span style="color: #64748b; font-size: 0.75rem;">FULL BIDIRECTIONAL NAVIGATION</span>
+    <label style="color:#94a3b8;font-size:.75rem;font-weight:700;">Currency:
+      <select id="currency-switcher" onchange="setDisplayCurrency(this.value)" style="background:#0f172a;color:#e2e8f0;border:1px solid #475569;border-radius:4px;padding:5px 8px;">
+        <option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="CNY">CNY (¥)</option><option value="ZAR">ZAR (R)</option><option value="XAU">XAU/Gold (g)</option>
+      </select>
+    </label>
   </div>
 
   <div class="header">
@@ -63,15 +67,15 @@
   <div class="grid">
     <div class="card">
       <div class="card-title">Available Cash</div>
-      <div class="card-value">$<span id="m-cash">0.00</span></div>
+      <div class="card-value" id="m-cash">$0.00</div>
     </div>
     <div class="card">
       <div class="card-title">Committed Margin</div>
-      <div class="card-value">$<span id="m-reserved">0.00</span></div>
+      <div class="card-value" id="m-reserved">$0.00</div>
     </div>
     <div class="card">
       <div class="card-title">Compounded Yield</div>
-      <div class="card-value" style="color: #4ade80;">+$<span id="m-yield">0.00</span></div>
+      <div class="card-value" id="m-yield" style="color: #4ade80;">+$0.00</div>
     </div>
     <div class="card">
       <div class="card-title">Profit Allocation Waterfall</div>
@@ -157,6 +161,16 @@
     const userId = urlParams.get('user_id') || 'USR-eleanor_va-B2B31C9E';
     let currentScma = '';
     let trajectoryChart = null;
+    const displayCurrencies = {USD:{factor:1,symbol:'$',digits:2},EUR:{factor:.92,symbol:'€',digits:2},CNY:{factor:7.24,symbol:'¥',digits:2},ZAR:{factor:18.1,symbol:'R',digits:2},XAU:{factor:1/2600,symbol:'',suffix:' g',digits:4}};
+    let displayCurrency = localStorage.getItem('pdeue-display-currency') || 'USD';
+    let latestState = null;
+    function displayMoney(units) { const c=displayCurrencies[displayCurrency]; const value=Number(units||0)*c.factor; return `${c.symbol}${value.toLocaleString(undefined,{minimumFractionDigits:c.digits,maximumFractionDigits:c.digits})}${c.suffix||''}`; }
+    function setDisplayCurrency(code) { displayCurrency=code; localStorage.setItem('pdeue-display-currency',code); if(latestState) renderMoney(latestState); }
+    function renderMoney(data) {
+      document.getElementById('m-cash').textContent=displayMoney(data.cash_balance);
+      document.getElementById('m-reserved').textContent=displayMoney(data.reserved_capital);
+      document.getElementById('m-yield').textContent=`+${displayMoney(data.lifetime_yield)}`;
+    }
 
     function showHudView(name, button) {
       document.querySelectorAll('.hud-view').forEach(view => { view.hidden = view.id !== `hud-${name}`; });
@@ -185,13 +199,12 @@
     async function loadState() {
       const res = await fetch(`/api/v1/portal/member/state?user_id=${userId}`);
       const data = await res.json();
+      latestState = data;
       currentScma = data.scma_id;
 
       document.getElementById('m-role').innerText = "MEMBER_USER (" + data.scma_id.split('-')[1] + ")";
       document.getElementById('portal-title').innerText = data.name + " — Personal Member Desktop";
-      document.getElementById('m-cash').innerText = data.cash_balance.toFixed(2);
-      document.getElementById('m-reserved').innerText = data.reserved_capital.toFixed(2);
-      document.getElementById('m-yield').innerText = data.lifetime_yield.toFixed(2);
+      renderMoney(data);
       document.getElementById('risk-slider').value = data.risk_dial_pct;
       document.getElementById('risk-val').innerText = data.risk_dial_pct.toFixed(1);
 
@@ -212,7 +225,7 @@
         <tr>
           <td><b>${p.contract_id}</b></td>
           <td>${p.category}</td>
-          <td>$${p.allocation.toFixed(2)}</td>
+          <td>${displayMoney(p.allocation)}</td>
           <td style="color: #4ade80;">+${p.edge_pct}%</td>
           <td><span style="color: #38bdf8;">${p.status}</span></td>
         </tr>
@@ -255,6 +268,7 @@
       const ret = await res.json();
       document.getElementById('tutor-ans').innerText = ret.response;
     }
+    document.getElementById('currency-switcher').value = displayCurrency;
     loadState();
     initTrajectoryChart();
     setInterval(loadState, 3000);
@@ -286,7 +300,7 @@
       const citations = (result.citations || []).map(item => `<li>${escapeCopilot(item)}</li>`).join('') || '<span style="color:#64748b">No citations returned.</span>';
       const actions = (result.action_cards || []).map(item => `<div style="margin-top:5px"><b>${escapeCopilot(item.title)}</b><span style="color:#94a3b8"> · approval ${item.requires_settlor_approval ? 'required' : 'not required'}</span></div>`).join('') || '<span style="color:#64748b">No action proposals.</span>';
       const telemetry = result.risk_telemetry || {};
-      return `<section class="copilot-card"><div class="copilot-card-label">Answer Text</div>${escapeCopilot(result.answer_text)}</section><section class="copilot-card"><div class="copilot-card-label">Citations</div><ul style="padding-left:18px">${citations}</ul></section><section class="copilot-card"><div class="copilot-card-label">Action Proposals</div>${actions}</section><section class="copilot-card"><div class="copilot-card-label">Telemetry</div><span class="telemetry-badge">Risk ${Number(telemetry.current_risk_pct || 0).toFixed(1)}%</span><span class="telemetry-badge">Dry Powder $${(Number(telemetry.dry_powder_cents || 0)/100).toFixed(2)}</span><span class="telemetry-badge">${telemetry.downward_only_locked ? 'Downward-only locked' : 'Unlocked'}</span></section>`;
+      return `<section class="copilot-card"><div class="copilot-card-label">Answer Text</div>${escapeCopilot(result.answer_text)}</section><section class="copilot-card"><div class="copilot-card-label">Citations</div><ul style="padding-left:18px">${citations}</ul></section><section class="copilot-card"><div class="copilot-card-label">Action Proposals</div>${actions}</section><section class="copilot-card"><div class="copilot-card-label">Telemetry</div><span class="telemetry-badge">Risk ${Number(telemetry.current_risk_pct || 0).toFixed(1)}%</span><span class="telemetry-badge">Dry Powder ${displayMoney(Number(telemetry.dry_powder_cents || 0)/100)}</span><span class="telemetry-badge">${telemetry.downward_only_locked ? 'Downward-only locked' : 'Unlocked'}</span></section>`;
     }
     async function submitStage2Copilot(event) {
       event.preventDefault();

@@ -5,6 +5,7 @@ across member SCMAs assigned to the 12 canonical House Lines.
 """
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
+from app.domain.lineage_hierarchy import get_lineage_service
 
 class QuarterKellyDispatcher:
     """Computes fractional Kelly stakes and manages margin commitments."""
@@ -96,6 +97,22 @@ class QuarterKellyDispatcher:
             raise ValueError(f"Invalid House ID: {target_house_id}. Must be between 1 and 12.")
 
         house_code = f"HOUSE-{target_house_id:02d}"
+        house = get_lineage_service().get_house_summary(target_house_id)
+        if house["status"] == "QUARANTINED":
+            return {
+                "dispatch_id": f"DSP-{venue[:3]}-{contract_ticker}-{target_house_id}",
+                "contract_ticker": contract_ticker,
+                "venue": venue,
+                "target_house_id": target_house_id,
+                "lineage_code": house_code,
+                "side": side,
+                "market_price": market_price,
+                "total_committed_cents": 0,
+                "total_quantity": 0,
+                "status": "SKIPPED_HOUSE_QUARANTINED",
+                "member_allocations": [],
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
         assigned_members = self.HOUSE_ALLOCATION_REGISTRY.get(
             target_house_id,
             [{"scma_id": f"SCMA-{house_code}-SEED", "name": f"House {target_house_id} Seed", "cash_cents": 100000, "risk_dial": 0.01}]
