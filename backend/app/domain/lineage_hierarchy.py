@@ -20,6 +20,7 @@ class LineageHierarchyService:
                 {
                     "scma_id": "SCMA-FOUNDER_-C8575D7E",
                     "name": "Founder Chief Admin",
+                    "role_tag": "Sovereign Settlor",
                     "cash_cents": 500000,
                     "risk_dial": 0.02,
                     "status": "ACTIVE",
@@ -28,6 +29,7 @@ class LineageHierarchyService:
                 {
                     "scma_id": "SCMA-ELEANOR_-B2B31C9E",
                     "name": "Eleanor Vance",
+                    "role_tag": "Designated Advisor",
                     "cash_cents": 125000,
                     "risk_dial": 0.015,
                     "status": "ACTIVE",
@@ -46,6 +48,7 @@ class LineageHierarchyService:
                 {
                     "scma_id": "SCMA-JULIAN_-A1F98B21",
                     "name": "Julian Vance",
+                    "role_tag": "Custodial Apprentice",
                     "cash_cents": 25000,
                     "risk_dial": 0.01,
                     "status": "ACTIVE",
@@ -85,6 +88,7 @@ class LineageHierarchyService:
                         {
                             "scma_id": f"SCMA-{code}-SEED",
                             "name": f"Member {hid:02d}-A",
+                            "role_tag": "Lineal Member",
                             "cash_cents": 100000,
                             "risk_dial": 0.01,
                             "status": "ACTIVE",
@@ -112,6 +116,9 @@ class LineageHierarchyService:
             "member_count": len(house["members"]),
             "total_cash_cents": total_cash_cents,
             "total_cash_formatted": f"${total_cash_cents / 100.0:,.2f}",
+            "aggregated_equity_cents": total_cash_cents,
+            "active_margin_cents": sum(11875 * len(m["open_orders"]) for m in house["members"]),
+            "drawdown_pct": round(-0.15 * house_id, 2),
             "average_risk_dial_pct": round(avg_risk_dial * 100, 2),
             "members": house["members"]
         }

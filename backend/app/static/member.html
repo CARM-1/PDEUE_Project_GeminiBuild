@@ -22,6 +22,7 @@
     .assistant-box { background: #0f172a; border: 1px solid #0284c7; border-radius: 8px; padding: 16px; margin-top: 24px; }
     .input-text { background: #1e293b; border: 1px solid #334155; color: #fff; padding: 8px 12px; border-radius: 4px; font-size: 13px; }
   </style>
+<style>.copilot-card{background:#020617;border:1px solid #334155;border-radius:7px;padding:10px;margin:8px 0}.copilot-card-label{color:#38bdf8;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px}.telemetry-badge{display:inline-block;background:#172554;border:1px solid #3b82f6;border-radius:12px;padding:3px 7px;margin:2px;font-size:11px}</style>
 </head>
 <body>
 
@@ -191,7 +192,7 @@
 
   <!-- Stage 2 Copilot slide-out; guidance only, never autonomous execution. -->
   <button id="stage2-copilot-toggle" type="button" aria-controls="stage2-copilot-drawer" aria-expanded="false" onclick="toggleStage2Copilot()" style="position:fixed;right:20px;bottom:20px;z-index:10001;background:#0284c7;color:white;border:0;border-radius:22px;padding:10px 16px;font-weight:700;cursor:pointer;">AI Copilot</button>
-  <aside id="stage2-copilot-drawer" aria-label="AI Copilot" hidden style="position:fixed;right:20px;bottom:72px;z-index:10000;width:min(390px,calc(100vw - 40px));background:#0f172a;border:1px solid #38bdf8;border-radius:8px;padding:16px;box-shadow:0 12px 30px rgba(0,0,0,.55);">
+  <aside id="stage2-copilot-drawer" aria-label="AI Copilot" hidden style="position:fixed;right:20px;bottom:72px;z-index:10000;width:min(470px,calc(100vw - 40px));background:#0f172a;border:1px solid #38bdf8;border-radius:8px;padding:16px;box-shadow:0 12px 30px rgba(0,0,0,.55);">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><strong>AI Copilot</strong><button type="button" onclick="toggleStage2Copilot()" aria-label="Close Copilot">Close</button></div>
     <div id="stage2-copilot-output" role="status" aria-live="polite" style="min-height:54px;color:#cbd5e1;font-size:13px;margin-bottom:10px;">Ask for role-scoped guidance. Proposed actions still require approval.</div>
     <form onsubmit="submitStage2Copilot(event)" style="display:flex;gap:8px;">
@@ -208,6 +209,15 @@
       button.setAttribute('aria-expanded', String(!drawer.hidden));
       if (!drawer.hidden) document.getElementById('stage2-copilot-prompt').focus();
     }
+    function escapeCopilot(value) {
+      const node = document.createElement('span'); node.textContent = String(value ?? ''); return node.innerHTML;
+    }
+    function renderCopilotResponse(result) {
+      const citations = (result.citations || []).map(item => `<li>${escapeCopilot(item)}</li>`).join('') || '<span style="color:#64748b">No citations returned.</span>';
+      const actions = (result.action_cards || []).map(item => `<div style="margin-top:5px"><b>${escapeCopilot(item.title)}</b><span style="color:#94a3b8"> · approval ${item.requires_settlor_approval ? 'required' : 'not required'}</span></div>`).join('') || '<span style="color:#64748b">No action proposals.</span>';
+      const telemetry = result.risk_telemetry || {};
+      return `<section class="copilot-card"><div class="copilot-card-label">Answer Text</div>${escapeCopilot(result.answer_text)}</section><section class="copilot-card"><div class="copilot-card-label">Citations</div><ul style="padding-left:18px">${citations}</ul></section><section class="copilot-card"><div class="copilot-card-label">Action Proposals</div>${actions}</section><section class="copilot-card"><div class="copilot-card-label">Telemetry</div><span class="telemetry-badge">Risk ${Number(telemetry.current_risk_pct || 0).toFixed(1)}%</span><span class="telemetry-badge">Dry Powder $${(Number(telemetry.dry_powder_cents || 0)/100).toFixed(2)}</span><span class="telemetry-badge">${telemetry.downward_only_locked ? 'Downward-only locked' : 'Unlocked'}</span></section>`;
+    }
     async function submitStage2Copilot(event) {
       event.preventDefault();
       const prompt = document.getElementById('stage2-copilot-prompt');
@@ -219,7 +229,7 @@
           body: JSON.stringify({prompt: prompt.value, user_id: 'member-portal', role: stage2CopilotRole, context_filters: {}})
         });
         const result = await response.json();
-        output.textContent = response.ok ? result.answer_text : `Request rejected: ${result.detail || response.status}`;
+        output.innerHTML = response.ok ? renderCopilotResponse(result) : `<section class="copilot-card">Request rejected: ${escapeCopilot(result.detail || response.status)}</section>`;
         if (response.ok) prompt.value = '';
       } catch (error) {
         output.textContent = 'Copilot is temporarily unavailable.';

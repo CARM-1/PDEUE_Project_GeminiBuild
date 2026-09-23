@@ -30,6 +30,22 @@
     .btn-settle { background: #10b981; color: #020617; border: 1px solid #34d399; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px; }
     .copilot-btn { position: fixed; bottom: 20px; right: 20px; background: #0284c7; color: #fff; border: none; border-radius: 20px; padding: 10px 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
 
+
+    .lineage-tree { display: grid; gap: 10px; }
+    .house-node { background: #0f172a; border: 1px solid #334155; border-radius: 8px; overflow: hidden; }
+    .house-header { width: 100%; display: grid; grid-template-columns: 1.1fr 1.5fr 1fr 1fr .8fr auto; gap: 12px; align-items: center; background: transparent; color: #f8fafc; border: 0; padding: 14px; text-align: left; cursor: pointer; }
+    .house-header:hover { background: #16213e; }
+    .house-code { color: #38bdf8; font-family: monospace; font-weight: 800; }
+    .house-freeze { background: #7f1d1d; border: 1px solid #ef4444; color: #fecaca; border-radius: 5px; padding: 6px 9px; cursor: pointer; font-weight: 700; }
+    .subaccount-panel { padding: 0 14px 14px; }
+    .lineage-action { border-radius: 4px; padding: 5px 8px; cursor: pointer; font-weight: 700; white-space: nowrap; }
+    .freeze-risk { background: #78350f; color: #fde68a; border: 1px solid #f59e0b; }
+    .revoke-orders { background: #7f1d1d; color: #fecaca; border: 1px solid #ef4444; }
+    .lineage-status { display: none; margin-bottom: 12px; padding: 10px 14px; border: 1px solid #10b981; background: rgba(16,185,129,.1); color: #a7f3d0; border-radius: 6px; }
+    .copilot-card { background:#020617; border:1px solid #334155; border-radius:7px; padding:10px; margin:8px 0; }
+    .copilot-card-label { color:#38bdf8; font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; margin-bottom:5px; }
+    .telemetry-badge { display:inline-block; background:#172554; border:1px solid #3b82f6; border-radius:12px; padding:3px 7px; margin:2px; font-size:11px; }
+
     .modal-backdrop { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(4px); z-index: 20000; align-items: center; justify-content: center; }
     .modal-box { background: #111c44; border-radius: 10px; width: 560px; max-width: 90vw; padding: 24px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7); animation: modalIn 0.2s ease-out; }
     @keyframes modalIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
@@ -137,6 +153,13 @@
         <div class="card-title">Tribal Houses</div>
         <div class="card-value" style="color: #a855f7;">12 Houses</div>
         <div class="card-sub">Autonomous Partitioning</div>
+      </div>
+    </div>
+    <div class="card" id="lineage-house-tree-container" data-house-count="12">
+      <div class="card-title" style="color:#38bdf8;margin-bottom:12px;">12-House Master-Detail Lineage Tree</div>
+      <div id="lineage-action-status" class="lineage-status" role="status" aria-live="polite"></div>
+      <div id="lineage-house-tree" class="lineage-tree" aria-label="Twelve House lineage accounts">
+        <div style="color:#94a3b8;padding:16px;">Loading all 12 Houses and subordinate SCMA accounts…</div>
       </div>
     </div>
   </div>
@@ -375,6 +398,7 @@
         const res = await fetch("/api/v1/operator/workspace-state");
         if (!res.ok) return;
         const data = await res.json();
+        if (data.houses) renderLineageTree(data.houses);
 
         const positions = data.positions || [];
         const posTbody = document.getElementById("pos-tbody");
@@ -420,6 +444,63 @@
       } catch (err) {
         console.error("Poll error:", err);
       }
+    }
+
+    function money(cents) { return `$${(Number(cents || 0) / 100).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`; }
+
+    function renderLineageTree(houses) {
+      const tree = document.getElementById('lineage-house-tree');
+      if (!tree) return;
+      tree.innerHTML = houses.map((house, index) => `
+        <section class="house-node" data-house-id="${house.house_id}">
+          <button class="house-header" type="button" aria-expanded="${index === 0}" onclick="toggleHouse(this)">
+            <span class="house-code">${index === 0 ? '▾' : '▸'} ${house.lineage_code}</span>
+            <span>${house.leader_name}<small style="display:block;color:#64748b">Designated Advisor / Lead</small></span>
+            <span>${money(house.aggregated_equity_cents)}<small style="display:block;color:#64748b">Aggregated Equity</small></span>
+            <span>${money(house.active_margin_cents)}<small style="display:block;color:#64748b">Active Margin</small></span>
+            <span style="color:#f87171">${Number(house.drawdown_pct).toFixed(2)}%<small style="display:block;color:#64748b">Drawdown</small></span>
+            <span class="house-freeze" role="button" onclick="event.stopPropagation(); freezeHouse(${house.house_id})">House Freeze</span>
+          </button>
+          <div class="subaccount-panel" ${index === 0 ? '' : 'hidden'}>
+            <table><thead><tr><th>SCMA ID</th><th>MEMBER NAME</th><th>ROLE / TAG</th><th>CURRENT BALANCE</th><th>RISK DIAL</th><th>RESTING MAKER ORDERS</th><th>ACTIONS</th></tr></thead>
+            <tbody>${house.members.map(member => `<tr data-scma="${member.scma_id}"><td class="house-code">${member.scma_id}</td><td>${member.name}</td><td>${member.role_tag || 'Lineal Member'}</td><td>${money(member.cash_cents)}</td><td class="risk-value">${(Number(member.risk_dial) * 100).toFixed(1)}%</td><td class="order-value">${(member.open_orders || []).length}</td><td><button class="lineage-action freeze-risk" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'freeze-risk', this)">⚡ Freeze Risk</button> <button class="lineage-action revoke-orders" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'cancel-orders', this)">✕ Revoke Orders</button></td></tr>`).join('')}</tbody></table>
+          </div>
+        </section>`).join('');
+    }
+
+    function toggleHouse(button) {
+      const panel = button.nextElementSibling;
+      panel.hidden = !panel.hidden;
+      button.setAttribute('aria-expanded', String(!panel.hidden));
+      button.querySelector('.house-code').textContent = `${panel.hidden ? '▸' : '▾'} ${button.closest('.house-node').querySelector('.house-code').textContent.slice(2)}`;
+    }
+
+    function showLineageStatus(message, failed=false) {
+      const banner = document.getElementById('lineage-action-status');
+      banner.textContent = message; banner.style.display = 'block';
+      banner.style.borderColor = failed ? '#ef4444' : '#10b981';
+      banner.style.color = failed ? '#fecaca' : '#a7f3d0';
+    }
+
+    async function runLineageAction(houseId, scmaId, action, button) {
+      button.disabled = true;
+      try {
+        const response = await fetch(`/api/v1/lineage/house/${houseId}/subordinate/${action}`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({scma_id:scmaId})});
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.detail || `HTTP ${response.status}`);
+        const row = button.closest('tr');
+        if (action === 'freeze-risk') row.querySelector('.risk-value').textContent = '0.0%';
+        else row.querySelector('.order-value').textContent = '0';
+        showLineageStatus(action === 'freeze-risk' ? `Governor clamp confirmed: ${scmaId} risk dial is 0.0%.` : `Order revocation confirmed: ${scmaId} has no active maker orders.`);
+      } catch (error) { showLineageStatus(`Lineage intervention failed: ${error.message}`, true); }
+      finally { button.disabled = false; }
+    }
+
+    async function freezeHouse(houseId) {
+      const house = document.querySelector(`[data-house-id="${houseId}"]`);
+      const buttons = [...house.querySelectorAll('.freeze-risk')];
+      for (const button of buttons) await runLineageAction(houseId, button.closest('tr').dataset.scma, 'freeze-risk', button);
+      showLineageStatus(`Emergency House freeze complete for HOUSE-${String(houseId).padStart(2,'0')}.`);
     }
 
     function openSettleModal(ticker, qty, costStr) {
@@ -636,7 +717,7 @@
 
   <!-- Stage 2 Copilot slide-out; guidance only, never autonomous execution. -->
   <button id="stage2-copilot-toggle" type="button" aria-controls="stage2-copilot-drawer" aria-expanded="false" onclick="toggleStage2Copilot()" style="position:fixed;right:20px;bottom:20px;z-index:10001;background:#0284c7;color:white;border:0;border-radius:22px;padding:10px 16px;font-weight:700;cursor:pointer;">AI Copilot</button>
-  <aside id="stage2-copilot-drawer" aria-label="AI Copilot" hidden style="position:fixed;right:20px;bottom:72px;z-index:10000;width:min(390px,calc(100vw - 40px));background:#0f172a;border:1px solid #38bdf8;border-radius:8px;padding:16px;box-shadow:0 12px 30px rgba(0,0,0,.55);">
+  <aside id="stage2-copilot-drawer" aria-label="AI Copilot" hidden style="position:fixed;right:20px;bottom:72px;z-index:10000;width:min(470px,calc(100vw - 40px));background:#0f172a;border:1px solid #38bdf8;border-radius:8px;padding:16px;box-shadow:0 12px 30px rgba(0,0,0,.55);">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><strong>AI Copilot</strong><button type="button" onclick="toggleStage2Copilot()" aria-label="Close Copilot">Close</button></div>
     <div id="stage2-copilot-output" role="status" aria-live="polite" style="min-height:54px;color:#cbd5e1;font-size:13px;margin-bottom:10px;">Ask for role-scoped guidance. Proposed actions still require approval.</div>
     <form onsubmit="submitStage2Copilot(event)" style="display:flex;gap:8px;">
@@ -653,6 +734,15 @@
       button.setAttribute('aria-expanded', String(!drawer.hidden));
       if (!drawer.hidden) document.getElementById('stage2-copilot-prompt').focus();
     }
+    function escapeCopilot(value) {
+      const node = document.createElement('span'); node.textContent = String(value ?? ''); return node.innerHTML;
+    }
+    function renderCopilotResponse(result) {
+      const citations = (result.citations || []).map(item => `<li>${escapeCopilot(item)}</li>`).join('') || '<span style="color:#64748b">No citations returned.</span>';
+      const actions = (result.action_cards || []).map(item => `<div style="margin-top:5px"><b>${escapeCopilot(item.title)}</b><span style="color:#94a3b8"> · approval ${item.requires_settlor_approval ? 'required' : 'not required'}</span></div>`).join('') || '<span style="color:#64748b">No action proposals.</span>';
+      const telemetry = result.risk_telemetry || {};
+      return `<section class="copilot-card"><div class="copilot-card-label">Answer Text</div>${escapeCopilot(result.answer_text)}</section><section class="copilot-card"><div class="copilot-card-label">Citations</div><ul style="padding-left:18px">${citations}</ul></section><section class="copilot-card"><div class="copilot-card-label">Action Proposals</div>${actions}</section><section class="copilot-card"><div class="copilot-card-label">Telemetry</div><span class="telemetry-badge">Risk ${Number(telemetry.current_risk_pct || 0).toFixed(1)}%</span><span class="telemetry-badge">Dry Powder $${(Number(telemetry.dry_powder_cents || 0)/100).toFixed(2)}</span><span class="telemetry-badge">${telemetry.downward_only_locked ? 'Downward-only locked' : 'Unlocked'}</span></section>`;
+    }
     async function submitStage2Copilot(event) {
       event.preventDefault();
       const prompt = document.getElementById('stage2-copilot-prompt');
@@ -664,7 +754,7 @@
           body: JSON.stringify({prompt: prompt.value, user_id: 'operator-portal', role: stage2CopilotRole, context_filters: {}})
         });
         const result = await response.json();
-        output.textContent = response.ok ? result.answer_text : `Request rejected: ${result.detail || response.status}`;
+        output.innerHTML = response.ok ? renderCopilotResponse(result) : `<section class="copilot-card">Request rejected: ${escapeCopilot(result.detail || response.status)}</section>`;
         if (response.ok) prompt.value = '';
       } catch (error) {
         output.textContent = 'Copilot is temporarily unavailable.';
