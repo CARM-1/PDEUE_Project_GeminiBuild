@@ -10,9 +10,11 @@ from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
 import pathlib
+from app.domain.lineage_hierarchy import get_lineage_service
 
 router = APIRouter(tags=['Portals'])
 portal_router = router
+_lineage_service = get_lineage_service()
 
 LINEAGE_DATA: Dict[str, Any] = {
     "HOUSEHOLD-ALPHA": {
@@ -250,6 +252,17 @@ def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str
     if not target:
         target = LINEAGE_DATA["HOUSEHOLD-ALPHA"]["accounts"][1]
 
+    # Identity/profile data remains portal-specific, while mutable financial
+    # controls come from the same hierarchy used by leader and operator desks.
+    lineage_member = next(
+        (member for house in _lineage_service.list_all_houses()
+         for member in house["members"] if member["scma_id"] == target["scma_id"]),
+        None,
+    )
+    risk_dial_pct = (
+        lineage_member["risk_dial"] * 100 if lineage_member else target["risk_dial"]
+    )
+
     return {
         "user_id": target["user_id"],
         "name": target["name"],
@@ -258,7 +271,8 @@ def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str
         "cash_balance": target["balance"],
         "reserved_capital": target["reserved"],
         "lifetime_yield": 340.00,
-        "risk_dial_pct": target["risk_dial"],
+        "risk_dial_pct": risk_dial_pct,
+        "status": lineage_member["status"] if lineage_member else target["status"],
         "risk_ceiling_pct": 2.00,
         "is_custodial": target["is_custodial"],
         "custodian_id": target["custodian_id"],

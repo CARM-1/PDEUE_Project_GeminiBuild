@@ -147,6 +147,7 @@ class LineageHierarchyService:
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
 
+
     def freeze_subordinate_risk(self, house_id: int, scma_id: str) -> Dict[str, Any]:
         house = self.CANONICAL_HOUSES.get(house_id)
         if not house:
@@ -168,6 +169,7 @@ class LineageHierarchyService:
             "member_status": target["status"],
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
+
 
     def list_proposals(self) -> List[Dict[str, Any]]:
         return list(self.PROPOSALS.values())
@@ -239,3 +241,16 @@ class LineageHierarchyService:
             "status": "RATIFIED" if ratified else "QUORUM_REJECTED",
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
+
+
+# Routers must share one authoritative in-process hierarchy. Keeping the
+# instance here prevents actions from being visible only to the mutating router.
+_lineage_service: Optional[LineageHierarchyService] = None
+
+
+def get_lineage_service() -> LineageHierarchyService:
+    """Return the application's shared lineage hierarchy service."""
+    global _lineage_service
+    if _lineage_service is None:
+        _lineage_service = LineageHierarchyService()
+    return _lineage_service

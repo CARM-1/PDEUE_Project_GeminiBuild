@@ -6,10 +6,10 @@ institutional intervention modals with zero native alerts, and bicameral consens
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse
 from typing import Dict, Any, List
-from app.domain.lineage_hierarchy import LineageHierarchyService
+from app.domain.lineage_hierarchy import get_lineage_service
 
 lineage_router = APIRouter()
-_lineage_service = LineageHierarchyService()
+_lineage_service = get_lineage_service()
 
 def _build_member_table_rows(members: List[Dict[str, Any]], house_id: int) -> str:
     rows = []
