@@ -65,7 +65,10 @@ class AICopilotEngine:
                 provider_used="kill-switch",
             )
         context = self.context_harvester.harvest(query, live_context)
-        return await self.provider.generate_response(query, context)
+        # Providers receive only the R12-projected context.  In particular,
+        # override tokens and the unfiltered live_context never leave core.
+        sanitized_query = query.model_copy(update={"context_filters": {}})
+        return await self.provider.generate_response(sanitized_query, context)
 
     async def process_query(self, query: CopilotQuery, live_context: Optional[Mapping[str, Any]] = None) -> CopilotResponse:
         """Alias retained for application services that use process-oriented naming."""

@@ -188,5 +188,43 @@
     }
     loadState();
   </script>
+
+  <!-- Stage 2 Copilot slide-out; guidance only, never autonomous execution. -->
+  <button id="stage2-copilot-toggle" type="button" aria-controls="stage2-copilot-drawer" aria-expanded="false" onclick="toggleStage2Copilot()" style="position:fixed;right:20px;bottom:20px;z-index:10001;background:#0284c7;color:white;border:0;border-radius:22px;padding:10px 16px;font-weight:700;cursor:pointer;">AI Copilot</button>
+  <aside id="stage2-copilot-drawer" aria-label="AI Copilot" hidden style="position:fixed;right:20px;bottom:72px;z-index:10000;width:min(390px,calc(100vw - 40px));background:#0f172a;border:1px solid #38bdf8;border-radius:8px;padding:16px;box-shadow:0 12px 30px rgba(0,0,0,.55);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><strong>AI Copilot</strong><button type="button" onclick="toggleStage2Copilot()" aria-label="Close Copilot">Close</button></div>
+    <div id="stage2-copilot-output" role="status" aria-live="polite" style="min-height:54px;color:#cbd5e1;font-size:13px;margin-bottom:10px;">Ask for role-scoped guidance. Proposed actions still require approval.</div>
+    <form onsubmit="submitStage2Copilot(event)" style="display:flex;gap:8px;">
+      <input id="stage2-copilot-prompt" aria-label="Copilot prompt" required maxlength="8000" style="min-width:0;flex:1;padding:8px;background:#020617;color:white;border:1px solid #475569;border-radius:4px;" placeholder="Ask Copilot...">
+      <button type="submit" style="padding:8px 12px;background:#38bdf8;border:0;border-radius:4px;font-weight:700;">Send</button>
+    </form>
+  </aside>
+  <script>
+    const stage2CopilotRole = 'MEMBER';
+    function toggleStage2Copilot() {
+      const drawer = document.getElementById('stage2-copilot-drawer');
+      const button = document.getElementById('stage2-copilot-toggle');
+      drawer.hidden = !drawer.hidden;
+      button.setAttribute('aria-expanded', String(!drawer.hidden));
+      if (!drawer.hidden) document.getElementById('stage2-copilot-prompt').focus();
+    }
+    async function submitStage2Copilot(event) {
+      event.preventDefault();
+      const prompt = document.getElementById('stage2-copilot-prompt');
+      const output = document.getElementById('stage2-copilot-output');
+      output.textContent = 'Thinking…';
+      try {
+        const response = await fetch('/api/v1/copilot/query', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({prompt: prompt.value, user_id: 'member-portal', role: stage2CopilotRole, context_filters: {}})
+        });
+        const result = await response.json();
+        output.textContent = response.ok ? result.answer_text : `Request rejected: ${result.detail || response.status}`;
+        if (response.ok) prompt.value = '';
+      } catch (error) {
+        output.textContent = 'Copilot is temporarily unavailable.';
+      }
+    }
+  </script>
 </body>
 </html>
