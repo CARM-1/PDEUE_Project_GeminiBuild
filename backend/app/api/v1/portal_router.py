@@ -242,6 +242,17 @@ def get_tech_console():
 @router.get("/api/v1/portal/member/state")
 def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str] = Query(None)) -> Dict[str, Any]:
     target = None
+    lineage_member = None
+
+    # A SCMA link is authoritative: resolve it against the shared lineage
+    # registry first, so this endpoint also works for dynamically seeded House
+    # members that do not have a legacy portal profile.
+    if scma_id:
+        try:
+            lineage_member = _lineage_service.get_member_state(scma_id)
+        except ValueError as err:
+            raise HTTPException(status_code=404, detail=str(err)) from err
+
     for house in LINEAGE_DATA.values():
         for acct in house["accounts"]:
             if (user_id and acct["user_id"] == user_id) or (scma_id and acct["scma_id"] == scma_id):
@@ -249,17 +260,30 @@ def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str
                 break
         if target:
             break
-    if scma_id and not target:
-        raise HTTPException(status_code=404, detail=f"SCMA member {scma_id} not found")
     if not target:
-        target = LINEAGE_DATA["HOUSEHOLD-ALPHA"]["accounts"][1]
+        if lineage_member:
+            target = {
+                "user_id": f"USR-{lineage_member['scma_id']}",
+                "name": lineage_member["name"],
+                "role": "MEMBER_USER",
+                "scma_id": lineage_member["scma_id"],
+                "balance": lineage_member["cash_cents"] / 100.0,
+                "reserved": 0.0,
+                "risk_dial": lineage_member["risk_dial"] * 100,
+                "is_custodial": False,
+                "custodian_id": None,
+                "status": lineage_member["status"],
+            }
+        else:
+            target = LINEAGE_DATA["HOUSEHOLD-ALPHA"]["accounts"][1]
 
     # Identity/profile data remains portal-specific, while mutable financial
     # controls come from the same hierarchy used by leader and operator desks.
-    try:
-        lineage_member = _lineage_service.get_member_state(target["scma_id"])
-    except ValueError:
-        lineage_member = None
+    if lineage_member is None:
+        try:
+            lineage_member = _lineage_service.get_member_state(target["scma_id"])
+        except ValueError:
+            lineage_member = None
     risk_dial_pct = (
         lineage_member["risk_dial"] * 100 if lineage_member else target["risk_dial"]
     )
@@ -485,12 +509,32 @@ def get_tech_telemetry(
 def member_ai_tutor(query: AssistantQuery):
     prompt = query.query or query.question or ""
     q = prompt.lower()
-    if "compound" in q or "snowball" in q:
-        ans = "Think of compounding as a financial snowball: Every time the engine harvests gains, 87% rolls right back into your cash balance after the 10% CFCP lineage safety floor is deducted."
-    elif "risk" in q:
-        ans = "Your risk dial acts like an engine governor: Dialing down to 1.0% means no individual opportunity will ever commit more than 1% of your available funds."
+    if any(term in q for term in ("waterfall", "split", "cfcp")):
+        ans = (
+            "PDEUE applies an 87/10/3 waterfall to each realized gain using integer-cent accounting, so every cent has a defined destination. "
+            "The 87% SCMA share returns to the member's private account for reinvestment and long-term growth rather than being distributed away. "
+            "The 10% CFCP share funds a family resilience shield that can support lineage-level protection and qualified needs during stress. "
+            "The remaining 3% goes to the FAEP lineage endowment, building durable intergenerational capacity; together the three allocations always total 100%, without floating-point cent drift."
+        )
+    elif "compound" in q or "compounding" in q or "snowball" in q:
+        ans = (
+            "Compounding works like a snowball: the 87% SCMA portion of realized gains is reinvested, so later opportunities can earn returns on both the original principal and prior retained gains. "
+            "Repeated harvest-and-reinvestment cycles can accelerate growth over time even when each individual gain is modest, although returns are never guaranteed. "
+            "PDEUE performs the waterfall in integer cents, assigning whole cents deterministically so rounding cannot silently create or lose money."
+        )
+    elif "risk" in q or "dial" in q:
+        ans = (
+            "The risk dial is a downward-only capital governor: a member may reduce exposure, but cannot use the member portal to raise it above the currently authorized ceiling. "
+            "The platform's absolute defensive ceiling is 5% per opportunity, while a member or administrator may impose a lower limit or lock a quarantined account at 0.0%. "
+            "This asymmetry favors capital preservation by limiting loss concentration and requiring higher-authority review before risk can ever be expanded."
+        )
     else:
-        ans = "The PDEUE engine underwrites public events point-in-time and sizes entries defensively using Quarter-Kelly fractions."
+        ans = (
+            "PDEUE is an educational, capital-preservation system that evaluates public-event opportunities at a point in time, requires a documented edge, and sizes approved exposure defensively rather than promising returns. "
+            "Its downward-only risk dial constrains position size, House quarantine can isolate one lineage branch, and resting orders remain subject to explicit governance controls. "
+            "When gains are realized, integer-cent accounting sends 87% back to the member SCMA for compounding, 10% to the CFCP family resilience shield, and 3% to the FAEP lineage endowment. "
+            "These mechanics combine private growth, shared resilience, intergenerational stewardship, and auditable approvals; ask about the waterfall, compounding, or risk dial for a deeper explanation."
+        )
     return {"role": "MEMBER_TUTOR", "query": prompt, "response": ans, "answer": ans}
 
 @router.post("/api/v1/portal/advisor/copilot")
