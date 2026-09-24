@@ -9,6 +9,7 @@
     .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 16px; margin-bottom: 24px; }
     .badge { background: #0284c7; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; }
     .custodial-banner { display: none; background: #7c2d12; border: 1px solid #ea580c; color: #ffedd5; padding: 12px; border-radius: 6px; margin-bottom: 20px; font-size: 13px; }
+    .quarantine-banner { display:none; background:#7f1d1d; border:2px solid #f87171; color:#fff; padding:14px; border-radius:6px; margin-bottom:20px; font-weight:800; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
     .card { background: #131c31; border: 1px solid #1e293b; border-radius: 8px; padding: 18px; margin-bottom: 20px; }
     .card-title { font-size: 12px; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; }
@@ -63,6 +64,7 @@
   <div id="custodial-alert" class="custodial-banner">
     <strong>Custodial Lock Active:</strong> Risk dial adjustments and distributions are locked by your appointed Custodian (<span id="custodian-id">None</span>).
   </div>
+  <div id="quarantine-alert" class="quarantine-banner">⚠️ House Quarantine Active: Your lineage house is isolated under administrative order. Trading risk dial is locked at 0.0%.</div>
 
   <div class="grid">
     <div class="card">
@@ -159,6 +161,7 @@
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     const userId = urlParams.get('user_id') || 'USR-eleanor_va-B2B31C9E';
+    const requestedScma = urlParams.get('scma');
     let currentScma = '';
     let trajectoryChart = null;
     const displayCurrencies = {USD:{factor:1,symbol:'$',digits:2},EUR:{factor:.92,symbol:'€',digits:2},CNY:{factor:7.24,symbol:'¥',digits:2},ZAR:{factor:18.1,symbol:'R',digits:2},XAU:{factor:1/2600,symbol:'',suffix:' g',digits:4}};
@@ -197,7 +200,8 @@
     }
 
     async function loadState() {
-      const res = await fetch(`/api/v1/portal/member/state?user_id=${userId}`);
+      const memberQuery = requestedScma ? `scma_id=${encodeURIComponent(requestedScma)}` : `user_id=${encodeURIComponent(userId)}`;
+      const res = await fetch(`/api/v1/portal/member/state?${memberQuery}`);
       const data = await res.json();
       latestState = data;
       currentScma = data.scma_id;
@@ -208,7 +212,9 @@
       document.getElementById('risk-slider').value = data.risk_dial_pct;
       document.getElementById('risk-val').innerText = data.risk_dial_pct.toFixed(1);
 
-      const administrativelyFrozen = data.status === 'FROZEN_BY_HOUSE_LEADER';
+      const houseQuarantined = data.parent_house_status === 'QUARANTINED';
+      const administrativelyFrozen = data.status === 'FROZEN_BY_HOUSE_LEADER' || houseQuarantined;
+      document.getElementById('quarantine-alert').style.display = houseQuarantined ? 'block' : 'none';
       if (data.is_custodial || administrativelyFrozen) {
         document.getElementById('custodial-alert').style.display = 'block';
         document.getElementById('custodian-id').innerText = administrativelyFrozen ? 'House Leader' : data.custodian_id;

@@ -51,6 +51,8 @@
     .copilot-card { background:#020617; border:1px solid #334155; border-radius:7px; padding:10px; margin:8px 0; }
     .copilot-card-label { color:#38bdf8; font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; margin-bottom:5px; }
     .telemetry-badge { display:inline-block; background:#172554; border:1px solid #3b82f6; border-radius:12px; padding:3px 7px; margin:2px; font-size:11px; }
+    .info-tip { position:relative; display:inline-block; color:#38bdf8; cursor:help; font-size:14px; }
+    .info-tip:hover::after, .info-tip:focus::after { content:attr(data-tooltip); position:absolute; z-index:30; left:50%; bottom:calc(100% + 8px); transform:translateX(-50%); width:260px; padding:9px 11px; border:1px solid #38bdf8; border-radius:5px; background:#020617; color:#f8fafc; font-size:12px; line-height:1.4; text-transform:none; box-shadow:0 8px 20px #000; }
 
     .modal-backdrop { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(4px); z-index: 20000; align-items: center; justify-content: center; }
     .modal-box { background: #111c44; border-radius: 10px; width: 560px; max-width: 90vw; padding: 24px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7); animation: modalIn 0.2s ease-out; }
@@ -155,18 +157,18 @@
         <div class="card-sub">Endowment Growth</div>
       </div>
       <div class="card">
-        <div class="card-title">Waterfall Distribution</div>
+        <div class="card-title">Waterfall Distribution <span class="info-tip" tabindex="0" data-tooltip="Realized gains allocate 87% to SCMA compounding, 10% to the CFCP lineage shield, and 3% to FAEP endowment.">ⓘ</span></div>
         <div class="card-value">87 / 10 / 3</div>
         <div class="card-sub">SCMA / CFCP / FAEP</div>
       </div>
       <div class="card">
-        <div class="card-title">Tribal Houses</div>
+        <div class="card-title">Tribal Houses <span class="info-tip" tabindex="0" data-tooltip="12-House partitioning contains mutiny or operational risk within one lineage branch without spreading it across the family.">ⓘ</span></div>
         <div class="card-value" style="color: #a855f7;">12 Houses</div>
         <div class="card-sub">Autonomous Partitioning</div>
       </div>
     </div>
     <div class="card" id="lineage-house-tree-container" data-house-count="12">
-      <div class="card-title" style="color:#38bdf8;margin-bottom:12px;">12-House Master-Detail Lineage Tree</div>
+      <div class="card-title" style="color:#38bdf8;margin-bottom:12px;">12-House Master-Detail Lineage Tree <span class="info-tip" tabindex="0" data-tooltip="The Downward-Only Risk Dial enforces Directive R-06 capital protection: members may reduce exposure, never raise it above their ceiling.">ⓘ</span> <span class="info-tip" tabindex="0" data-tooltip="Freeze Risk clamps future risk to zero; Revoke Orders separately cancels already-resting maker orders.">ⓘ</span></div>
       <div id="lineage-action-status" class="lineage-status" role="status" aria-live="polite"></div>
       <div id="lineage-house-tree" class="lineage-tree" aria-label="Twelve House lineage accounts">
         <div style="color:#94a3b8;padding:16px;">Loading all 12 Houses and subordinate SCMA accounts…</div>
@@ -483,7 +485,7 @@
           </button>
           <div class="subaccount-panel" ${openHouseIds.has(String(house.house_id)) || (isInitialRender && index === 0) ? '' : 'hidden'}>
             <table><thead><tr><th>SCMA ID</th><th>MEMBER NAME</th><th>ROLE / TAG</th><th>CURRENT BALANCE</th><th>RISK DIAL</th><th>RESTING MAKER ORDERS</th><th>ACTIONS</th></tr></thead>
-            <tbody>${house.members.map(member => `<tr data-scma="${member.scma_id}" data-baseline="${member.baseline_risk_dial || .01}"><td class="house-code">${member.scma_id}</td><td>${member.name}</td><td>${member.role_tag || 'Lineal Member'}</td><td>${money(member.cash_cents)}</td><td class="risk-value">${(Number(member.risk_dial) * 100).toFixed(1)}%</td><td class="order-value">${(member.open_orders || []).length}</td><td><button class="lineage-action freeze-risk" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'freeze-risk', this)">⚡ Freeze Risk</button> <button class="lineage-action restore-risk" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'restore-risk', this)">↺ Restore Risk</button> <button class="lineage-action revoke-orders" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'cancel-orders', this)">✕ Revoke Orders</button></td></tr>`).join('')}</tbody></table>
+            <tbody>${house.members.map(member => `<tr data-scma="${member.scma_id}" data-baseline="${member.baseline_risk_dial || .01}"><td class="house-code">${member.scma_id}</td><td><a href="/member?scma=${member.scma_id}" style="color:#38bdf8;text-decoration:underline;">${member.name}</a></td><td>${member.role_tag || 'Lineal Member'}</td><td>${money(member.cash_cents)}</td><td class="risk-value">${(Number(member.risk_dial) * 100).toFixed(1)}%</td><td class="order-value">${(member.open_orders || []).length}</td><td>${member.scma_id === 'SCMA-FOUNDER_-C8575D7E' || member.role_tag === 'Sovereign Settlor' ? '<span style="background:#1e293b;border:1px solid #38bdf8;color:#38bdf8;padding:4px 8px;border-radius:4px;font-weight:bold;font-size:11px;">🛡️ Sovereign Immune</span>' : `<button class="lineage-action freeze-risk" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'freeze-risk', this)">⚡ Freeze Risk</button> <button class="lineage-action restore-risk" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'restore-risk', this)">↺ Restore Risk</button> <button class="lineage-action revoke-orders" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'cancel-orders', this)">✕ Revoke Orders</button>`}</td></tr>`).join('')}</tbody></table>
           </div>
         </section>`).join('');
     }

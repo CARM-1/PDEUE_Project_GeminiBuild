@@ -249,16 +249,17 @@ def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str
                 break
         if target:
             break
+    if scma_id and not target:
+        raise HTTPException(status_code=404, detail=f"SCMA member {scma_id} not found")
     if not target:
         target = LINEAGE_DATA["HOUSEHOLD-ALPHA"]["accounts"][1]
 
     # Identity/profile data remains portal-specific, while mutable financial
     # controls come from the same hierarchy used by leader and operator desks.
-    lineage_member = next(
-        (member for house in _lineage_service.list_all_houses()
-         for member in house["members"] if member["scma_id"] == target["scma_id"]),
-        None,
-    )
+    try:
+        lineage_member = _lineage_service.get_member_state(target["scma_id"])
+    except ValueError:
+        lineage_member = None
     risk_dial_pct = (
         lineage_member["risk_dial"] * 100 if lineage_member else target["risk_dial"]
     )
@@ -268,11 +269,13 @@ def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str
         "name": target["name"],
         "role": "MEMBER_USER",  # Directive R-06: Member desk always enforces personal member role
         "scma_id": target["scma_id"],
-        "cash_balance": target["balance"],
+        "cash_balance": lineage_member["cash_cents"] / 100.0 if lineage_member else target["balance"],
         "reserved_capital": target["reserved"],
         "lifetime_yield": 340.00,
         "risk_dial_pct": risk_dial_pct,
         "status": lineage_member["status"] if lineage_member else target["status"],
+        "open_orders": lineage_member["open_orders"] if lineage_member else [],
+        "parent_house_status": lineage_member["parent_house_status"] if lineage_member else "ACTIVE",
         "risk_ceiling_pct": 2.00,
         "is_custodial": target["is_custodial"],
         "custodian_id": target["custodian_id"],

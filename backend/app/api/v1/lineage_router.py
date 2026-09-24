@@ -23,19 +23,27 @@ def _build_member_table_rows(members: List[Dict[str, Any]], house_id: int) -> st
         scma = m.get("scma_id", "")
         name = m.get("name", "")
         order_count = len(orders)
+        if _lineage_service._is_sovereign_settlor(m):
+            actions = (
+                "<span style='background:#1e293b;border:1px solid #38bdf8;color:#38bdf8;"
+                "padding:4px 8px;border-radius:4px;font-weight:bold;font-size:11px;'>"
+                "🛡️ Sovereign Immune</span>"
+            )
+        else:
+            actions = (
+                f"<button class='btn-cancel' onclick=\"openCancelModal('{name}', '{scma}', {order_count}, '{orders_str}')\">Cancel Orders</button>"
+                f"<button class='btn-freeze' onclick=\"openFreezeModal('{name}', '{scma}', '{dial}')\">Freeze Dial (0%)</button>"
+            )
 
         r = (
             f"<tr>"
-            f"<td><b>{name}</b></td>"
+            f"<td><b><a href='/member?scma={scma}' style='color:#38bdf8;text-decoration:underline;'>{name}</a></b></td>"
             f"<td style='font-family: monospace; color: #38bdf8;'>{scma}</td>"
             f"<td>{cash}</td>"
             f"<td><b>{dial}</b></td>"
             f"<td>{order_count} resting ({orders_str})</td>"
             f"<td><span style='color: {status_color}; font-weight: bold;'>{status}</span></td>"
-            f"<td><div style='display: flex; gap: 6px;'>"
-            f"<button class='btn-cancel' onclick=\"openCancelModal('{name}', '{scma}', {order_count}, '{orders_str}')\">Cancel Orders</button>"
-            f"<button class='btn-freeze' onclick=\"openFreezeModal('{name}', '{scma}', '{dial}')\">Freeze Dial (0%)</button>"
-            f"</div></td>"
+            f"<td><div style='display: flex; gap: 6px;'>{actions}</div></td>"
             f"</tr>"
         )
         rows.append(r)

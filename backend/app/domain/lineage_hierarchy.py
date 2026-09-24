@@ -59,6 +59,16 @@ class LineageHierarchyService:
         }
     }
 
+    FOUNDER_SCMA_ID = "SCMA-FOUNDER_-C8575D7E"
+
+    @classmethod
+    def _is_sovereign_settlor(cls, member: Dict[str, Any]) -> bool:
+        """Return whether a member is outside all subordinate interventions."""
+        return (
+            member.get("scma_id") == cls.FOUNDER_SCMA_ID
+            or member.get("role_tag") == "Sovereign Settlor"
+        )
+
     # In-memory proposal ledger
     PROPOSALS: Dict[str, Dict[str, Any]] = {
         "PROP-2026-001": {
@@ -142,6 +152,15 @@ class LineageHierarchyService:
         target = next((m for m in house["members"] if m["scma_id"] == scma_id), None)
         if not target:
             raise ValueError(f"Subordinate SCMA {scma_id} not found in House {house_id}.")
+        if self._is_sovereign_settlor(target):
+            return {
+                "status": "SOVEREIGN_IMMUNE",
+                "house_id": house_id,
+                "lineage_code": house["lineage_code"],
+                "scma_id": scma_id,
+                "cancelled_orders": [],
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
 
         cancelled = list(target["open_orders"])
         target["open_orders"] = []
@@ -165,6 +184,17 @@ class LineageHierarchyService:
         if not target:
             raise ValueError(f"Subordinate SCMA {scma_id} not found in House {house_id}.")
 
+        if self._is_sovereign_settlor(target):
+            return {
+                "status": "SOVEREIGN_IMMUNE",
+                "house_id": house_id,
+                "lineage_code": house["lineage_code"],
+                "scma_id": scma_id,
+                "new_risk_dial": target["risk_dial"],
+                "member_status": target["status"],
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+
         target["risk_dial"] = 0.0
         target["status"] = "FROZEN_BY_HOUSE_LEADER"
 
@@ -183,12 +213,27 @@ class LineageHierarchyService:
         house = self._get_house(house_id)
         revoked_orders = []
         for member in house["members"]:
+            if self._is_sovereign_settlor(member):
+                continue
             revoked_orders.extend(member["open_orders"])
             member["open_orders"] = []
             member["risk_dial"] = 0.0
             member["status"] = "FROZEN_BY_HOUSE_QUARANTINE"
         house["status"] = "QUARANTINED"
         return self._house_action_receipt(house, "HOUSE_QUARANTINED", revoked_orders)
+
+    def get_member_state(self, scma_id: str) -> Dict[str, Any]:
+        """Return live financial state and inherited House status for one SCMA."""
+        for house in self.CANONICAL_HOUSES.values():
+            for member in house["members"]:
+                if member["scma_id"] == scma_id:
+                    return {
+                        **member,
+                        "house_id": house["house_id"],
+                        "lineage_code": house["lineage_code"],
+                        "parent_house_status": house["status"],
+                    }
+        raise ValueError(f"SCMA member {scma_id} not found.")
 
     def restore_house(self, house_id: int) -> Dict[str, Any]:
         """Lift a branch quarantine and restore each active member's baseline."""
