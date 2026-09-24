@@ -17,7 +17,7 @@ def test_dashboard_contains_dynamic_twelve_house_lineage_tree():
     assert "/api/v1/lineage/house/${houseId}/subordinate/${action}" in response.text
 
 
-def test_freeze_risk_clamps_subordinate_dial():
+def test_freeze_risk_preserves_sovereign_dial():
     member = _lineage_service.CANONICAL_HOUSES[1]["members"][0]
     member["risk_dial"] = 0.02
     member["status"] = "ACTIVE"
@@ -26,12 +26,12 @@ def test_freeze_risk_clamps_subordinate_dial():
         json={"scma_id": SCMA},
     )
     assert response.status_code == 200
-    assert response.json()["status"] == "SUBORDINATE_RISK_FROZEN"
-    assert response.json()["new_risk_dial"] == 0.0
-    assert member["risk_dial"] == 0.0
+    assert response.json()["status"] == "SOVEREIGN_IMMUNE"
+    assert response.json()["new_risk_dial"] == 0.02
+    assert member["risk_dial"] == 0.02
 
 
-def test_cancel_orders_revokes_active_maker_orders():
+def test_cancel_orders_preserves_sovereign_orders():
     member = _lineage_service.CANONICAL_HOUSES[1]["members"][0]
     member["open_orders"] = ["KX-MIA-FRZ-32"]
     response = client.post(
@@ -39,6 +39,6 @@ def test_cancel_orders_revokes_active_maker_orders():
         json={"scma_id": SCMA},
     )
     assert response.status_code == 200
-    assert response.json()["status"] == "SUBORDINATE_ORDERS_CANCELLED"
-    assert response.json()["cancelled_orders"] == ["KX-MIA-FRZ-32"]
-    assert member["open_orders"] == []
+    assert response.json()["status"] == "SOVEREIGN_IMMUNE"
+    assert response.json()["cancelled_orders"] == []
+    assert member["open_orders"] == ["KX-MIA-FRZ-32"]
