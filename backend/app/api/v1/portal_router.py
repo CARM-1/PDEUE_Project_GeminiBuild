@@ -65,6 +65,7 @@ LINEAGE_DATA: Dict[str, Any] = {
 }
 
 class RiskUpdateRequest(BaseModel):
+    scma_id: Optional[str] = None
     requested_risk_pct: Optional[float] = None
     new_risk_dial: Optional[float] = None
     risk_dial: Optional[float] = None
@@ -82,6 +83,12 @@ class AssistantQuery(BaseModel):
     context_scope: Optional[str] = "GENERAL"
 
 def _load_html(filename: str) -> HTMLResponse:
+    # The member desktop is maintained beside this router so its HTTP contract
+    # and presentation cannot drift apart.  Other legacy portals remain in the
+    # shared static directory.
+    api_page = pathlib.Path(__file__).parent / filename
+    if api_page.exists():
+        return HTMLResponse(content=api_page.read_text(encoding="utf-8"))
     base = pathlib.Path(__file__).parent.parent.parent / "static"
     p1 = base / filename
     p2 = base / "templates" / filename
@@ -288,6 +295,17 @@ def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str
         lineage_member["risk_dial"] * 100 if lineage_member else target["risk_dial"]
     )
 
+    cash_cents = int(lineage_member["cash_cents"] if lineage_member else round(target["balance"] * 100))
+    active_float_cents = min(cash_cents, 2_500_000)
+    swept_cash_cents = max(cash_cents - active_float_cents, 0)
+    passive_yield_cents = cash_cents * 450 // 10_000
+    quarantined = (lineage_member["status"] if lineage_member else target["status"]) in {
+        "QUARANTINED", "FROZEN_BY_HOUSE_LEADER"
+    }
+    parent_house_quarantined = (
+        (lineage_member["parent_house_status"] if lineage_member else "ACTIVE") == "QUARANTINED"
+    )
+
     return {
         "user_id": target["user_id"],
         "name": target["name"],
@@ -301,6 +319,11 @@ def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str
         "open_orders": lineage_member["open_orders"] if lineage_member else [],
         "parent_house_status": lineage_member["parent_house_status"] if lineage_member else "ACTIVE",
         "risk_ceiling_pct": 2.00,
+        "active_float_cents": active_float_cents,
+        "swept_cash_cents": swept_cash_cents,
+        "passive_yield_cents": passive_yield_cents,
+        "quarantined": quarantined,
+        "parent_house_quarantined": parent_house_quarantined,
         "is_custodial": target["is_custodial"],
         "custodian_id": target["custodian_id"],
         "positions": [
@@ -320,6 +343,27 @@ def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str
             "rule": "Option A: 10% CFCP priority deduction executed before FAEP derivation"
         }
     }
+
+@router.post("/api/v1/portal/member/risk-dial")
+def update_current_member_risk_dial(req: RiskUpdateRequest):
+    """Apply the member HUD's 50–200 bps, downward-only governor."""
+    scma_id = req.scma_id or "SCMA-ELEANOR_-B2B31C9E"
+    try:
+        member = _lineage_service.get_member_state(scma_id)
+    except ValueError as err:
+        raise HTTPException(status_code=404, detail=str(err)) from err
+    requested = req.requested_risk_pct
+    if requested is None:
+        requested = req.risk_dial_pct if req.risk_dial_pct is not None else req.new_risk_dial
+    if requested is None and req.risk_dial is not None:
+        requested = req.risk_dial
+    if requested is None or requested < 0.50 or requested > 2.00:
+        raise HTTPException(status_code=400, detail="Risk dial must be between 0.50% and 2.00%")
+    current = member["risk_dial"] * 100
+    if requested > current:
+        raise HTTPException(status_code=400, detail="Downward-only policy: requested risk exceeds current ceiling.")
+    member["risk_dial"] = requested / 100
+    return {"status": "UPDATED", "scma_id": scma_id, "applied_risk_pct": requested}
 
 @router.post("/api/v1/portal/member/{scma_id}/risk-dial")
 def update_member_risk_dial(scma_id: str, req: RiskUpdateRequest):
@@ -536,6 +580,11 @@ def member_ai_tutor(query: AssistantQuery):
             "These mechanics combine private growth, shared resilience, intergenerational stewardship, and auditable approvals; ask about the waterfall, compounding, or risk dial for a deeper explanation."
         )
     return {"role": "MEMBER_TUTOR", "query": prompt, "response": ans, "answer": ans}
+
+@router.post("/api/v1/portal/member/tutor")
+def member_tutor(query: AssistantQuery):
+    """Stable novice-facing alias used by the Member Desktop."""
+    return member_ai_tutor(query)
 
 @router.post("/api/v1/portal/advisor/copilot")
 def advisor_copilot(query: AssistantQuery):
