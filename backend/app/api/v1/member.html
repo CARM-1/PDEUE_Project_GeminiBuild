@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PDEUE Member User Desktop</title>
+  <style>
+    :root { color-scheme: dark; --ink:#eef6ff; --muted:#91a4ba; --panel:#101d2d; --line:#273b50; --cyan:#3bd4ed; --green:#62e6a8; --amber:#ffc766; --red:#ff7b7b; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; background:radial-gradient(circle at 80% 0,#163653 0,transparent 30%),#07111d; color:var(--ink); font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; }
+    button,input { font:inherit; } button { cursor:pointer; }
+    .shell { width:min(1180px,calc(100% - 32px)); margin:auto; padding:24px 0 64px; }
+    .quarantine-banner { display:none; margin-bottom:16px; padding:14px 18px; border:1px solid var(--red); border-radius:12px; background:#401d26; color:#ffe8e8; }
+    .quarantine-banner.visible { display:block; }
+    header { display:flex; justify-content:space-between; gap:24px; align-items:center; padding:18px 0 24px; border-bottom:1px solid var(--line); }
+    h1 { margin:0; font-size:clamp(1.5rem,4vw,2.3rem); letter-spacing:-.03em; } .eyebrow { color:var(--cyan); text-transform:uppercase; font-size:.75rem; letter-spacing:.16em; font-weight:800; }
+    .identity { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:9px; } .pill { border:1px solid var(--line); border-radius:999px; padding:7px 11px; color:var(--muted); }
+    .hat { color:#06131b; background:var(--cyan); border-color:var(--cyan); font-weight:800; }
+    .cockpit { color:var(--ink); text-decoration:none; border:1px solid #54708b; border-radius:8px; padding:8px 12px; }
+    .switcher { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:24px 0 16px; padding:6px; background:#091624; border:1px solid var(--line); border-radius:12px; }
+    .switcher button { border:0; border-radius:8px; padding:11px; color:var(--muted); background:transparent; font-weight:700; }
+    .switcher button.active { color:var(--ink); background:#183149; box-shadow:inset 0 0 0 1px #31536d; }
+    .view { display:none; } .view.active { display:block; }
+    .capital-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+    .card { padding:20px; border:1px solid var(--line); border-radius:14px; background:linear-gradient(145deg,#122236,#0d1928); box-shadow:0 14px 35px #02070d55; }
+    .label { min-height:38px; color:var(--muted); text-transform:uppercase; font-size:.72rem; letter-spacing:.1em; font-weight:800; }
+    .value { margin:7px 0 6px; color:var(--cyan); font-size:clamp(1.35rem,2.5vw,2rem); font-weight:800; font-variant-numeric:tabular-nums; }
+    .wealth .value,.yield .value { color:var(--green); } .note { color:var(--muted); font-size:.8rem; }
+    .panel-grid { display:grid; grid-template-columns:1.35fr 1fr; gap:14px; margin-top:14px; }
+    h2 { margin:0 0 6px; font-size:1.05rem; } p { color:var(--muted); margin:0 0 16px; }
+    .range-row { display:grid; grid-template-columns:1fr auto; align-items:center; gap:18px; } input[type=range] { width:100%; accent-color:var(--cyan); }
+    .bps { min-width:88px; color:var(--cyan); font-size:1.3rem; font-weight:800; text-align:right; }
+    .action { border:0; border-radius:8px; padding:10px 14px; color:#04131c; background:var(--cyan); font-weight:800; }
+    .risk-actions { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:14px; }
+    .notice { min-height:22px; color:var(--muted); font-size:.84rem; } .notice.error { color:var(--red); } .notice.success { color:var(--green); }
+    .tutor-toggle { position:fixed; right:22px; bottom:22px; z-index:3; border:0; border-radius:999px; padding:13px 17px; background:var(--cyan); color:#04131c; font-weight:900; box-shadow:0 8px 30px #0008; }
+    .tutor { position:fixed; z-index:4; right:0; top:0; width:min(420px,100%); height:100%; padding:24px; background:#0b1725; border-left:1px solid var(--line); transform:translateX(102%); transition:transform .25s ease; box-shadow:-20px 0 50px #0008; }
+    .tutor.open { transform:none; } .tutor-head { display:flex; justify-content:space-between; align-items:center; } .close { border:0; background:transparent; color:var(--muted); font-size:1.5rem; }
+    .tutor-form { display:flex; gap:8px; margin-top:24px; } .tutor-form input { min-width:0; flex:1; padding:11px; color:var(--ink); background:#08121e; border:1px solid var(--line); border-radius:8px; }
+    .tutor-response { min-height:110px; margin-top:16px; padding:15px; border:1px solid var(--line); border-radius:10px; color:#dce9f5; background:#07111d; white-space:pre-wrap; }
+    .rings,.radar { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; } .ring { width:130px; aspect-ratio:1; margin:15px auto; display:grid; place-items:center; border-radius:50%; background:conic-gradient(var(--cyan) var(--fill),#26394b 0); } .ring span { width:96px; aspect-ratio:1; display:grid; place-items:center; border-radius:50%; background:#101d2d; font-weight:800; }
+    @media(max-width:850px){ .capital-grid{grid-template-columns:repeat(2,1fr)} .panel-grid{grid-template-columns:1fr} header{align-items:flex-start;flex-direction:column}.identity{justify-content:flex-start} }
+    @media(max-width:520px){ .shell{width:min(100% - 20px,1180px)} .capital-grid,.rings,.radar{grid-template-columns:1fr}.switcher{grid-template-columns:1fr}.label{min-height:0} }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div id="quarantineBanner" class="quarantine-banner" role="alert"><strong>Account protection active.</strong> This SCMA or its Parent House is quarantined. Capital activity is restricted while the review is completed.</div>
+    <header>
+      <div><div class="eyebrow">Private capital overview</div><h1>Member User Desktop</h1></div>
+      <div class="identity"><span class="pill">SCMA ID: <strong id="scmaId">Loading…</strong></span><span class="pill hat">Active Hat: MEMBER_USER</span><a class="cockpit" href="/dashboard">Return to Chief Admin Cockpit</a></div>
+    </header>
+
+    <nav class="switcher" aria-label="Member HUD views">
+      <button class="active" data-view="trajectory" aria-selected="true">Personal Trajectory</button>
+      <button data-view="engines" aria-selected="false">Asset Engine Rings</button>
+      <button data-view="radar" aria-selected="false">High-Yield Radar</button>
+    </nav>
+
+    <section id="trajectory" class="view active">
+      <div class="capital-grid">
+        <article class="card wealth"><div class="label">Cumulative Personal Wealth</div><div id="totalWealth" class="value">$0.00</div><div class="note">Active + swept + yield; uncapped</div></article>
+        <article class="card"><div class="label">Active Prediction Float</div><div id="activeFloat" class="value">$0.00</div><div class="note">Capped at $25,000.00 on-venue</div></article>
+        <article class="card"><div class="label">Swept Commercial Cash</div><div id="sweptCash" class="value">$0.00</div><div class="note">IFAS FDIC-Insured Bank Reserve</div></article>
+        <article class="card yield"><div class="label">Accumulated Passive Yield</div><div id="passiveYield" class="value">$0.00</div><div class="note">4.50% APY Compounded Daily</div></article>
+      </div>
+    </section>
+    <section id="engines" class="view"><div class="rings"><article class="card"><h2>Prediction Float</h2><div class="ring" style="--fill:72%"><span>Active</span></div></article><article class="card"><h2>Bank Sweep</h2><div class="ring" style="--fill:88%"><span>Insured</span></div></article><article class="card"><h2>Yield Engine</h2><div class="ring" style="--fill:45%"><span>4.50%</span></div></article></div></section>
+    <section id="radar" class="view"><div class="radar"><article class="card"><h2>Commercial reserve</h2><p>Excess float is swept rather than stopping personal wealth growth.</p></article><article class="card"><h2>Daily compounding</h2><p>Passive yield continues across active and swept capital.</p></article><article class="card"><h2>Capital preservation</h2><p>Your risk ceiling can only move downward from its authorized level.</p></article></div></section>
+
+    <div class="panel-grid">
+      <section class="card"><h2>Downward-Only Risk Governor</h2><p>Reduce the maximum stake per opportunity. Increases above your current authorized ceiling are rejected.</p><div class="range-row"><input type="range" id="riskSlider" min="50" max="200" step="5" value="150"><output id="riskReadout" class="bps" for="riskSlider">150 bps</output></div><div class="risk-actions"><span id="riskNotice" class="notice" role="status"></span><button id="riskSubmit" class="action">Apply limit</button></div></section>
+      <section class="card"><h2>AI Literacy Tutor</h2><p>Plain-English education about risk, daily yield, sweeps, and compounding.</p><button id="openTutor" class="action">Ask the tutor</button></section>
+    </div>
+  </main>
+
+  <button id="floatingTutor" class="tutor-toggle" aria-controls="tutorPanel">AI Tutor</button>
+  <aside id="tutorPanel" class="tutor" aria-hidden="true"><div class="tutor-head"><div><div class="eyebrow">Educational assistant</div><h2>AI Literacy Tutor</h2></div><button id="closeTutor" class="close" aria-label="Close tutor">×</button></div><p>Ask a question; answers are educational and do not promise returns.</p><form id="tutorForm" class="tutor-form"><input id="tutorInput" required autocomplete="off" placeholder="How does the bank sweep work?"><button class="action" type="submit">Ask</button></form><div id="tutorResponse" class="tutor-response" role="status">Your answer will appear here.</div></aside>
+
+  <script>
+    'use strict';
+    const $ = id => document.getElementById(id);
+    const params = new URLSearchParams(location.search);
+    let currentScma = params.get('scma_id') || '';
+    let authorizedBps = 200;
+    const currency = cents => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(cents || 0) / 100);
+    const integerCents = (data, centsKey, legacyKey) => Number.isSafeInteger(data[centsKey]) ? data[centsKey] : Math.round(Number(data[legacyKey] || 0) * 100);
+
+    document.querySelectorAll('.switcher button').forEach(button => button.addEventListener('click', () => {
+      document.querySelectorAll('.switcher button').forEach(item => { item.classList.toggle('active',item===button); item.setAttribute('aria-selected',item===button); });
+      document.querySelectorAll('.view').forEach(view => view.classList.toggle('active',view.id===button.dataset.view));
+    }));
+
+    async function loadState() {
+      const query = currentScma ? `?scma_id=${encodeURIComponent(currentScma)}` : '';
+      const response = await fetch('/api/v1/portal/member/state' + query);
+      if (!response.ok) throw new Error('Member state is temporarily unavailable.');
+      const data = await response.json();
+      currentScma = data.scma_id;
+      $('scmaId').textContent = currentScma;
+      const balanceCents = integerCents(data,'cash_balance_cents','cash_balance');
+      const active = Number.isSafeInteger(data.active_float_cents) ? data.active_float_cents : Math.min(balanceCents,2500000);
+      const swept = Number.isSafeInteger(data.swept_cash_cents) ? data.swept_cash_cents : Math.max(balanceCents-active,0);
+      const yieldCents = integerCents(data,'passive_yield_cents','lifetime_yield');
+      $('activeFloat').textContent = currency(active); $('sweptCash').textContent = currency(swept); $('passiveYield').textContent = currency(yieldCents);
+      $('totalWealth').textContent = currency(active + swept + yieldCents);
+      const pct = Number(data.risk_dial_pct ?? 2); authorizedBps = Math.max(50,Math.min(200,Math.round(pct * 100)));
+      $('riskSlider').value = authorizedBps; updateRiskReadout();
+      $('quarantineBanner').classList.toggle('visible',Boolean(data.quarantined || data.parent_house_quarantined));
+    }
+    function updateRiskReadout(){ $('riskReadout').textContent = `${$('riskSlider').value} bps`; }
+    $('riskSlider').addEventListener('input',updateRiskReadout);
+    $('riskSubmit').addEventListener('click',async () => {
+      const requestedBps=Number($('riskSlider').value), notice=$('riskNotice'); notice.className='notice';
+      if(requestedBps>authorizedBps){ notice.textContent=`Not applied: ${requestedBps} bps exceeds your ${authorizedBps} bps ceiling.`; notice.classList.add('error'); return; }
+      try { const response=await fetch('/api/v1/portal/member/risk-dial',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scma_id:currentScma,new_risk_dial:requestedBps/100})}); const data=await response.json(); if(!response.ok) throw new Error(data.detail||'The change was rejected.'); authorizedBps=requestedBps; notice.textContent=`Risk governor reduced to ${requestedBps} bps.`; notice.classList.add('success'); }
+      catch(error){ notice.textContent=`Not applied: ${error.message}`; notice.classList.add('error'); }
+    });
+    const setTutor=open=>{ $('tutorPanel').classList.toggle('open',open); $('tutorPanel').setAttribute('aria-hidden',String(!open)); if(open) $('tutorInput').focus(); };
+    $('openTutor').onclick=$('floatingTutor').onclick=()=>setTutor(true); $('closeTutor').onclick=()=>setTutor(false);
+    $('tutorForm').addEventListener('submit',async event=>{ event.preventDefault(); const query=$('tutorInput').value.trim(); if(!query)return; $('tutorResponse').textContent='Thinking…'; try { const response=await fetch('/api/v1/portal/member/tutor',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query})}); const data=await response.json(); if(!response.ok)throw new Error(data.detail||'Tutor unavailable.'); $('tutorResponse').textContent=data.response||data.answer; } catch(error){ $('tutorResponse').textContent=error.message; } });
+    loadState().catch(error=>{ $('scmaId').textContent='Unavailable'; $('riskNotice').textContent=error.message; $('riskNotice').classList.add('error'); });
+  </script>
+</body>
+</html>
