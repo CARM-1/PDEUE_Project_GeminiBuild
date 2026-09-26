@@ -65,6 +65,7 @@ LINEAGE_DATA: Dict[str, Any] = {
 }
 
 class RiskUpdateRequest(BaseModel):
+    scma_id: Optional[str] = None
     requested_risk_pct: Optional[float] = None
     new_risk_dial: Optional[float] = None
     risk_dial: Optional[float] = None
@@ -93,6 +94,11 @@ def _load_html(filename: str) -> HTMLResponse:
 
 @router.get("/member", response_class=HTMLResponse)
 def get_member_portal():
+    # Keep the member desktop beside its API contract so its DOM and endpoint
+    # wiring are reviewed together. Other legacy portals remain in /static.
+    template = pathlib.Path(__file__).with_name("member.html")
+    if template.exists():
+        return HTMLResponse(content=template.read_text(encoding="utf-8"))
     return _load_html("member.html")
 
 @router.get("/advisor", response_class=HTMLResponse)
@@ -300,6 +306,19 @@ def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str
         "status": lineage_member["status"] if lineage_member else target["status"],
         "open_orders": lineage_member["open_orders"] if lineage_member else [],
         "parent_house_status": lineage_member["parent_house_status"] if lineage_member else "ACTIVE",
+        # ADR-008 presentation inputs.  These values cross the API boundary as
+        # integer cents; the browser alone is responsible for currency format.
+        "active_float_cents": min(
+            lineage_member["cash_cents"] if lineage_member else int(round(target["balance"] * 100)),
+            2_500_000,
+        ),
+        "swept_cash_cents": max(
+            (lineage_member["cash_cents"] if lineage_member else int(round(target["balance"] * 100))) - 2_500_000,
+            0,
+        ),
+        "passive_yield_cents": 34_000,
+        "quarantined": (lineage_member["status"] if lineage_member else target["status"]) == "QUARANTINED",
+        "parent_house_quarantined": (lineage_member["parent_house_status"] if lineage_member else "ACTIVE") == "QUARANTINED",
         "risk_ceiling_pct": 2.00,
         "is_custodial": target["is_custodial"],
         "custodian_id": target["custodian_id"],
@@ -322,7 +341,7 @@ def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str
     }
 
 @router.post("/api/v1/portal/member/{scma_id}/risk-dial")
-def update_member_risk_dial(scma_id: str, req: RiskUpdateRequest):
+def _update_member_risk_dial(scma_id: str, req: RiskUpdateRequest):
     target = None
     for house in LINEAGE_DATA.values():
         for acct in house["accounts"]:
@@ -373,6 +392,11 @@ def update_member_risk_dial(scma_id: str, req: RiskUpdateRequest):
 
     target["risk_dial"] = val
     return {"status": "APPROVED", "scma_id": scma_id, "applied_risk_dial": val, "risk_dial": val}
+
+@router.post("/api/v1/portal/member/risk-dial")
+def update_current_member_risk_dial(req: RiskUpdateRequest):
+    """DOM-friendly alias while preserving the account-scoped API."""
+    return _update_member_risk_dial(req.scma_id or "SCMA-ELEANOR_-B2B31C9E", req)
 
 @router.post("/api/v1/portal/member/request-distribution")
 def request_capital_distribution(req: DistributionRequest):
@@ -536,6 +560,11 @@ def member_ai_tutor(query: AssistantQuery):
             "These mechanics combine private growth, shared resilience, intergenerational stewardship, and auditable approvals; ask about the waterfall, compounding, or risk dial for a deeper explanation."
         )
     return {"role": "MEMBER_TUTOR", "query": prompt, "response": ans, "answer": ans}
+
+@router.post("/api/v1/portal/member/tutor")
+def member_tutor(query: AssistantQuery):
+    """Stable, plain-language tutor endpoint used by the member HUD."""
+    return member_ai_tutor(query)
 
 @router.post("/api/v1/portal/advisor/copilot")
 def advisor_copilot(query: AssistantQuery):
