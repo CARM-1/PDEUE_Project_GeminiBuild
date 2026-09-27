@@ -10,7 +10,14 @@ class PositionBook:
     def record_fill(self, contract_id: str, venue: str, category: str, side: str, price: float, quantity: int, fill_cost_cents: int, member_id: str = 'DEFAULT') -> Dict[str, Any]:
         if quantity <= 0:
             return {}
-        pos_key = f'{member_id}:{contract_id}' if member_id != 'DEFAULT' else contract_id
+        normalized_side = self._normalize_side(side)
+        base_key = f'{member_id}:{contract_id}' if member_id != 'DEFAULT' else contract_id
+        pos_key = base_key
+        existing = self.positions.get(base_key)
+        # Preserve the historical key for ordinary/same-side fills, but keep an
+        # offsetting outcome in a distinct inventory lot so it can be burned.
+        if existing and existing.get('outcome_side') != normalized_side:
+            pos_key = f'{base_key}:{normalized_side}'
         pos = self.positions.get(pos_key)
         if not pos:
             vwap = price
@@ -21,8 +28,43 @@ class PositionBook:
             total_cost = pos['total_cost_cents'] + fill_cost_cents
             vwap = round((pos['vwap_price'] * pos['quantity'] + price * quantity) / total_qty, 4)
 
-        self.positions[pos_key] = {'contract_id': contract_id, 'position_id': pos_key, 'venue': venue, 'category': category, 'side': side, 'member_id': member_id, 'quantity': total_qty, 'vwap_price': vwap, 'total_cost_cents': total_cost, 'current_mid': vwap, 'mtm_value_cents': total_cost, 'unrealized_pnl_cents': 0, 'roi_pct': 0.0, 'last_updated': datetime.now(timezone.utc).isoformat()}
+        self.positions[pos_key] = {'contract_id': contract_id, 'position_id': pos_key, 'venue': venue, 'category': category, 'side': side, 'outcome_side': normalized_side, 'member_id': member_id, 'quantity': total_qty, 'vwap_price': vwap, 'total_cost_cents': total_cost, 'current_mid': vwap, 'mtm_value_cents': total_cost, 'unrealized_pnl_cents': 0, 'roi_pct': 0.0, 'last_updated': datetime.now(timezone.utc).isoformat()}
         return self.positions[pos_key]
+
+    @staticmethod
+    def _normalize_side(side: str) -> str:
+        value = (side or '').upper()
+        if value in {'YES', 'BUY_YES'}:
+            return 'YES'
+        if value in {'NO', 'BUY_NO'}:
+            return 'NO'
+        return value
+
+    def merge_complete_sets(self, account_id: str, contract_id: str) -> int:
+        """Burn matching YES/NO shares and return their $1 payout in cents."""
+        matching = [
+            (key, position) for key, position in self.positions.items()
+            if position.get('contract_id') == contract_id
+            and position.get('member_id', 'DEFAULT') == account_id
+        ]
+        yes = next(((key, pos) for key, pos in matching if pos.get('outcome_side') == 'YES'), None)
+        no = next(((key, pos) for key, pos in matching if pos.get('outcome_side') == 'NO'), None)
+        if not yes or not no:
+            return 0
+
+        merged_shares = min(yes[1]['quantity'], no[1]['quantity'])
+        if merged_shares <= 0:
+            return 0
+        for key, position in (yes, no):
+            old_quantity = position['quantity']
+            burned_cost = (position['total_cost_cents'] * merged_shares) // old_quantity
+            position['quantity'] -= merged_shares
+            position['total_cost_cents'] -= burned_cost
+            position['mtm_value_cents'] = position['total_cost_cents']
+            position['last_updated'] = datetime.now(timezone.utc).isoformat()
+            if position['quantity'] == 0:
+                del self.positions[key]
+        return merged_shares * 100
     def close_position(self, contract_id: str, outcome: str, payout_cents: int) -> Optional[Dict[str, Any]]:
         pos_key = contract_id
         if pos_key not in self.positions:
