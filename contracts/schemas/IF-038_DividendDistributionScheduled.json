@@ -10,7 +10,8 @@
     "scma_id": { "type": "string", "minLength": 1 },
     "amount_cents": { "type": "integer", "minimum": 1 },
     "tier": { "type": "string", "enum": ["GREEN", "YELLOW", "RED"] },
-    "destination_opaque_token": { "type": "string", "minLength": 1 }
+    "destination_opaque_token": { "type": "string", "minLength": 1 },
+    "source": { "type": "string", "enum": ["FLOAT_CAP_SWEEP"] }
   },
   "required": ["@context", "event_type", "timestamp", "scma_id", "amount_cents", "tier", "destination_opaque_token"]
 }

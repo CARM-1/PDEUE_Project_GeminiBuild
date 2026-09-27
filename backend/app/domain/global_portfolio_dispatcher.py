@@ -22,7 +22,7 @@ class GlobalPortfolioDispatcher:
         eviction_manager: Optional[PriorityEvictionManager] = None,
         maker_engine: Optional[MakerExecutionEngine] = None,
         db_session = None,
-        max_concurrent_orders: int = 5,
+        max_concurrent_orders: int = 12,
         max_portfolio_exposure_cents: int = 500000,
         max_expiry_hours: float = 6.0,
     ):
@@ -109,8 +109,10 @@ class GlobalPortfolioDispatcher:
                 "expiry_hours": hours_expiry,
                 "domain": cat
             }
-            total_eq = getattr(self.ledger, 'balance_cents', int(total_capital * 100))
             committed = sum(getattr(self.ledger, 'reservations', {}).values())
+            # Reservations debit available cash, so add them back to obtain
+            # total equity before applying the 40% dry-powder floor.
+            total_eq = getattr(self.ledger, 'balance_cents', int(total_capital * 100)) + committed
 
             decision = self.eviction_manager.evaluate_preemption(
                 candidate=candidate_eval,
@@ -190,11 +192,11 @@ class GlobalPortfolioDispatcher:
                     fill_cost_cents=stake_cents
                 )
                 self.eviction_manager.register_resting_order(
-                    order_id=res_id,
+                    candidate_id=res_id,
                     ticker=contract_id,
                     domain=cat,
-                    net_edge=net_edge,
-                    stake_cents=stake_cents
+                    edge=net_edge,
+                    amount_cents=stake_cents
                 )
                 dispatched.append({
                     'contract_id': contract_id,
@@ -235,8 +237,6 @@ class GlobalPortfolioDispatcher:
                     self.db_session.add(db_order)
                     self.db_session.commit()
 
-            if len(self.eviction_manager.resting_orders) + len(self.eviction_manager.filled_orders) >= self.max_concurrent_orders:
-                break
 
         return {
             'status': 'DISPATCHED' if dispatched else 'ABSTAINED',
@@ -297,7 +297,7 @@ class GlobalPortfolioDispatcher:
                 if hasattr(self.position_book, 'record_fill'):
                     self.position_book.record_fill(contract_id=cand.get('contract_id'), venue=cand.get('venue'), category=cand.get('category'), side=order_side, price=order_price, quantity=qty, fill_cost_cents=cost, member_id=mid)
                 if hasattr(self.eviction_manager, 'register_resting_order'):
-                    self.eviction_manager.register_resting_order(order_id=res_id, ticker=cand.get('contract_id'), domain=cand.get('category', 'GENERAL'), net_edge=cand.get('net_edge', 0.0), stake_cents=cost)
+                    self.eviction_manager.register_resting_order(candidate_id=res_id, ticker=cand.get('contract_id'), domain=cand.get('category', 'GENERAL'), edge=cand.get('net_edge', 0.0), amount_cents=cost)
                 dispatched.append({'member_id': mid, 'contract_id': cand.get('contract_id'), 'reservation_id': res_id, 'venue': cand.get('venue'), 'category': cand.get('category'), 'side': order_side, 'quantity': qty, 'cost_cents': cost, 'entry_price': order_price, 'model_probability': prob, 'pricing_mode': pricing_mode, 'maker_price': order_price, 'spread_discount': spread_discount, 'fee_savings': fee_savings})
                 total_allocated += cost
         return {'status': 'DISPATCHED' if dispatched else 'ABSTAINED', 'reason': 'MULTI_MEMBER_DISPATCHED' if dispatched else 'NO_CAPITAL_OR_RISK_REJECTED', 'dispatched_count': len(dispatched), 'dispatched_orders': dispatched, 'total_allocated_cents': total_allocated, 'members_processed': len(targets), 'screen_summary': screen_res}

@@ -1,7 +1,7 @@
 """
 Priority Eviction Engine (B7-EXE-EVICT)
 Enforces:
-1. Max 5 concurrent active orders.
+1. Max 12 concurrent active orders.
 2. 40% uncommitted dry powder floor.
 3. Strict < 6.0h expiry horizon filtering.
 4. Preemption of unfilled resting limit bids when candidate alpha >= 20.0%.
@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional
 class PriorityEvictionManager:
     def __init__(
         self,
-        max_concurrent_orders: int = 5,
+        max_concurrent_orders: int = 12,
         dry_powder_floor_pct: float = 0.40,
         max_expiry_hours: Optional[float] = 6.0,
         preemption_alpha_threshold: float = 0.20,
@@ -30,18 +30,33 @@ class PriorityEvictionManager:
 
     def register_resting_order(
         self,
-        order_id: str,
-        ticker: str,
-        domain: str,
-        net_edge: float,
-        stake_cents: int,
+        candidate_id: Optional[str] = None,
+        ticker: str = "",
+        domain: str = "",
+        edge: Optional[float] = None,
+        amount_cents: Optional[int] = None,
+        **legacy: Any,
     ) -> None:
-        """Registers an unfilled resting limit bid currently sitting in an exchange order book."""
+        """Register a resting maker bid using the portfolio candidate vocabulary.
+
+        ``order_id``, ``net_edge`` and ``stake_cents`` remain accepted so older
+        callers can migrate without losing their in-memory order state.
+        """
+        order_id = candidate_id or legacy.get("order_id")
+        net_edge = edge if edge is not None else legacy.get("net_edge", 0.0)
+        stake_cents = amount_cents if amount_cents is not None else legacy.get("stake_cents", 0)
+        if not order_id:
+            raise ValueError("candidate_id is required")
+        if not isinstance(stake_cents, int) or isinstance(stake_cents, bool) or stake_cents <= 0:
+            raise ValueError("amount_cents must be a positive integer")
         self.resting_orders[order_id] = {
+            "candidate_id": order_id,
             "order_id": order_id,
             "ticker": ticker,
             "domain": domain,
+            "edge": net_edge,
             "net_edge": net_edge,
+            "amount_cents": stake_cents,
             "stake_cents": stake_cents,
             "status": "RESTING",
             "registered_at": datetime.now(timezone.utc).isoformat(),
@@ -79,8 +94,14 @@ class PriorityEvictionManager:
                 "eviction_target": None,
             }
 
-        max_allocatable_cents = int(total_equity_cents * (1.0 - self.dry_powder_floor_pct))
-        available_budget_cents = max_allocatable_cents - currently_committed_cents
+        # ADR-008: risk capacity is computed solely in integer cents.  The
+        # percentage representation is retained for API compatibility, while
+        # the mandated 40% floor uses exact integer arithmetic (rounded up).
+        percentage_floor_cents = (total_equity_cents * 40 + 99) // 100
+        dry_powder_floor_cents = max(4_000, percentage_floor_cents)
+        available_budget_cents = max(
+            0, total_equity_cents - currently_committed_cents - dry_powder_floor_cents
+        )
         total_active_orders = len(self.resting_orders) + len(self.filled_orders)
 
         # 2. Normal admission check
@@ -88,6 +109,15 @@ class PriorityEvictionManager:
             return {
                 "admitted": True,
                 "reason": "NORMAL_ADMISSION",
+                "eviction_target": None,
+            }
+
+        # Alpha cannot bypass the risk envelope, and preemption is only valid
+        # once every concurrency slot is occupied.
+        if total_active_orders < self.max_concurrent_orders:
+            return {
+                "admitted": False,
+                "reason": "DRY_POWDER_FLOOR_ENFORCED",
                 "eviction_target": None,
             }
 
@@ -110,6 +140,13 @@ class PriorityEvictionManager:
         # 5. Identify lowest-edge resting order
         lowest_resting = min(self.resting_orders.values(), key=lambda x: x["net_edge"])
         edge_delta = candidate_edge - lowest_resting["net_edge"]
+
+        if candidate_stake > available_budget_cents + lowest_resting["stake_cents"]:
+            return {
+                "admitted": False,
+                "reason": "DRY_POWDER_FLOOR_ENFORCED",
+                "eviction_target": None,
+            }
 
         if edge_delta < self.min_edge_delta:
             return {

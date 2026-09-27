@@ -97,6 +97,45 @@ class SettlementReconciler(SettlementEngine):
         self.position_book = kwargs.get("position_book")
         self.ledger = kwargs.get("ledger")
 
+    def process_fill(
+        self,
+        account_id: str,
+        contract_id: str,
+        venue: str,
+        category: str,
+        side: str,
+        price: float,
+        quantity: int,
+        fill_cost_cents: int,
+    ) -> Dict[str, Any]:
+        """Record a fill and immediately recycle any newly complete sets."""
+        if self.position_book is None or self.ledger is None:
+            raise ValueError("position_book and ledger are required for fill processing")
+        position = self.position_book.record_fill(
+            contract_id=contract_id,
+            venue=venue,
+            category=category,
+            side=side,
+            price=price,
+            quantity=quantity,
+            fill_cost_cents=fill_cost_cents,
+            member_id=account_id,
+        )
+        released_cents = self.position_book.merge_complete_sets(account_id, contract_id)
+        if released_cents:
+            self.ledger.credit_balance(released_cents, account_id=account_id)
+        return {
+            "status": "FILL_RECONCILED",
+            "position": position,
+            "released_cents": released_cents,
+            "account_id": account_id,
+            "contract_id": contract_id,
+        }
+
+    # Explicit alias for integrations that describe this operation as fill
+    # reconciliation rather than fill processing.
+    reconcile_fill = process_fill
+
     def settle_contract(self, contract_id: str, outcome: str, member_id: str = "SCMA-FOUNDER_-C8575D7E"):
         rec = self.resolve_contract(contract_ticker=contract_id, outcome=outcome, quantity=10, cost_cents=200, member_scma=member_id)
         return {
