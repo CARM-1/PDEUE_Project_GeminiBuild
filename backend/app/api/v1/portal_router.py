@@ -11,6 +11,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
 import pathlib
 from app.domain.lineage_hierarchy import get_lineage_service
+from app.domain.scan_worker import AutonomousScanWorker
 
 router = APIRouter(tags=['Portals'])
 portal_router = router
@@ -81,6 +82,27 @@ class AssistantQuery(BaseModel):
     query: Optional[str] = None
     question: Optional[str] = None
     context_scope: Optional[str] = "GENERAL"
+
+class CAOverrideRequest(BaseModel):
+    token: str
+
+class CoSignRequest(BaseModel):
+    request_id: str
+    actor_role: str
+
+
+# Process-local demo state is deliberate: these portal endpoints operate the same
+# long-lived worker and approval ledger for every request made to an app process.
+_TECH_WORKER = AutonomousScanWorker()
+_TECH_LATENCY_MS = {"Kalshi": 14, "Polymarket": 22}
+_TECH_TOKEN_BUCKETS = {
+    "Kalshi": {"available": 10, "capacity": 10, "unit": "req/s"},
+    "Polymarket": {"available": 10, "capacity": 10, "unit": "req/s"},
+}
+_DISTRIBUTION_STATE: Dict[str, Dict[str, Any]] = {
+    "DIST-104": {"status": "PENDING", "amount_cents": 65_000, "signature": None},
+    "DIST-105": {"status": "PENDING", "amount_cents": 18_000, "signature": None},
+}
 
 def _load_html(filename: str) -> HTMLResponse:
     # The member desktop is maintained beside this router so its HTTP contract
@@ -402,8 +424,8 @@ def get_advisor_household_tree(
         "member_count": len(accounts),
         "accounts": accounts,
         "pending_distributions": [
-            {"request_id": "DIST-104", "member": "Julian Vance", "category": "Tuition", "amount_cents": 65000, "action": "F2_CO_SIGN"},
-            {"request_id": "DIST-105", "member": "Eleanor Vance", "category": "Living", "amount_cents": 18000, "action": "APPROVE"},
+            {"request_id": "DIST-104", "member": "Julian Vance", "category": "Tuition", "amount_cents": 65000, "action": "F2_CO_SIGN", "status": _DISTRIBUTION_STATE["DIST-104"]["status"]},
+            {"request_id": "DIST-105", "member": "Eleanor Vance", "category": "Living", "amount_cents": 18000, "action": "APPROVE", "status": _DISTRIBUTION_STATE["DIST-105"]["status"]},
         ],
         "pit_decisions": [{
             "candidate_id": "KX-MIA-FRZ-32", "venue": "Kalshi", "filled_price_cents": 3,
@@ -442,17 +464,15 @@ def get_tech_telemetry(
         "can_trigger_daemons": tier_upper in ["T2", "T3"],
         "can_override_redaction": tier_upper == "T3",
         "worker_health": [
-            {"worker": "AutonomousScanWorker", "cycle": 1420, "status": "NOMINAL", "latency_ms": 12.4},
+            {"worker": "AutonomousScanWorker", "cycle": _TECH_WORKER.cycle_count, "status": "NOMINAL", "latency_ms": 12.4},
             {"worker": "SettlementReconciler", "cycle": 710, "status": "IDLE", "latency_ms": 4.1},
             {"worker": "RateLimiter-Kalshi", "bucket_tokens": 85, "max_tokens": 100, "status": "OPTIMAL"},
             {"worker": "RateLimiter-Polymarket", "bucket_tokens": 92, "max_tokens": 100, "status": "OPTIMAL"}
         ],
         "daemon_status": {"AutonomousScanWorker": "ACTIVE"},
-        "ws_latency_ms": {"Kalshi": 14, "Polymarket": 22},
-        "token_buckets": {
-            "Kalshi": {"available": 10, "capacity": 10, "unit": "req/s"},
-            "Polymarket": {"available": 10, "capacity": 10, "unit": "req/s"},
-        },
+        "cycle_count": _TECH_WORKER.cycle_count,
+        "ws_latency_ms": _TECH_LATENCY_MS,
+        "token_buckets": _TECH_TOKEN_BUCKETS,
         "dry_powder_floor_cents": 4000,
         "dry_powder_floor_status": "COMPLIANT",
         "active_order_ladder": [{
@@ -468,6 +488,57 @@ def get_tech_telemetry(
             "active_websockets": 2,
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
+    }
+
+@router.post("/api/v1/portal/tech/trigger-daemon")
+def trigger_tech_daemon() -> Dict[str, Any]:
+    """Run one real worker evaluation and expose only operational telemetry."""
+    result = _TECH_WORKER.run_single_cycle()
+    # Deterministic live telemetry avoids external venue dependencies in the console.
+    _TECH_LATENCY_MS["Kalshi"] = 11 + (_TECH_WORKER.cycle_count % 5)
+    _TECH_LATENCY_MS["Polymarket"] = 18 + (_TECH_WORKER.cycle_count % 7)
+    for bucket in _TECH_TOKEN_BUCKETS.values():
+        bucket["available"] = max(0, int(bucket["capacity"]) - (_TECH_WORKER.cycle_count % 3))
+    return {
+        "status": result["status"],
+        "cycle_count": _TECH_WORKER.cycle_count,
+        "ws_latency_ms": dict(_TECH_LATENCY_MS),
+        "token_buckets": {key: dict(value) for key, value in _TECH_TOKEN_BUCKETS.items()},
+    }
+
+@router.post("/api/v1/portal/tech/ca-override")
+def activate_ca_override(request: CAOverrideRequest) -> Dict[str, Any]:
+    """Issue page-scoped unredacted data only after explicit CA authentication."""
+    if request.token != "CA-OVERRIDE-SECRET-DEV":
+        raise HTTPException(status_code=401, detail="Invalid CA override token; Directive R-12 masking remains active")
+    return {
+        "status": "ACTIVE_UNREDACT_GRANT",
+        "redaction_active": False,
+        "active_order_ladder": [{
+            "candidate_id": "CAND-0912-A1", "venue": "Kalshi",
+            "scma_id": "SCMA-ELEANOR_-B2B31C9E", "model_probability_bps": 3150,
+            "exposure_cents": 2500,
+        }],
+    }
+
+@router.post("/api/v1/portal/advisor/co-sign")
+def co_sign_distribution(request: CoSignRequest) -> Dict[str, Any]:
+    if request.actor_role not in {"F2-H", "F2-A"}:
+        raise HTTPException(status_code=403, detail="An F2 role is required for dual-control co-signature")
+    distribution = _DISTRIBUTION_STATE.get(request.request_id)
+    if distribution is None:
+        raise HTTPException(status_code=404, detail="Distribution request not found")
+    distribution["status"] = "CO-SIGNED / STAGED (DUAL-CONTROL RATIFIED)"
+    distribution["signature"] = {
+        "actor_role": request.actor_role,
+        "signed_at": datetime.now(timezone.utc).isoformat(),
+    }
+    available_liquidity_cents = sum(round(a["balance"] * 100) for a in LINEAGE_DATA["HOUSEHOLD-ALPHA"]["accounts"]) - int(distribution["amount_cents"])
+    return {
+        "request_id": request.request_id,
+        "status": distribution["status"],
+        "signature": distribution["signature"],
+        "available_liquidity_cents": available_liquidity_cents,
     }
 
 # --- Scoped Copilots ---
@@ -510,25 +581,27 @@ def member_tutor(query: AssistantQuery):
 
 @router.post("/api/v1/portal/advisor/copilot")
 def advisor_copilot(query: AssistantQuery):
-    q = query.query.lower()
+    prompt = query.query or query.question or ""
+    q = prompt.lower()
     if "withdrawal" in q or "distribution" in q:
         ans = "Fiduciary Impact: Withdrawing $650.00 from Julian's apprentice SCMA reduces 6-month projected compounding velocity by 24.2%. Recommend partial $250.00 distribution under Yellow-Tier."
     elif "rationale" in q or "trade" in q:
         ans = "Trade Analysis: Miami Sub-Freezing contract (KX-MIA-FRZ-32) was backed by 5-member NOAA ASOS ensemble consensus with a 28.5% edge hurdle."
     else:
         ans = "Fiduciary Copilot standing by to assist with lineage liquidity modeling, mentee reviews, and decision audit explanations."
-    return {"role": "FIDUCIARY_COPILOT", "query": query.query, "response": ans}
+    return {"role": "FIDUCIARY_COPILOT", "query": prompt, "response": ans, "cards": [{"title": "Fiduciary analysis", "body": ans, "classification": "EDUCATIONAL_NOT_ADVICE"}]}
 
 @router.post("/api/v1/portal/tech/copilot")
 def tech_copilot(query: AssistantQuery):
-    q = query.query.lower()
+    prompt = query.query or query.question or ""
+    q = prompt.lower()
     if "rate" in q or "limit" in q:
         ans = "Rate Limiter Telemetry: Kalshi token bucket is at 85% capacity; Polymarket is at 92%. Current consumption is well within safe thresholds."
     elif "latency" in q or "worker" in q:
         ans = "Worker Diagnostic: AutonomousScanWorker average round-trip ping is 12.4ms across 1,420 cycles. Zero preemption collisions."
     else:
         ans = "DevOps Telemetry Copilot active. Monitoring daemon cycles, event queues, and WebSocket latency under Directive R-12."
-    return {"role": "DEVOPS_COPILOT", "query": query.query, "response": ans}
+    return {"role": "DEVOPS_COPILOT", "query": prompt, "response": ans, "telemetry": {"cycle_count": _TECH_WORKER.cycle_count, "ws_latency_ms": dict(_TECH_LATENCY_MS), "token_buckets": _TECH_TOKEN_BUCKETS}}
 
 @router.get("/api/v1/portal/advisor/decision-audit/{contract_id}")
 def advisor_decision_audit(contract_id: str):
