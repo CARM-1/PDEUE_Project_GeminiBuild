@@ -4,7 +4,7 @@ PDEUE Phase 1 Integrity Remediation Router
 - Directive R-06: Split-Hat Role Mapping on /member
 - Directive R-12: Redacted Telemetry Plane on /admin/tech
 """
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Header, HTTPException, Query
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
@@ -108,142 +108,7 @@ def get_advisor_portal():
 
 @router.get("/admin/tech", response_class=HTMLResponse)
 def get_tech_console():
-    res = _load_html("tech_console.html")
-    if "PDEUE Technical Infrastructure Console" not in res.body.decode("utf-8"):
-        return HTMLResponse("""<!DOCTYPE html>
-<html lang=\"en\">
-<head>
-  <meta charset=\"UTF-8\">
-  <title>PDEUE - Technical Console</title>
-  <style>
-    body { background: #0a0f1d; color: #10b981; font-family: monospace; margin: 0; padding: 24px; }
-    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 16px; margin-bottom: 24px; }
-    .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 18px; margin-bottom: 20px; color: #e2e8f0; }
-    .card-title { font-size: 12px; color: #10b981; text-transform: uppercase; margin-bottom: 8px; font-weight: bold; }
-    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
-    th, td { text-align: left; padding: 10px; border-bottom: 1px solid #1e293b; }
-    th { color: #64748b; }
-    .redacted { color: #f43f5e; font-weight: bold; }
-    button { background: #059669; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
-    .tier-bar { display: flex; gap: 8px; }
-    .tier-btn { background: #1e293b; color: #cbd5e1; border: 1px solid #334155; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
-    .tier-btn.active { background: #059669; color: #fff; font-weight: bold; }
-    .assistant-box { background: #064e3b; border: 1px solid #10b981; border-radius: 8px; padding: 16px; margin-top: 24px; color: #fff; }
-    .input-text { background: #0f172a; border: 1px solid #334155; color: #fff; padding: 8px 12px; border-radius: 4px; font-size: 13px; }
-  </style>
-</head>
-<body>
-  <div class=\"header\">
-    <div>
-      <h2 style=\"margin: 0; color: #10b981;\">PDEUE Technical Infrastructure Console</h2>
-      <div style=\"font-size: 12px; color: #64748b; margin-top: 4px;\">Directive R-12 Least-Privilege Redacted Telemetry Plane</div>
-    </div>
-    <div style=\"display: flex; gap: 12px; align-items: center;\">
-      <div class=\"tier-bar\">
-        <button class=\"tier-btn active\" id=\"btn-t1\" onclick=\"switchTier('T1')\">T1 (Monitor)</button>
-        <button class=\"tier-btn\" id=\"btn-t2\" onclick=\"switchTier('T2')\">T2 (Engineer)</button>
-        <button class=\"tier-btn\" id=\"btn-t3\" onclick=\"switchTier('T3')\">T3 (CTO)</button>
-      </div>
-      <button id=\"unredact-btn\" style=\"display: none; background: #dc2626;\" onclick=\"toggleUnredact()\">Authenticate CA Override</button>
-    </div>
-  </div>
-
-  <div class=\"card\">
-    <div class=\"card-title\">Engine Daemons & Rate-Limiter Health</div>
-    <table>
-      <thead>
-        <tr><th>Worker</th><th>Cycle</th><th>Status</th><th>Latency / Tokens</th><th>Action</th></tr>
-      </thead>
-      <tbody id=\"worker-table\"></tbody>
-    </table>
-  </div>
-
-  <div class=\"card\">
-    <div class=\"card-title\">Recent Dispatches (Directive R-12 Redacted)</div>
-    <table>
-      <thead>
-        <tr><th>Order ID</th><th>Account Identifier</th><th>Contract</th><th>Notional Cents</th><th>Mode</th></tr>
-      </thead>
-      <tbody id=\"dispatch-table\"></tbody>
-    </table>
-  </div>
-
-  <div class=\"assistant-box\">
-    <strong>DevOps Telemetry Copilot</strong>
-    <p style=\"font-size: 12px; color: #a7f3d0; margin: 4px 0 12px 0;\">Query daemon cycle metrics, token replenishment, or WebSocket latency.</p>
-    <div style=\"display: flex; gap: 10px;\">
-      <input type=\"text\" id=\"tech-query\" placeholder=\"Ask: 'Check rate-limiter capacity' or 'Worker latency'\" class=\"input-text\" style=\"flex: 1;\">
-      <button onclick=\"askTechCopilot()\" style=\"background: #10b981; color: #000; font-weight: bold;\">Run Diagnostic</button>
-    </div>
-    <div id=\"tech-ans\" style=\"margin-top: 12px; font-size: 13px; color: #f8fafc; line-height: 1.5;\"></div>
-  </div>
-
-  <script>
-    let currentTier = 'T1';
-    let overrideToken = '';
-
-    function switchTier(t) {
-      currentTier = t;
-      ['T1', 'T2', 'T3'].forEach(x => {
-        document.getElementById('btn-' + x.toLowerCase()).className = 'tier-btn' + (x === t ? ' active' : '');
-      });
-      document.getElementById('unredact-btn').style.display = (t === 'T3') ? 'inline-block' : 'none';
-      loadTelemetry();
-    }
-
-    async function loadTelemetry() {
-      const q = overrideToken ? `&unredact_token=${overrideToken}` : '';
-      const res = await fetch(`/api/v1/portal/tech/telemetry?tier=${currentTier}${q}`);
-      const data = await res.json();
-
-      document.getElementById('worker-table').innerHTML = data.worker_health.map(w => `
-        <tr>
-          <td><b>${w.worker}</b></td>
-          <td>${w.cycle || '-'}</td>
-          <td style=\"color: #10b981;\">${w.status}</td>
-          <td>${w.latency_ms ? w.latency_ms + 'ms' : w.bucket_tokens + '/' + w.max_tokens + ' tokens'}</td>
-          <td>
-            ${data.can_trigger_daemons ? `<button onclick=\"alert('Triggered manual cycle for ${w.worker}')\">Trigger</button>` : '<span style=\"color: #64748b;\">Locked</span>'}
-          </td>
-        </tr>
-      `).join('');
-
-      document.getElementById('dispatch-table').innerHTML = data.recent_dispatches.map(d => `
-        <tr>
-          <td>${d.order_id}</td>
-          <td><span class=\"${data.redaction_active ? 'redacted' : ''}\">${d.account_id}</span></td>
-          <td>${d.contract}</td>
-          <td><span class=\"${data.redaction_active ? 'redacted' : ''}\">${d.notional_cents}</span></td>
-          <td>${d.mode}</td>
-        </tr>
-      `).join('');
-    }
-
-    function toggleUnredact() {
-      const token = prompt(\"Enter Chief Administrator Unredact Override Token:\", \"AUTH-CA-OVERRIDE-TEMP\");
-      if (token) {
-        overrideToken = token;
-        loadTelemetry();
-      }
-    }
-
-    async function askTechCopilot() {
-      const q = document.getElementById('tech-query').value;
-      if (!q) return;
-      const res = await fetch('/api/v1/portal/tech/copilot', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ query: q })
-      });
-      const ret = await res.json();
-      document.getElementById('tech-ans').innerText = ret.response;
-    }
-    loadTelemetry();
-  </script>
-</body>
-</html>
-""")
-    return res
+    return _load_html("tech.html")
 
 # --- Member Workspace (Directive R-06 Split-Hat) ---
 @router.get("/api/v1/portal/member/state")
@@ -504,6 +369,49 @@ def get_advisor_lineage(
         ]
     }
 
+@router.get("/api/v1/portal/advisor/household-tree")
+def get_advisor_household_tree(
+    household_id: str = Query("HOUSEHOLD-ALPHA"),
+    authenticated_household_id: str = Header("HOUSEHOLD-ALPHA", alias="X-Household-ID"),
+) -> Dict[str, Any]:
+    """Return only the branch assigned to the authenticated advisor session."""
+    if household_id != authenticated_household_id:
+        raise HTTPException(status_code=403, detail="Cross-household access denied")
+    house = LINEAGE_DATA.get(authenticated_household_id)
+    if house is None:
+        raise HTTPException(status_code=404, detail="Household branch not found")
+
+    accounts = [
+        {
+            "user_id": account["user_id"],
+            "name": account["name"],
+            "scma_id": account["scma_id"],
+            "balance_cents": round(account["balance"] * 100),
+            "risk_dial_bps": round(account["risk_dial"] * 100),
+            "is_custodial": account["is_custodial"],
+            "custodian_id": account["custodian_id"],
+            "risk_controls_locked": account["is_custodial"],
+            "risk_increase_requires": "F2_CO_SIGN" if account["is_custodial"] else None,
+        }
+        for account in house["accounts"]
+    ]
+    return {
+        "household_id": house["household_id"],
+        "household_name": house["household_name"],
+        "total_family_equity_cents": sum(a["balance_cents"] for a in accounts),
+        "member_count": len(accounts),
+        "accounts": accounts,
+        "pending_distributions": [
+            {"request_id": "DIST-104", "member": "Julian Vance", "category": "Tuition", "amount_cents": 65000, "action": "F2_CO_SIGN"},
+            {"request_id": "DIST-105", "member": "Eleanor Vance", "category": "Living", "amount_cents": 18000, "action": "APPROVE"},
+        ],
+        "pit_decisions": [{
+            "candidate_id": "KX-MIA-FRZ-32", "venue": "Kalshi", "filled_price_cents": 3,
+            "model_probability_bps": 3150,
+            "explanation": "The maker fill was accepted because the 31.5% model probability exceeded the 3% venue price after all safeguards.",
+        }],
+    }
+
 # --- Technical Infrastructure (T1, T2, T3 & Directive R-12) ---
 @router.get("/api/v1/portal/tech/telemetry")
 def get_tech_telemetry(
@@ -539,6 +447,20 @@ def get_tech_telemetry(
             {"worker": "RateLimiter-Kalshi", "bucket_tokens": 85, "max_tokens": 100, "status": "OPTIMAL"},
             {"worker": "RateLimiter-Polymarket", "bucket_tokens": 92, "max_tokens": 100, "status": "OPTIMAL"}
         ],
+        "daemon_status": {"AutonomousScanWorker": "ACTIVE"},
+        "ws_latency_ms": {"Kalshi": 14, "Polymarket": 22},
+        "token_buckets": {
+            "Kalshi": {"available": 10, "capacity": 10, "unit": "req/s"},
+            "Polymarket": {"available": 10, "capacity": 10, "unit": "req/s"},
+        },
+        "dry_powder_floor_cents": 4000,
+        "dry_powder_floor_status": "COMPLIANT",
+        "active_order_ladder": [{
+            "candidate_id": "CAND-0912-A1", "venue": "Kalshi",
+            "scma_id": "SCMA-ELEANOR_-B2B31C9E" if is_unredacted else "SCMA-MEM-****",
+            "model_probability_bps": 3150,
+            "exposure_cents": 2500 if is_unredacted else "$****.**",
+        }],
         "recent_dispatches": recent_orders,
         "system_metrics": {
             "cpu_load_pct": 8.5,
