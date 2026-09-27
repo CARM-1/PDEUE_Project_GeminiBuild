@@ -2,7 +2,10 @@ import hmac
 import hashlib
 import json
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Dict, Any, List, Optional
+
+from jsonschema import Draft7Validator, FormatChecker
 
 SECRET_KEY_DEFAULT = 'pdeue_fge_accounting_signing_key_v1'
 
@@ -12,6 +15,19 @@ class AccountingGateway:
         self.event_outbox: List[Dict[str, Any]] = []
         self.reconciliation_receipts: Dict[str, Dict[str, Any]] = {}
         self._seq_counter = 0
+        schema_dir = Path(__file__).resolve().parents[3] / 'contracts' / 'schemas'
+        self._fsap_validators = {}
+        for interface_id, filename in {
+            'IF-038': 'IF-038_DividendDistributionScheduled.json',
+            'IF-039': 'IF-039_StabilityAdvanceFacilityRegistered.json',
+            'IF-040': 'IF-040_DividendSweepAmortizationApplied.json',
+            'IF-041': 'IF-041_ContributorIncentiveHarvested.json',
+        }.items():
+            with (schema_dir / filename).open(encoding='utf-8') as schema_file:
+                schema = json.load(schema_file)
+            self._fsap_validators[interface_id] = Draft7Validator(
+                schema, format_checker=FormatChecker()
+            )
 
     def _canonicalize_payload(self, payload: Dict[str, Any]) -> bytes:
         return json.dumps(payload, sort_keys=True, separators=(',', ':')).encode('utf-8')
@@ -22,6 +38,50 @@ class AccountingGateway:
     def verify_signature(self, canonical_bytes: bytes, signature: str) -> bool:
         expected = self.sign_payload(canonical_bytes)
         return hmac.compare_digest(expected, signature)
+
+    def stage_event(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Stage a signed JSON-LD payload in the accounting outbox."""
+        if payload.get('@context') != 'https://schema.pdeue.org/accounting/v1':
+            raise ValueError('accounting events must use the accounting JSON-LD context')
+        self._seq_counter += 1
+        seq_id = self._seq_counter
+        event_id = f'ACT-EVT-{seq_id:08d}'
+        canonical_bytes = self._canonicalize_payload(payload)
+        envelope = {
+            'event_id': event_id,
+            'sequence_id': seq_id,
+            'payload': payload,
+            'signature_hmac_sha256': self.sign_payload(canonical_bytes),
+            'status': 'EMITTED'
+        }
+        self.event_outbox.append(envelope)
+        return envelope
+
+    def stage_if038_event(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        return self._stage_typed_event(payload, 'IF-038', 'DIVIDEND_DISTRIBUTION_SCHEDULED')
+
+    def stage_if039_event(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        return self._stage_typed_event(
+            payload, 'IF-039', 'STABILITY_ADVANCE_FACILITY_REGISTERED'
+        )
+
+    def stage_if040_event(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        return self._stage_typed_event(
+            payload, 'IF-040', 'DIVIDEND_SWEEP_AMORTIZATION_APPLIED'
+        )
+
+    def stage_if041_event(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        return self._stage_typed_event(
+            payload, 'IF-041', 'CONTRIBUTOR_INCENTIVE_HARVESTED'
+        )
+
+    def _stage_typed_event(
+        self, payload: Dict[str, Any], interface_id: str, expected_event_type: str
+    ) -> Dict[str, Any]:
+        if payload.get('event_type') != expected_event_type:
+            raise ValueError(f'expected event_type {expected_event_type}')
+        self._fsap_validators[interface_id].validate(payload)
+        return self.stage_event(payload)
 
     def emit_settlement_event(
         self,

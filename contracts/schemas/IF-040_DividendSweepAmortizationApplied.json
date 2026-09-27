@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "IF-040_DividendSweepAmortizationApplied",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "@context": { "type": "string", "const": "https://schema.pdeue.org/accounting/v1" },
+    "event_type": { "type": "string", "const": "DIVIDEND_SWEEP_AMORTIZATION_APPLIED" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "facility_id": { "type": "string", "pattern": "^FSAP-ADV-[0-9]{4}-[0-9]{4}$" },
+    "scma_id": { "type": "string", "minLength": 1 },
+    "total_sweep_cents": { "type": "integer", "minimum": 0 },
+    "amortization_credit_cents": { "type": "integer", "minimum": 0 },
+    "member_liquid_cents": { "type": "integer", "minimum": 0 },
+    "remaining_advance_cents": { "type": "integer", "minimum": 0 }
+  },
+  "required": ["@context", "event_type", "timestamp", "facility_id", "scma_id", "total_sweep_cents", "amortization_credit_cents", "member_liquid_cents", "remaining_advance_cents"]
+}
