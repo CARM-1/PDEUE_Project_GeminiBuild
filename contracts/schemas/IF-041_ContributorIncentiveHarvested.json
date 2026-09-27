@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "IF-041_ContributorIncentiveHarvested",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "@context": { "type": "string", "const": "https://schema.pdeue.org/accounting/v1" },
+    "event_type": { "type": "string", "const": "CONTRIBUTOR_INCENTIVE_HARVESTED" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "contributor_scma_id": { "type": "string", "minLength": 1 },
+    "pool_income_cents": { "type": "integer", "minimum": 0 },
+    "time_weighted_share_bps": { "type": "integer", "minimum": 0, "maximum": 10000 },
+    "incentive_amount_cents": { "type": "integer", "minimum": 0 }
+  },
+  "required": ["@context", "event_type", "timestamp", "contributor_scma_id", "pool_income_cents", "time_weighted_share_bps", "incentive_amount_cents"]
+}
