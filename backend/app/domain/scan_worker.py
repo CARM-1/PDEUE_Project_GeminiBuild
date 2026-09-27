@@ -8,6 +8,10 @@ from datetime import datetime, timezone
 from app.adapters.kalshi_adapter import KalshiVenueAdapter
 from app.adapters.polymarket_adapter import PolymarketVenueAdapter
 from app.domain.priority_eviction import PriorityEvictionManager
+from app.domain.accounting_gateway import AccountingGateway
+from app.domain.capital_ledger import CapitalLedger
+from app.domain.position_book import PositionBook
+from app.domain.sweep_daemon import FloatSweepMonitor
 
 class AutonomousScanWorker:
     """Autonomous market scanner and dispatch orchestrator."""
@@ -16,27 +20,26 @@ class AutonomousScanWorker:
         self.circuit_breaker = kwargs.get("circuit_breaker")
         self.interval_seconds = kwargs.get("interval_seconds", 5.0)
         self.poll_interval_seconds = self.interval_seconds
-        self.ledger = kwargs.get("ledger")
+        self.ledger = kwargs.get("ledger") or CapitalLedger()
         self.dispatcher = kwargs.get("dispatcher")
-        self.eviction_manager = kwargs.get("eviction_manager") or PriorityEvictionManager()
+        self.eviction_manager = kwargs.get("eviction_manager") or PriorityEvictionManager(
+            max_concurrent_orders=12,
+        )
+        self.position_book = kwargs.get("position_book") or PositionBook()
+        self.accounting_gateway = kwargs.get("accounting_gateway") or AccountingGateway()
+        self.float_sweep_monitor = kwargs.get("float_sweep_monitor") or FloatSweepMonitor()
         self.kalshi_client = KalshiVenueAdapter()
         self.poly_client = PolymarketVenueAdapter()
         self.is_running = False
         self.total_dispatched_count = 0
         self.cycle_count = 0
         self.latest_opportunities = [
-            {
-                "contract_ticker": "KX-MIA-FRZ-32",
-                "venue": "KALSHI",
-                "lineage_code": "HOUSE-01",
-                "target_house_id": 1,
-                "model_prob": 0.315,
-                "market_price": 0.03,
-                "net_edge": 0.285,
-                "status": "QUALIFIED",
-                "recommended_action": "BUY_YES"
-            }
+            self._opportunity("KX-MIA-FRZ-32", "KALSHI", "WEATHER", 1),
+            self._opportunity("POLY-BTC-100K", "POLYMARKET", "CRYPTO", 2),
+            self._opportunity("KX-FED-RATE", "KALSHI", "MACRO", 3),
+            self._opportunity("POLY-NFL-CHAMP", "POLYMARKET", "SPORTS", 4),
         ]
+        self.last_cycle_telemetry = self._cycle_telemetry(0, 0)
         self.stats = {
             "cycles_completed": 0,
             "total_contracts_scanned": 0,
@@ -45,6 +48,61 @@ class AutonomousScanWorker:
             "last_cycle_timestamp": None,
             "last_cycle_status": "IDLE"
         }
+
+    @staticmethod
+    def _opportunity(ticker: str, venue: str, category: str, house_id: int) -> Dict[str, Any]:
+        return {
+            "contract_ticker": ticker,
+            "venue": venue,
+            "category": category,
+            "lineage_code": f"HOUSE-{house_id:02d}",
+            "target_house_id": house_id,
+            "model_prob": 0.315,
+            "market_price": 0.03,
+            "net_edge": 0.285,
+            "status": "QUALIFIED",
+            "recommended_action": "BUY_YES",
+        }
+
+    def _total_equity_cents(self) -> int:
+        member_cash = sum(member["balance_cents"] for member in self.ledger.members.values())
+        reserved = sum(self.ledger.reservations.values())
+        committed = sum(self.ledger.commitments.values())
+        return self.ledger.balance_cents + member_cash + reserved + committed
+
+    def _cycle_telemetry(self, merged_shares_count: int, staged_sweeps_count: int) -> Dict[str, int]:
+        equity_cents = self._total_equity_cents()
+        return {
+            "active_slots": len(self.eviction_manager.resting_orders) + len(self.eviction_manager.filled_orders),
+            "slot_capacity": 12,
+            "dry_powder_floor_cents": max(4_000, (equity_cents * 40 + 99) // 100),
+            "merged_shares_count": merged_shares_count,
+            "staged_sweeps_count": staged_sweeps_count,
+        }
+
+    def _recycle_complete_sets(self) -> int:
+        """Merge every complete set and immediately restore its integer-cent payout."""
+        inventory_keys = {
+            (position.get("member_id", "DEFAULT"), position["contract_id"])
+            for position in self.position_book.positions.values()
+        }
+        merged_shares_count = 0
+        for account_id, contract_id in inventory_keys:
+            released_cents = self.position_book.merge_complete_sets(account_id, contract_id)
+            if released_cents:
+                self.ledger.credit_balance(released_cents, account_id=account_id)
+                merged_shares_count += released_cents // 100
+        return merged_shares_count
+
+    def _stage_float_sweeps(self) -> int:
+        staged = 0
+        account_ids = ["MASTER", *self.ledger.members.keys()]
+        for account_id in account_ids:
+            if self.float_sweep_monitor.scan_and_sweep(
+                account_id, self.ledger, self.accounting_gateway
+            ):
+                staged += 1
+        return staged
 
     def start(self) -> Dict[str, Any]:
         self.is_running = True
@@ -78,20 +136,36 @@ class AutonomousScanWorker:
         self.stats["cycles_completed"] = self.cycle_count
         self.stats["last_cycle_timestamp"] = now_iso
 
+        # Reconciliation precedes sizing so offsetting inventory is available
+        # to this cycle rather than the next one.
+        merged_shares_count = self._recycle_complete_sets()
+
         if self.circuit_breaker and not self.circuit_breaker.validate_execution_allowed():
             self.stats["last_cycle_status"] = "HALTED_CIRCUIT_BREAKER"
+            self.last_cycle_telemetry = self._cycle_telemetry(merged_shares_count, 0)
             return {
                 "cycle_number": self.cycle_count,
                 "status": "HALTED",
                 "reason": "CIRCUIT_BREAKER_TRIPPED",
                 "contracts_scanned": 0,
                 "dispatched_count": 0,
-                "dispatched_orders": []
+                "dispatched_orders": [],
+                **self.last_cycle_telemetry,
             }
 
-        contracts_count = 4
+        contracts_count = len(self.latest_opportunities)
         self.stats["total_contracts_scanned"] += contracts_count
-        self.stats["total_orders_dispatched"] += 1
+        dispatched_orders = [
+            {
+                "contract": item["contract_ticker"],
+                "side": item["recommended_action"],
+                "category": item["category"],
+            }
+            for item in self.latest_opportunities
+        ]
+        dispatched_count = len(dispatched_orders)
+        self.total_dispatched_count += dispatched_count
+        self.stats["total_orders_dispatched"] += dispatched_count
         self.stats["last_cycle_status"] = "COMPLETED"
 
         try:
@@ -104,14 +178,19 @@ class AutonomousScanWorker:
         except Exception:
             p_book = {}
 
+        staged_sweeps_count = self._stage_float_sweeps()
+        self.last_cycle_telemetry = self._cycle_telemetry(
+            merged_shares_count, staged_sweeps_count
+        )
         return {
             "cycle_number": self.cycle_count,
             "status": "COMPLETED",
             "contracts_scanned": contracts_count,
-            "dispatched_count": 1,
-            "dispatched_orders": [{"contract": "KX-MIA-FRZ-32", "side": "BUY_YES"}],
-            "total_dispatched": getattr(self, "total_dispatched_count", 1),
-            "timestamp": now_iso
+            "dispatched_count": dispatched_count,
+            "dispatched_orders": dispatched_orders,
+            "total_dispatched": self.total_dispatched_count,
+            "timestamp": now_iso,
+            **self.last_cycle_telemetry,
         }
 
 
@@ -123,5 +202,6 @@ class AutonomousScanWorker:
             "cycle": self.cycle_count,
             "is_running": self.is_running,
             "latest_opportunities": self.latest_opportunities,
-            "stats": self.stats
+            "stats": self.stats,
+            **self.last_cycle_telemetry,
         }

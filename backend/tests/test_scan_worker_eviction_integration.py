@@ -2,6 +2,8 @@ import pytest
 from app.domain.scan_worker import AutonomousScanWorker
 from app.domain.capital_ledger import CapitalLedger
 from app.domain.priority_eviction import PriorityEvictionManager
+from app.domain.accounting_gateway import AccountingGateway
+from app.domain.position_book import PositionBook
 
 def test_scan_worker_default_eviction_manager():
     """Validates AutonomousScanWorker initializes with default eviction manager."""
@@ -52,3 +54,43 @@ def test_scan_worker_preemption_wiring():
     assert evicted["status"] == "CANCELLED_EVICTED"
     assert len(worker.eviction_manager.resting_orders) == 11
     assert worker.stats["total_evictions_executed"] == 1
+
+
+def test_daemon_cycle_reports_n12_envelope_and_all_categories():
+    worker = AutonomousScanWorker(ledger=CapitalLedger(initial_balance_cents=10_000))
+    result = worker.run_single_cycle()
+
+    assert result["slot_capacity"] == 12
+    assert result["dry_powder_floor_cents"] == 4_000
+    assert {order["category"] for order in result["dispatched_orders"]} == {
+        "WEATHER", "CRYPTO", "MACRO", "SPORTS",
+    }
+
+
+def test_daemon_cycle_recycles_complete_sets_before_dispatch():
+    ledger = CapitalLedger(initial_balance_cents=0)
+    ledger.register_member_account("SCMA-1", 0)
+    book = PositionBook()
+    book.record_fill("C-1", "KALSHI", "WEATHER", "BUY_YES", 0.40, 8, 320, "SCMA-1")
+    book.record_fill("C-1", "KALSHI", "WEATHER", "BUY_NO", 0.50, 5, 250, "SCMA-1")
+    worker = AutonomousScanWorker(ledger=ledger, position_book=book)
+
+    result = worker.run_single_cycle()
+
+    assert result["merged_shares_count"] == 5
+    assert ledger.members["SCMA-1"]["balance_cents"] == 500
+
+
+def test_daemon_cycle_stages_signed_if038_for_float_surplus():
+    ledger = CapitalLedger(initial_balance_cents=2_575_125)
+    gateway = AccountingGateway(secret_key="scan-worker-test-key")
+    worker = AutonomousScanWorker(ledger=ledger, accounting_gateway=gateway)
+
+    result = worker.run_single_cycle()
+
+    assert result["staged_sweeps_count"] == 1
+    assert ledger.balance_cents == 2_500_000
+    event = gateway.event_outbox[0]
+    assert event["payload"]["amount_cents"] == 75_125
+    canonical = gateway._canonicalize_payload(event["payload"])
+    assert gateway.verify_signature(canonical, event["signature_hmac_sha256"])

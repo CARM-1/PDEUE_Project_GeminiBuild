@@ -3,6 +3,7 @@ import os
 import time
 import signal
 import asyncio
+import argparse
 from pathlib import Path
 from typing import Dict, Any, Optional
 
@@ -18,6 +19,11 @@ from app.domain.atomic_leg_coordinator import AtomicLegCoordinator
 from app.domain.dynamic_spread_kelly import DynamicSpreadKellyRegime
 from app.domain.stale_sniping_engine import StaleQuoteSnipingEngine
 from app.domain.venue_rebalancer import CrossVenueRebalanceManager
+from app.domain.accounting_gateway import AccountingGateway
+from app.domain.position_book import PositionBook
+from app.domain.priority_eviction import PriorityEvictionManager
+from app.domain.scan_worker import AutonomousScanWorker
+from app.domain.sweep_daemon import FloatSweepMonitor
 
 class PaperSoakRunner:
     def __init__(
@@ -27,7 +33,8 @@ class PaperSoakRunner:
         health_export_interval: int = 4320,
         health_export_path: str = 'health_summary.json',
         initial_balance_cents: int = 10000,
-        limiter: Optional[VenueRateLimiter] = None
+        limiter: Optional[VenueRateLimiter] = None,
+        mode: str = 'live_paper',
     ):
         self.total_cycles = total_cycles
         self.cycle_interval_sec = cycle_interval_sec
@@ -35,12 +42,29 @@ class PaperSoakRunner:
         self.current_cycle = 0
         self.is_running = False
         self.partition = 'PARTITION_2_ENHANCED_ALPHA'
+        mode_aliases = {1: 'replay', '1': 'replay', 'replay': 'replay',
+                        2: 'live_paper', '2': 'live_paper', 'live_paper': 'live_paper'}
+        if mode not in mode_aliases:
+            raise ValueError("mode must be Mode 1/replay or Mode 2/live_paper")
+        self.mode = mode_aliases[mode]
 
         self.limiter = limiter or VenueRateLimiter()
         self.sink = TelemetryHealthSink(export_path=health_export_path)
         self.ledger = CapitalLedger(initial_balance_cents=initial_balance_cents)
         self.ledger.register_member_account('founder_scma', seed_capital_cents=initial_balance_cents)
         self.rebate_adapter = MakerRebateLedgerAdapter(ledger=self.ledger)
+        self.position_book = PositionBook()
+        self.accounting_gateway = AccountingGateway()
+        self.eviction_manager = PriorityEvictionManager(max_concurrent_orders=12)
+        self.float_sweep_monitor = FloatSweepMonitor()
+        self.scan_worker = AutonomousScanWorker(
+            ledger=self.ledger,
+            position_book=self.position_book,
+            accounting_gateway=self.accounting_gateway,
+            eviction_manager=self.eviction_manager,
+            float_sweep_monitor=self.float_sweep_monitor,
+        )
+        self.execution_event_log = []
 
         self.leg_coordinator = AtomicLegCoordinator(leg_timeout_ms=750.0)
         self.spread_kelly = DynamicSpreadKellyRegime(base_fraction=0.25, defensive_floor=0.05, max_spread=0.05)
@@ -54,6 +78,31 @@ class PaperSoakRunner:
 
     def execute_cycle(self) -> Dict[str, Any]:
         self.current_cycle += 1
+        daemon_cycle = self.scan_worker.run_single_cycle()
+        waterfall_gross_cents = 100
+        waterfall = {
+            'scma_cents': (waterfall_gross_cents * 87) // 100,
+            'cfcp_cents': (waterfall_gross_cents * 10) // 100,
+        }
+        waterfall['faep_cents'] = waterfall_gross_cents - sum(waterfall.values())
+        cycle_events = [{
+            'event_type': 'WATERFALL_DISTRIBUTION',
+            'distribution': waterfall,
+            'mode': self.mode,
+        }]
+        if daemon_cycle['merged_shares_count']:
+            cycle_events.append({
+                'event_type': 'COMPLETE_SET_RECYCLED',
+                'merged_shares_count': daemon_cycle['merged_shares_count'],
+            })
+        if daemon_cycle['staged_sweeps_count']:
+            cycle_events.extend({
+                'event_type': 'FLOAT_SWEEP_STAGED',
+                'interface_id': 'IF-038',
+                'event_id': event['event_id'],
+                'amount_cents': event['payload']['amount_cents'],
+            } for event in self.accounting_gateway.event_outbox[-daemon_cycle['staged_sweeps_count']:])
+        self.execution_event_log.extend(cycle_events)
         kalshi_ok = self.limiter.can_proceed('KALSHI')
         poly_ok = self.limiter.can_proceed('POLYMARKET')
 
@@ -114,7 +163,13 @@ class PaperSoakRunner:
             'filled': cycle_filled,
             'expired': cycle_expired,
             'phase_bc_metrics': self.phase_bc_metrics,
-            'rate_limiter_warnings': self.limiter.warnings_count
+            'rate_limiter_warnings': self.limiter.warnings_count,
+            'mode': self.mode,
+            'slot_capacity': daemon_cycle['slot_capacity'],
+            'active_preemption': True,
+            'merged_shares_count': daemon_cycle['merged_shares_count'],
+            'staged_sweeps_count': daemon_cycle['staged_sweeps_count'],
+            'events': cycle_events,
         }
 
     async def run(self) -> None:
@@ -129,11 +184,15 @@ class PaperSoakRunner:
         self.is_running = False
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Run replay or live paper autonomous soak cycles.')
+    parser.add_argument('--mode', choices=('replay', 'live_paper', '1', '2'), default='live_paper')
+    args = parser.parse_args()
     runner = PaperSoakRunner(
         total_cycles=51840,
         cycle_interval_sec=5.0,
         health_export_interval=4320,
-        health_export_path='health_summary.json'
+        health_export_path='health_summary.json',
+        mode=args.mode,
     )
     def handle_sig(sig, frame):
         print(f'Received signal {sig}, terminating paper soak runner gracefully...')
