@@ -394,6 +394,7 @@ def get_advisor_lineage(
 @router.get("/api/v1/portal/advisor/household-tree")
 def get_advisor_household_tree(
     household_id: str = Query("HOUSEHOLD-ALPHA"),
+    role: str = Query("F2-H"),
     authenticated_household_id: str = Header("HOUSEHOLD-ALPHA", alias="X-Household-ID"),
 ) -> Dict[str, Any]:
     """Return only the branch assigned to the authenticated advisor session."""
@@ -402,6 +403,10 @@ def get_advisor_household_tree(
     house = LINEAGE_DATA.get(authenticated_household_id)
     if house is None:
         raise HTTPException(status_code=404, detail="Household branch not found")
+
+    role = role.upper()
+    if role not in {"F1", "F2-H", "F2-A", "F3"}:
+        raise HTTPException(status_code=422, detail="Unsupported financial advisor role")
 
     accounts = [
         {
@@ -416,35 +421,58 @@ def get_advisor_household_tree(
             "risk_increase_requires": "F2_CO_SIGN" if account["is_custodial"] else None,
         }
         for account in house["accounts"]
+        if role != "F1" or account["is_custodial"]
     ]
-    return {
+    distributions = [
+        {"request_id": "DIST-104", "member": "Julian Vance", "category": "Tuition", "amount_cents": 65000, "action": "F2_CO_SIGN", "status": _DISTRIBUTION_STATE["DIST-104"]["status"]},
+        {"request_id": "DIST-105", "member": "Eleanor Vance", "category": "Living", "amount_cents": 18000, "action": "APPROVE", "status": _DISTRIBUTION_STATE["DIST-105"]["status"]},
+    ]
+    if role in {"F2-A", "F3"}:
+        for distribution in distributions:
+            distribution["action"] = "READ_ONLY_AUDIT"
+            distribution["action_label"] = "READ-ONLY AUDIT (F2-H SIGNATURE REQUIRED)"
+
+    response = {
+        "role": role,
         "household_id": house["household_id"],
         "household_name": house["household_name"],
-        "total_family_equity_cents": sum(a["balance_cents"] for a in accounts),
         "member_count": len(accounts),
         "accounts": accounts,
-        "pending_distributions": [
-            {"request_id": "DIST-104", "member": "Julian Vance", "category": "Tuition", "amount_cents": 65000, "action": "F2_CO_SIGN", "status": _DISTRIBUTION_STATE["DIST-104"]["status"]},
-            {"request_id": "DIST-105", "member": "Eleanor Vance", "category": "Living", "amount_cents": 18000, "action": "APPROVE", "status": _DISTRIBUTION_STATE["DIST-105"]["status"]},
-        ],
+        "pending_distributions": [] if role == "F1" else distributions,
         "pit_decisions": [{
             "candidate_id": "KX-MIA-FRZ-32", "venue": "Kalshi", "filled_price_cents": 3,
             "model_probability_bps": 3150,
             "explanation": "The maker fill was accepted because the 31.5% model probability exceeded the 3% venue price after all safeguards.",
         }],
     }
+    # F1 responses deliberately omit aggregate financial data rather than merely
+    # relying on the browser to conceal it.
+    if role != "F1":
+        response["total_family_equity_cents"] = sum(
+            round(account["balance"] * 100) for account in house["accounts"]
+        )
+        response["available_liquidity_cents"] = response["total_family_equity_cents"]
+    if role == "F3":
+        response["platform_risk_metrics"] = {
+            "platform_var_99_cents": 42000,
+            "cross_house_exposure_cents": 1850000,
+            "concentration_status": "WITHIN_POLICY",
+        }
+    return response
 
 # --- Technical Infrastructure (T1, T2, T3 & Directive R-12) ---
 @router.get("/api/v1/portal/tech/telemetry")
 def get_tech_telemetry(
-    tier: str = Query("T1"),
+    tier: str = Query("T3"),
     unredact_token: Optional[str] = Query(None)
 ) -> Dict[str, Any]:
     tier_upper = tier.upper()
     if tier_upper not in ["T1", "T2", "T3"]:
         tier_upper = "T1"
 
-    is_unredacted = unredact_token == "AUTH-CA-OVERRIDE-TEMP"
+    is_unredacted = (
+        tier_upper == "T3" and unredact_token == "AUTH-CA-OVERRIDE-TEMP"
+    )
 
     recent_orders = [
         {
@@ -491,8 +519,10 @@ def get_tech_telemetry(
     }
 
 @router.post("/api/v1/portal/tech/trigger-daemon")
-def trigger_tech_daemon() -> Dict[str, Any]:
+def trigger_tech_daemon(tier: str = Query("T3")) -> Dict[str, Any]:
     """Run one real worker evaluation and expose only operational telemetry."""
+    if tier.upper() not in {"T2", "T3"}:
+        raise HTTPException(status_code=403, detail="T1 telemetry access is read-only")
     result = _TECH_WORKER.run_single_cycle()
     # Deterministic live telemetry avoids external venue dependencies in the console.
     _TECH_LATENCY_MS["Kalshi"] = 11 + (_TECH_WORKER.cycle_count % 5)
@@ -507,8 +537,10 @@ def trigger_tech_daemon() -> Dict[str, Any]:
     }
 
 @router.post("/api/v1/portal/tech/ca-override")
-def activate_ca_override(request: CAOverrideRequest) -> Dict[str, Any]:
+def activate_ca_override(request: CAOverrideRequest, tier: str = Query("T3")) -> Dict[str, Any]:
     """Issue page-scoped unredacted data only after explicit CA authentication."""
+    if tier.upper() != "T3":
+        raise HTTPException(status_code=403, detail="CA override requires T3 CTO authority")
     if request.token != "CA-OVERRIDE-SECRET-DEV":
         raise HTTPException(status_code=401, detail="Invalid CA override token; Directive R-12 masking remains active")
     return {
@@ -523,8 +555,8 @@ def activate_ca_override(request: CAOverrideRequest) -> Dict[str, Any]:
 
 @router.post("/api/v1/portal/advisor/co-sign")
 def co_sign_distribution(request: CoSignRequest) -> Dict[str, Any]:
-    if request.actor_role not in {"F2-H", "F2-A"}:
-        raise HTTPException(status_code=403, detail="An F2 role is required for dual-control co-signature")
+    if request.actor_role != "F2-H":
+        raise HTTPException(status_code=403, detail="F2-H authority is required for dual-control co-signature")
     distribution = _DISTRIBUTION_STATE.get(request.request_id)
     if distribution is None:
         raise HTTPException(status_code=404, detail="Distribution request not found")
