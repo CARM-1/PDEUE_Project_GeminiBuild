@@ -112,7 +112,6 @@ def evaluate_proposal(payload: Dict[str, Any]):
     return _lineage_service.evaluate_bicameral_proposal(votes)
 
 @lineage_router.get("/lineage/house", response_class=HTMLResponse)
-@lineage_router.get("/lineage/house/{house_id}", response_class=HTMLResponse)
 def get_house_leader_portal(house_id: int = 1):
     if house_id < 1 or house_id > 12:
         house_id = 1
