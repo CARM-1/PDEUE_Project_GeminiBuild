@@ -9,6 +9,9 @@ from jsonschema import Draft7Validator, FormatChecker
 
 SECRET_KEY_DEFAULT = 'pdeue_fge_accounting_signing_key_v1'
 
+_BANKING_KEYS = {'account_number', 'routing_number', 'bank_account', 'bank_credentials',
+                 'iban', 'swift_code'}
+
 class AccountingGateway:
     def __init__(self, secret_key: str = SECRET_KEY_DEFAULT):
         self.secret_key = secret_key.encode('utf-8')
@@ -43,6 +46,7 @@ class AccountingGateway:
         """Stage a signed JSON-LD payload in the accounting outbox."""
         if payload.get('@context') != 'https://schema.pdeue.org/accounting/v1':
             raise ValueError('accounting events must use the accounting JSON-LD context')
+        self._reject_banking_credentials(payload)
         self._seq_counter += 1
         seq_id = self._seq_counter
         event_id = f'ACT-EVT-{seq_id:08d}'
@@ -50,12 +54,53 @@ class AccountingGateway:
         envelope = {
             'event_id': event_id,
             'sequence_id': seq_id,
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'payload': payload,
             'signature_hmac_sha256': self.sign_payload(canonical_bytes),
             'status': 'EMITTED'
         }
         self.event_outbox.append(envelope)
         return envelope
+
+    def _reject_banking_credentials(self, value: Any) -> None:
+        """Fail closed if an ADR-011 prohibited banking field is present."""
+        if isinstance(value, dict):
+            forbidden = _BANKING_KEYS.intersection(str(key).lower() for key in value)
+            if forbidden:
+                raise ValueError(f'banking credentials are prohibited: {sorted(forbidden)[0]}')
+            for nested in value.values():
+                self._reject_banking_credentials(nested)
+        elif isinstance(value, list):
+            for nested in value:
+                self._reject_banking_credentials(nested)
+
+    def verify_event(self, envelope: Dict[str, Any]) -> bool:
+        signature = envelope.get('signature_hmac_sha256', '')
+        return len(signature) == 64 and self.verify_signature(
+            self._canonicalize_payload(envelope.get('payload', {})), signature
+        )
+
+    def emit_capital_sweep(self, settled_balance_cents: int, scma_id: str = 'MASTER',
+                           destination_opaque_token: str = 'EXT-REF-IFAS') -> Optional[Dict[str, Any]]:
+        """Stage only the amount above the $25,000 high-watermark."""
+        if not isinstance(settled_balance_cents, int) or isinstance(settled_balance_cents, bool):
+            raise TypeError('settled_balance_cents must be an integer')
+        surplus = settled_balance_cents - 2_500_000
+        if surplus <= 0:
+            return None
+        payload = {
+            '@context': 'https://schema.pdeue.org/accounting/v1',
+            'event_type': 'DIVIDEND_DISTRIBUTION_SCHEDULED',
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'scma_id': scma_id,
+            'amount_cents': surplus,
+            'tier': 'GREEN',
+            'destination_opaque_token': destination_opaque_token,
+            'source': 'FLOAT_CAP_SWEEP',
+        }
+        event = self.stage_if038_event(payload)
+        event['event_type'] = 'CAPITAL_SWEEP'
+        return event
 
     def stage_if038_event(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         return self._stage_typed_event(payload, 'IF-038', 'DIVIDEND_DISTRIBUTION_SCHEDULED')
