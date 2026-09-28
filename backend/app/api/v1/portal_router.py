@@ -91,6 +91,16 @@ class CoSignRequest(BaseModel):
     actor_role: str
 
 
+class LineageVoteRequest(BaseModel):
+    proposal_id: str
+    vote: str
+
+
+class LineageCircuitBreakerRequest(BaseModel):
+    scma_id: str
+    action: str
+
+
 # Process-local demo state is deliberate: these portal endpoints operate the same
 # long-lived worker and approval ledger for every request made to an app process.
 _TECH_WORKER = AutonomousScanWorker()
@@ -103,6 +113,49 @@ _DISTRIBUTION_STATE: Dict[str, Dict[str, Any]] = {
     "DIST-104": {"status": "PENDING", "amount_cents": 65_000, "signature": None},
     "DIST-105": {"status": "PENDING", "amount_cents": 18_000, "signature": None},
 }
+
+# House votes are an advisory petition ledger only.  Reaching the threshold
+# never transfers funds or changes platform policy; it queues Chief
+# Administrator / Sovereign Settlor review.
+_LINEAGE_PROPOSALS: Dict[str, Dict[str, Any]] = {
+    "CFCP-2026-02": {
+        "proposal_id": "CFCP-2026-02",
+        "title": "Apprentice Literacy Grant Petition",
+        "amount_cents": 120_000,
+        "aye_house_ids": [],
+        "nay_house_ids": [],
+        "status": "HOUSE_VOTE_OPEN",
+    }
+}
+
+_LINEAGE_ROLL_CALL = [
+    {"meeting_id": "RC-2026-09", "held_at": "2026-09-21T18:00:00Z", "status": "QUORUM_MET"},
+]
+
+
+def _lineage_role(role: str) -> str:
+    normalized = role.upper()
+    if normalized not in {"H1", "H2"}:
+        raise HTTPException(status_code=400, detail="role must be H1 or H2")
+    return normalized
+
+
+def _authenticated_house(requested_house_id: int, header: Optional[str], claim: Optional[int]) -> int:
+    """Resolve the branch claim and reject every cross-House access attempt."""
+    if requested_house_id not in range(1, 13):
+        raise HTTPException(status_code=404, detail="House not found")
+    raw = claim if claim is not None else header
+    if raw is None:
+        # Local/demo compatibility: the route itself supplies the scoped claim.
+        authenticated = requested_house_id
+    else:
+        try:
+            authenticated = int(str(raw).upper().replace("HOUSE-", ""))
+        except ValueError as err:
+            raise HTTPException(status_code=403, detail="Invalid House identity claim") from err
+    if authenticated != requested_house_id:
+        raise HTTPException(status_code=403, detail="Cross-House access forbidden")
+    return authenticated
 
 def _load_html(filename: str) -> HTMLResponse:
     # The member desktop is maintained beside this router so its HTTP contract
@@ -119,6 +172,146 @@ def _load_html(filename: str) -> HTMLResponse:
     if p2.exists():
         return HTMLResponse(content=p2.read_text(encoding="utf-8"))
     return HTMLResponse(f"<h3>Portal file {filename} initializing...</h3>")
+
+
+def _lineage_claim(
+    house_id: int,
+    x_house_id: Optional[str],
+    actor_house_id: Optional[int],
+) -> None:
+    _authenticated_house(house_id, x_house_id, actor_house_id)
+
+
+@router.get("/lineage/house/{house_id}", response_class=HTMLResponse)
+def get_lineage_house_portal(
+    house_id: int,
+    role: str = Query("H2"),
+    x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
+    actor_house_id: Optional[int] = Query(None),
+):
+    role = _lineage_role(role)
+    _lineage_claim(house_id, x_house_id, actor_house_id)
+    house = _lineage_service.get_house_summary(house_id)
+    page = _load_html("lineage_house.html").body.decode("utf-8")
+    replacements = {
+        "__HOUSE_ID__": str(house_id),
+        "__HOUSE_CODE__": house["lineage_code"],
+        "__HOUSE_NAME__": house["name"],
+        "__ACTIVE_ROLE__": role,
+        "__ACTIVE_HAT__": "HOUSE_LEADER (H2_SOVEREIGN)" if role == "H2" else "HOUSE_ASSISTANT (H1_SECRETARIAL)",
+    }
+    for marker, value in replacements.items():
+        page = page.replace(marker, str(value))
+    discovery_start = page.find("<!-- DISCOVERY_CONTROLS_START -->")
+    discovery_end = page.find("<!-- DISCOVERY_CONTROLS_END -->")
+    if discovery_start >= 0 and discovery_end >= 0:
+        page = page[:discovery_start] + page[discovery_end + len("<!-- DISCOVERY_CONTROLS_END -->"):]
+    page = page.replace("__ROLE_DESK__", _render_lineage_h2_desk(house) if role == "H2" else _render_lineage_h1_desk(house))
+    return HTMLResponse(page)
+
+
+@router.get("/api/v1/portal/lineage/house/{house_id}/state")
+def get_lineage_house_state(
+    house_id: int,
+    role: str = Query("H2"),
+    x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
+    actor_house_id: Optional[int] = Query(None),
+):
+    role = _lineage_role(role)
+    _lineage_claim(house_id, x_house_id, actor_house_id)
+    house = _lineage_service.get_house_summary(house_id)
+    members = []
+    for source in house["members"]:
+        member = {
+            "scma_id": source["scma_id"], "name": source["name"],
+            "role_tag": source["role_tag"], "risk_dial_bps": int(round(source["risk_dial"] * 10_000)),
+            "status": source["status"], "open_orders": list(source["open_orders"]),
+            "literacy_completion_pct": 85 if "Apprentice" in source["role_tag"] else 100,
+        }
+        member["notional_cents"] = "$****.**" if role == "H1" else int(source["cash_cents"])
+        members.append(member)
+    proposals = []
+    for item in _LINEAGE_PROPOSALS.values():
+        proposals.append({**item, "aye_count": len(item["aye_house_ids"]), "nay_count": len(item["nay_house_ids"]), "threshold": 9})
+    return {
+        "house_id": house_id, "house_code": house["lineage_code"], "house_name": house["name"],
+        "active_role": role, "aggregated_house_capital_cents": int(house["total_cash_cents"]),
+        "average_risk_dial_bps": int(round(house["average_risk_dial_pct"] * 100)),
+        "members": members, "roll_call_logs": list(_LINEAGE_ROLL_CALL), "bicameral_proposals": proposals,
+    }
+
+
+@router.post("/api/v1/portal/lineage/house/{house_id}/vote")
+def vote_on_lineage_proposal(
+    house_id: int, request: LineageVoteRequest,
+    role: str = Query("H2"),
+    x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
+    actor_house_id: Optional[int] = Query(None),
+):
+    role = _lineage_role(role)
+    _lineage_claim(house_id, x_house_id, actor_house_id)
+    if role != "H2":
+        raise HTTPException(status_code=403, detail="H1 secretarial role has no voting authority")
+    vote = request.vote.upper()
+    if vote not in {"AYE", "NAY"}:
+        raise HTTPException(status_code=422, detail="vote must be AYE or NAY")
+    proposal = _LINEAGE_PROPOSALS.get(request.proposal_id)
+    if proposal is None:
+        raise HTTPException(status_code=404, detail="Proposal not found")
+    proposal["aye_house_ids"] = [x for x in proposal["aye_house_ids"] if x != house_id]
+    proposal["nay_house_ids"] = [x for x in proposal["nay_house_ids"] if x != house_id]
+    proposal[f"{vote.lower()}_house_ids"].append(house_id)
+    if len(proposal["aye_house_ids"]) >= 9:
+        proposal["status"] = "RATIFIED_PENDING_SETTLOR"
+    return {"proposal_id": request.proposal_id, "house_vote": vote, "aye_count": len(proposal["aye_house_ids"]),
+            "nay_count": len(proposal["nay_house_ids"]), "threshold": 9, "status": proposal["status"],
+            "effect": "ADVISORY_PETITION_ONLY"}
+
+
+@router.post("/api/v1/portal/lineage/house/{house_id}/circuit-breaker")
+def execute_lineage_circuit_breaker(
+    house_id: int, request: LineageCircuitBreakerRequest,
+    role: str = Query("H2"),
+    x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
+    actor_house_id: Optional[int] = Query(None),
+):
+    role = _lineage_role(role)
+    _lineage_claim(house_id, x_house_id, actor_house_id)
+    if role != "H2":
+        raise HTTPException(status_code=403, detail="H1 secretarial role cannot operate circuit breakers")
+    action = request.action.upper().replace("-", "_")
+    try:
+        if action in {"FREEZE", "FREEZE_DIAL", "GOVERNOR_CLAMP"}:
+            return _lineage_service.freeze_subordinate_risk(house_id, request.scma_id)
+        if action in {"CANCEL_ORDERS", "RESTING_PURGE"}:
+            return _lineage_service.cancel_subordinate_orders(house_id, request.scma_id)
+    except ValueError as err:
+        raise HTTPException(status_code=404, detail=str(err)) from err
+    raise HTTPException(status_code=422, detail="action must be FREEZE_DIAL or CANCEL_ORDERS")
+
+
+def _render_lineage_h2_desk(house: Dict[str, Any]) -> str:
+    rows = "".join(
+        f'<tr><td>{m["name"]}</td><td>{m["scma_id"]}</td><td>${m["cash_cents"] / 100:,.2f}</td>'
+        f'<td><button class="freeze" onclick="openFreezeModal(\'{m["scma_id"]}\')">Freeze Dial (0%)</button> '
+        f'<button class="cancel" onclick="openCancelModal(\'{m["scma_id"]}\')">Cancel Orders</button></td></tr>'
+        for m in house["members"] if not _lineage_service._is_sovereign_settlor(m)
+    )
+    return f'''<section class="metrics"><article><h2>Aggregated House Capital</h2><strong>${house["total_cash_cents"] / 100:,.2f}</strong></article>
+<article><h2>Average Risk Dial</h2><strong>{house["average_risk_dial_pct"]}%</strong></article></section>
+<section><h2>Subordinate Accounts &amp; Lineal Circuit Breakers</h2><table><tbody>{rows}</tbody></table></section>
+<section id="bicameral"><h2>Bicameral CFCP Ratification Chamber</h2><p>75% (9 of 12) stages an advisory petition for Chief Administrator review. No capital sweep is executed.</p>
+<article><strong>Apprentice Literacy Grant Petition</strong><div id="consensus-tally">0 / 12 Aye</div><button id="vote-aye" onclick="castVote('AYE')">Aye</button><button id="vote-nay" onclick="castVote('NAY')">Nay</button></article></section>
+<div id="cancel-modal" class="modal" hidden>Resting Purge confirmation</div><div id="freeze-modal" class="modal" hidden>Governor Clamp confirmation</div>'''
+
+
+def _render_lineage_h1_desk(house: Dict[str, Any]) -> str:
+    rows = "".join(f'<tr><td>{m["name"]}</td><td>{m["scma_id"]}</td><td>$****.**</td><td>{m["status"]}</td></tr>' for m in house["members"])
+    literacy = "".join(f'<label>{m["name"]}<progress max="100" value="{85 if "Apprentice" in m["role_tag"] else 100}"></progress></label>' for m in house["members"])
+    return f'''<section class="metrics"><article><h2>Aggregated House Capital</h2><strong>${house["total_cash_cents"] / 100:,.2f}</strong></article></section>
+<section><h2>Member Accounts — Directive R-12</h2><table><tbody>{rows}</tbody></table></section>
+<section class="audit"><h2>Bicameral CFCP Ratification Chamber — NON-VOTING AUDIT</h2><p>Secretarial observation only; legislative submission authority is disabled.</p></section>
+<section class="secretarial"><article><h2>Meeting Scheduler Log</h2><p>Next Senate session: 2026-10-05 18:00 UTC</p></article><article><h2>Lineage Roll-Call Registry</h2><p>RC-2026-09 — QUORUM MET</p></article><article><h2>AI Tutor / Literacy Completion</h2>{literacy}</article></section>'''
 
 @router.get("/member", response_class=HTMLResponse)
 def get_member_portal():
