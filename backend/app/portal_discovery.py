@@ -12,6 +12,7 @@ PORTALS = {
     "/admin/tech": "app/api/v1/tech.html",
     "/advisor": "app/api/v1/advisor.html",
     "/lineage/house/1": "app/api/v1/lineage_house.html",
+    "/community": "app/api/v1/community.html",
 }
 PILLARS = (
     "Governance", "Identity & Access", "Capital Ledger", "Risk Controls",
@@ -70,6 +71,8 @@ def _pillar(route: str, label: str) -> str:
         return "Education / Capital Ledger"
     if route.startswith("/lineage/"):
         return "Lineage & Household / Fiduciary Oversight"
+    if route == "/community":
+        return "Education / Lineage & Household"
     return "Governance / Order Execution"
 
 

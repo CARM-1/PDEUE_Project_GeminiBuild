@@ -9,6 +9,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
+import html
 import pathlib
 from app.domain.lineage_hierarchy import get_lineage_service
 from app.domain.scan_worker import AutonomousScanWorker
@@ -101,6 +102,18 @@ class LineageCircuitBreakerRequest(BaseModel):
     action: str
 
 
+class CommunityMessageRequest(BaseModel):
+    member_id: str
+    author_name: str
+    house_id: str
+    message_text: str
+
+
+class CommunityTutorRequest(BaseModel):
+    query: str
+    member_id: str
+
+
 # Process-local demo state is deliberate: these portal endpoints operate the same
 # long-lived worker and approval ledger for every request made to an app process.
 _TECH_WORKER = AutonomousScanWorker()
@@ -131,6 +144,43 @@ _LINEAGE_PROPOSALS: Dict[str, Dict[str, Any]] = {
 _LINEAGE_ROLL_CALL = [
     {"meeting_id": "RC-2026-09", "held_at": "2026-09-21T18:00:00Z", "status": "QUORUM_MET"},
 ]
+
+# Community data is intentionally a small, process-local social log.  It is not
+# joined to account, execution, venue, or ledger state (ADR-011 / R-12).
+_COMMUNITY_MESSAGES: List[Dict[str, str]] = [
+    {
+        "member_id": "member-mentor-01",
+        "author_name": "Academy Mentor",
+        "house_id": "HOUSE-01",
+        "message_text": "Welcome to the hearth. Share a milestone or ask a learning question!",
+        "posted_at": "2026-09-21T18:00:00Z",
+    }
+]
+_COMMUNITY_ANNOUNCEMENTS = [
+    {"kind": "REUNION", "title": "Autumn lineage reunion", "when": "October 18"},
+    {"kind": "GRADUATION", "title": "Three academy learners completed the foundations path", "when": "This week"},
+    {"kind": "BIRTH", "title": "The family welcomes a new generation", "when": "September"},
+]
+_COMMUNITY_MILESTONES = [
+    "Mentor circle completed 100 learning sessions",
+    "House reading streak reached 12 weeks",
+    "Five new literacy badges earned",
+]
+_COMMUNITY_LESSONS = [
+    {"lesson_id": "binary-contracts-101", "title": "Binary Contracts 101", "reading_time": "8 min", "topic_tags": ["foundations", "probability"]},
+    {"lesson_id": "quarter-kelly", "title": "Why Quarter-Kelly?", "reading_time": "10 min", "topic_tags": ["risk", "position-sizing"]},
+    {"lesson_id": "waterfall-safeguard", "title": "The 87/10/3 Waterfall Safeguard", "reading_time": "7 min", "topic_tags": ["safeguards", "stewardship"]},
+]
+
+
+def _community_text(value: str, *, field: str, maximum: int) -> str:
+    """Return inert display text and reject empty or unreasonably large input."""
+    normalized = " ".join(value.strip().split())
+    if not normalized:
+        raise HTTPException(status_code=422, detail=f"{field} must not be empty")
+    if len(normalized) > maximum:
+        raise HTTPException(status_code=422, detail=f"{field} exceeds {maximum} characters")
+    return html.escape(normalized, quote=True)
 
 
 def _lineage_role(role: str) -> str:
@@ -324,6 +374,71 @@ def get_advisor_portal():
 @router.get("/admin/tech", response_class=HTMLResponse)
 def get_tech_console():
     return _load_html("tech.html")
+
+
+# --- Class C Community Fellowship (strictly non-transactional) ---
+@router.get("/community", response_class=HTMLResponse)
+def get_community_portal():
+    return _load_html("community.html")
+
+
+@router.get("/api/v1/portal/community/feed")
+def get_community_feed() -> Dict[str, Any]:
+    return {
+        "announcements": list(_COMMUNITY_ANNOUNCEMENTS),
+        "milestones": list(_COMMUNITY_MILESTONES),
+        "messages": list(reversed(_COMMUNITY_MESSAGES[-50:])),
+        "scope": "COMMUNITY_EDUCATION_ONLY",
+    }
+
+
+@router.post("/api/v1/portal/community/message", status_code=201)
+def post_community_message(request: CommunityMessageRequest) -> Dict[str, str]:
+    message = {
+        "member_id": _community_text(request.member_id, field="member_id", maximum=80),
+        "author_name": _community_text(request.author_name, field="author_name", maximum=80),
+        "house_id": _community_text(request.house_id, field="house_id", maximum=80),
+        "message_text": _community_text(request.message_text, field="message_text", maximum=1000),
+        "posted_at": datetime.now(timezone.utc).isoformat(),
+    }
+    _COMMUNITY_MESSAGES.append(message)
+    return message
+
+
+@router.get("/api/v1/portal/community/academy/lessons")
+def get_community_lessons() -> Dict[str, Any]:
+    return {"lessons": list(_COMMUNITY_LESSONS), "curriculum_scope": "EDUCATIONAL_ONLY"}
+
+
+@router.post("/api/v1/portal/community/academy/ask-tutor")
+def ask_community_tutor(request: CommunityTutorRequest) -> Dict[str, str]:
+    query = _community_text(request.query, field="query", maximum=500)
+    member_id = _community_text(request.member_id, field="member_id", maximum=80)
+    lowered = html.unescape(query).lower()
+    mutation_phrases = (
+        "buy ", "sell ", "place an order", "execute", "submit a trade",
+        "make a trade", "cancel order", "transfer", "withdraw", "deposit",
+    )
+    balance_phrases = ("my balance", "account balance", "capital balance", "bank balance", "how much money")
+    if any(phrase in lowered for phrase in mutation_phrases + balance_phrases):
+        raise HTTPException(
+            status_code=403,
+            detail="The academy tutor is educational only and cannot access balances or perform transactions.",
+        )
+
+    if "quarter-kelly" in lowered or "quarter kelly" in lowered:
+        answer = "Quarter-Kelly uses one fourth of a model's Kelly-sized exposure. It keeps the idea of scaling with confidence while adding a large cushion for estimation error and uncertainty."
+        concept = "RISK_SIZING"
+    elif "binary" in lowered:
+        answer = "A binary contract has two possible settlement outcomes. Its quoted probability is a learning aid, not a promise; uncertainty and calibration still matter."
+        concept = "BINARY_CONTRACT_FOUNDATIONS"
+    elif "87/10/3" in lowered or "waterfall" in lowered:
+        answer = "The 87/10/3 lesson describes a stewardship safeguard: three defined portions help learners reason about compounding, family protection, and education support without directing a transaction."
+        concept = "WATERFALL_STEWARDSHIP"
+    else:
+        answer = "Start by naming the outcome, the uncertainty, and what evidence could change your view. Good risk literacy separates an educational estimate from a guaranteed result."
+        concept = "RISK_LITERACY"
+    return {"member_id": member_id, "query": query, "answer": answer, "concept": concept, "mode": "EDUCATIONAL_ONLY"}
 
 # --- Member Workspace (Directive R-06 Split-Hat) ---
 @router.get("/api/v1/portal/member/state")
