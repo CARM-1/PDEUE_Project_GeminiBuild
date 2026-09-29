@@ -66,12 +66,41 @@ LINEAGE_DATA: Dict[str, Any] = {
     }
 }
 
+# The lineage advisor is assigned two explicitly bounded domestic branches.
+LINEAGE_DATA["HOUSEHOLD-BETA"] = {
+    "household_id": "HOUSEHOLD-BETA",
+    "household_name": "Vance Lineage Beta",
+    "total_equity": 4320.00,
+    "max_drawdown_pct": -0.72,
+    "cfcp_floor_shield": 410.00,
+    "accounts": [
+        {"user_id": "USR-beta-head", "name": "Morgan Vance", "role": "F2_FINANCIAL_ADVISOR",
+         "scma_id": "SCMA-MORGAN-BETA", "balance": 3520.00, "reserved": 20.00,
+         "risk_dial": 1.25, "is_custodial": False, "custodian_id": None, "status": "OPTIMAL"},
+        {"user_id": "USR-beta-apprentice", "name": "Riley Vance (Apprentice)", "role": "MEMBER_USER",
+         "scma_id": "SCMA-RILEY-BETA", "balance": 800.00, "reserved": 0.00,
+         "risk_dial": 0.75, "is_custodial": True, "custodian_id": "USR-beta-head", "status": "PAPER_INCUBATOR"},
+    ],
+}
+
 class RiskUpdateRequest(BaseModel):
     scma_id: Optional[str] = None
     requested_risk_pct: Optional[float] = None
     new_risk_dial: Optional[float] = None
     risk_dial: Optional[float] = None
     risk_dial_pct: Optional[float] = None
+
+class AdvisoryProposalRequest(BaseModel):
+    target_scma: str
+    proposed_dial: float
+    justification: str
+    actor_role: Optional[str] = None
+
+
+class AdvisoryAdjudicationRequest(BaseModel):
+    decision: str
+    actor_role: Optional[str] = None
+
 
 class DistributionRequest(BaseModel):
     scma_id: str
@@ -126,6 +155,17 @@ _DISTRIBUTION_STATE: Dict[str, Dict[str, Any]] = {
     "DIST-104": {"status": "PENDING", "amount_cents": 65_000, "signature": None},
     "DIST-105": {"status": "PENDING", "amount_cents": 18_000, "signature": None},
 }
+
+# Advisory changes are proposals, never direct mutations. The process-local ledger
+# makes the tri-state workflow observable in the demonstration deployment.
+_ADVISORY_PROPOSALS: Dict[str, Dict[str, Any]] = {}
+_ADVISORY_PROPOSAL_SEQUENCE = 0
+
+_MACRO_HOUSE_EXPOSURES = [
+    {"house_id": f"House-{number:02d}", "exposure_cents": 95_000 + number * 9_000,
+     "margin_utilization_pct": 38 + number * 3, "risk_status": "ELEVATED" if number > 9 else "NORMAL"}
+    for number in range(1, 13)
+]
 
 # House votes are an advisory petition ledger only.  Reaching the threshold
 # never transfers funds or changes platform policy; it queues Chief
@@ -753,9 +793,15 @@ def get_advisor_household_tree(
             "explanation": "The maker fill was accepted because the 31.5% model probability exceeded the 3% venue price after all safeguards.",
         }],
     }
+    # CRO scope is platform-wide: never serialize domestic account or spending data.
+    if role == "F3":
+        response["accounts"] = []
+        response["member_count"] = 0
+        response["pending_distributions"] = []
+        response["pit_decisions"] = []
     # F1 responses deliberately omit aggregate financial data rather than merely
     # relying on the browser to conceal it.
-    if role != "F1":
+    if role not in {"F1", "F3"}:
         response["total_family_equity_cents"] = sum(
             round(account["balance"] * 100) for account in house["accounts"]
         )
@@ -770,6 +816,78 @@ def get_advisor_household_tree(
             "concentration_status": "WITHIN_POLICY",
         }
     return response
+
+
+@router.get("/api/v1/portal/advisor/macro-risk")
+def get_advisor_macro_risk(role: str = Query("F3")) -> Dict[str, Any]:
+    """Return platform risk in integer cents; household domestic detail is excluded."""
+    if role.upper() not in {"F3", "CHIEF_ADMIN", "CHIEF_ADMINISTRATOR"}:
+        raise HTTPException(status_code=403, detail="F3 CRO or Chief Admin authority required")
+    return {
+        "platform_var_99_24h_cents": 42_000,
+        "cross_house_gross_margin_cents": 1_850_000,
+        "margin_utilization_pct": 74,
+        "venue_distribution_pct": {"Kalshi": 58, "Polymarket": 42},
+        "directive_r04": {"status": "NORMAL", "failsafe": "ARMED"},
+        "house_exposures": _MACRO_HOUSE_EXPOSURES,
+    }
+
+
+@router.get("/api/v1/portal/advisor/proposals")
+def get_advisor_proposals(role: str = Query("F2-A")) -> Dict[str, Any]:
+    if role.upper() not in {"F2-A", "F2-H", "F3", "CHIEF_ADMIN", "CHIEF_ADMINISTRATOR"}:
+        raise HTTPException(status_code=403, detail="Advisory proposal access denied")
+    return {"proposals": list(_ADVISORY_PROPOSALS.values())}
+
+
+@router.post("/api/v1/portal/advisor/proposals", status_code=201)
+def stage_advisor_proposal(
+    request: AdvisoryProposalRequest,
+    role: Optional[str] = Query(None),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+) -> Dict[str, Any]:
+    global _ADVISORY_PROPOSAL_SEQUENCE
+    actor_role = (role or x_actor_role or request.actor_role or "").upper()
+    if actor_role not in {"F2-A", "F2-H"}:
+        raise HTTPException(status_code=403, detail="Only F2-A or F2-H may stage advisory proposals")
+    if not request.target_scma.strip() or not request.justification.strip():
+        raise HTTPException(status_code=422, detail="Target SCMA and justification are required")
+    if request.proposed_dial < 0 or request.proposed_dial > 100:
+        raise HTTPException(status_code=422, detail="proposed_dial must be between 0 and 100")
+    _ADVISORY_PROPOSAL_SEQUENCE += 1
+    proposal_id = f"ADV-{_ADVISORY_PROPOSAL_SEQUENCE:04d}"
+    proposal = {
+        "proposal_id": proposal_id, "target_scma": request.target_scma,
+        "proposed_dial": request.proposed_dial, "justification": request.justification,
+        "submitted_by": actor_role, "status": "PENDING",
+        "created_at": datetime.now(timezone.utc).isoformat(), "adjudicated_by": None,
+    }
+    _ADVISORY_PROPOSALS[proposal_id] = proposal
+    return proposal
+
+
+@router.post("/api/v1/portal/advisor/proposals/{proposal_id}/adjudicate")
+def adjudicate_advisor_proposal(
+    proposal_id: str,
+    request: AdvisoryAdjudicationRequest,
+    role: Optional[str] = Query(None),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+) -> Dict[str, Any]:
+    actor_role = (role or x_actor_role or request.actor_role or "").upper()
+    if actor_role not in {"F3", "CHIEF_ADMIN", "CHIEF_ADMINISTRATOR"}:
+        raise HTTPException(status_code=403, detail="Only F3 CRO or Chief Admin may adjudicate proposals")
+    decision = request.decision.upper()
+    if decision not in {"ALLOW", "DENY"}:
+        raise HTTPException(status_code=422, detail="decision must be ALLOW or DENY")
+    proposal = _ADVISORY_PROPOSALS.get(proposal_id)
+    if proposal is None:
+        raise HTTPException(status_code=404, detail="Advisory proposal not found")
+    if proposal["status"] != "PENDING":
+        raise HTTPException(status_code=409, detail="Proposal has already been adjudicated")
+    proposal["status"] = "ALLOWED" if decision == "ALLOW" else "DENIED"
+    proposal["adjudicated_by"] = actor_role
+    proposal["adjudicated_at"] = datetime.now(timezone.utc).isoformat()
+    return proposal
 
 # --- Technical Infrastructure (T1, T2, T3 & Directive R-12) ---
 @router.get("/api/v1/portal/tech/telemetry")
