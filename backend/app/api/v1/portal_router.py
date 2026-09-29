@@ -22,7 +22,7 @@ LINEAGE_DATA: Dict[str, Any] = {
     "HOUSEHOLD-ALPHA": {
         "household_id": "HOUSEHOLD-ALPHA",
         "household_name": "Vance Lineage Alpha",
-        "total_equity": 6500.00,
+        "total_equity": 5850.00,
         "max_drawdown_pct": -0.85,
         "cfcp_floor_shield": 500.00,
         "accounts": [
@@ -31,7 +31,7 @@ LINEAGE_DATA: Dict[str, Any] = {
                 "name": "Founder Chief Admin",
                 "role": "CHIEF_ADMINISTRATOR",
                 "scma_id": "SCMA-FOUNDER_-C8575D7E",
-                "balance": 5000.00,
+                "balance": 4350.00,
                 "reserved": 0.00,
                 "risk_dial": 2.00,
                 "is_custodial": False,
@@ -762,6 +762,9 @@ def get_advisor_household_tree(
         response["available_liquidity_cents"] = response["total_family_equity_cents"]
     if role == "F3":
         response["platform_risk_metrics"] = {
+            "value_at_risk_cents": 42000,
+            "margin_utilization_pct": 37.4,
+            "evt_tail_risk": "MODERATE / WITHIN POLICY",
             "platform_var_99_cents": 42000,
             "cross_house_exposure_cents": 1850000,
             "concentration_status": "WITHIN_POLICY",

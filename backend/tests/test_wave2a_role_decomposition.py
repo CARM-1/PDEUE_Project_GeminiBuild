@@ -1,10 +1,32 @@
 """Wave 2A sub-tier authorization and browser-rendering contract tests."""
+import pytest
 from fastapi.testclient import TestClient
 
 from app.api.v1 import portal_router
 from app.main import app
 
 CLIENT = TestClient(app)
+
+
+@pytest.mark.parametrize(
+    ("role", "structural_marker"),
+    [
+        ("F1", "F1_PEER_GUIDE"),
+        ("F2-H", "F2-H_HOUSEHOLD_HEAD"),
+        ("F2-A", "F2-A_LINEAGE_ADVISOR"),
+        ("F3", "F3_CRO_RISK"),
+    ],
+)
+def test_advisor_role_pages_expose_dynamic_workspace_contract(role, structural_marker):
+    page = CLIENT.get(f"/advisor?role={role}")
+    assert page.status_code == 200
+    assert structural_marker in page.text
+    assert 'id="role-switcher"' in page.text
+    assert 'id="role-alert"' in page.text
+    assert 'id="distribution-slot"' in page.text
+    assert '<div style="display:none" id="legacyPortalHub">' in page.text
+    assert "history.replaceState" in page.text
+    assert "/api/v1/portal/advisor/household-tree?role=" in page.text
 
 
 def test_tech_console_t1_strips_triggers_and_override():
@@ -40,14 +62,14 @@ def test_advisor_f1_restricts_equity_and_hides_co_sign_queue():
     assert "total_family_equity_cents" not in scoped
     assert "available_liquidity_cents" not in scoped
     assert scoped["pending_distributions"] == []
-    assert "F1 RESTRICTED - MENTEE VIEW ONLY" in CLIENT.get("/advisor").text
+    assert "RESTRICTED ACCESS — MENTEE OVERSIGHT ONLY" in CLIENT.get("/advisor?role=F1").text
 
 
 def test_advisor_f2h_renders_full_domestic_queue_and_co_sign():
     portal_router._DISTRIBUTION_STATE["DIST-104"].update(status="PENDING", signature=None)
     scoped = CLIENT.get("/api/v1/portal/advisor/household-tree?role=F2-H").json()
     assert len(scoped["accounts"]) == 3
-    assert scoped["total_family_equity_cents"] == 650000
+    assert scoped["total_family_equity_cents"] == 585000
     assert scoped["pending_distributions"][0]["action"] == "F2_CO_SIGN"
     assert CLIENT.post("/api/v1/portal/advisor/co-sign", json={"request_id": "DIST-104", "actor_role": "F2-H"}).status_code == 200
 
