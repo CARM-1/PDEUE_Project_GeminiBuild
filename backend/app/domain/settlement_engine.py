@@ -25,8 +25,9 @@ class SettlementEngine:
         if net_profit_cents <= 0:
             return {"scma_cents": net_profit_cents, "cfcp_cents": 0, "faep_cents": 0}
 
-        scma_cents = int(net_profit_cents * 0.87)
-        cfcp_cents = int(net_profit_cents * 0.10)
+        # ADR-008: never introduce binary floating point into a balance split.
+        scma_cents = (net_profit_cents * 87) // 100
+        cfcp_cents = (net_profit_cents * 10) // 100
         # Remainder allocated to FAEP to preserve exact integer cent parity
         faep_cents = net_profit_cents - scma_cents - cfcp_cents
 
