@@ -13,10 +13,12 @@ import html
 import pathlib
 from app.domain.lineage_hierarchy import get_lineage_service
 from app.domain.scan_worker import AutonomousScanWorker
+from app.domain.ai_copilot import AICopilotEngine
 
 router = APIRouter(tags=['Portals'])
 portal_router = router
 _lineage_service = get_lineage_service()
+_advisor_copilot_engine = AICopilotEngine()
 
 LINEAGE_DATA: Dict[str, Any] = {
     "HOUSEHOLD-ALPHA": {
@@ -1099,14 +1101,24 @@ def member_tutor(query: AssistantQuery):
 @router.post("/api/v1/portal/advisor/copilot")
 def advisor_copilot(query: AssistantQuery):
     prompt = query.query or query.question or ""
-    q = prompt.lower()
-    if "withdrawal" in q or "distribution" in q:
-        ans = "Fiduciary Impact: Withdrawing $650.00 from Julian's apprentice SCMA reduces 6-month projected compounding velocity by 24.2%. Recommend partial $250.00 distribution under Yellow-Tier."
-    elif "rationale" in q or "trade" in q:
-        ans = "Trade Analysis: Miami Sub-Freezing contract (KX-MIA-FRZ-32) was backed by 5-member NOAA ASOS ensemble consensus with a 28.5% edge hurdle."
-    else:
-        ans = "Fiduciary Copilot standing by to assist with lineage liquidity modeling, mentee reviews, and decision audit explanations."
-    return {"role": "FIDUCIARY_COPILOT", "query": prompt, "response": ans, "cards": [{"title": "Fiduciary analysis", "body": ans, "classification": "EDUCATIONAL_NOT_ADVICE"}]}
+    response_text = _advisor_copilot_engine.ask(
+        prompt,
+        user_role="FINANCIAL_ADVISOR",
+        context={"context_scope": query.context_scope},
+    )
+    # ``response`` and ``cards`` keep pre-Wave clients working while the three
+    # canonical fields provide the stable Wave 2A.4 response contract.
+    return {
+        "role": "FIDUCIARY_COPILOT",
+        "response_text": response_text,
+        "disclaimer": "EDUCATIONAL_NOT_ADVICE",
+        "response": response_text,
+        "cards": [{
+            "title": "Fiduciary analysis",
+            "body": response_text,
+            "classification": "EDUCATIONAL_NOT_ADVICE",
+        }],
+    }
 
 @router.post("/api/v1/portal/tech/copilot")
 def tech_copilot(query: AssistantQuery):
