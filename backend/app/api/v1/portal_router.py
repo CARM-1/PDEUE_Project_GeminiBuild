@@ -158,8 +158,24 @@ _DISTRIBUTION_STATE: Dict[str, Dict[str, Any]] = {
 
 # Advisory changes are proposals, never direct mutations. The process-local ledger
 # makes the tri-state workflow observable in the demonstration deployment.
-_ADVISORY_PROPOSALS: Dict[str, Dict[str, Any]] = {}
+_ADVISORY_PROPOSALS: Dict[str, Dict[str, Any]] = {
+    "PROP-ADV-01": {
+        "id": "PROP-ADV-01",
+        "proposal_id": "PROP-ADV-01",
+        "household": "HOUSEHOLD-ALPHA",
+        "target_scma": "SCMA-JULIAN",
+        "title": "Apprentice Risk Expansion",
+        "proposed_dial": "1.5%",
+        "current_dial": "1.0%",
+        "sponsor": "F2-A Vance",
+        "status": "PENDING",
+        "justification": "Candidate completed Binary 101.",
+        "created_at": "2026-09-30T00:00:00+00:00",
+        "adjudicated_by": None,
+    }
+}
 _ADVISORY_PROPOSAL_SEQUENCE = 0
+_TECH_SETTLED_COUNT = 0
 
 _MACRO_HOUSE_EXPOSURES = [
     {"house_id": f"House-{number:02d}", "exposure_cents": 95_000 + number * 9_000,
@@ -884,7 +900,13 @@ def adjudicate_advisor_proposal(
         raise HTTPException(status_code=404, detail="Advisory proposal not found")
     if proposal["status"] != "PENDING":
         raise HTTPException(status_code=409, detail="Proposal has already been adjudicated")
-    proposal["status"] = "ALLOWED" if decision == "ALLOW" else "DENIED"
+    # The seeded queue card uses the human-readable supervisory lifecycle label;
+    # retain the legacy staged-proposal label for API compatibility.
+    proposal["status"] = (
+        "APPROVED / ACTIVE" if proposal_id == "PROP-ADV-01" and decision == "ALLOW"
+        else "ALLOWED" if decision == "ALLOW"
+        else "DENIED"
+    )
     proposal["adjudicated_by"] = actor_role
     proposal["adjudicated_at"] = datetime.now(timezone.utc).isoformat()
     return proposal
@@ -928,6 +950,8 @@ def get_tech_telemetry(
         ],
         "daemon_status": {"AutonomousScanWorker": "ACTIVE"},
         "cycle_count": _TECH_WORKER.cycle_count,
+        "settled_count": _TECH_SETTLED_COUNT,
+        "settlement_waterfall": "87/10/3",
         "ws_latency_ms": _TECH_LATENCY_MS,
         "token_buckets": _TECH_TOKEN_BUCKETS,
         "dry_powder_floor_cents": 4000,
@@ -981,6 +1005,20 @@ def trigger_tech_daemon(tier: str = Query("T3")) -> Dict[str, Any]:
         "cycle_count": _TECH_WORKER.cycle_count,
         "ws_latency_ms": dict(_TECH_LATENCY_MS),
         "token_buckets": {key: dict(value) for key, value in _TECH_TOKEN_BUCKETS.items()},
+    }
+
+
+@router.post("/api/v1/portal/tech/trigger-settlement")
+def trigger_tech_settlement(tier: str = Query("T3")) -> Dict[str, Any]:
+    """Run a deterministic reconciliation cycle without exposing ledger values."""
+    global _TECH_SETTLED_COUNT
+    if tier.upper() not in {"T2", "T3"}:
+        raise HTTPException(status_code=403, detail="T1 telemetry access is read-only")
+    _TECH_SETTLED_COUNT += 1
+    return {
+        "status": "SETTLED",
+        "settled_count": _TECH_SETTLED_COUNT,
+        "waterfall": "87/10/3",
     }
 
 @router.post("/api/v1/portal/tech/ca-override")
