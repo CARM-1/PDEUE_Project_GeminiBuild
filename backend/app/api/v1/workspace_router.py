@@ -14,6 +14,8 @@ from app.domain.scan_worker import AutonomousScanWorker
 from app.domain.settlement_engine import SettlementEngine
 from app.domain.quarter_kelly_dispatcher import QuarterKellyDispatcher
 from app.api.v1.dashboard_template import DASHBOARD_HTML_TEMPLATE
+from app.domain.historical_corpus import get_historical_tick_corpus
+from app.domain.walk_forward_simulation import WalkForwardBenchmark
 
 workspace_router = APIRouter()
 _service = OperatorWorkspaceService()
@@ -21,6 +23,7 @@ _lineage_service = get_lineage_service()
 _worker = AutonomousScanWorker()
 _dispatcher = QuarterKellyDispatcher()
 _settlement_engine = SettlementEngine()
+_benchmark_cache: Dict[str, Any] = {}
 
 CANONICAL_SEED_POSITION: Dict[str, Any] = {
     "contract": "KX-MIA-FRZ-32",
@@ -50,6 +53,13 @@ def reseed_default_positions():
 @workspace_router.get("/dashboard", response_class=HTMLResponse)
 def get_dashboard_html():
     return HTMLResponse(content=DASHBOARD_HTML_TEMPLATE)
+
+@workspace_router.get("/api/v1/operator/simulation/benchmark")
+def get_simulation_benchmark():
+    """Return the deterministic Wave 4 benchmark, computed once per process."""
+    if not _benchmark_cache:
+        _benchmark_cache.update(WalkForwardBenchmark(starting_cents=10_000).run_simulation(get_historical_tick_corpus()))
+    return _benchmark_cache
 
 @workspace_router.get("/api/v1/operator/workspace-state")
 def get_workspace_state():
