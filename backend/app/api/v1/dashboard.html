@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <title>PDEUE Chief Administrator Workspace</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background: #0b132b; color: #f8fafc; padding: 20px; }
@@ -181,12 +180,13 @@
   <div id="tab-panel-3" style="display: none;">
     <div class="card" style="margin-bottom: 20px;">
       <div class="card-title" style="color: #38bdf8; margin-bottom: 12px;">Strategy D (Inside Maker Core) &amp; Empirical Walk-Forward Simulation</div>
-      <div hidden><span id="wf-strat-d-equity"></span><span id="wf-strat-d-roi"></span><span id="wf-base-a-equity"></span><span id="wf-base-c-equity"></span>/api/v1/operator/analytics/walk-forward-simulation</div>
+      <div style="height:260px;margin-bottom:14px"><canvas id="walk-forward-chart" aria-label="Comparative benchmark equity curves" style="width:100%;height:100%"></canvas></div>
+      <span hidden>/api/v1/operator/analytics/walk-forward-simulation</span>
       <div class="grid-4" style="margin-bottom: 0;">
         <div style="background: #0f172a; padding: 12px; border-radius: 6px; border: 1px solid #1e293b;">
           <div style="font-size: 11px; color: #94a3b8;">Baseline A (Taker Only)</div>
-          <div style="font-size: 18px; font-weight: bold; margin: 4px 0;">$485,000</div>
-          <div style="color: #ef4444; font-size: 11px;">-3.0% Drag</div>
+          <div id="wf-base-a-equity" style="font-size: 18px; font-weight: bold; margin: 4px 0;">—</div>
+          <div id="wf-base-a-roi" style="color: #ef4444; font-size: 11px;">Loading…</div>
         </div>
         <div style="background: #0f172a; padding: 12px; border-radius: 6px; border: 1px solid #1e293b;">
           <div style="font-size: 11px; color: #94a3b8;">Baseline B (Passive Limit)</div>
@@ -195,13 +195,13 @@
         </div>
         <div style="background: #0f172a; padding: 12px; border-radius: 6px; border: 1px solid #1e293b;">
           <div style="font-size: 11px; color: #94a3b8;">Baseline C (Midpoint Passive)</div>
-          <div style="font-size: 18px; font-weight: bold; margin: 4px 0;">$502,000</div>
-          <div style="color: #4ade80; font-size: 11px;">+0.4% Net</div>
+          <div id="wf-base-c-equity" style="font-size: 18px; font-weight: bold; margin: 4px 0;">—</div>
+          <div id="wf-base-c-roi" style="color: #f59e0b; font-size: 11px;">Loading…</div>
         </div>
         <div style="background: #0f172a; padding: 12px; border-radius: 6px; border: 1px solid #38bdf8;">
           <div style="font-size: 11px; color: #38bdf8; font-weight: bold;">Strategy D (Inside Maker)</div>
-          <div style="font-size: 18px; font-weight: bold; color: #4ade80; margin: 4px 0;">$713,000</div>
-          <div style="color: #4ade80; font-size: 11px; font-weight: bold;">+42.6% Net ROI</div>
+          <div id="wf-strat-d-equity" style="font-size: 18px; font-weight: bold; color: #4ade80; margin: 4px 0;">—</div>
+          <div id="wf-strat-d-roi" style="color: #4ade80; font-size: 11px; font-weight: bold;">Loading…</div>
         </div>
       </div>
     </div>
@@ -369,12 +369,40 @@
         }
         if (panel) panel.style.display = (i === idx) ? "block" : "none";
       }
-      if (idx === 3) loadRadarOpportunities();
+      if (idx === 3) { loadRadarOpportunities(); loadWalkForwardBenchmark(); }
       if (idx === 4) loadGovernanceProposals();
     }
 
     function loadRadarOpportunities() {
       loadWorkspaceState();
+    }
+
+    function drawWalkForwardChart(points) {
+      const canvas = document.getElementById('walk-forward-chart');
+      if (!canvas || !points.length) return;
+      const scale = window.devicePixelRatio || 1, rect = canvas.getBoundingClientRect();
+      canvas.width = Math.max(1, rect.width * scale); canvas.height = Math.max(1, rect.height * scale);
+      const ctx = canvas.getContext('2d'); ctx.scale(scale, scale);
+      const width=rect.width, height=rect.height, pad=32;
+      const keys=[['strategy_d_cents','#22d3ee','Strategy D'],['baseline_a_cents','#ef4444','Baseline A'],['baseline_c_cents','#f59e0b','Baseline C']];
+      const values=points.flatMap(point=>keys.map(([key])=>point[key]));
+      const low=Math.min(...values), high=Math.max(...values), span=Math.max(1,high-low);
+      ctx.fillStyle='#0b132b'; ctx.fillRect(0,0,width,height); ctx.strokeStyle='#24324a'; ctx.lineWidth=1;
+      for(let i=0;i<5;i++){const y=pad+i*(height-pad*2)/4;ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(width-pad,y);ctx.stroke();}
+      keys.forEach(([key,color,label],line)=>{ctx.strokeStyle=color;ctx.lineWidth=2.5;ctx.beginPath();points.forEach((point,i)=>{const x=pad+i*(width-pad*2)/(points.length-1);const y=height-pad-(point[key]-low)*(height-pad*2)/span;i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.stroke();ctx.fillStyle=color;ctx.font='12px sans-serif';ctx.fillText(label,pad+line*105,18);});
+    }
+
+    async function loadWalkForwardBenchmark() {
+      const response=await fetch('/api/v1/operator/simulation/benchmark');
+      if(!response.ok) return;
+      const data=await response.json(), signed=value=>`${value>=0?'+':''}${Number(value).toFixed(2)}% ROI`;
+      document.getElementById('wf-strat-d-equity').textContent=money(data.strategy_d_final_cents);
+      document.getElementById('wf-strat-d-roi').textContent=signed(data.strategy_d_roi_pct);
+      document.getElementById('wf-base-a-equity').textContent=money(data.baseline_a_final_cents);
+      document.getElementById('wf-base-a-roi').textContent=signed(data.baseline_a_roi_pct);
+      document.getElementById('wf-base-c-equity').textContent=money(data.baseline_c_final_cents);
+      document.getElementById('wf-base-c-roi').textContent=signed(data.baseline_c_roi_pct);
+      drawWalkForwardChart(data.equity_curve_points || []);
     }
 
     function renderChart() {
