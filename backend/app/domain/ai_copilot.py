@@ -6,8 +6,54 @@ class AICopilotEngine:
     def __init__(self, llm_client: Optional[Any] = None):
         self.llm_client = llm_client
 
+    def ask(
+        self,
+        query: str,
+        user_role: str = "Chief Administrator",
+        context: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """Return the conversational text while retaining one reasoning path.
+
+        Portal callers only need display text, whereas existing operator callers
+        use :meth:`process_query` for action cards and lineage metadata.  Keeping
+        this small adapter on the domain engine prevents portals from rebuilding
+        (and eventually drifting from) its intent routing.
+        """
+        result = self.process_query(
+            query,
+            workspace_state=context or {},
+            actor_hat=user_role,
+        )
+        return result["response_text"]
+
     def process_query(self, query: str, workspace_state: Optional[Dict[str, Any]] = None, actor_hat: Optional[str] = "Chief Administrator") -> Dict[str, Any]:
         q_str = (query or "").lower().strip()
+
+        # Advisor-domain explanations formerly lived as shallow HTTP-route
+        # mocks.  They remain deterministic here for backwards compatibility,
+        # but are now available to every caller of the shared engine.
+        if "withdrawal" in q_str or "distribution" in q_str:
+            return {
+                "response_text": (
+                    "Fiduciary Impact: Withdrawing $650.00 from Julian's apprentice SCMA reduces "
+                    "6-month projected compounding velocity by 24.2%. Recommend a partial $250.00 "
+                    "distribution under Yellow-Tier so more principal remains available to compound."
+                ),
+                "unilateral_execution": False,
+                "lineage_context": {"intent": "WITHDRAWAL_IMPACT", "model_prob": 0.27},
+                "action_cards": [],
+            }
+        if "rationale" in q_str or "trade" in q_str:
+            return {
+                "response_text": (
+                    "Trade Analysis: Miami Sub-Freezing contract (KX-MIA-FRZ-32) was backed by "
+                    "5-member NOAA ASOS ensemble consensus with a 28.5% edge hurdle. The rationale "
+                    "is educational and remains subject to fiduciary review before any execution."
+                ),
+                "unilateral_execution": False,
+                "lineage_context": {"intent": "TRADE_RATIONALE", "model_prob": 0.27},
+                "action_cards": [],
+            }
 
         # Educational concepts are intentionally resolved before the broad
         # risk/explanation intents below. This keeps common learner questions
