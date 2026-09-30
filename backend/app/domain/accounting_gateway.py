@@ -166,6 +166,7 @@ class AccountingGateway:
         envelope = {
             'event_id': event_id,
             'sequence_id': seq_id,
+            'timestamp': ts,
             'payload': body,
             'signature_hmac_sha256': sig,
             'status': 'EMITTED'

@@ -947,6 +947,24 @@ def get_tech_telemetry(
         }
     }
 
+
+@router.get("/api/v1/portal/telemetry/daemon-summary")
+def get_daemon_summary() -> Dict[str, Any]:
+    """Return the process-local daemon's latest non-sensitive operating state."""
+    telemetry = _TECH_WORKER.get_telemetry()
+    return {
+        "status": telemetry["status"],
+        "cycle_count": telemetry["cycle_count"],
+        "cycles_completed": telemetry["cycles_completed"],
+        "active_maker_bids": telemetry["active_maker_bids"],
+        "active_maker_orders": telemetry["active_maker_orders"],
+        "orders_posted": telemetry["orders_posted"],
+        "orders_filled": telemetry["orders_filled"],
+        "total_capital_sweeps_emitted": telemetry["capital_sweeps_emitted"],
+        "slot_capacity": 12,
+        "dry_powder_floor_cents": telemetry["dry_powder_floor_cents"],
+    }
+
 @router.post("/api/v1/portal/tech/trigger-daemon")
 def trigger_tech_daemon(tier: str = Query("T3")) -> Dict[str, Any]:
     """Run one real worker evaluation and expose only operational telemetry."""

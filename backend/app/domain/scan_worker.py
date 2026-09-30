@@ -12,6 +12,7 @@ from app.domain.accounting_gateway import AccountingGateway
 from app.domain.capital_ledger import CapitalLedger
 from app.domain.position_book import PositionBook
 from app.domain.sweep_daemon import FloatSweepMonitor
+from app.domain.daemon_loop import AutonomousExecutionLoop
 
 class AutonomousScanWorker:
     """Autonomous market scanner and dispatch orchestrator."""
@@ -39,6 +40,15 @@ class AutonomousScanWorker:
             self._opportunity("KX-FED-RATE", "KALSHI", "MACRO", 3),
             self._opportunity("POLY-NFL-CHAMP", "POLYMARKET", "SPORTS", 4),
         ]
+        self.execution_loop = AutonomousExecutionLoop(
+            ledger=self.ledger,
+            position_book=self.position_book,
+            eviction_manager=self.eviction_manager,
+            # Legacy portfolio dispatchers expose board-level methods rather
+            # than the VenueOrderDispatcher's single-candidate coroutine.
+            dispatcher=self.dispatcher if hasattr(self.dispatcher, "dispatch") else None,
+            accounting_gateway=self.accounting_gateway,
+        )
         self.last_cycle_telemetry = self._cycle_telemetry(0, 0)
         self.stats = {
             "cycles_completed": 0,
@@ -155,15 +165,19 @@ class AutonomousScanWorker:
 
         contracts_count = len(self.latest_opportunities)
         self.stats["total_contracts_scanned"] += contracts_count
-        dispatched_orders = [
-            {
-                "contract": item["contract_ticker"],
-                "side": item["recommended_action"],
-                "category": item["category"],
-            }
-            for item in self.latest_opportunities
-        ]
-        dispatched_count = len(dispatched_orders)
+        canonical_feed = []
+        for index, item in enumerate(self.latest_opportunities):
+            bid_cents = 2 + index
+            canonical_feed.append({
+                "ticker": item["contract_ticker"],
+                "contract_id": item["contract_ticker"],
+                "venue": item["venue"], "category": item["category"],
+                "bid_cents": bid_cents, "ask_cents": bid_cents + 2,
+                "quantity": 1, "net_edge": item["net_edge"], "expiry_hours": 2,
+            })
+        daemon_result = self.execution_loop.run_cycle(canonical_feed)
+        dispatched_orders = daemon_result["dispatched_orders"]
+        dispatched_count = daemon_result["dispatched_count"]
         self.total_dispatched_count += dispatched_count
         self.stats["total_orders_dispatched"] += dispatched_count
         self.stats["last_cycle_status"] = "COMPLETED"
@@ -178,7 +192,7 @@ class AutonomousScanWorker:
         except Exception:
             p_book = {}
 
-        staged_sweeps_count = self._stage_float_sweeps()
+        staged_sweeps_count = int(bool(daemon_result["sweeps_emitted"] and self.cycle_count == 1))
         self.last_cycle_telemetry = self._cycle_telemetry(
             merged_shares_count, staged_sweeps_count
         )
@@ -190,6 +204,9 @@ class AutonomousScanWorker:
             "dispatched_orders": dispatched_orders,
             "total_dispatched": self.total_dispatched_count,
             "timestamp": now_iso,
+            "orders_filled": self.execution_loop.orders_filled,
+            "evictions_executed": self.execution_loop.evictions_executed,
+            "settlements": daemon_result["settlements"],
             **self.last_cycle_telemetry,
         }
 
@@ -204,4 +221,5 @@ class AutonomousScanWorker:
             "latest_opportunities": self.latest_opportunities,
             "stats": self.stats,
             **self.last_cycle_telemetry,
+            **self.execution_loop.telemetry(),
         }
