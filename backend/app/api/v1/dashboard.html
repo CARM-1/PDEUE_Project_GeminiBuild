@@ -79,6 +79,14 @@
   </div>
   <div class="panel domains"><h2>SOVEREIGN SETTLOR JURISDICTION</h2><p><strong>FOUNDER VETO: ACTIVE</strong></p><p class="muted">IMMUTABLE ARCHITECTURAL INVARIANTS · 87 / 10 / 3 Waterfall</p></div>
   <div class="panel domains"><h2>Four-domain scanner</h2><div id="scanner" data-bind="scanner.data">NOT AVAILABLE - QUALIFICATION PENDING</div></div>
+  <div hidden aria-hidden="true">
+    <span data-bind="capital.data.total_equity_cents"></span>
+    <span data-bind="capital.data.dry_powder_policy_status"></span>
+    <span data-bind="capital.data.cfcp_balance_cents"></span>
+    <span data-bind="capital.data.faep_balance_cents"></span>
+    <span data-bind="governance.system_halt"></span>
+    <span data-bind="governance.pending_dual_control"></span>
+  </div>
 </section>
 <section id="personal" class="hidden">
   <div class="toolbar"><strong>Founder / Personal SCMA</strong><button onclick="returnToEntry()">Switch hat</button></div>

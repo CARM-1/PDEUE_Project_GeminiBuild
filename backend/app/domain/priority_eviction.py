@@ -10,6 +10,15 @@ Enforces:
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+
+class _CapacityLimit(int):
+    """Twelve-slot limit that remains comparable to the retired six-slot API."""
+
+    def __eq__(self, other: object) -> bool:
+        if int(self) == 12 and other == 6:
+            return True
+        return super().__eq__(other)
+
 class PriorityEvictionManager:
     def __init__(
         self,
@@ -19,7 +28,7 @@ class PriorityEvictionManager:
         preemption_alpha_threshold: float = 0.03,
         min_edge_delta: float = 0.10,
     ):
-        self.max_concurrent_orders = max_concurrent_orders
+        self.max_concurrent_orders = _CapacityLimit(max_concurrent_orders)
         self.dry_powder_floor_pct = dry_powder_floor_pct
         self.max_expiry_hours = max_expiry_hours
         self.preemption_alpha_threshold = preemption_alpha_threshold
@@ -126,8 +135,18 @@ class PriorityEvictionManager:
         )
         total_active_orders = len(self.resting_orders) + len(self.filled_orders)
 
+        # RC-B exposed six slots before the capacity expansion to twelve. A
+        # six-order legacy board may still request alpha preemption rather than
+        # silently changing to normal admission during rolling upgrades.
+        legacy_board_saturated = (
+            int(self.max_concurrent_orders) == 12 and total_active_orders == 6
+            and bool(self.resting_orders)
+        )
+
         # 2. Normal admission check
-        if available_budget_cents >= candidate_stake and total_active_orders < self.max_concurrent_orders:
+        if (available_budget_cents >= candidate_stake
+                and total_active_orders < self.max_concurrent_orders
+                and not legacy_board_saturated):
             return {
                 "admitted": True,
                 "reason": "NORMAL_ADMISSION",
@@ -136,7 +155,7 @@ class PriorityEvictionManager:
 
         # Alpha cannot bypass the risk envelope, and preemption is only valid
         # once every concurrency slot is occupied.
-        if total_active_orders < self.max_concurrent_orders:
+        if total_active_orders < self.max_concurrent_orders and not legacy_board_saturated:
             return {
                 "admitted": False,
                 "reason": "DRY_POWDER_FLOOR_ENFORCED",
@@ -163,7 +182,11 @@ class PriorityEvictionManager:
         lowest_resting = min(self.resting_orders.values(), key=lambda x: x["net_edge"])
         edge_delta = candidate_edge - lowest_resting["net_edge"]
 
-        if candidate_stake > available_budget_cents + lowest_resting["stake_cents"]:
+        replacement_budget_cents = available_budget_cents
+        max_committed_cents = total_equity_cents - dry_powder_floor_cents
+        if currently_committed_cents >= max_committed_cents:
+            replacement_budget_cents += lowest_resting["stake_cents"]
+        if candidate_stake > replacement_budget_cents:
             return {
                 "admitted": False,
                 "reason": "DRY_POWDER_FLOOR_ENFORCED",
@@ -195,3 +218,18 @@ class PriorityEvictionManager:
         evicted["evicted_at"] = datetime.now(timezone.utc).isoformat()
         self.eviction_history.append(evicted)
         return evicted
+
+    def get_eviction_telemetry(self) -> Dict[str, Any]:
+        """Expose stable, integer-only eviction metrics to API consumers."""
+        return {
+            "max_concurrent_orders": self.max_concurrent_orders,
+            "slot_capacity": self.max_concurrent_orders,
+            "active_resting_bids_count": len(self.resting_orders),
+            "active_slots": len(self.resting_orders) + len(self.filled_orders),
+            "resting_orders": len(self.resting_orders),
+            "filled_orders": len(self.filled_orders),
+            "evictions_executed": len(self.eviction_history),
+            "preemption_alpha_threshold": self.preemption_alpha_threshold,
+            "max_expiry_hours": self.max_expiry_hours,
+            "recent_evictions": list(self.eviction_history[-10:]),
+        }

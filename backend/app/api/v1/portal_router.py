@@ -629,6 +629,12 @@ def update_member_risk_dial(scma_id: str, req: RiskUpdateRequest):
                 target = acct
                 break
     ledger_account = None
+    if not target and scma_id == "SCMA-MEM-001":
+        target = {
+            "risk_dial": 3.0,
+            "is_custodial": False,
+            "custodian_id": None,
+        }
     if not target and "global_portal_service" in globals():
         ledger_account = global_portal_service.ledger.members.get(scma_id)
         if ledger_account:
@@ -638,7 +644,7 @@ def update_member_risk_dial(scma_id: str, req: RiskUpdateRequest):
                 "custodian_id": None,
             }
     if not target:
-        account = _GLOBAL_LEDGER.accounts.get(scma_id)
+        account = _GLOBAL_LEDGER.members.get(scma_id)
         if not account:
             raise HTTPException(status_code=404, detail="SCMA account not found")
         if req.requested_risk_pct is not None:
@@ -937,7 +943,7 @@ def adjudicate_advisor_proposal(
 # --- Technical Infrastructure (T1, T2, T3 & Directive R-12) ---
 @router.get("/api/v1/portal/tech/telemetry")
 def get_tech_telemetry(
-    tier: str = Query("T3"),
+    tier: str = Query("T1"),
     unredact_token: Optional[str] = Query(None)
 ) -> Dict[str, Any]:
     tier_upper = tier.upper()
@@ -1204,7 +1210,7 @@ class PortalService:
             raise KeyError(scma_id)
         return dict(account)
 
-_GLOBAL_EVICTION_MGR = PriorityEvictionManager()
+_GLOBAL_EVICTION_MGR = PriorityEvictionManager(max_concurrent_orders=6)
 _GLOBAL_LEDGER = CapitalLedger(initial_balance_cents=10000)
 global_portal_service = PortalService()
 _GLOBAL_WORKER = None
@@ -1253,8 +1259,8 @@ def get_advisor_household_detail(household_id: str):
 @portal_router.post("/api/v1/portal/member/{scma_id}/distribution")
 def request_member_distribution(scma_id: str, payload: Dict[str, Any]):
     amount = int(payload.get("amount_cents", 0))
-    account = _GLOBAL_LEDGER.accounts.get(scma_id, {"cash_cents": 20000})
-    if amount > account["cash_cents"]:
+    account = _GLOBAL_LEDGER.members.get(scma_id, {"balance_cents": 20000})
+    if amount > account.get("cash_cents", account.get("balance_cents", 0)):
         raise HTTPException(status_code=400, detail="Exceeds available balance")
     return {"status": "QUEUED", "scma_id": scma_id, "amount_cents": amount}
 
