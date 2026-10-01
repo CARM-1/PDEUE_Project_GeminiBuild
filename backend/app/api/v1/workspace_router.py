@@ -111,6 +111,7 @@ CANONICAL_SEED_POSITION: Dict[str, Any] = {
     "vwap": "3.0¢",
     "cost": "$118.75",
     "cost_cents": 11875,
+    "cost_basis_cents": 11875,
     "mtm": "+$0.00",
     "target_house_id": 1
 }
@@ -127,6 +128,12 @@ def reseed_default_positions():
 @workspace_router.get("/dashboard", response_class=HTMLResponse)
 def get_dashboard_html():
     return HTMLResponse(content=DASHBOARD_HTML_TEMPLATE)
+
+@workspace_router.post("/api/v1/operator/emergency-stop")
+def emergency_stop(payload: Dict[str, Any] | None = None):
+    """Trip the operator circuit breaker after institutional confirmation."""
+    return _service.trigger_emergency_stop(actor_id=(payload or {}).get("actor_id", "CHIEF_ADMIN"))
+
 
 @workspace_router.get("/api/v1/operator/simulation/benchmark")
 def get_simulation_benchmark():
@@ -196,6 +203,7 @@ def stage_order(payload: Dict[str, Any]):
         "vwap": f"{int(market_price * 100):.1f}¢",
         "cost": f"${committed_cents / 100.0:,.2f}",
         "cost_cents": committed_cents,
+        "cost_basis_cents": committed_cents,
         "mtm": "+$0.00",
         "target_house_id": house_id,
         "risk_envelope": {"allocated_stake_cents": committed_cents, "sizing_rule": "Quarter-Kelly (0.25 f*)"}
