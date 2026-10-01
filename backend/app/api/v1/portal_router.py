@@ -1,3 +1,5 @@
+from app.domain.priority_eviction import PriorityEvictionManager
+from app.domain.capital_ledger import CapitalLedger
 """
 PDEUE Phase 1 Integrity Remediation Router
 - Option A: Real-Time 87/10/3 Transaction Waterfall (10% CFCP Priority Extraction)
