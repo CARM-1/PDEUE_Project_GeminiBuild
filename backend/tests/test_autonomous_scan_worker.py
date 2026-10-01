@@ -10,6 +10,12 @@ def test_scan_worker_single_cycle_dispatches():
     assert res['contracts_scanned'] >= 4
     assert worker.stats['cycles_completed'] == 1
     assert worker.stats['total_contracts_scanned'] >= 4
+    by_category = {item['category']: item for item in res['opportunities']}
+    assert set(by_category) == {'WEATHER', 'CRYPTO', 'MACRO', 'SPORTS'}
+    assert by_category['WEATHER']['evidence_type'] == 'WEATHER'
+    assert by_category['CRYPTO']['evidence_type'] == 'CRYPTO'
+    assert by_category['MACRO']['evidence_type'] == 'MACROECONOMIC'
+    assert by_category['SPORTS']['evidence_type'] == 'SPORTS'
 
 def test_scan_worker_fails_closed_when_circuit_breaker_tripped():
     cb = CircuitBreakerEngine()

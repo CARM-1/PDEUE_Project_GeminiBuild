@@ -3,7 +3,8 @@ PDEUE Chief Administrator Workspace Router
 Authoritative endpoint provider for Operator Workspace, Active Positions Ledger,
 Velocity Radar Telemetry, Stage Dispatch, and Settlement Waterfall Reconciler.
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.responses import HTMLResponse
 from typing import Dict, Any, List
 import pathlib
@@ -156,7 +157,7 @@ def stage_order(payload: Dict[str, Any]):
             "status": "STAGED_RESTING",
             "reserved_cents": committed_cents
         }
-    }
+    return {"status": "ORDER_STAGED", "dispatch": dispatch}
 
 @workspace_router.get("/api/v1/operator/settlements")
 def get_closed_settlements():
@@ -228,6 +229,13 @@ def inspect_operator_position(contract_id: str):
 @workspace_router.get("/api/v1/operator/analytics/pnl-series")
 def get_pnl_series(timeframe: str = "24H"):
     return {"timeframe": timeframe, "series": [{"timestamp": "2026-09-17T00:00:00Z", "pnl_cents": 0}]}
+
+@workspace_router.post("/api/v1/operator/ai-chat")
+def operator_ai_chat(payload: Dict[str, Any]):
+    return _copilot.process_query(
+        query=payload.get("query", ""), actor_hat=payload.get("actor_hat", "Chief Administrator"),
+        workspace_state=_service.get_workspace_state(),
+    )
 
 @workspace_router.get("/api/v1/operator/contract/{contract_id}")
 def inspect_contract_alias(contract_id: str):

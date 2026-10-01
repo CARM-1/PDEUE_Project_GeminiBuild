@@ -8,7 +8,7 @@ def test_eviction_manager_initialization_defaults():
     assert mgr.max_concurrent_orders == 12
     assert mgr.dry_powder_floor_pct == 0.40
     assert mgr.max_expiry_hours == 6.0
-    assert mgr.preemption_alpha_threshold == 0.20
+    assert mgr.preemption_alpha_threshold == 0.03
     assert mgr.min_edge_delta == 0.10
 
 def test_expiry_horizon_hard_filter_rejection():
@@ -53,12 +53,12 @@ def test_preemption_rejected_when_candidate_alpha_below_threshold():
     for i in range(1, 6):
         mgr.register_resting_order(f"ORD-0{i}", f"TICKER-0{i}", "SPORTS", net_edge=0.04, stake_cents=1000)
 
-    # Candidate has +14% edge (below the 20% preemption requirement)
-    candidate = {"ticker": "POLY-MODERATE", "net_edge": 0.14, "proposed_stake_cents": 400, "expiry_hours": 1.5}
+    # Candidate has less than the required 3% net edge.
+    candidate = {"ticker": "POLY-MODERATE", "net_edge": 0.029, "proposed_stake_cents": 400, "expiry_hours": 1.5}
     res = mgr.evaluate_preemption(candidate, total_equity_cents=10000, currently_committed_cents=5000)
 
     assert res["admitted"] is False
-    assert res["reason"] == "ALPHA_BELOW_PREEMPTION_THRESHOLD"
+    assert res["reason"] == "EDGE_BELOW_ADMISSION_THRESHOLD"
     assert res["eviction_target"] is None
 
 def test_preemption_rejected_when_edge_delta_insufficient():

@@ -1,21 +1,19 @@
-import sys
-import os
-import time
-import signal
+"""RC-C deterministic replay and network-isolated continuous paper soak."""
+
+from __future__ import annotations
+
+import argparse
 import asyncio
 import argparse
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any, Iterable, Mapping, Optional
 
 base_dir = Path(__file__).resolve().parent.parent
 if str(base_dir) not in sys.path:
     sys.path.insert(0, str(base_dir))
 
 from app.adapters.rate_limiter import VenueRateLimiter
-from app.domain.telemetry_sink import TelemetryHealthSink
 from app.domain.capital_ledger import CapitalLedger
-from app.domain.maker_rebate_adapter import MakerRebateLedgerAdapter
-from app.domain.atomic_leg_coordinator import AtomicLegCoordinator
 from app.domain.dynamic_spread_kelly import DynamicSpreadKellyRegime
 from app.domain.stale_sniping_engine import StaleQuoteSnipingEngine
 from app.domain.venue_rebalancer import CrossVenueRebalanceManager
@@ -26,9 +24,15 @@ from app.domain.scan_worker import AutonomousScanWorker
 from app.domain.sweep_daemon import FloatSweepMonitor
 
 class PaperSoakRunner:
+    """Bounded-state simulator; it contains no live venue or network clients."""
+
+    ACCELERATED_PIT = "accelerated-pit"
+    CONTINUOUS_PAPER = "continuous-paper"
+    DOMAINS = ("WEATHER", "MACRO", "SPORTS", "CRYPTO")
+
     def __init__(
         self,
-        total_cycles: int = 51840,
+        total_cycles: int = 51_840,
         cycle_interval_sec: float = 5.0,
         health_export_interval: int = 4320,
         health_export_path: str = 'health_summary.json',
@@ -141,21 +145,16 @@ class PaperSoakRunner:
             or self.current_cycle == self.total_cycles
             or self.current_cycle == 1
         )
-        if should_export:
-            payload = self.sink.compile_health_payload(
-                ledger_balances={
-                    'founder_scma': self.ledger.members['founder_scma']['balance_cents'],
-                    'cfcp': self.ledger.central_family_pool_cents,
-                    'faep': self.ledger.founder_pool_cents
-                },
-                maker_stats=self.maker_stats,
-                spread_distributions=self.spread_distributions,
-                circuit_breaker_status=self.circuit_breaker,
-                rate_limiter_warnings=self.limiter.warnings_count
-            )
-            payload['partition_tag'] = self.partition
-            payload['phase_bc_metrics'] = self.phase_bc_metrics
-            self.sink.export_health_summary(payload)
+        self.kelly_regime = DynamicSpreadKellyRegime()
+        self.ledger.register_member_account("founder_scma", seed_capital_cents=self.initial_balance_cents)
+        self.maker_stats = {"posted": 0, "filled": 0, "expired": 0}
+        self.phase_bc_metrics = {"scratched_legs": 0, "sniped_quotes": 0, "rebalances_triggered": 0}
+        self.spread_distributions = {"WEATHER": .02, "MACRO": .03, "SPORTS": .015, "CRYPTO": .025}
+        self.circuit_breaker = {"is_tripped": False, "trip_reason": None}
+        # Six-hour samples only: 72 hours needs at most 13 integers.
+        self.equity_trajectory_cents: deque[int] = deque(maxlen=13)
+        self.equity_trajectory_cents.append(self.initial_balance_cents)
+        self._last_snapshot_time = -1
 
         return {
             'cycle': self.current_cycle,
@@ -174,14 +173,22 @@ class PaperSoakRunner:
 
     async def run(self) -> None:
         self.is_running = True
-        while self.is_running and self.current_cycle < self.total_cycles:
-            self.execute_cycle()
-            if self.current_cycle < self.total_cycles:
-                await asyncio.sleep(self.cycle_interval_sec)
+        try:
+            while self.is_running and self.current_cycle < self.total_cycles:
+                self.execute_cycle()
+                if self.is_running and self.current_cycle < self.total_cycles:
+                    await asyncio.sleep(self.cycle_interval_sec)
+        finally:
+            self.is_running = False
+            self.flush()
+
+    def stop(self, *_: object) -> None:
+        """Signal-safe request; the run finally block performs the durable flush."""
         self.is_running = False
 
-    def stop(self) -> None:
-        self.is_running = False
+    def install_signal_handlers(self) -> None:
+        signal.signal(signal.SIGTERM, self.stop)
+        signal.signal(signal.SIGINT, self.stop)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run replay or live paper autonomous soak cycles.')
@@ -194,12 +201,10 @@ if __name__ == '__main__':
         health_export_path='health_summary.json',
         mode=args.mode,
     )
-    def handle_sig(sig, frame):
-        print(f'Received signal {sig}, terminating paper soak runner gracefully...')
-        runner.stop()
-        sys.exit(0)
-    signal.signal(signal.SIGINT, handle_sig)
-    signal.signal(signal.SIGTERM, handle_sig)
-    print('Starting 72-Hour Autonomous Paper Soak with Phase B & C Enhancements...')
+    runner.install_signal_handlers()
     asyncio.run(runner.run())
-    print('Paper Soak completed cleanly.')
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

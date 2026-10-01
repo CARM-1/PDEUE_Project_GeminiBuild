@@ -14,6 +14,7 @@ from app.domain.position_book import PositionBook
 from app.domain.sweep_daemon import FloatSweepMonitor
 from app.domain.daemon_loop import AutonomousExecutionLoop
 
+
 class AutonomousScanWorker:
     """Autonomous market scanner and dispatch orchestrator."""
 
@@ -32,7 +33,7 @@ class AutonomousScanWorker:
         self.kalshi_client = KalshiVenueAdapter()
         self.poly_client = PolymarketVenueAdapter()
         self.is_running = False
-        self.total_dispatched_count = 0
+        self.status = "IDLE"
         self.cycle_count = 0
         self.latest_opportunities = [
             self._opportunity("KX-MIA-FRZ-32", "KALSHI", "WEATHER", 1),
@@ -140,8 +141,18 @@ class AutonomousScanWorker:
         return {"status": "CANCELLED_EVICTED", "order_id": order_id}
 
     def run_single_cycle(self) -> Dict[str, Any]:
-        """Executes a single multi-venue scan cycle with 12-House lineage distribution."""
         self.cycle_count += 1
+        if self.circuit_breaker and not self.circuit_breaker.validate_execution_allowed():
+            self.stats["last_cycle_status"] = "HALTED_CIRCUIT_BREAKER"
+            return {
+                "cycle_number": self.cycle_count,
+                "cycle": self.cycle_count,
+                "status": "HALTED",
+                "reason": "CIRCUIT_BREAKER_TRIPPED",
+                "contracts_scanned": 0,
+                "opportunities": [],
+            }
+
         now_iso = datetime.now(timezone.utc).isoformat()
         self.stats["cycles_completed"] = self.cycle_count
         self.stats["last_cycle_timestamp"] = now_iso

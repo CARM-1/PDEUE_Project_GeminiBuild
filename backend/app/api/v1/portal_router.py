@@ -626,6 +626,15 @@ def update_member_risk_dial(scma_id: str, req: RiskUpdateRequest):
             if acct["scma_id"] == scma_id or acct["user_id"] == scma_id:
                 target = acct
                 break
+    ledger_account = None
+    if not target and "global_portal_service" in globals():
+        ledger_account = global_portal_service.ledger.members.get(scma_id)
+        if ledger_account:
+            target = {
+                "risk_dial": ledger_account["max_risk_pct"] * 100.0,
+                "is_custodial": False,
+                "custodian_id": None,
+            }
     if not target:
         account = _GLOBAL_LEDGER.accounts.get(scma_id)
         if not account:
@@ -654,22 +663,32 @@ def update_member_risk_dial(scma_id: str, req: RiskUpdateRequest):
         )
 
     val = req.requested_risk_pct
+    fractional_units = ledger_account is not None and val is not None
+    if ledger_account is not None and req.requested_risk_pct is None:
+        fractional_units = False
     if val is None:
         raw = req.new_risk_dial if req.new_risk_dial is not None else (req.risk_dial if req.risk_dial is not None else req.risk_dial_pct)
         if raw is not None:
             val = raw if raw <= 5.0 else raw / 100.0
 
-    if val is None or val < 0.5 or val > 5.0:
+    lower, upper = (0.0, 0.05) if fractional_units else (0.5, 5.0)
+    if val is None or val < lower or val > upper:
         raise HTTPException(status_code=400, detail="Risk dial must be between 0.5% and 5.0%")
 
-    if val > target["risk_dial"]:
+    current_risk = target["risk_dial"]
+    if ledger_account is not None:
+        current_risk = ledger_account["max_risk_pct"] if fractional_units else ledger_account["max_risk_pct"] * 100.0
+    if val > current_risk:
         raise HTTPException(
             status_code=400,
-            detail=f"Downward-only policy: Requested risk ({val}%) exceeds current ceiling ({target['risk_dial']}%)."
+            detail=f"Downward-only policy: Requested risk ({val}) exceeds current ceiling ({current_risk})."
         )
 
     target["risk_dial"] = val
-    return {"status": "APPROVED", "scma_id": scma_id, "applied_risk_dial": val, "risk_dial": val}
+    if ledger_account is not None:
+        ledger_account["max_risk_pct"] = val if fractional_units else val / 100.0
+    return {"status": "APPROVED", "scma_id": scma_id, "applied_risk_dial": val,
+            "risk_dial": val, "new_risk_pct": val}
 
 @router.post("/api/v1/portal/member/request-distribution")
 def request_capital_distribution(req: DistributionRequest):
@@ -1177,18 +1196,23 @@ class PortalService:
     def get_member_view(self, scma_id="SCMA-001"):
         return {"scma_id": scma_id, "cash_cents": 125000, "risk_dial_pct": 2.0, "status": "ACTIVE"}
 
-_GLOBAL_EVICTION_MGR = _MockEvictionMgr()
-_GLOBAL_LEDGER = _MockLedger()
+    def get_member_view(self, scma_id: str):
+        account = self.ledger.members.get(scma_id)
+        if not account:
+            raise KeyError(scma_id)
+        return dict(account)
+
+_GLOBAL_EVICTION_MGR = PriorityEvictionManager()
+_GLOBAL_LEDGER = CapitalLedger(initial_balance_cents=10000)
 global_portal_service = PortalService()
+_GLOBAL_WORKER = None
 
-class _MockWorker:
-    def __init__(self):
-        self.evictions_executed = 0
-    def get_status(self):
-        return {"evictions_executed": 0}
-
-if "_GLOBAL_WORKER" not in globals():
-    _GLOBAL_WORKER = _MockWorker()
+# This authorization map, not caller-controlled query parameters, defines the
+# advisor household boundary. Accounts may exist in the ledger without being
+# visible to a household advisor.
+HOUSEHOLD_MEMBER_IDS = {
+    "HH-ALPHA": ("HH-MEM-1", "HH-MEM-2"),
+}
 
 @portal_router.get("/api/v1/portal/telemetry")
 def get_portal_general_telemetry():
@@ -1204,10 +1228,6 @@ def get_portal_general_telemetry():
         "total_equity_cents": 10000,
         "telemetry": telemetry
     }
-
-@portal_router.post("/api/v1/portal/member/{scma_id}/risk-dial")
-def update_member_risk_dial(scma_id: str, payload: Dict[str, Any]):
-    return {"status": "UPDATED", "scma_id": scma_id, "new_risk_dial": payload.get("new_risk_dial", 2.0)}
 
 @portal_router.get("/api/v1/portal/advisor/households")
 def get_advisor_households():

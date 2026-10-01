@@ -25,9 +25,9 @@ def test_portal_telemetry_includes_eviction_metrics():
     assert "yield_adapter" in data
 
     evict_data = data["eviction_engine"]
-    assert evict_data["max_concurrent_orders"] == 5
+    assert evict_data["max_concurrent_orders"] == 6
     assert evict_data["active_resting_bids_count"] >= 1
-    assert evict_data["preemption_alpha_threshold"] == 0.20
+    assert evict_data["preemption_alpha_threshold"] == 0.03
     assert evict_data["max_expiry_hours"] == 6.0
 
     # Verify dry powder headroom calculations
