@@ -6,10 +6,10 @@ institutional intervention modals with zero native alerts, and bicameral consens
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse
 from typing import Dict, Any, List
-from app.domain.lineage_hierarchy import LineageHierarchyService
+from app.domain.lineage_hierarchy import get_lineage_service
 
 lineage_router = APIRouter()
-_lineage_service = LineageHierarchyService()
+_lineage_service = get_lineage_service()
 
 def _build_member_table_rows(members: List[Dict[str, Any]], house_id: int) -> str:
     rows = []
@@ -23,19 +23,27 @@ def _build_member_table_rows(members: List[Dict[str, Any]], house_id: int) -> st
         scma = m.get("scma_id", "")
         name = m.get("name", "")
         order_count = len(orders)
+        if _lineage_service._is_sovereign_settlor(m):
+            actions = (
+                "<span style='background:#1e293b;border:1px solid #38bdf8;color:#38bdf8;"
+                "padding:4px 8px;border-radius:4px;font-weight:bold;font-size:11px;'>"
+                "🛡️ Sovereign Immune</span>"
+            )
+        else:
+            actions = (
+                f"<button class='btn-cancel' onclick=\"openCancelModal('{name}', '{scma}', {order_count}, '{orders_str}')\">Cancel Orders</button>"
+                f"<button class='btn-freeze' onclick=\"openFreezeModal('{name}', '{scma}', '{dial}')\">Freeze Dial (0%)</button>"
+            )
 
         r = (
             f"<tr>"
-            f"<td><b>{name}</b></td>"
+            f"<td><b><a href='/member?scma={scma}' style='color:#38bdf8;text-decoration:underline;'>{name}</a></b></td>"
             f"<td style='font-family: monospace; color: #38bdf8;'>{scma}</td>"
             f"<td>{cash}</td>"
             f"<td><b>{dial}</b></td>"
             f"<td>{order_count} resting ({orders_str})</td>"
             f"<td><span style='color: {status_color}; font-weight: bold;'>{status}</span></td>"
-            f"<td><div style='display: flex; gap: 6px;'>"
-            f"<button class='btn-cancel' onclick=\"openCancelModal('{name}', '{scma}', {order_count}, '{orders_str}')\">Cancel Orders</button>"
-            f"<button class='btn-freeze' onclick=\"openFreezeModal('{name}', '{scma}', '{dial}')\">Freeze Dial (0%)</button>"
-            f"</div></td>"
+            f"<td><div style='display: flex; gap: 6px;'>{actions}</div></td>"
             f"</tr>"
         )
         rows.append(r)
@@ -71,13 +79,39 @@ def freeze_subordinate_risk(house_id: int, payload: Dict[str, Any]):
     except ValueError as err:
         raise HTTPException(status_code=404, detail=str(err))
 
+@lineage_router.post("/api/v1/lineage/house/{house_id}/freeze")
+def freeze_house(house_id: int):
+    try:
+        return _lineage_service.freeze_house(house_id)
+    except ValueError as err:
+        raise HTTPException(status_code=404, detail=str(err))
+
+@lineage_router.post("/api/v1/lineage/house/{house_id}/restore")
+def restore_house(house_id: int):
+    try:
+        return _lineage_service.restore_house(house_id)
+    except ValueError as err:
+        raise HTTPException(status_code=404, detail=str(err))
+
+@lineage_router.post("/api/v1/lineage/house/{house_id}/subordinate/restore-risk")
+def restore_subordinate_risk(house_id: int, payload: Dict[str, Any]):
+    scma_id = payload.get("scma_id")
+    target_risk_dial = payload.get("target_risk_dial")
+    if not scma_id or target_risk_dial is None:
+        raise HTTPException(status_code=400, detail="Missing scma_id or target_risk_dial in payload.")
+    try:
+        return _lineage_service.restore_subordinate_risk(
+            house_id, scma_id, float(target_risk_dial)
+        )
+    except (TypeError, ValueError) as err:
+        raise HTTPException(status_code=400, detail=str(err))
+
 @lineage_router.post("/api/v1/lineage/governance/propose")
 def evaluate_proposal(payload: Dict[str, Any]):
     votes = payload.get("affirmative_house_ids", [])
     return _lineage_service.evaluate_bicameral_proposal(votes)
 
 @lineage_router.get("/lineage/house", response_class=HTMLResponse)
-@lineage_router.get("/lineage/house/{house_id}", response_class=HTMLResponse)
 def get_house_leader_portal(house_id: int = 1):
     if house_id < 1 or house_id > 12:
         house_id = 1

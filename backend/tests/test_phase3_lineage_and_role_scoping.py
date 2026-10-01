@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 from app.main import app
 from app.domain.lineage_hierarchy import LineageHierarchyService
+from app.api.v1.lineage_router import _lineage_service
 
 client = TestClient(app)
 
@@ -38,8 +39,10 @@ def test_house_leader_ui_contains_institutional_modals_and_zero_native_prompts()
     assert "confirm(" not in html
     assert "alert(" not in html
 
-def test_subordinate_order_cancellation_end_to_end():
-    """Proves order revocation clears orders and verifies state via GET /api/v1/lineage/house/1."""
+def test_sovereign_order_cancellation_is_rejected_end_to_end():
+    """Proves subordinate order revocation cannot affect the Sovereign Settlor."""
+    founder = _lineage_service.CANONICAL_HOUSES[1]["members"][0]
+    founder["open_orders"] = ["KX-MIA-FRZ-32"]
     # 1. Execute cancel action
     res = client.post(
         "/api/v1/lineage/house/1/subordinate/cancel-orders",
@@ -47,17 +50,20 @@ def test_subordinate_order_cancellation_end_to_end():
     )
     assert res.status_code == 200
     data = res.json()
-    assert data["status"] == "SUBORDINATE_ORDERS_CANCELLED"
+    assert data["status"] == "SOVEREIGN_IMMUNE"
 
     # 2. Query House State to certify database/domain state is updated
     state_res = client.get("/api/v1/lineage/house/1")
     assert state_res.status_code == 200
     h1 = state_res.json()
     founder = next(m for m in h1["members"] if m["scma_id"] == "SCMA-FOUNDER_-C8575D7E")
-    assert founder["open_orders"] == []
+    assert founder["open_orders"] == ["KX-MIA-FRZ-32"]
 
-def test_subordinate_risk_freeze_end_to_end():
-    """Proves risk clamp sets dial to 0.0% and verifies status via GET /api/v1/lineage/house/1."""
+def test_sovereign_risk_freeze_is_rejected_end_to_end():
+    """Proves subordinate risk clamps cannot affect the Sovereign Settlor."""
+    founder = _lineage_service.CANONICAL_HOUSES[1]["members"][0]
+    founder["risk_dial"] = 0.02
+    founder["status"] = "ACTIVE"
     # 1. Execute freeze action
     res = client.post(
         "/api/v1/lineage/house/1/subordinate/freeze-risk",
@@ -65,16 +71,16 @@ def test_subordinate_risk_freeze_end_to_end():
     )
     assert res.status_code == 200
     data = res.json()
-    assert data["status"] == "SUBORDINATE_RISK_FROZEN"
-    assert data["new_risk_dial"] == 0.0
+    assert data["status"] == "SOVEREIGN_IMMUNE"
+    assert data["new_risk_dial"] == 0.02
 
     # 2. Query House State to certify domain state
     state_res = client.get("/api/v1/lineage/house/1")
     assert state_res.status_code == 200
     h1 = state_res.json()
     founder = next(m for m in h1["members"] if m["scma_id"] == "SCMA-FOUNDER_-C8575D7E")
-    assert founder["risk_dial"] == 0.0
-    assert founder["status"] == "FROZEN_BY_HOUSE_LEADER"
+    assert founder["risk_dial"] == 0.02
+    assert founder["status"] == "ACTIVE"
 
 def test_bicameral_75_percent_consensus_rule():
     svc = LineageHierarchyService()

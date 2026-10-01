@@ -100,3 +100,17 @@ class CapitalLedger:
         if amount_cents > 0:
             self.master_balance_cents += amount_cents
         return self.master_balance_cents
+
+    def get_capital_headroom(self) -> dict:
+        total_equity_cents = (
+            self.balance_cents
+            + sum(member["balance_cents"] for member in self.members.values())
+            + sum(self.reservations.values())
+            + sum(self.commitments.values())
+        )
+        dry_powder_floor_cents = max(4_000, (total_equity_cents * 40 + 99) // 100)
+        return {
+            "total_equity_cents": total_equity_cents,
+            "dry_powder_floor_cents": dry_powder_floor_cents,
+            "dry_powder_compliant": self.balance_cents >= dry_powder_floor_cents,
+        }

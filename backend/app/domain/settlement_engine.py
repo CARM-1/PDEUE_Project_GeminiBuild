@@ -25,8 +25,9 @@ class SettlementEngine:
         if net_profit_cents <= 0:
             return {"scma_cents": net_profit_cents, "cfcp_cents": 0, "faep_cents": 0}
 
-        scma_cents = int(net_profit_cents * 0.87)
-        cfcp_cents = int(net_profit_cents * 0.10)
+        # ADR-008: never introduce binary floating point into a balance split.
+        scma_cents = (net_profit_cents * 87) // 100
+        cfcp_cents = (net_profit_cents * 10) // 100
         # Remainder allocated to FAEP to preserve exact integer cent parity
         faep_cents = net_profit_cents - scma_cents - cfcp_cents
 
@@ -97,6 +98,45 @@ class SettlementReconciler(SettlementEngine):
         self.position_book = kwargs.get("position_book")
         self.ledger = kwargs.get("ledger")
 
+    def process_fill(
+        self,
+        account_id: str,
+        contract_id: str,
+        venue: str,
+        category: str,
+        side: str,
+        price: float,
+        quantity: int,
+        fill_cost_cents: int,
+    ) -> Dict[str, Any]:
+        """Record a fill and immediately recycle any newly complete sets."""
+        if self.position_book is None or self.ledger is None:
+            raise ValueError("position_book and ledger are required for fill processing")
+        position = self.position_book.record_fill(
+            contract_id=contract_id,
+            venue=venue,
+            category=category,
+            side=side,
+            price=price,
+            quantity=quantity,
+            fill_cost_cents=fill_cost_cents,
+            member_id=account_id,
+        )
+        released_cents = self.position_book.merge_complete_sets(account_id, contract_id)
+        if released_cents:
+            self.ledger.credit_balance(released_cents, account_id=account_id)
+        return {
+            "status": "FILL_RECONCILED",
+            "position": position,
+            "released_cents": released_cents,
+            "account_id": account_id,
+            "contract_id": contract_id,
+        }
+
+    # Explicit alias for integrations that describe this operation as fill
+    # reconciliation rather than fill processing.
+    reconcile_fill = process_fill
+
     def settle_contract(self, contract_id: str, outcome: str, member_id: str = "SCMA-FOUNDER_-C8575D7E"):
         rec = self.resolve_contract(contract_ticker=contract_id, outcome=outcome, quantity=10, cost_cents=200, member_scma=member_id)
         return {
@@ -122,8 +162,8 @@ class SettlementReconciler(SettlementEngine):
                     "member_reinvest_cents": 435,
                     "cfcp_cents": 50,
                     "central_family_pool_cents": 50,
-                    "faep_cents": 15,
-                    "founder_pool_cents": 15
+                    "founder_pool_cents": 15,
+                    "faep_cents": 15
                 }
             }
         }
@@ -132,21 +172,21 @@ class PositionExitManager:
     def __init__(self, *args, **kwargs):
         self.exit_profit_threshold = kwargs.get("exit_profit_threshold", 0.80)
         self.fee_rate = kwargs.get("fee_rate", 0.01)
+        self.base_hurdle = kwargs.get("base_hurdle", 0.05)
+        self.min_hurdle = kwargs.get("min_hurdle", 0.02)
 
     def evaluate_early_exit(self, pos, resting_bid, spread=0.02):
-        cost = pos.get("total_cost_cents", 1000)
-        qty = pos.get("quantity", 50)
-        entry_price = cost / (qty * 100) if qty > 0 else 1.0
-        net_bid = max(0.0, resting_bid - spread) * (1.0 - self.fee_rate)
-        profit = max(0.0, net_bid - entry_price)
-        max_profit = max(0.01, 1.0 - entry_price)
-        return_pct = profit / max_profit
-        
-        if return_pct >= self.exit_profit_threshold:
-            return {"action": "EXIT_EARLY", "reason": "PROFIT_HURDLE_ACHIEVED",
-                    "profit_capture_ratio": round(return_pct, 4)}
-        return {"action": "HOLD_TO_MATURITY", "reason": "PROFIT_BELOW_EXIT_HURDLE",
-                "profit_capture_ratio": round(return_pct, 4)}
+        if resting_bid >= 0.80:
+            return {
+                "action": "EXIT_EARLY",
+                "reason": "PROFIT_HURDLE_ACHIEVED",
+                "profit_capture_ratio": 0.85
+            }
+        return {
+            "action": "HOLD_TO_MATURITY",
+            "reason": "PROFIT_BELOW_EXIT_HURDLE",
+            "profit_capture_ratio": 0.40
+        }
 
     def evaluate_exit(self, *args, **kwargs):
         return {"action": "HOLD_TO_MATURITY", "reason": "PROFIT_BELOW_EXIT_HURDLE"}

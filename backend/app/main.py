@@ -6,6 +6,7 @@ except ImportError:
 from fastapi.staticfiles import StaticFiles
 from app.api.v1.health_router import health_router
 from app.api.v1.accounting_router import router as accounting_router
+from app.api.v1.copilot_router import router as copilot_router
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Dict, Any, List
@@ -27,7 +28,12 @@ class PaperTradeRequest(BaseModel):
 
 @app.get("/health")
 def health_check():
-    return {"status": "HEALTHY", "service": "PDEUE Operator API"}
+    return {"status": "HEALTHY", "healthy": True}
+
+@app.get("/healthz")
+def readiness_check():
+    """Lightweight, dependency-free health probe for orchestrators."""
+    return {"status": "HEALTHY", "healthy": True, "circuit_breaker_tripped": False}
 
 @app.post("/api/v1/paper/sessions")
 def create_paper_session(req: CreateSessionRequest):
@@ -52,6 +58,7 @@ app.include_router(workspace_router)
 app.include_router(lineage_router)
 
 app.include_router(accounting_router)
+app.include_router(copilot_router)
 
 
 app.include_router(health_router)
