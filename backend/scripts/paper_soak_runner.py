@@ -190,7 +190,7 @@ class PaperSoakRunner:
         signal.signal(signal.SIGTERM, self.stop)
         signal.signal(signal.SIGINT, self.stop)
 
-if __name__ == '__main__':
+def main() -> int:
     parser = argparse.ArgumentParser(description='Run replay or live paper autonomous soak cycles.')
     parser.add_argument('--mode', choices=('replay', 'live_paper', '1', '2'), default='live_paper')
     args = parser.parse_args()

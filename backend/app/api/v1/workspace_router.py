@@ -157,7 +157,7 @@ def stage_order(payload: Dict[str, Any]):
             "status": "STAGED_RESTING",
             "reserved_cents": committed_cents
         }
-    return {"status": "ORDER_STAGED", "dispatch": dispatch}
+    }
 
 @workspace_router.get("/api/v1/operator/settlements")
 def get_closed_settlements():
