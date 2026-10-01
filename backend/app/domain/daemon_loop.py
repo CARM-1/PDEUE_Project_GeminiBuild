@@ -33,7 +33,8 @@ class AutonomousExecutionLoop:
         self.ledger = ledger or CapitalLedger(initial_balance_cents=10_000)
         self.position_book = position_book or PositionBook()
         self.eviction_manager = eviction_manager or PriorityEvictionManager(
-            max_concurrent_orders=self.SLOT_CAPACITY)
+            max_concurrent_orders=self.SLOT_CAPACITY,
+            preemption_alpha_threshold=0.0)
         self.accounting_gateway = accounting_gateway or AccountingGateway()
         self.dispatcher = dispatcher or VenueOrderDispatcher(
             position_book=self.position_book,

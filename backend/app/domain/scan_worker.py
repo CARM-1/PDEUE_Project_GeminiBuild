@@ -35,6 +35,7 @@ class AutonomousScanWorker:
         self.is_running = False
         self.status = "IDLE"
         self.cycle_count = 0
+        self.total_dispatched_count = 0
         self.latest_opportunities = [
             self._opportunity("KX-MIA-FRZ-32", "KALSHI", "WEATHER", 1),
             self._opportunity("POLY-BTC-100K", "POLYMARKET", "CRYPTO", 2),
@@ -62,10 +63,12 @@ class AutonomousScanWorker:
 
     @staticmethod
     def _opportunity(ticker: str, venue: str, category: str, house_id: int) -> Dict[str, Any]:
+        evidence_type = "MACROECONOMIC" if category == "MACRO" else category
         return {
             "contract_ticker": ticker,
             "venue": venue,
             "category": category,
+            "evidence_type": evidence_type,
             "lineage_code": f"HOUSE-{house_id:02d}",
             "target_house_id": house_id,
             "model_prob": 0.315,
@@ -213,6 +216,7 @@ class AutonomousScanWorker:
             "contracts_scanned": contracts_count,
             "dispatched_count": dispatched_count,
             "dispatched_orders": dispatched_orders,
+            "opportunities": self.latest_opportunities,
             "total_dispatched": self.total_dispatched_count,
             "timestamp": now_iso,
             "orders_filled": self.execution_loop.orders_filled,
