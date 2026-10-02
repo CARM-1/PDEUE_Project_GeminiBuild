@@ -1,0 +1,61 @@
+PDEUE INTERACTIVE DESIGN QA v0.2
+October 2, 2026
+Disposition: DOCUMENT PRODUCTION QA PASS; external QB implementation-content acceptance pending.
+
+AUTHORITY AND SCOPE
+PASS — Sole parent is the controlling INTERACTIVE v0.1_20261002 package.
+PASS — Alternative MEMBER_QB v0.1 package explicitly superseded/reference-only;
+its alternative narration, test count and media contract were not merged.
+PASS — OQ-01 CLOSED — VERIFIED BY EXTERNAL QB; Lexicon v0.5 binding.
+PASS — Fixed pin 11069d3f66a40cc2a64a72a5e48a9df118847ca0 recorded.
+PASS — Relevant repository files inspected read-only at that pin; no later-main chase.
+PASS — CFCP exact-cent residual provenance updated; Chapter A fixtures unchanged.
+PASS — /member?scma_id=... routing reconciliation recorded; no extra lesson added.
+PASS — High-watermark glossary retains scheduled sweep/eligible settled balance,
+$25,000 per SCMA, uncapped total wealth, and no transfer-completion implication.
+Unresolved source-verification questions: NONE.
+
+CONTENT AND CONTRACT
+PASS — 36 unique figure scripts and 72 unchanged cue identifiers retained.
+PASS — D1/D2/D3 and nine-script M-03/M-05/M-06 prototype contract retained.
+PASS — Guided/Explore modes and all six pathways retained.
+PASS — Exactly five spoken paragraphs changed across four scripts:
+N-M-06-D1-C01; N-M-06-D2-C03; N-M-06-D2-C04;
+N-M-06-D3-C01; N-M-10-D2-C03.
+The remaining 32 scripts retain exact original paragraph text. Opening/closing
+copy is unchanged. Revised timing estimates, cue bindings and manifests agree.
+PASS — BFROZEN: governance-clamped 0.00%, disabled Member controls, outside
+ordinary range; no release/restoration/other-safeguard-pass implication.
+PASS — BCUSTODIAL: no ordinary Member self-service; F2-H Head of Household
+authorization required without bypassing other governance/immutable constraints.
+PASS — Blocked practice fixtures reject pointer, keyboard and stale apply events;
+reset preserves their restriction. Switching examples grants no account release.
+PASS — Original fixture rows and T01–T24 retained; T25/T26 added; DoD T01–T26.
+PASS — No frozen/custodial screenshot invented; both use text/practice states.
+
+DOCUMENT AND WORKBOOK QA
+PASS — Final design DOCX: all 7 pages visually inspected.
+PASS — Final narration DOCX: all 25 pages visually inspected.
+PASS — Figures fit, captions retained, tables fit, page numbers run correctly;
+no accidental blank pages. DOCX-derived PDF renders were internal QA only.
+PASS — All DOCX body paragraphs are present in their rendered PDF text;
+design DOCX body paragraphs match the Markdown counterpart.
+PASS — All 12 narration embedded figures byte-identical to the parent;
+all approved_reference files byte-identical, including the 12 PNG/12 SVG assets.
+PASS — Both XLSX files reopen and retain original sheets; comparison finds only
+44 intended storyboard-cell changes and 100 intended manifest-cell changes.
+PASS — Revised workbook regions visually inspected; no Excel error cells found.
+PASS — Native table ranges include both new hotspot and text-asset rows.
+PASS — Storyboard retains 72 cue rows and 36 timing rows; narration links agree.
+PASS — New text-asset manifest hashes match the final handoff file.
+PASS — Archive excludes authoring utilities, application code and render intermediates.
+
+INTEGRITY AND LIMITS
+SHA256SUMS.txt covers each other file in the package. The complete ZIP has a
+detached SHA-256. Archive CRC and hash-list verification performed after packing.
+No repository tests, browser/assistive-technology runtime tests, audio services,
+product endpoints, venue integrations or financial actions were executed.
+Audio/caption synchronization and actual Word 2019 runtime behavior have not
+been tested. DOCX visual QA used the available document rendering workflow.
+Future implementation and runtime acceptance remain separately authorized work.
+STOP: return for external QB implementation-content acceptance.
