@@ -490,14 +490,22 @@ class PaperSoakRunner:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=(PaperSoakRunner.ACCELERATED_PIT, PaperSoakRunner.CONTINUOUS_PAPER, PaperSoakRunner.SIMULATION_SOAK, PaperSoakRunner.TESTNET_SANDBOX_QUALIFICATION), default=PaperSoakRunner.CONTINUOUS_PAPER)
+    parser.add_argument(
+        "--venue-mode",
+        choices=("paper", "simulation", "testnet-sandbox"),
+        default=None,
+        help="Venue execution boundary; live execution is intentionally unsupported.",
+    )
     parser.add_argument("--output", default="/var/lib/pdeue-paper-soak/health_summary.json")
     parser.add_argument("--max-concurrent-orders", type=int, default=12)
     parser.add_argument("--dry-powder-floor", type=float, default=0.40)
     parser.add_argument("--cycles", type=int, default=None)
     parser.add_argument("--tick-interval-ms", type=int, default=5_000)
     args = parser.parse_args()
+    venue_mode = args.venue_mode.replace("-", "_").upper() if args.venue_mode else None
     runner = PaperSoakRunner(
         mode=args.mode, health_export_path=args.output,
+        execution_mode=venue_mode,
         max_concurrent_orders=args.max_concurrent_orders,
         dry_powder_floor=args.dry_powder_floor,
         total_cycles=args.cycles if args.cycles is not None else 51_840,
