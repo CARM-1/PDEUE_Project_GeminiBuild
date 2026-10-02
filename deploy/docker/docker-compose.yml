@@ -1,0 +1,30 @@
+services:
+  paper-soak:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+    image: pdeue-paper-soak:milestone-15
+    init: true
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    ports:
+      - "8000:8000"
+    environment:
+      PDEUE_SOAK_MODE: ${PDEUE_SOAK_MODE:-continuous-paper}
+      PDEUE_VENUE_MODE: ${PDEUE_VENUE_MODE:-paper}
+      PDEUE_MAX_CONCURRENT_ORDERS: "12"
+      PDEUE_CREDENTIAL_BROKER: ephemeral-memory
+      PDEUE_CREDENTIAL_LEASE_TTL_SECONDS: "300"
+    volumes:
+      - soak-state:/var/lib/pdeue-paper-soak
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  soak-state:
