@@ -1,0 +1,22 @@
+CONTROLLING DESIGN LINEAGE — October 2, 2026
+
+Sole v0.1 parent:
+PDEUE_INTERACTIVE_LEARNING_COMPANION_DESIGN_PACKAGE_v0.1_20261002.zip
+
+Current review candidate:
+PDEUE_INTERACTIVE_LEARNING_COMPANION_DESIGN_PACKAGE_v0.2.zip
+
+PDEUE_MEMBER_LEARNING_COMPANION_QB_DESIGN_PACKAGE_v0.1.zip is
+SUPERSEDED / REFERENCE-ONLY DESIGN LINEAGE.
+It is NOT a Codex implementation contract. Do not merge its alternative
+narration decomposition, test count or prototype media contract.
+
+The v0.2 design preserves D1/D2/D3, 36 full-course figure narration scripts,
+nine bounded prototype scripts from M-03/M-05/M-06, deterministic-first
+behavior, Guided and Explore modes, and Read / Watch / Listen / Explore /
+Practice / Ask pathways. T01–T24 are retained; T25 and T26 are added.
+
+PDEUE_CODEX_TWO_CHAPTER_PROTOTYPE_HANDOFF_v0.2.md is the sole controlling
+Codex handoff in this package. Design/content acceptance is pending external
+QB review and does not itself authorize implementation. No code or service
+execution is delivered. Stop after this design return.
