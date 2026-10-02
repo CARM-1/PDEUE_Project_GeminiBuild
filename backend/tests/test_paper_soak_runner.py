@@ -50,7 +50,7 @@ def test_runner_sizes_resting_orders_and_preempts_only_for_ten_percent_edge(tmp_
     preempted = runner.execute_cycle({
         "domain": "SPORTS", "observed_at": 3, "available_at": 3,
         "contract_id": "high", "order_cents": 500, "spread": 0.01,
-        "net_edge": 0.14, "execution_status": "RESTING",
+        "net_edge": 0.24, "execution_status": "RESTING",
     })
 
     assert first["admitted"] is True

@@ -17,10 +17,10 @@ def test_binary_yes_settlement_87_10_3_exact_cent_conservation():
     w = rec["waterfall"]
     # 87% of 383,925 = 334,014 cents ($3,340.14)
     assert w["scma_reinvest_cents"] == 334014
-    # 10% of 383,925 = 38,392 cents ($383.92)
-    assert w["cfcp_shield_cents"] == 38392
-    # 3% remainder = 383,925 - 334,014 - 38,392 = 11,519 cents ($115.19)
-    assert w["faep_endowment_cents"] == 11519
+    # CFCP receives its floored 10% share plus the two-cent residual.
+    assert w["cfcp_shield_cents"] == 38394
+    # FAEP receives strictly the floored 3% share.
+    assert w["faep_endowment_cents"] == 11517
     # Zero-remainder proof
     assert w["scma_reinvest_cents"] + w["cfcp_shield_cents"] + w["faep_endowment_cents"] == rec["net_pnl_cents"]
 

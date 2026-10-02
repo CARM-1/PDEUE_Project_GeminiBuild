@@ -560,6 +560,11 @@ def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str
     parent_house_quarantined = (
         (lineage_member["parent_house_status"] if lineage_member else "ACTIVE") == "QUARANTINED"
     )
+    is_frozen = quarantined or parent_house_quarantined
+    if is_frozen:
+        # A governance halt is an absolute zero-basis-point clamp, not the
+        # ordinary member governor's 50-bps lower bound.
+        risk_dial_pct = 0.0
 
     # Member visualizations are transported exclusively as integer cents / basis
     # points (ADR-008).  These deterministic defaults keep an unseeded desktop
@@ -593,6 +598,7 @@ def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str
         "swept_cash_cents": swept_cash_cents,
         "passive_yield_cents": passive_yield_cents,
         "quarantined": quarantined,
+        "is_frozen": is_frozen,
         "parent_house_quarantined": parent_house_quarantined,
         "allocation": {
             "cap_cents": 2_500_000,
@@ -630,6 +636,16 @@ def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str
 def update_current_member_risk_dial(req: RiskUpdateRequest):
     """Apply the member HUD's 50–200 bps, downward-only governor."""
     scma_id = req.scma_id or "SCMA-ELEANOR_-B2B31C9E"
+    portal_account = next(
+        (account for house in LINEAGE_DATA.values() for account in house["accounts"]
+         if account["scma_id"] == scma_id or account["user_id"] == scma_id),
+        None,
+    )
+    if portal_account and portal_account.get("is_custodial"):
+        raise HTTPException(
+            status_code=403,
+            detail="Custodial accounts require F2-H Head of Household authorization",
+        )
     try:
         member = _lineage_service.get_member_state(scma_id)
     except ValueError as err:
@@ -694,7 +710,7 @@ def update_member_risk_dial(scma_id: str, req: RiskUpdateRequest):
     if target["is_custodial"]:
         raise HTTPException(
             status_code=403,
-            detail=f"Custodial Account: Risk adjustments locked. Governed by custodian {target['custodian_id']}."
+            detail="Custodial accounts require F2-H Head of Household authorization",
         )
 
     val = req.requested_risk_pct

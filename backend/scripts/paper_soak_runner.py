@@ -21,6 +21,7 @@ from app.adapters.rate_limiter import VenueRateLimiter
 from app.domain.capital_ledger import CapitalLedger
 from app.domain.dynamic_spread_kelly import DynamicSpreadKellyRegime
 from app.domain.priority_eviction import PriorityEvictionManager
+from app.domain.position_book import PositionBook
 from app.domain.telemetry_sink import TelemetryHealthSink, require_cents
 
 
@@ -66,6 +67,8 @@ class PaperSoakRunner:
             dry_powder_floor_pct=dry_powder_floor,
             min_edge_delta=0.10,
         )
+        self.position_book = PositionBook()
+        self.complete_set_released_cents = 0
         self.kelly_regime = DynamicSpreadKellyRegime()
         self.ledger.register_member_account("founder_scma", seed_capital_cents=self.initial_balance_cents)
         self.maker_stats = {"posted": 0, "filled": 0, "expired": 0}
@@ -88,7 +91,10 @@ class PaperSoakRunner:
     def _assert_dry_powder(self, committed_cents: int) -> None:
         committed_cents = require_cents(committed_cents, "committed_cents")
         # Integer comparison avoids rounding: uncommitted/equity >= 40/100.
-        if committed_cents < 0 or (self.equity_cents - committed_cents) * 100 < self.equity_cents * 40:
+        floor_cents = max(
+            4_000, int(self.equity_cents * self.eviction_manager.dry_powder_floor_pct)
+        )
+        if committed_cents < 0 or self.equity_cents - committed_cents < floor_cents:
             self.circuit_breaker.update(is_tripped=True, trip_reason="DRY_POWDER_FLOOR_BREACH")
             raise ValueError("order would breach the 40% dry-powder floor")
 
@@ -138,9 +144,10 @@ class PaperSoakRunner:
             )
             target = decision["eviction_target"]
             replaced_stake = target["stake_cents"] if target is not None else 0
-            max_committed = int(
-                self.equity_cents * (1.0 - self.eviction_manager.dry_powder_floor_pct)
+            floor_cents = max(
+                4_000, int(self.equity_cents * self.eviction_manager.dry_powder_floor_pct)
             )
+            max_committed = max(0, self.equity_cents - floor_cents)
             preserves_dry_powder = (
                 committed_cents - replaced_stake + allocation_cents <= max_committed
             )
@@ -158,6 +165,20 @@ class PaperSoakRunner:
                 if outcome == "FILLED":
                     self.eviction_manager.mark_order_filled(order_id)
                     filled = 1
+                    contract_id = str(market.get("contract_id", order_id))
+                    side = str(market.get("side", "BUY_YES"))
+                    quantity = int(market.get("quantity", 1))
+                    self.position_book.record_fill(
+                        contract_id, str(market.get("venue", "PAPER")), domain,
+                        side, allocation_cents / max(quantity, 1) / 100,
+                        quantity, allocation_cents, member_id="founder_scma",
+                    )
+                    released_cents = self.position_book.merge_complete_sets(
+                        "founder_scma", contract_id
+                    )
+                    if released_cents:
+                        self.ledger.credit_balance(released_cents, account_id="founder_scma")
+                        self.complete_set_released_cents += released_cents
                     # Paper fills settle immediately; recording the transition
                     # through the manager preserves fill immunity while closed
                     # inventory no longer consumes an active-order slot.
@@ -183,6 +204,7 @@ class PaperSoakRunner:
                 "slot_occupancy": len(self.eviction_manager.resting_orders) + len(self.eviction_manager.filled_orders),
                 "fill_rate": fill_rate, "evictions": evicted,
                 "total_evictions": len(self.eviction_manager.eviction_history),
+                "complete_set_released_cents": self.complete_set_released_cents,
                 "domain": snapshot.get("domain") if snapshot else None,
                 "phase_bc_metrics": dict(self.phase_bc_metrics),
                 "rate_limiter_warnings": self.limiter.warnings_count}

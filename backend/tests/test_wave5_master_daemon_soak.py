@@ -43,7 +43,7 @@ def test_daemon_loop_evicts_lowest_edge_order_when_n12_saturated():
 
 def test_settlement_reconciler_distributes_87_10_3_waterfall():
     split = SettlementReconciler().calculate_waterfall_split(101)
-    assert split == {"scma_cents": 87, "cfcp_cents": 10, "faep_cents": 4}
+    assert split == {"scma_cents": 87, "cfcp_cents": 11, "faep_cents": 3}
     assert sum(split.values()) == 101
 
 

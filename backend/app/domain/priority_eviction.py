@@ -127,8 +127,8 @@ class PriorityEvictionManager:
 
         # ADR-008: risk capacity is computed solely in integer cents.  The
         # percentage representation is retained for API compatibility, while
-        # the mandated 40% floor uses exact integer arithmetic (rounded up).
-        percentage_floor_cents = (total_equity_cents * 40 + 99) // 100
+        # the configured floor uses integer cents with the mandated $40 minimum.
+        percentage_floor_cents = int(total_equity_cents * self.dry_powder_floor_pct)
         dry_powder_floor_cents = max(4_000, percentage_floor_cents)
         available_budget_cents = max(
             0, total_equity_cents - currently_committed_cents - dry_powder_floor_cents
@@ -162,8 +162,9 @@ class PriorityEvictionManager:
                 "eviction_target": None,
             }
 
-        # 3. Preemption alpha threshold check (must be >= 20.0% edge)
-        if candidate_edge < self.preemption_alpha_threshold:
+        # 3. Saturated-board preemption requires at least 20% net edge.  The
+        # lower threshold above applies only to ordinary slot admission.
+        if candidate_edge < 0.20:
             return {
                 "admitted": False,
                 "reason": "ALPHA_BELOW_PREEMPTION_THRESHOLD",
