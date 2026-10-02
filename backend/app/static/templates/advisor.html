@@ -99,8 +99,9 @@
     <div style="display: flex; gap: 10px;">
       <input type="text" id="copilot-query" placeholder="Ask: 'Explain impact of withdrawal on Julian's compounding velocity'" class="input-text" style="flex: 1;">
       <button style="background: #a855f7; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;" onclick="askCopilot()">Consult Copilot</button>
+      <button id="clearAdvisorCopilotBtn" type="button" class="btn-clear" aria-label="Clear displayed guidance and input" onclick="clearAdvisorCopilot()" style="background:#0f172a;color:#38BDF8;border:1px solid #64748B;padding:8px 16px;border-radius:4px;cursor:pointer;">Clear answer</button>
     </div>
-    <div id="copilot-ans" style="margin-top: 12px; font-size: 13px; color: #f8fafc; line-height: 1.5;"></div>
+    <div id="copilot-ans" style="margin-top: 12px; font-size: 13px; color: #f8fafc; line-height: 1.5;"><p class="placeholder-text">Your educational answer will appear here.</p></div>
   </div>
 
   <script>
@@ -161,6 +162,13 @@
           <td>${a.is_custodial ? '<span class="badge-custodial">CUSTODIAL APPRENTICE</span>' : '<span class="badge-optimal">ACTIVE</span>'}</td>
         </tr>
       `).join('');
+    }
+
+    function clearAdvisorCopilot() {
+      const input = document.getElementById('copilot-query');
+      input.value = '';
+      document.getElementById('copilot-ans').innerHTML = '<p class="placeholder-text">Your educational answer will appear here.</p>';
+      input.focus();
     }
 
     async function askCopilot() {

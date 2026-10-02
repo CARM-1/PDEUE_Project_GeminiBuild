@@ -81,8 +81,9 @@
     <div style="display: flex; gap: 10px;">
       <input type="text" id="tech-query" placeholder="Ask: 'Check rate-limiter capacity' or 'Worker latency'" class="input-text" style="flex: 1;">
       <button onclick="askTechCopilot()" style="background: #10b981; color: #000; font-weight: bold;">Run Diagnostic</button>
+      <button id="clearTechCopilotBtn" type="button" aria-label="Clear displayed diagnostic and input" onclick="clearTechCopilot()" style="background:#0f172a;color:#38BDF8;border:1px solid #64748B;font-weight:bold;">Clear answer</button>
     </div>
-    <div id="tech-ans" style="margin-top: 12px; font-size: 13px; color: #f8fafc; line-height: 1.5;"></div>
+    <div id="tech-ans" style="margin-top: 12px; font-size: 13px; color: #f8fafc; line-height: 1.5;"><p class="placeholder-text">Your telemetry diagnostic will appear here.</p></div>
   </div>
 
   <script>
@@ -132,6 +133,13 @@
         overrideToken = token;
         loadTelemetry();
       }
+    }
+
+    function clearTechCopilot() {
+      const input = document.getElementById('tech-query');
+      input.value = '';
+      document.getElementById('tech-ans').innerHTML = '<p class="placeholder-text">Your telemetry diagnostic will appear here.</p>';
+      input.focus();
     }
 
     async function askTechCopilot() {
