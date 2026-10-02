@@ -51,4 +51,4 @@ def test_dashboard_contains_sovereign_badge_and_member_link_template():
 
     assert response.status_code == 200
     assert "🛡️ Sovereign Immune" in response.text
-    assert '<a href="/member?scma=${member.scma_id}"' in response.text
+    assert '<a href="/member?scma_id=${member.scma_id}"' in response.text

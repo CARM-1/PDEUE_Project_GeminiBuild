@@ -93,7 +93,7 @@ class AutonomousExecutionLoop:
                 + self.ledger.founder_pool_cents + exposed)
 
     def dry_powder_floor_cents(self) -> int:
-        return max(4_000, (self.total_equity_cents() * 40 + 99) // 100)
+        return max(4_000, (self.total_equity_cents() * 40) // 100)
 
     def _settle_pending(self) -> List[Dict[str, Any]]:
         settlements = []

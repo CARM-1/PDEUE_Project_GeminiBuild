@@ -34,7 +34,7 @@ def test_custodial_risk_lock_rejection():
         json={"requested_risk_pct": 0.8}
     )
     assert res.status_code == 403
-    assert "Custodial Account: Risk adjustments locked" in res.json()["detail"]
+    assert "Custodial accounts require F2-H Head of Household authorization" in res.json()["detail"]
 
 def test_downward_only_risk_rule():
     # Eleanor's current risk is 1.5%. Attempting to increase to 1.8% must fail

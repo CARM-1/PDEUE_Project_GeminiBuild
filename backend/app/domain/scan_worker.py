@@ -89,7 +89,7 @@ class AutonomousScanWorker:
         return {
             "active_slots": len(self.eviction_manager.resting_orders) + len(self.eviction_manager.filled_orders),
             "slot_capacity": 12,
-            "dry_powder_floor_cents": max(4_000, (equity_cents * 40 + 99) // 100),
+            "dry_powder_floor_cents": max(4_000, (equity_cents * 40) // 100),
             "merged_shares_count": merged_shares_count,
             "staged_sweeps_count": staged_sweeps_count,
         }

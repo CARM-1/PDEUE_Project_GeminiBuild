@@ -28,8 +28,10 @@ class SettlementEngine:
         # ADR-008: never introduce binary floating point into a balance split.
         scma_cents = (net_profit_cents * 87) // 100
         cfcp_cents = (net_profit_cents * 10) // 100
-        # Remainder allocated to FAEP to preserve exact integer cent parity
-        faep_cents = net_profit_cents - scma_cents - cfcp_cents
+        faep_cents = (net_profit_cents * 3) // 100
+        # ADR-008 / Lexicon v0.5: floor every share independently and assign
+        # all indivisible residual cents to the Central Family Capital Pool.
+        cfcp_cents += net_profit_cents - scma_cents - cfcp_cents - faep_cents
 
         assert scma_cents + cfcp_cents + faep_cents == net_profit_cents, "Waterfall cent leak detected!"
         return {
