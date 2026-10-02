@@ -52,6 +52,10 @@ class CredentialBroker:
         }
         self._leases: Dict[str, TenantCredentialLease] = {}
         self._lock = RLock()
+        # Counters contain no credential material and make lease lifecycle
+        # qualification observable without exposing the in-memory vault.
+        self._leases_acquired = 0
+        self._leases_revoked = 0
 
     def register_credential(
         self, tenant_id: str, venue: str, api_key: str, api_secret: str = ""
@@ -67,6 +71,7 @@ class CredentialBroker:
             if not lease.is_valid():
                 lease.revoke()
                 self._leases.pop(lease_id, None)
+                self._leases_revoked += 1
 
     def acquire_lease(
         self, tenant_id: str, venue: str, ttl_seconds: int = 300
@@ -91,6 +96,7 @@ class CredentialBroker:
                 expires_at=datetime.now(timezone.utc) + timedelta(seconds=ttl_seconds),
             )
             self._leases[lease.lease_id] = lease
+            self._leases_acquired += 1
             return lease
 
     def revoke_lease(self, lease_id: str) -> None:
@@ -99,9 +105,20 @@ class CredentialBroker:
             lease = self._leases.pop(lease_id, None)
             if lease is not None:
                 lease.revoke()
+                self._leases_revoked += 1
 
     def validate_lease(self, lease_id: str) -> bool:
         with self._lock:
             self._purge_expired()
             lease = self._leases.get(lease_id)
             return bool(lease and lease.is_valid())
+
+    def lifecycle_counts(self) -> Dict[str, int]:
+        """Return secret-free process-local lease lifecycle telemetry."""
+        with self._lock:
+            self._purge_expired()
+            return {
+                "acquired": self._leases_acquired,
+                "revoked": self._leases_revoked,
+                "active": len(self._leases),
+            }
