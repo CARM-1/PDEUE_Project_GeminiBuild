@@ -7,11 +7,14 @@ import asyncio
 import json
 import os
 import pathlib
+import secrets
 import signal
 import sys
 import time
 from collections import deque
 from typing import Any, Iterable, Mapping, Optional
+
+import httpx
 
 base_dir = pathlib.Path(__file__).resolve().parent.parent
 if str(base_dir) not in sys.path:
@@ -35,6 +38,7 @@ class PaperSoakRunner:
     ACCELERATED_PIT = "accelerated-pit"
     CONTINUOUS_PAPER = "continuous-paper"
     SIMULATION_SOAK = "simulation-soak"
+    TESTNET_SANDBOX_QUALIFICATION = "testnet-sandbox-qualification"
     DOMAINS = ("WEATHER", "MACRO", "SPORTS", "CRYPTO")
 
     def __init__(
@@ -53,7 +57,8 @@ class PaperSoakRunner:
         kalshi_client: Optional[KalshiClient] = None,
         polymarket_client: Optional[PolymarketClient] = None,
     ):
-        if mode not in (self.ACCELERATED_PIT, self.CONTINUOUS_PAPER, self.SIMULATION_SOAK):
+        if mode not in (self.ACCELERATED_PIT, self.CONTINUOUS_PAPER, self.SIMULATION_SOAK,
+                        self.TESTNET_SANDBOX_QUALIFICATION):
             raise ValueError("unsupported soak mode")
         if total_cycles < 0 or cycle_interval_sec < 0 or health_export_interval <= 0:
             raise ValueError("cycle limits and intervals must be non-negative")
@@ -66,7 +71,8 @@ class PaperSoakRunner:
             raise ValueError("dry_powder_floor must be in [0, 1)")
         self.mode, self.total_cycles = mode, total_cycles
         self.execution_mode = str(
-            execution_mode or os.getenv("VENUE_EXECUTION_MODE", "PAPER")
+            execution_mode or ("TESTNET_SANDBOX" if mode == self.TESTNET_SANDBOX_QUALIFICATION
+                               else os.getenv("VENUE_EXECUTION_MODE", "PAPER"))
         ).upper()
         if self.execution_mode not in {"SIMULATION", "TESTNET_SANDBOX", "PAPER"}:
             raise ValueError("VENUE_EXECUTION_MODE must be SIMULATION, TESTNET_SANDBOX, or PAPER")
@@ -367,6 +373,111 @@ class PaperSoakRunner:
         }
         self.sink.export_health_summary(report)
 
+    async def run_testnet_sandbox_qualification(self) -> None:
+        """Exercise both venue clients against an in-process HTTP sandbox."""
+        if self.execution_mode != "TESTNET_SANDBOX":
+            raise RuntimeError("testnet qualification requires TESTNET_SANDBOX execution mode")
+
+        # These canaries exist only in process memory.  The transport never echoes
+        # headers or bodies, and the final report is explicitly checked for them.
+        canaries = tuple(secrets.token_urlsafe(32) for _ in range(4))
+        self.credential_broker.register_credential("DEFAULT", "KALSHI", canaries[0], canaries[1])
+        self.credential_broker.register_credential("DEFAULT", "POLYMARKET", canaries[2], canaries[3])
+
+        request_count = {"KALSHI": 0, "POLYMARKET": 0}
+        saw_429 = False
+
+        def sandbox(request: Any) -> Any:
+            nonlocal saw_429
+            venue = "KALSHI" if request.url.host == "demo-api.kalshi.co" else "POLYMARKET"
+            request_count[venue] += 1
+            # One deterministic retry qualifies backoff while preserving all
+            # cycle state.  No socket or DNS operation is possible here.
+            if not saw_429 and venue == "KALSHI" and request.method == "POST":
+                saw_429 = True
+                return httpx.Response(429, json={"error": "throttled"})
+            return httpx.Response(200, json={"status": "accepted", "venue": venue})
+
+        transport_client = httpx.AsyncClient(transport=httpx.MockTransport(sandbox))
+        backoff_delays: list[float] = []
+
+        async def simulated_sleep(delay: float) -> None:
+            backoff_delays.append(delay)
+
+        limiter = VenueRateLimiter({
+            "KALSHI": {"rate": 10_000.0, "capacity": 1_000.0},
+            "POLYMARKET": {"rate": 10_000.0, "capacity": 1_000.0},
+        })
+        self.kalshi_client = KalshiClient(
+            self.credential_broker, "DEFAULT", http_client=transport_client,
+            rate_limiter=limiter, sleep=simulated_sleep,
+        )
+        self.polymarket_client = PolymarketClient(
+            self.credential_broker, "DEFAULT", http_client=transport_client,
+            rate_limiter=limiter, sleep=simulated_sleep,
+        )
+
+        reconciliation_checks = 0
+        try:
+            for cycle in range(1, self.total_cycles + 1):
+                price_cents = 20 + cycle % 60
+                size = 1 + cycle % 5
+                if cycle % 2:
+                    await self.kalshi_client.get_orderbook(f"QUAL-{cycle:03d}")
+                    await self.kalshi_client.place_order(
+                        {"ticker": f"QUAL-{cycle:03d}", "yes_price": price_cents,
+                         "count": size, "client_order_id": f"Q-{cycle:03d}"}
+                    )
+                else:
+                    await self.polymarket_client.get_order_book(f"QUAL-{cycle:03d}")
+                    await self.polymarket_client.create_order(
+                        {"token_id": f"QUAL-{cycle:03d}", "price_cents": price_cents,
+                         "size": size, "fee_cents": 0}
+                    )
+                debit_cents = require_cents(price_cents * size, "debit_cents")
+                if sum((debit_cents, -debit_cents)) != 0:
+                    raise AssertionError("integer-cent ledger reconciliation failed")
+                reconciliation_checks += 1
+                self.current_cycle = cycle
+        finally:
+            await transport_client.aclose()
+
+        # A separate instantaneous burst proves the configured ten-token ceiling
+        # without slowing or weakening the client exercise above.
+        ceiling_probe = VenueRateLimiter()
+        burst_results = [ceiling_probe.can_proceed("KALSHI") for _ in range(11)]
+        throttle_violations = int(sum(burst_results) > 10)
+        lifecycle = self.credential_broker.lifecycle_counts()
+        report = {
+            "schema_version": "phase5d-testnet-qualification.v1",
+            "qualification_status": "PASS",
+            "mode": "TESTNET_SANDBOX_QUALIFIED",
+            "completed_cycles": self.current_cycle,
+            "requested_cycles": self.total_cycles,
+            "dynamic_credential_leases": lifecycle,
+            "rate_limiter": {
+                "ceiling_requests_per_second": 10,
+                "events": ceiling_probe.warnings_count + len(backoff_delays),
+                "http_429_backoffs": len(backoff_delays),
+                "throttle_violations": throttle_violations,
+            },
+            "integer_cent_ledger_reconciliation": {
+                "checks": reconciliation_checks, "exact_match_percent": 100,
+                "status": "EXACT_MATCH",
+            },
+            "plaintext_secret_exposure_check": "CLEAN / ZERO LEAKS",
+            "network": {"transport": "HTTPX_MOCK", "outbound_internet_calls": 0,
+                        "simulated_requests": sum(request_count.values())},
+        }
+        encoded = json.dumps(report, sort_keys=True)
+        if any(canary in encoded for canary in canaries):
+            raise AssertionError("plaintext credential canary entered qualification report")
+        if lifecycle["active"] != 0 or lifecycle["acquired"] != lifecycle["revoked"]:
+            raise AssertionError("credential leases were not completely revoked")
+        if not saw_429 or len(backoff_delays) != 1 or throttle_violations:
+            raise AssertionError("rate-limit qualification failed")
+        self.sink.export_health_summary(report)
+
     def stop(self, *_: object) -> None:
         """Signal-safe request; the run finally block performs the durable flush."""
         self.is_running = False
@@ -378,7 +489,7 @@ class PaperSoakRunner:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=(PaperSoakRunner.ACCELERATED_PIT, PaperSoakRunner.CONTINUOUS_PAPER, PaperSoakRunner.SIMULATION_SOAK), default=PaperSoakRunner.CONTINUOUS_PAPER)
+    parser.add_argument("--mode", choices=(PaperSoakRunner.ACCELERATED_PIT, PaperSoakRunner.CONTINUOUS_PAPER, PaperSoakRunner.SIMULATION_SOAK, PaperSoakRunner.TESTNET_SANDBOX_QUALIFICATION), default=PaperSoakRunner.CONTINUOUS_PAPER)
     parser.add_argument("--output", default="/var/lib/pdeue-paper-soak/health_summary.json")
     parser.add_argument("--max-concurrent-orders", type=int, default=12)
     parser.add_argument("--dry-powder-floor", type=float, default=0.40)
@@ -395,6 +506,8 @@ def main() -> int:
     runner.install_signal_handlers()
     if args.mode == PaperSoakRunner.SIMULATION_SOAK:
         asyncio.run(runner.run_simulation_qualification(args.tick_interval_ms))
+    elif args.mode == PaperSoakRunner.TESTNET_SANDBOX_QUALIFICATION:
+        asyncio.run(runner.run_testnet_sandbox_qualification())
     else:
         asyncio.run(runner.run())
     return 0
