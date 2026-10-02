@@ -24,6 +24,9 @@ from app.domain.priority_eviction import PriorityEvictionManager
 from app.domain.position_book import PositionBook
 from app.domain.settlement_engine import SettlementEngine
 from app.domain.telemetry_sink import TelemetryHealthSink, require_cents
+from app.clients.kalshi_client import KalshiClient
+from app.clients.polymarket_client import PolymarketClient
+from app.services.credential_broker import CredentialBroker
 
 
 class PaperSoakRunner:
@@ -45,6 +48,10 @@ class PaperSoakRunner:
         mode: str = CONTINUOUS_PAPER,
         max_concurrent_orders: int = 12,
         dry_powder_floor: float = 0.40,
+        execution_mode: Optional[str] = None,
+        credential_broker: Optional[CredentialBroker] = None,
+        kalshi_client: Optional[KalshiClient] = None,
+        polymarket_client: Optional[PolymarketClient] = None,
     ):
         if mode not in (self.ACCELERATED_PIT, self.CONTINUOUS_PAPER, self.SIMULATION_SOAK):
             raise ValueError("unsupported soak mode")
@@ -58,6 +65,21 @@ class PaperSoakRunner:
         if not 0 <= dry_powder_floor < 1:
             raise ValueError("dry_powder_floor must be in [0, 1)")
         self.mode, self.total_cycles = mode, total_cycles
+        self.execution_mode = str(
+            execution_mode or os.getenv("VENUE_EXECUTION_MODE", "PAPER")
+        ).upper()
+        if self.execution_mode not in {"SIMULATION", "TESTNET_SANDBOX", "PAPER"}:
+            raise ValueError("VENUE_EXECUTION_MODE must be SIMULATION, TESTNET_SANDBOX, or PAPER")
+        self.credential_broker = credential_broker or CredentialBroker()
+        self.kalshi_client = kalshi_client
+        self.polymarket_client = polymarket_client
+        if self.execution_mode == "TESTNET_SANDBOX":
+            self.kalshi_client = self.kalshi_client or KalshiClient(
+                self.credential_broker, "DEFAULT"
+            )
+            self.polymarket_client = self.polymarket_client or PolymarketClient(
+                self.credential_broker, "DEFAULT"
+            )
         self.cycle_interval_sec, self.health_export_interval = cycle_interval_sec, health_export_interval
         self.current_cycle, self.is_running = 0, False
         self.partition = "PARTITION_2_ENHANCED_ALPHA"
@@ -233,6 +255,7 @@ class PaperSoakRunner:
             legging_scratches=self.phase_bc_metrics["scratched_legs"], collateral_drift_cents=0,
         )
         payload["partition_tag"], payload["mode"] = self.partition, self.mode
+        payload["venue_execution_mode"] = self.execution_mode
         return self.sink.export_health_summary(payload)
 
     async def run(self) -> None:
