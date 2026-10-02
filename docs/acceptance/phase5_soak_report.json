@@ -1,0 +1,45 @@
+{
+  "completed_cycles": 250,
+  "elapsed_ms": 2547,
+  "headless": true,
+  "invariants": {
+    "adr_008": {
+      "monetary_representation": "signed-64-bit-integer-cents",
+      "passed": true
+    },
+    "complete_set_recycling": {
+      "passed": true,
+      "released_collateral_cents": 200,
+      "remaining_yes_shares": 1
+    },
+    "dry_powder_floor": {
+      "breaching_candidate_rejected": true,
+      "floor_cents": 4001,
+      "passed": true,
+      "total_equity_cents": 10003
+    },
+    "priority_eviction": {
+      "candidate_net_edge_bps": 2000,
+      "capacity": 12,
+      "edge_delta_bps": 1600,
+      "evicted_order_id": "QUAL-RESTING-00",
+      "passed": true
+    },
+    "waterfall_87_10_3": {
+      "cfcp_cents": 1001,
+      "conserved_cents": 10003,
+      "faep_cents": 300,
+      "input_cents": 10003,
+      "passed": true,
+      "residual_cents_routed_to_cfcp": 1,
+      "scma_cents": 8702
+    }
+  },
+  "live_network_actions": 0,
+  "max_concurrent_orders": 12,
+  "mode": "simulation-soak",
+  "qualification_status": "PASS",
+  "requested_cycles": 250,
+  "schema_version": "phase5-soak.v1",
+  "tick_interval_ms": 10
+}
