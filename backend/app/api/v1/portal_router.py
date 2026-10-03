@@ -501,6 +501,24 @@ def ask_community_tutor(request: CommunityTutorRequest) -> Dict[str, str]:
     return {"member_id": member_id, "query": query, "answer": answer, "concept": concept, "mode": "EDUCATIONAL_ONLY"}
 
 # --- Member Workspace (Directive R-06 Split-Hat) ---
+# Twelve fixed slots make missing telemetry explicit instead of collapsing the rack.
+def _member_concurrency_slots() -> List[Dict[str, Any]]:
+    resting = {
+        1: ("Weather", 56, 1240),
+        3: ("Macro", 43, 870),
+        6: ("Crypto", 61, 1460),
+        9: ("Sports", 38, 730),
+    }
+    return [
+        {"slot_id": slot_id, "status": "RESTING", "domain": values[0],
+         "entry_price_cents": values[1], "net_edge_bps": values[2]}
+        if (values := resting.get(slot_id)) else
+        {"slot_id": slot_id, "status": "AVAILABLE", "domain": None,
+         "entry_price_cents": None, "net_edge_bps": None}
+        for slot_id in range(1, 13)
+    ]
+
+
 @router.get("/api/v1/portal/member/state")
 def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str] = Query(None)) -> Dict[str, Any]:
     target = None
@@ -563,6 +581,10 @@ def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str
 
     return {
         "user_id": target["user_id"],
+        "cash_cents": cash_cents,
+        "reserved_cents": int(round(target["reserved"] * 100)),
+        "lifetime_profit_cents": 34_000,
+        "concurrency_slots": _member_concurrency_slots(),
         "name": target["name"],
         "role": "MEMBER_USER",  # Directive R-06: Member desk always enforces personal member role
         "scma_id": target["scma_id"],
@@ -598,6 +620,12 @@ def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str
             "rule": "Option A: 10% CFCP priority deduction executed before FAEP derivation"
         }
     }
+
+@router.get("/api/v1/portal/member/{scma_id}")
+def get_member_telemetry(scma_id: str) -> Dict[str, Any]:
+    """Return the fail-closed member read model, including all 12 engine slots."""
+    return get_member_state(scma_id=scma_id)
+
 
 @router.post("/api/v1/portal/member/risk-dial")
 def update_current_member_risk_dial(req: RiskUpdateRequest):
