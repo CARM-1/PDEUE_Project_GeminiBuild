@@ -1119,33 +1119,11 @@ def co_sign_distribution(request: CoSignRequest) -> Dict[str, Any]:
 @router.post("/api/v1/portal/member/ai-tutor")
 def member_ai_tutor(query: AssistantQuery):
     prompt = query.query or query.question or ""
-    q = prompt.lower()
-    if any(term in q for term in ("waterfall", "split", "cfcp")):
-        ans = (
-            "PDEUE applies an 87/10/3 waterfall to each realized gain using integer-cent accounting, so every cent has a defined destination. "
-            "The 87% SCMA share returns to the member's private account for reinvestment and long-term growth rather than being distributed away. "
-            "The 10% CFCP share funds a family resilience shield that can support lineage-level protection and qualified needs during stress. "
-            "The remaining 3% goes to the FAEP lineage endowment, building durable intergenerational capacity; together the three allocations always total 100%, without floating-point cent drift."
-        )
-    elif "compound" in q or "compounding" in q or "snowball" in q:
-        ans = (
-            "Compounding works like a snowball: the 87% SCMA portion of realized gains is reinvested, so later opportunities can earn returns on both the original principal and prior retained gains. "
-            "Repeated harvest-and-reinvestment cycles can accelerate growth over time even when each individual gain is modest, although returns are never guaranteed. "
-            "PDEUE performs the waterfall in integer cents, assigning whole cents deterministically so rounding cannot silently create or lose money."
-        )
-    elif "risk" in q or "dial" in q:
-        ans = (
-            "The risk dial is a downward-only capital governor: a member may reduce exposure, but cannot use the member portal to raise it above the currently authorized ceiling. "
-            "The platform's absolute defensive ceiling is 5% per opportunity, while a member or administrator may impose a lower limit or lock a quarantined account at 0.0%. "
-            "This asymmetry favors capital preservation by limiting loss concentration and requiring higher-authority review before risk can ever be expanded."
-        )
-    else:
-        ans = (
-            "PDEUE is an educational, capital-preservation system that evaluates public-event opportunities at a point in time, requires a documented edge, and sizes approved exposure defensively rather than promising returns. "
-            "Its downward-only risk dial constrains position size, House quarantine can isolate one lineage branch, and resting orders remain subject to explicit governance controls. "
-            "When gains are realized, integer-cent accounting sends 87% back to the member SCMA for compounding, 10% to the CFCP family resilience shield, and 3% to the FAEP lineage endowment. "
-            "These mechanics combine private growth, shared resilience, intergenerational stewardship, and auditable approvals; ask about the waterfall, compounding, or risk dial for a deeper explanation."
-        )
+    ans = _advisor_copilot_engine.ask(
+        prompt,
+        user_role="MEMBER",
+        context={"context_scope": query.context_scope},
+    )
     return {"role": "MEMBER_TUTOR", "query": prompt, "response": ans, "answer": ans}
 
 @router.post("/api/v1/portal/member/tutor")

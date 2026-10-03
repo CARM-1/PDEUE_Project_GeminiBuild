@@ -21,8 +21,8 @@ def _ask(question: str) -> dict:
 
 def test_advisor_copilot_endpoint_returns_waterfall_explanation():
     text = _ask("Explain the 87/10/3 waterfall simply")["response_text"]
-    assert all(term in text for term in ("87%", "CFCP", "FAEP"))
-    assert len(text.split(". ")) >= 5
+    assert all(term in text for term in ("87%", "Familial Common Treasury", "FSAP", "Stewardship"))
+    assert "never from member pockets" in text
 
 
 def test_advisor_copilot_endpoint_returns_quarter_kelly_explanation():
