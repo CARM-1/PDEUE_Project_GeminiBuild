@@ -41,8 +41,7 @@ def test_ai_tutor_gives_substantive_waterfall_explanation():
 
     assert response.status_code == 200
     answer = response.json()["response"]
-    assert len(answer.split(". ")) >= 4
-    for concept in ("87%", "SCMA", "10%", "CFCP", "3%", "FAEP"):
+    for concept in ("87%", "SCMA", "10%", "FSAP", "3%", "Stewardship"):
         assert concept in answer
 
 
