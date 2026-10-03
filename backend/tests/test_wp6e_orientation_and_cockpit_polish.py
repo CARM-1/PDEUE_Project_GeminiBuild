@@ -1,8 +1,27 @@
 """WP-6E orientation, cash-engine, and institutional cockpit contract tests."""
+import math
+
 from fastapi.testclient import TestClient
 from app.main import app
 
 client = TestClient(app)
+
+
+def _target_projection(seed: float, months: int = 12) -> float:
+    """Mirror the ratified target-rate model to guard realistic UI boundaries."""
+    float_cash, swept_cash, passive_yield = seed, 0.0, 0.0
+    for _ in range(months):
+        passive_yield += (swept_cash + float_cash * 0.40) * (0.045 / 12)
+        if float_cash < 25_000:
+            month_gross = float_cash * math.pow(1 + 0.23, 52 / 12)
+            if month_gross > 25_000:
+                swept_cash += month_gross - 25_000
+                float_cash = 25_000
+            else:
+                float_cash = month_gross
+        else:
+            swept_cash += 9_500
+    return float_cash + swept_cash + passive_yield
 
 def test_member_contains_primary_views_projections_and_currency_control():
     response = client.get("/member")
@@ -16,6 +35,14 @@ def test_member_contains_primary_views_projections_and_currency_control():
     assert "Bullish/Target Pace (~23%/wk)" in page
     assert "Project FUTURE" in page
     assert "is_custodial: true" in page
+    assert "function simulateHorizon" in page
+    assert "class=\"chart-legend\"" in page
+    assert "<text x=" not in page
+
+
+def test_month_12_target_projections_stay_within_post_cap_boundaries():
+    assert 30_000 <= _target_projection(100) <= 150_000
+    assert 70_000 <= _target_projection(1_000) <= 250_000
 
 def test_dashboard_uses_institutional_matrices_and_alignment_classes():
     response = client.get("/dashboard")
