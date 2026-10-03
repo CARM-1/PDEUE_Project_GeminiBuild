@@ -1,192 +1,59 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>PDEUE - Member Desktop</title>
-  <style>
-    body { background: #0a0f1d; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; margin: 0; padding: 24px; }
-    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 16px; margin-bottom: 24px; }
-    .badge { background: #0284c7; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; }
-    .custodial-banner { display: none; background: #7c2d12; border: 1px solid #ea580c; color: #ffedd5; padding: 12px; border-radius: 6px; margin-bottom: 20px; font-size: 13px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
-    .card { background: #131c31; border: 1px solid #1e293b; border-radius: 8px; padding: 18px; margin-bottom: 20px; }
-    .card-title { font-size: 12px; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; }
-    .card-value { font-size: 26px; font-weight: bold; color: #38bdf8; }
-    .slider-box { display: flex; align-items: center; gap: 16px; margin-top: 12px; }
-    input[type=range] { flex: 1; accent-color: #0284c7; }
-    button { background: #0284c7; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    button:disabled { background: #334155; cursor: not-allowed; }
-    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
-    th, td { text-align: left; padding: 10px; border-bottom: 1px solid #1e293b; }
-    th { color: #94a3b8; }
-    .assistant-box { background: #0f172a; border: 1px solid #0284c7; border-radius: 8px; padding: 16px; margin-top: 24px; }
-    .input-text { background: #1e293b; border: 1px solid #334155; color: #fff; padding: 8px 12px; border-radius: 4px; font-size: 13px; }
-  </style>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PDEUE Member User Desktop</title>
+<style>
+:root{color-scheme:dark;--bg:#07101f;--panel:#111d32;--line:#29405f;--muted:#9db0c9;--blue:#42b8ef;--green:#4ade80;--red:#f87171;--amber:#fbbf24}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#122544,var(--bg) 42%);color:#eef6ff;font:15px system-ui,sans-serif}.shell{max-width:1180px;margin:auto;padding:24px}.topbar,.actions,.metrics,.split{display:flex;gap:16px;align-items:center}.topbar{justify-content:space-between;margin-bottom:20px}.eyebrow,.label{color:var(--muted);font-size:.75rem;font-weight:750;letter-spacing:.09em;text-transform:uppercase}h1{margin:.2rem 0;font-size:clamp(1.7rem,4vw,2.6rem)}.pill{border:1px solid var(--blue);border-radius:999px;padding:7px 12px;color:var(--blue)}.quarantine-banner{display:none;background:#5b151d;border:2px solid var(--red);padding:14px;border-radius:10px;margin-bottom:16px}.metrics{display:grid;grid-template-columns:repeat(4,1fr);margin-bottom:20px}.card{background:linear-gradient(145deg,#14223a,#0d1729);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 12px 30px #0004}.value{font-size:1.65rem;font-weight:800;margin-top:8px}.wealth{color:var(--green)}.hud-nav{display:flex;gap:8px;margin:0 0 14px;overflow:auto}.hud-btn,button{border:1px solid var(--line);border-radius:8px;background:#172943;color:#dcecff;padding:10px 14px;font-weight:750;cursor:pointer}.hud-btn.active,button:hover{background:#087cae;border-color:var(--blue)}.hud-panel{min-height:235px}.trajectory{height:150px;display:flex;align-items:end;gap:7%;padding:22px 3% 0;border-bottom:1px solid var(--line)}.bar{flex:1;min-width:22px;background:linear-gradient(var(--blue),#155e75);border-radius:6px 6px 0 0;position:relative}.bar span{position:absolute;bottom:-24px;font-size:.7rem;color:var(--muted)}.split{align-items:stretch;margin-top:20px}.split>.card{flex:1}.range-row{display:flex;gap:14px;align-items:center;margin:18px 0}input[type=range]{width:100%;accent-color:var(--blue)}input[type=text]{width:100%;background:#07101f;color:white;border:1px solid var(--line);padding:12px;border-radius:8px}.response{min-height:64px;margin-top:14px;padding:12px;background:#081324;border-radius:8px;color:#cce8f7}.fine{color:var(--muted);font-size:.83rem}.engine-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.engine{padding:18px;border:1px solid var(--line);border-radius:10px}.engine b{color:var(--green)}.welcome{position:relative;border-color:#278fc0;background:linear-gradient(120deg,#123357,#101c31)}.welcome h2{margin:.2rem 3rem .5rem 0}.welcome p{line-height:1.55;margin-bottom:0}.dismiss{position:absolute;right:16px;top:16px}.slot-rack{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.slot{min-height:112px;padding:14px;border:1px solid var(--line);border-radius:10px;background:#091527}.slot.active{border-color:#259d6a;background:linear-gradient(145deg,#0b2b29,#091527)}.slot-id{color:var(--blue);font-size:.75rem;font-weight:800;letter-spacing:.08em}.slot-domain{font-size:1.05rem;font-weight:800;margin:8px 0}.slot-detail{color:var(--muted);font-size:.78rem;line-height:1.45}.edge{color:var(--green);font-weight:800}.tooltip{border-bottom:1px dotted var(--blue);cursor:help}.regimes{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.regime[aria-pressed="true"]{background:#087cae;border-color:var(--blue)}.chart{width:100%;height:auto;overflow:visible}.chart-grid{stroke:#29405f;stroke-width:1}.chart-path{fill:none;stroke:var(--green);stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.distribution-grid{display:grid;grid-template-columns:1fr auto;gap:10px}.tier-key{display:flex;gap:14px;flex-wrap:wrap}.tier-key span:before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;background:var(--green)}.tier-key .yellow:before{background:var(--amber)}.tier-key .red:before{background:var(--red)}[hidden]{display:none!important}@media(max-width:800px){.metrics{grid-template-columns:1fr 1fr}.slot-rack{grid-template-columns:repeat(2,1fr)}.split{flex-direction:column}}@media(max-width:480px){.metrics{grid-template-columns:1fr}.shell{padding:14px}.topbar{align-items:flex-start;flex-direction:column}}
+</style>
 </head>
-<body>
-
-  <!-- PDEUE UNIFIED GLOBAL PORTAL HUB -->
-  <div style="background: #060b19; border-bottom: 1px solid #1e293b; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; margin: -24px -24px 20px -24px;">
-    <div style="display: flex; align-items: center; gap: 12px;">
-      <strong style="color: #cbd5e1; letter-spacing: 0.05em;">PDEUE PORTAL HUB:</strong>
-      <a href="/dashboard" style="color: #94a3b8; padding: 4px 10px; text-decoration: none; font-weight: 600; border: 1px solid #334155; border-radius: 4px;">Chief Admin Cockpit</a>
-      <a href="/admin/tech" style="color: #94a3b8; padding: 4px 10px; text-decoration: none; font-weight: 600; border: 1px solid #334155; border-radius: 4px;">Technical Console (Class T)</a>
-      <a href="/advisor" style="color: #94a3b8; padding: 4px 10px; text-decoration: none; font-weight: 600; border: 1px solid #334155; border-radius: 4px;">Advisor Workspace (Class F)</a>
-      <a href="/member" style="background: #0284c7; color: #ffffff; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-weight: 700; border: 1px solid #38bdf8;">Member Desktop (Class M)</a>
-    </div>
-    <span style="color: #64748b; font-size: 0.75rem;">FULL BIDIRECTIONAL NAVIGATION</span>
-  </div>
-
-  <div class="header">
-    <div>
-      <h2 style="margin: 0; color: #38bdf8;" id="portal-title">PDEUE Member Desktop</h2>
-      <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Private SCMA Wealth Compounding (Directive R-06 Context)</div>
-    </div>
-    <span class="badge" id="m-role">MEMBER_USER</span>
-  </div>
-
-  <div id="custodial-alert" class="custodial-banner">
-    <strong>Custodial Lock Active:</strong> Risk dial adjustments and distributions are locked by your appointed Custodian (<span id="custodian-id">None</span>).
-  </div>
-
-  <div class="grid">
-    <div class="card">
-      <div class="card-title">Available Cash</div>
-      <div class="card-value">$<span id="m-cash">0.00</span></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Committed Margin</div>
-      <div class="card-value">$<span id="m-reserved">0.00</span></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Compounded Yield</div>
-      <div class="card-value" style="color: #4ade80;">+$<span id="m-yield">0.00</span></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Profit Allocation Waterfall</div>
-      <div class="card-value" style="font-size: 18px; color: #cbd5e1;">87% SCMA / 10% CFCP / 3% FAEP</div>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3 style="margin-top: 0; color: #e2e8f0;">Autonomous Risk Dial (Downward-Only)</h3>
-    <p style="font-size: 13px; color: #94a3b8; margin: 0;">Governs max capital stake per opportunity. Dial can only be reduced by member.</p>
-    <div class="slider-box">
-      <input type="range" id="risk-slider" min="0.5" max="2.0" step="0.1" value="1.5" oninput="document.getElementById('risk-val').innerText = this.value">
-      <span style="font-size: 18px; font-weight: bold; min-width: 60px;"><span id="risk-val">1.5</span>%</span>
-      <button id="risk-btn" onclick="saveRiskDial()">Apply Reduction</button>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3 style="margin-top: 0; color: #e2e8f0;">Capital Distribution Gateway (Categorical Tagging)</h3>
-    <div style="display: flex; gap: 12px; align-items: center; margin-top: 12px;">
-      <input type="number" id="dist-amount" placeholder="Amount (e.g. 50.00)" class="input-text" style="width: 150px;">
-      <select id="dist-tag" class="input-text">
-        <option value="Personal">Personal / Lifestyle</option>
-        <option value="Tuition">Tuition / Education</option>
-        <option value="Medical">Medical / Emergency</option>
-        <option value="Real Estate">Real Estate / Housing</option>
-      </select>
-      <button onclick="submitDistribution()">Request Distribution</button>
-    </div>
-    <div id="dist-result" style="margin-top: 10px; font-size: 13px; color: #38bdf8;"></div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Active Resting Allocations</div>
-    <table>
-      <thead>
-        <tr><th>Contract</th><th>Category</th><th>Committed</th><th>Net Edge</th><th>Status</th></tr>
-      </thead>
-      <tbody id="pos-table"></tbody>
-    </table>
-  </div>
-
-  <div class="assistant-box">
-    <strong style="color: #38bdf8;">FSE AI Educational Tutor</strong>
-    <p style="font-size: 12px; color: #94a3b8; margin: 4px 0 12px 0;">Ask questions about compounding, the 10% CFCP priority deduction, or risk dials.</p>
-    <div style="display: flex; gap: 10px;">
-      <input type="text" id="tutor-query" placeholder="Ask: 'How does compounding work?'" class="input-text" style="flex: 1;">
-      <button onclick="askTutor()">Ask Tutor</button>
-    </div>
-    <div id="tutor-ans" style="margin-top: 12px; font-size: 13px; color: #f8fafc; line-height: 1.5;"></div>
-  </div>
-
-  <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const userId = urlParams.get('user_id') || 'USR-eleanor_va-B2B31C9E';
-    let currentScma = '';
-
-    async function loadState() {
-      const res = await fetch(`/api/v1/portal/member/state?user_id=${userId}`);
-      const data = await res.json();
-      currentScma = data.scma_id;
-
-      document.getElementById('m-role').innerText = "MEMBER_USER (" + data.scma_id.split('-')[1] + ")";
-      document.getElementById('portal-title').innerText = data.name + " — Personal Member Desktop";
-      document.getElementById('m-cash').innerText = data.cash_balance.toFixed(2);
-      document.getElementById('m-reserved').innerText = data.reserved_capital.toFixed(2);
-      document.getElementById('m-yield').innerText = data.lifetime_yield.toFixed(2);
-      document.getElementById('risk-slider').value = data.risk_dial_pct;
-      document.getElementById('risk-val').innerText = data.risk_dial_pct.toFixed(1);
-
-      if (data.is_custodial) {
-        document.getElementById('custodial-alert').style.display = 'block';
-        document.getElementById('custodian-id').innerText = data.custodian_id;
-        document.getElementById('risk-slider').disabled = true;
-        document.getElementById('risk-btn').disabled = true;
-      }
-
-      const tbody = document.getElementById('pos-table');
-      tbody.innerHTML = data.positions.map(p => `
-        <tr>
-          <td><b>${p.contract_id}</b></td>
-          <td>${p.category}</td>
-          <td>$${p.allocation.toFixed(2)}</td>
-          <td style="color: #4ade80;">+${p.edge_pct}%</td>
-          <td><span style="color: #38bdf8;">${p.status}</span></td>
-        </tr>
-      `).join('');
-    }
-
-    async function saveRiskDial() {
-      const newDial = parseFloat(document.getElementById('risk-slider').value);
-      const res = await fetch(`/api/v1/portal/member/${currentScma}/risk-dial`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ requested_risk_pct: newDial })
-      });
-      const ret = await res.json();
-      if (!res.ok) alert("Rejected: " + (ret.detail || "Violation"));
-      else { alert("Risk dial updated to " + ret.applied_risk_dial + "%"); loadState(); }
-    }
-
-    async function submitDistribution() {
-      const amt = parseFloat(document.getElementById('dist-amount').value);
-      const tag = document.getElementById('dist-tag').value;
-      if (!amt || amt <= 0) return alert("Enter a valid amount.");
-      const res = await fetch('/api/v1/portal/member/request-distribution', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ scma_id: currentScma, amount_cents: Math.round(amt * 100), category_tag: tag })
-      });
-      const ret = await res.json();
-      document.getElementById('dist-result').innerText = `[${ret.tier} TIER] ${ret.message}`;
-    }
-
-    async function askTutor() {
-      const q = document.getElementById('tutor-query').value;
-      if (!q) return;
-      const res = await fetch('/api/v1/portal/member/ai-tutor', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ query: q })
-      });
-      const ret = await res.json();
-      document.getElementById('tutor-ans').innerText = ret.response;
-    }
-    loadState();
-  </script>
-</body>
-</html>
+<body><div style="display:none" id="legacyPortalHub">PDEUE PORTAL HUB</div>
+<nav class="shell" aria-label="Portal hub" style="padding-bottom:0"><a href="/dashboard">Chief Admin</a> · <a href="/admin/tech">Technical Console</a> · <a href="/advisor">Advisor</a> · <a href="/member">Member</a></nav>
+<main class="shell">
+<header class="topbar"><div><div class="eyebrow">Private SCMA • Member workspace</div><h1>My Wealth Desktop</h1><div class="fine" id="identity">Loading your account…</div></div><span class="pill">MEMBER USER</span></header>
+<section id="welcomeCard" class="card welcome" aria-labelledby="welcomeTitle">
+<button id="dismissWelcomeBtn" class="dismiss" type="button" aria-label="Dismiss welcome">Got it ✕</button>
+<div class="eyebrow">A Better Financial Starting Point</div><h2 id="welcomeTitle">👋 Welcome to Your Personal PDEUE Workspace</h2>
+<p>PDEUE operates autonomously while keeping losses 100% isolated to your personal SCMA. When profit is realized, the 87/10/3 waterfall compounds 87% for you, directs 10% to the family capital protection pool, and 3% to education. <strong>You do not trade.</strong> The system scans, sizes, and places qualified maker orders within your risk settings.</p>
+</section>
+<div id="quarantineBanner" class="quarantine-banner"><strong>House quarantine active.</strong> New exposure is paused while your lineage is protected.</div>
+<section class="metrics" aria-label="Wealth summary">
+ <article class="card"><div class="label">Cumulative personal wealth</div><div class="value wealth" id="totalWealth">$0.00</div><div class="fine">Float + swept cash + yield</div></article>
+ <article class="card"><div class="label">Active float</div><div class="value" id="activeFloat">$0.00</div><div class="fine">On-venue, capped at $25,000</div></article>
+ <article class="card"><div class="label">Swept bank cash</div><div class="value" id="sweptCash">$0.00</div><div class="fine">Protected off-venue cash</div></article>
+ <article class="card"><div class="label">4.5% passive yield</div><div class="value" id="passiveYield">$0.00</div><div class="fine">Compounding continues after sweep</div></article>
+</section>
+<section class="card" aria-labelledby="rackTitle"><div class="label">Live transparency layer</div><h2 id="rackTitle">Glass Engine · 12-Slot Concurrency Rack</h2><p class="fine"><span class="tooltip" tabindex="0" title="Wholesale Maker Bidding: Never paying retail taker fees.">Strategy D ⓘ</span> — Wholesale Maker Bidding: Never paying retail taker fees.</p><div id="slotRack" class="slot-rack" aria-live="polite"><article class="slot" data-slot-id="1"><div class="slot-id">SLOT 01</div><div class="slot-domain">Slot Available</div><div class="slot-detail">[Slot Available - Scanning]</div></article><article class="slot" data-slot-id="2"><div class="slot-id">SLOT 02</div><div class="slot-domain">Slot Available</div><div class="slot-detail">[Slot Available - Scanning]</div></article><article class="slot" data-slot-id="3"><div class="slot-id">SLOT 03</div><div class="slot-domain">Slot Available</div><div class="slot-detail">[Slot Available - Scanning]</div></article><article class="slot" data-slot-id="4"><div class="slot-id">SLOT 04</div><div class="slot-domain">Slot Available</div><div class="slot-detail">[Slot Available - Scanning]</div></article><article class="slot" data-slot-id="5"><div class="slot-id">SLOT 05</div><div class="slot-domain">Slot Available</div><div class="slot-detail">[Slot Available - Scanning]</div></article><article class="slot" data-slot-id="6"><div class="slot-id">SLOT 06</div><div class="slot-domain">Slot Available</div><div class="slot-detail">[Slot Available - Scanning]</div></article><article class="slot" data-slot-id="7"><div class="slot-id">SLOT 07</div><div class="slot-domain">Slot Available</div><div class="slot-detail">[Slot Available - Scanning]</div></article><article class="slot" data-slot-id="8"><div class="slot-id">SLOT 08</div><div class="slot-domain">Slot Available</div><div class="slot-detail">[Slot Available - Scanning]</div></article><article class="slot" data-slot-id="9"><div class="slot-id">SLOT 09</div><div class="slot-domain">Slot Available</div><div class="slot-detail">[Slot Available - Scanning]</div></article><article class="slot" data-slot-id="10"><div class="slot-id">SLOT 10</div><div class="slot-domain">Slot Available</div><div class="slot-detail">[Slot Available - Scanning]</div></article><article class="slot" data-slot-id="11"><div class="slot-id">SLOT 11</div><div class="slot-domain">Slot Available</div><div class="slot-detail">[Slot Available - Scanning]</div></article><article class="slot" data-slot-id="12"><div class="slot-id">SLOT 12</div><div class="slot-domain">Slot Available</div><div class="slot-detail">[Slot Available - Scanning]</div></article></div></section>
+<section class="card" aria-labelledby="horizonTitle"><div class="label">Compounding horizon</div><h2 id="horizonTitle">Three-regime 12-month projection</h2><div class="regimes" role="group" aria-label="Projection regime"><button class="regime" data-rate="9" aria-pressed="true">Traditional Index (~9%)</button><button class="regime" data-rate="18" aria-pressed="false">Steady Pace</button><button class="regime" data-rate="32" aria-pressed="false">Standard Pace</button></div><svg class="chart" viewBox="0 0 800 240" role="img" aria-labelledby="chartTitle chartDesc"><title id="chartTitle">Twelve month projected accumulation</title><desc id="chartDesc">Projection based on the selected illustrative annual regime.</desc><line class="chart-grid" x1="45" y1="205" x2="775" y2="205"/><line class="chart-grid" x1="45" y1="25" x2="45" y2="205"/><path id="projectionPath" class="chart-path" d=""/><text x="45" y="225" fill="#9db0c9">Now</text><text x="735" y="225" fill="#9db0c9">Month 12</text></svg><strong id="projectionMilestone" class="wealth"></strong><p class="fine">Illustrative scenario only; not a promise of return.</p></section>
+<nav class="hud-nav" aria-label="Desktop views">
+ <button class="hud-btn active" onclick="setHudView('trajectory')">My Trajectory</button>
+ <button class="hud-btn" onclick="setHudView('engines')">Asset Engine Rings</button>
+ <button class="hud-btn" onclick="setHudView('radar')">High-Yield Radar</button>
+</nav>
+<section class="card hud-panel" id="trajectory"><div class="label">Uncapped wealth trajectory</div><h2>Your progress keeps moving after the venue cap</h2><canvas id="trajectory-canvas" width="1" height="1" hidden aria-hidden="true"></canvas><div class="trajectory"><div class="bar" style="height:28%"><span>Start</span></div><div class="bar" style="height:43%"><span>Build</span></div><div class="bar" style="height:61%"><span>Sweep</span></div><div class="bar" style="height:82%"><span>Today</span></div></div></section>
+<section class="card hud-panel" id="engines" hidden><div class="label">Asset engines</div><h2>Plain-language allocation health</h2><div class="engine-grid"><div class="engine"><b>On track</b><p>Active float is working within its hard cap.</p></div><div class="engine"><b>Protected</b><p>Overflow moves to swept bank cash.</p></div><div class="engine"><b>Growing</b><p>Passive yield adds to total wealth.</p></div></div></section>
+<section class="card hud-panel" id="radar" hidden><div class="label">Educational radar</div><h2>What the system is watching</h2><p>No promise of return: opportunities must clear edge, liquidity, and governance checks before capital is considered.</p></section>
+<div class="split">
+<section class="card"><div class="label">Downward-only risk governor</div><h2>Choose less exposure</h2><p class="fine">You can lower your authorized risk, never raise it here.</p><div class="range-row"><input id="riskSlider" type="range" min="50" max="200" step="1" value="150" aria-label="Risk in basis points"><strong id="riskValue">1.50%</strong></div><button id="riskSubmit" onclick="saveRiskDial()">Apply reduction</button><div class="fine" id="riskStatus" role="status"></div></section>
+<section class="card"><div class="label">Distribution request drawer</div><h2>Request personal cash</h2><div class="distribution-grid"><input id="distributionAmount" type="text" inputmode="decimal" placeholder="Amount in dollars" aria-label="Distribution amount"><button id="distributionBtn" type="button">Review request</button></div><p id="distributionStatus" class="fine" role="status"></p><div class="tier-key" aria-label="Distribution tiers"><span>Green</span><span class="yellow">Yellow</span><span class="red">Red</span></div></section>
+</div><div class="split">
+<section class="card"><div class="label">AI literacy tutor</div><h2>Ask in everyday language</h2><form id="tutorForm"><input id="tutorInput" type="text" required placeholder="How does the 87/10/3 waterfall work?"><button type="submit">Ask tutor</button><button id="clearTutorBtn" type="button">Clear Answer</button></form><div id="tutorResponse" class="response" aria-live="polite">Your educational answer will appear here.</div></section>
+</div></div></main>
+<script>
+const query=new URLSearchParams(location.search);let memberState=null;
+function dollars(cents){return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(cents||0)/100)}
+const welcomeCard=document.getElementById('welcomeCard');
+if(localStorage.getItem('pdeue_welcome_dismissed')==='true')welcomeCard.hidden=true;
+dismissWelcomeBtn.addEventListener('click',()=>{welcomeCard.hidden=true;localStorage.setItem('pdeue_welcome_dismissed','true')});
+const emptySlot=number=>({slot_id:number,status:'AVAILABLE'});
+function renderSlots(slots=[]){const byId=new Map((Array.isArray(slots)?slots:[]).map(slot=>[Number(slot.slot_id),slot]));slotRack.innerHTML=Array.from({length:12},(_,index)=>{const slot=byId.get(index+1)||emptySlot(index+1);const active=slot.status==='RESTING';return `<article class="slot ${active?'active':''}" data-slot-id="${index+1}"><div class="slot-id">SLOT ${String(index+1).padStart(2,'0')}</div>${active?`<div class="slot-domain">${slot.domain}</div><div class="slot-detail">${dollars(slot.entry_price_cents)} Inside Maker<br><span class="edge">+${Number(slot.net_edge_bps||0)/100}% Net Edge</span></div>`:'<div class="slot-domain">Slot Available</div><div class="slot-detail">[Slot Available - Scanning]</div>'}</article>`}).join('')}
+function updateProjection(rate){const principal=Math.max(1,Number(memberState?.cash_cents||memberState?.active_float_cents||100000));const points=Array.from({length:13},(_,month)=>principal*Math.pow(1+rate/100,month/12));const low=principal*.98,high=Math.max(...points)*1.02;projectionPath.setAttribute('d',points.map((value,index)=>`${index?'L':'M'} ${45+index*(730/12)} ${205-(value-low)/(high-low)*180}`).join(' '));projectionMilestone.textContent=`Month 12 milestone: ${dollars(Math.round(points[12]))}`}
+document.querySelectorAll('.regime').forEach(button=>button.addEventListener('click',()=>{document.querySelectorAll('.regime').forEach(item=>item.setAttribute('aria-pressed',String(item===button)));updateProjection(Number(button.dataset.rate))}));
+function setHudView(name){document.querySelectorAll('.hud-panel').forEach(p=>p.hidden=p.id!==name);document.querySelectorAll('.hud-btn').forEach(b=>b.classList.toggle('active',b.getAttribute('onclick').includes(`'${name}'`)))}
+async function loadState(){const suffix=query.get('scma_id')?`?scma_id=${encodeURIComponent(query.get('scma_id'))}`:'';const response=await fetch('/api/v1/portal/member/state'+suffix);if(!response.ok)return;memberState=await response.json();const a=memberState.active_float_cents,s=memberState.swept_cash_cents,y=memberState.passive_yield_cents;document.getElementById('identity').textContent=`${memberState.name} • ${memberState.scma_id}`;document.getElementById('activeFloat').textContent=dollars(a);document.getElementById('sweptCash').textContent=dollars(s);document.getElementById('passiveYield').textContent=dollars(y);document.getElementById('totalWealth').textContent=dollars(a+s+y);renderSlots(memberState.concurrency_slots);updateProjection(Number(document.querySelector('.regime[aria-pressed="true"]').dataset.rate));document.getElementById('quarantineBanner').style.display=(memberState.quarantined||memberState.parent_house_quarantined)?'block':'none';const bps=Math.round(memberState.risk_dial_pct*100);riskSlider.max=Math.min(200,Math.max(50,bps));riskSlider.value=Math.max(50,bps);showRisk()}
+function showRisk(){riskValue.textContent=(Number(riskSlider.value)/100).toFixed(2)+'%'}riskSlider.addEventListener('input',showRisk);
+async function saveRiskDial(){riskStatus.textContent='Saving…';const response=await fetch('/api/v1/portal/member/risk-dial',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scma_id:memberState.scma_id,requested_risk_pct:Number(riskSlider.value)/100})});const data=await response.json();riskStatus.textContent=response.ok?'Risk reduction applied.':(data.detail||'Unable to update risk.');if(response.ok)loadState()}
+clearTutorBtn.addEventListener('click',()=>{tutorResponse.textContent='Your educational answer will appear here.';tutorInput.value='';tutorInput.focus()});
+distributionBtn.addEventListener('click',()=>{const cents=Math.round(Number(distributionAmount.value)*100);distributionStatus.textContent=cents>0?'Request ready for categorical safeguard review (Green / Yellow / Red).':'Enter a valid amount.'});
+tutorForm.addEventListener('submit',async event=>{event.preventDefault();tutorResponse.textContent='Thinking…';const response=await fetch('/api/v1/portal/member/tutor',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:tutorInput.value})});const data=await response.json();tutorResponse.textContent=data.response||data.answer||'Tutor unavailable.'});loadState();setInterval(loadState, 3000);
+</script></body></html>
