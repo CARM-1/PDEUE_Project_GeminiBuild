@@ -111,6 +111,7 @@ CANONICAL_SEED_POSITION: Dict[str, Any] = {
     "vwap": "3.0¢",
     "cost": "$118.75",
     "cost_cents": 11875,
+    "cost_basis_cents": 11875,
     "mtm": "+$0.00",
     "target_house_id": 1
 }
@@ -127,6 +128,12 @@ def reseed_default_positions():
 @workspace_router.get("/dashboard", response_class=HTMLResponse)
 def get_dashboard_html():
     return HTMLResponse(content=DASHBOARD_HTML_TEMPLATE)
+
+@workspace_router.post("/api/v1/operator/emergency-stop")
+def trigger_emergency_stop():
+    """Trip the fail-closed execution breaker from the operator cockpit."""
+    return _service.trigger_emergency_stop(actor_id="CHIEF_ADMIN", reason="Dashboard Kill Switch Activated")
+
 
 @workspace_router.get("/api/v1/operator/simulation/benchmark")
 def get_simulation_benchmark():
