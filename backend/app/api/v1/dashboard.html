@@ -14,7 +14,15 @@
     .currency-select { background:#0f172a; color:#e2e8f0; border:1px solid #475569; border-radius:4px; padding:5px 8px; }
     .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
     .header h1 { font-size: 22px; font-weight: bold; color: #f8fafc; }
-    .header-controls { display: flex; gap: 10px; align-items: center; }
+    .header-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .badge-mode { border:1px solid #38bdf8; border-radius:999px; color:#7dd3fc; padding:7px 11px; font-size:12px; font-weight:800; }
+    .btn-kill { background:#991b1b; border:1px solid #ef4444; border-radius:6px; color:#fff; cursor:pointer; font-weight:800; padding:9px 13px; }
+    .qualification-drawer { background:#0f172a; border:1px solid #334155; border-radius:8px; margin-bottom:20px; }
+    .qualification-drawer summary { color:#cbd5e1; cursor:pointer; font-size:12px; font-weight:700; padding:11px 14px; }
+    .qualification-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:8px; padding:0 14px 14px; color:#94a3b8; font-size:12px; }
+    .equity-chart { display:block; width:100%; height:auto; min-height:160px; }
+    .equity-grid { stroke:#263653; stroke-width:1; }
+    .equity-axis { fill:#94a3b8; font:11px ui-monospace,SFMono-Regular,Consolas,monospace; }
     .tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid #1e293b; padding-bottom: 10px; }
     .tab-btn { background: #1e293b; color: #94a3b8; border: 1px solid #334155; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; }
     .tab-btn.active { background: #0284c7; color: #ffffff; border-color: #38bdf8; }
@@ -77,29 +85,8 @@
       </select>
     </label>
   </div>
-  <div class="panel domains"><h2>SOVEREIGN SETTLOR JURISDICTION</h2><p><strong>FOUNDER VETO: ACTIVE</strong></p><p class="muted">IMMUTABLE ARCHITECTURAL INVARIANTS · 87 / 10 / 3 Waterfall</p></div>
-  <div class="panel domains"><h2>Four-domain scanner</h2><div id="scanner" data-bind="scanner.data">NOT AVAILABLE - QUALIFICATION PENDING</div></div>
-  <div hidden aria-hidden="true">
-    <span data-bind="capital.data.total_equity_cents"></span>
-    <span data-bind="capital.data.dry_powder_policy_status"></span>
-    <span data-bind="capital.data.cfcp_balance_cents"></span>
-    <span data-bind="capital.data.faep_balance_cents"></span>
-    <span data-bind="governance.system_halt"></span>
-    <span data-bind="governance.pending_dual_control"></span>
-  </div>
-</section>
-<section id="personal" class="hidden">
-  <div class="toolbar"><strong>Founder / Personal SCMA</strong><button onclick="returnToEntry()">Switch hat</button></div>
-  <div class="metrics">
-    <div class="metric"><b>Principal</b><span data-bind="personal.data.principal_cents">NOT AVAILABLE - QUALIFICATION PENDING</span></div>
-    <div class="metric"><b>Available cash</b><span data-bind="personal.data.unreserved_cash_cents">NOT AVAILABLE - QUALIFICATION PENDING</span></div>
-    <div class="metric"><b>Realized P&amp;L</b><span data-bind="personal.data.realized_pnl_cents">NOT AVAILABLE - QUALIFICATION PENDING</span></div>
-    <div class="metric"><b>Unrealized P&amp;L</b><span data-bind="personal.data.unrealized_pnl_cents">NOT AVAILABLE - QUALIFICATION PENDING</span></div>
-    <div class="metric"><b>Retained reinvestment history</b><span data-bind="personal.data.retained_reinvestment_history_cents">NOT AVAILABLE - QUALIFICATION PENDING</span></div>
-    <div class="metric"><b>Open positions</b><span data-bind="personal.data.open_positions">NOT AVAILABLE - QUALIFICATION PENDING</span></div>
-    <div class="metric"><b>Risk policy</b><span data-bind="personal.data.risk_policy_status">NOT AVAILABLE - QUALIFICATION PENDING</span></div>
-  </div>
-
+  <header class="header"><div><div style="color:#38bdf8;font-size:11px;font-weight:800;letter-spacing:.08em;">SOVEREIGN SETTLOR JURISDICTION</div><h1>Chief Administrator Cockpit</h1><div style="color:#94a3b8;font-size:12px;">FOUNDER VETO: ACTIVE · IMMUTABLE 87 / 10 / 3 WATERFALL</div></div><div class="header-controls"><span class="badge-mode">MODE: PAPER</span><button class="btn-kill" type="button" onclick="confirmKillSwitch()">EMERGENCY KILL SWITCH</button></div></header>
+  <details class="qualification-drawer"><summary>Engine Qualification Telemetry</summary><div class="qualification-grid"><span data-bind="capital.data.total_equity_cents">Lineage equity feed: qualification pending</span><span data-bind="capital.data.dry_powder_policy_status">Dry-powder policy: qualification pending</span><span data-bind="capital.data.cfcp_balance_cents">CFCP feed: qualification pending</span><span data-bind="capital.data.faep_balance_cents">FAEP feed: qualification pending</span><span data-bind="governance.system_halt">System halt: armed</span><span data-bind="governance.pending_dual_control">Dual-control queue: qualification pending</span><span data-bind="personal.data.principal_cents">Principal feed: qualification pending</span><span data-bind="personal.data.unreserved_cash_cents">Available cash feed: qualification pending</span><span>Four-domain scanner: NOT AVAILABLE - QUALIFICATION PENDING</span></div></details>
   <div class="tabs">
     <button id="tab-btn-1" class="tab-btn active" onclick="switchTab(1)">1. Lineage Executive Overview</button>
     <button id="tab-btn-2" class="tab-btn" onclick="switchTab(2)">2. Family Lineal Pools &amp; Sub-Ledgers</button>
@@ -137,7 +124,7 @@
         <div class="card-title" style="color: #38bdf8;">EQUITY COMPOUNDING CURVE (CENTS)</div>
         <div style="color: #64748b; font-size: 11px;">Peak: 510,000¢ | Floor: 500,000¢</div>
       </div>
-      <canvas id="chart-equity" height="65"></canvas>
+      <svg id="chart-equity" class="equity-chart" viewBox="0 0 800 160" role="img" aria-labelledby="equity-title equity-desc"><title id="equity-title">Equity compounding curve</title><desc id="equity-desc">Equity rises smoothly from a four-thousand-dollar floor beyond four thousand two hundred fifty dollars.</desc><defs><linearGradient id="equity-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#38bdf8" stop-opacity=".38"/><stop offset="1" stop-color="#38bdf8" stop-opacity="0"/></linearGradient></defs><g class="equity-grid"><line x1="72" y1="24" x2="780" y2="24"/><line x1="72" y1="66" x2="780" y2="66"/><line x1="72" y1="108" x2="780" y2="108"/><line x1="72" y1="140" x2="780" y2="140"/></g><g class="equity-axis"><text x="4" y="28">425,000¢</text><text x="4" y="70">415,000¢</text><text x="4" y="112">405,000¢</text><text x="4" y="144">400,000¢ floor</text></g><path d="M72 140 C150 136 190 125 260 119 S370 91 435 88 S545 58 610 54 S710 31 780 24 L780 140 L72 140 Z" fill="url(#equity-fill)"/><path d="M72 140 C150 136 190 125 260 119 S370 91 435 88 S545 58 610 54 S710 31 780 24" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linecap="round"/></svg>
     </div>
 
     <div class="card">
@@ -416,32 +403,14 @@
     }
 
     function renderChart() {
-      const ctx = document.getElementById("chart-equity");
-      if (!ctx || typeof Chart === "undefined") return;
-      if (chartInstance) chartInstance.destroy();
+      // Native SVG is rendered with the document; no chart runtime is required.
+    }
 
-      chartInstance = new Chart(ctx, {
-        type: "line",
-        data: {
-          labels: ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00", "24:00"],
-          datasets: [{
-            data: [500000, 501500, 503000, 504800, 507200, 508900, 510000],
-            borderColor: "#38bdf8",
-            backgroundColor: "rgba(56, 189, 248, 0.1)",
-            borderWidth: 2,
-            tension: 0.35,
-            fill: true
-          }]
-        },
-        options: {
-          responsive: true,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { grid: { color: "#1e293b" }, ticks: { color: "#64748b" } },
-            y: { grid: { color: "#1e293b" }, ticks: { color: "#64748b" } }
-          }
-        }
-      });
+    async function confirmKillSwitch() {
+      if (!confirm("Confirm emergency stop? This pauses all new execution.")) return;
+      const response = await fetch("/api/v1/operator/emergency-stop", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({actor_id:"Chief Administrator", reason:"Manual emergency stop"})});
+      const result = await response.json().catch(() => ({}));
+      alert(response.ok ? "Emergency stop activated." : `Emergency stop failed: ${result.detail || response.status}`);
     }
 
     async function loadWorkspaceState() {
@@ -452,6 +421,9 @@
         if (data.houses) renderLineageTree(data.houses);
 
         const positions = data.positions || [];
+        const committedMarginCents = positions.reduce((total, position) => total + Number(position.cost_basis_cents || 0), 0);
+        const committedNode = document.getElementById("fnd-committed");
+        if (committedNode) committedNode.textContent = money(committedMarginCents);
         const posTbody = document.getElementById("pos-tbody");
         if (posTbody) {
           if (positions.length === 0) {
