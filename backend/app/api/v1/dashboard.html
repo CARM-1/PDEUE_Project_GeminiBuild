@@ -35,7 +35,17 @@
     th { border-bottom: 1px solid #334155; text-align: left; padding: 8px; color: #94a3b8; font-size: 12px; }
     td { padding: 8px; border-bottom: 1px solid #1e293b; font-size: 13px; }
     .btn-stage { background: #0284c7; color: #fff; border: 1px solid #38bdf8; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    .btn-settle { background: #10b981; color: #020617; border: 1px solid #34d399; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px; }
+    .btn-settle { background: transparent; color: #a7f3d0; border: 1px solid #10b981; padding: 5px 9px; border-radius: 5px; cursor: pointer; font-weight: 800; font-size: 10px; letter-spacing:.04em; }
+    .positions-table,.ledger-table { width:100%; background:#0f172a; border:1px solid #1e293b; border-collapse:separate; border-spacing:0; font-family:Inter,-apple-system,sans-serif; overflow:hidden; border-radius:7px; }
+    .positions-table thead,.ledger-table thead { background:#1e293b; }
+    .positions-table th,.ledger-table th { padding:10px 12px; border-bottom:1px solid #334155; font-size:10px; letter-spacing:.07em; }
+    .positions-table td,.ledger-table td { padding:10px 12px; border-bottom:1px solid #1e293b; }
+    .positions-table .numeric,.ledger-table .numeric { text-align:right; font-family:SFMono-Regular,Consolas,monospace; font-variant-numeric:tabular-nums; }
+    .positions-table .status-cell,.positions-table .action-cell,.ledger-table .status-cell,.ledger-table .action-cell { text-align:center; }
+    .status-chip { display:inline-flex; align-items:center; gap:6px; border:1px solid; border-radius:999px; padding:3px 8px; font:800 9px SFMono-Regular,Consolas,monospace; letter-spacing:.04em; }
+    .status-chip.resting { color:#67e8f9; border-color:#0891b2; background:rgba(6,182,212,.08); } .status-chip.validated { color:#6ee7b7;border-color:#10b981;background:rgba(16,185,129,.08) } .status-chip.settled{color:#cbd5e1;border-color:#64748b;background:rgba(100,116,139,.1)}
+    .status-dot { width:6px;height:6px;border-radius:50%;background:currentColor;animation:statusPulse 1.7s infinite } @keyframes statusPulse{50%{opacity:.3;box-shadow:0 0 0 4px transparent}}
+    .currency-toggle{display:flex;gap:4px}.curr-btn{background:#0f172a;color:#94a3b8;border:1px solid #334155;border-radius:5px;padding:6px 9px;font-size:10px;font-weight:800;cursor:pointer}.curr-btn.active{color:#e0f2fe;background:#075985;border-color:#38bdf8}
     .copilot-btn { position: fixed; bottom: 20px; right: 20px; background: #0284c7; color: #fff; border: none; border-radius: 20px; padding: 10px 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
 
 
@@ -79,11 +89,7 @@
         <a href="/member" class="hub-btn inactive">Member Desktop (Class M)</a>
       </div>
     </div>
-    <label style="color:#94a3b8;font-size:11px;font-weight:bold;">Currency:
-      <select id="currency-switcher" class="currency-select" onchange="setDisplayCurrency(this.value)">
-        <option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="CNY">CNY (¥)</option><option value="ZAR">ZAR (R)</option><option value="XAU">XAU/Gold (g)</option>
-      </select>
-    </label>
+    <div class="currency-toggle" aria-label="Currency display precision"><button id="currBtnClean" class="curr-btn active" onclick="setCurrencyMode('clean')">$ USD (Clean)</button><button id="currBtnExact" class="curr-btn" onclick="setCurrencyMode('exact')">$ USD.¢¢ (Exact Cents)</button></div>
   </div>
   <header class="header"><div><div style="color:#38bdf8;font-size:11px;font-weight:800;letter-spacing:.08em;">SOVEREIGN SETTLOR JURISDICTION</div><h1>Chief Administrator Cockpit</h1><div style="color:#94a3b8;font-size:12px;">FOUNDER VETO: ACTIVE · IMMUTABLE 87 / 10 / 3 WATERFALL</div></div><div class="header-controls"><span class="badge-mode">MODE: PAPER</span><button class="btn-kill" type="button" onclick="confirmKillSwitch()">EMERGENCY KILL SWITCH</button></div></header>
   <details class="qualification-drawer"><summary>Engine Qualification Telemetry</summary><div class="qualification-grid"><span data-bind="capital.data.total_equity_cents">Lineage equity feed: qualification pending</span><span data-bind="capital.data.dry_powder_policy_status">Dry-powder policy: qualification pending</span><span data-bind="capital.data.cfcp_balance_cents">CFCP feed: qualification pending</span><span data-bind="capital.data.faep_balance_cents">FAEP feed: qualification pending</span><span data-bind="governance.system_halt">System halt: armed</span><span data-bind="governance.pending_dual_control">Dual-control queue: qualification pending</span><span data-bind="personal.data.principal_cents">Principal feed: qualification pending</span><span data-bind="personal.data.unreserved_cash_cents">Available cash feed: qualification pending</span><span>Four-domain scanner: NOT AVAILABLE - QUALIFICATION PENDING</span></div></details>
@@ -104,7 +110,7 @@
       </div>
       <div class="card">
         <div class="card-title">COMMITTED MARGIN</div>
-        <div class="card-value" id="fnd-committed" style="color: #38bdf8;">$0.00</div>
+        <div class="card-value" id="fnd-committed" style="color: #38bdf8;">$118.75</div>
         <div class="card-sub">Active Resting Exposure</div>
       </div>
       <div class="card">
@@ -129,12 +135,12 @@
 
     <div class="card">
       <div class="card-title" style="color: #38bdf8; margin-bottom: 8px;">ACTIVE PORTFOLIO POSITIONS &amp; SETTLEMENT RECONCILIATION</div>
-      <table>
+      <table class="positions-table">
         <thead>
-          <tr><th>CONTRACT</th><th>VENUE</th><th>SIDE</th><th>QTY</th><th>VWAP</th><th>COST</th><th>MTM</th><th>ACTION</th></tr>
+          <tr><th>CONTRACT</th><th>VENUE</th><th>SIDE</th><th class="numeric">QTY</th><th class="numeric">VWAP</th><th class="numeric">COST</th><th class="numeric">MTM / PNL</th><th class="status-cell">STATUS</th><th class="action-cell">ACTION</th></tr>
         </thead>
         <tbody id="pos-tbody">
-          <tr><td colspan="8" style="text-align: center; color: #94a3b8; padding: 15px;">Loading open positions...</td></tr>
+          <tr><td colspan="9" class="status-cell" style="color:#94a3b8;padding:15px">Loading open positions...</td></tr>
         </tbody>
       </table>
     </div>
@@ -427,18 +433,19 @@
         const posTbody = document.getElementById("pos-tbody");
         if (posTbody) {
           if (positions.length === 0) {
-            posTbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:15px;">No active open positions (All Contracts Settled)</td></tr>';
+            posTbody.innerHTML = '<tr><td colspan="9" class="status-cell" style="color:#94a3b8;padding:15px"><span class="status-chip settled">SETTLED</span> No active open positions</td></tr>';
           } else {
             posTbody.innerHTML = positions.map(p => `
               <tr>
                 <td><b>${p.contract || p.contract_id}</b></td>
                 <td>${p.venue}</td>
-                <td style="color:#10b981; font-weight:bold;">${p.side}</td>
-                <td>${Number(p.qty || p.quantity || 0).toLocaleString()}</td>
-                <td>${p.vwap}</td>
-                <td>${p.cost}</td>
-                <td style="color:#10b981;">${p.mtm}</td>
-                <td>
+                <td style="color:#10b981;font-weight:bold">${p.side}</td>
+                <td class="numeric">${Number(p.qty || p.quantity || 0).toLocaleString()}</td>
+                <td class="numeric">${p.vwap}</td>
+                <td class="numeric">${p.cost}</td>
+                <td class="numeric" style="color:#10b981">${p.mtm}</td>
+                <td class="status-cell"><span class="status-chip resting"><i class="status-dot"></i>RESTING_MAKER</span></td>
+                <td class="action-cell">
                   <button class="btn-settle" onclick="openSettleModal('${p.contract || p.contract_id}', ${p.qty || p.quantity || 3958}, '${p.cost || '$118.75'}')">Settle Contract</button>
                 </td>
               </tr>
@@ -469,10 +476,9 @@
       }
     }
 
-    const displayCurrencies = {USD:{factor:1,symbol:'$',digits:2},EUR:{factor:.92,symbol:'€',digits:2},CNY:{factor:7.24,symbol:'¥',digits:2},ZAR:{factor:18.1,symbol:'R',digits:2},XAU:{factor:1/2600,symbol:'',suffix:' g',digits:4}};
-    let displayCurrency = localStorage.getItem('pdeue-display-currency') || 'USD';
-    function money(cents) { const c=displayCurrencies[displayCurrency]; const value=(Number(cents||0)/100)*c.factor; return `${c.symbol}${value.toLocaleString(undefined,{minimumFractionDigits:c.digits,maximumFractionDigits:c.digits})}${c.suffix||''}`; }
-    function setDisplayCurrency(code) { displayCurrency=code; localStorage.setItem('pdeue-display-currency',code); loadWorkspaceState(); document.querySelectorAll('[data-cents]').forEach(el=>el.textContent=money(el.dataset.cents)); }
+    let currencyMode = localStorage.getItem('pdeue_curr_mode') === 'exact' ? 'exact' : 'clean';
+    function money(cents) { return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:currencyMode==='exact'?2:0,maximumFractionDigits:currencyMode==='exact'?2:0}).format(Number(cents||0)/100); }
+    function setCurrencyMode(mode) { currencyMode=mode==='exact'?'exact':'clean'; localStorage.setItem('pdeue_curr_mode',currencyMode); document.getElementById('currBtnClean').classList.toggle('active',currencyMode==='clean'); document.getElementById('currBtnExact').classList.toggle('active',currencyMode==='exact'); loadWorkspaceState(); document.querySelectorAll('[data-cents]').forEach(el=>el.textContent=money(el.dataset.cents)); }
 
     function renderLineageTree(houses) {
       const tree = document.getElementById('lineage-house-tree');
@@ -747,7 +753,7 @@
     }
 
     window.addEventListener("DOMContentLoaded", () => {
-      document.getElementById('currency-switcher').value = displayCurrency;
+      setCurrencyMode(currencyMode);
       renderChart();
       loadWorkspaceState();
       loadGovernanceProposals();

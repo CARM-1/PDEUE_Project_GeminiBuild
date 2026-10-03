@@ -32,6 +32,42 @@ class AICopilotEngine:
         # Advisor-domain explanations formerly lived as shallow HTTP-route
         # mocks.  They remain deterministic here for backwards compatibility,
         # but are now available to every caller of the shared engine.
+        if any(marker in q_str for marker in ("future", "diversification", "markets")):
+            return {
+                "response_text": (
+                    "Project FUTURE begins after the active trading float reaches its $25,000 ceiling. "
+                    "The same underwriting discipline then diversifies through SPAWN 2.0 into deep CME "
+                    "futures and rates, systematic sector equities and ETFs, G10 FX basis, and "
+                    "delta-neutral crypto funding while intraday rotation limits overnight gap risk."
+                ),
+                "unilateral_execution": False,
+                "lineage_context": {"intent": "PROJECT_FUTURE", "model_prob": 0.27},
+                "action_cards": [],
+            }
+        if any(marker in q_str for marker in ("foster", "sponsor")):
+            return {
+                "response_text": (
+                    "Pay-It-Forward Fostering lets a solvent member at the $25,000 float ceiling sponsor "
+                    "an incoming relative by transferring seed capital directly from protected swept bank "
+                    "cash. The sponsor becomes the new member's F1 Peer Mentor; lineage and custodial "
+                    "governance still apply."
+                ),
+                "unilateral_execution": False,
+                "lineage_context": {"intent": "MEMBER_FOSTERING", "model_prob": 0.27},
+                "action_cards": [],
+            }
+        if "monthly" in q_str or "after 25k" in q_str or "after $25k" in q_str:
+            return {
+                "response_text": (
+                    "After the active float reaches $25,000, it remains intact while excess personal net "
+                    "profits sweep off-venue. The modeled steady-state cash run rate is approximately "
+                    "$7,800–$11,300 per month, with swept cash earning 4.5% APY."
+                ),
+                "unilateral_execution": False,
+                "lineage_context": {"intent": "POST_CAP_CASH_ENGINE", "model_prob": 0.27},
+                "action_cards": [],
+            }
+
         if "withdrawal" in q_str or "distribution" in q_str:
             return {
                 "response_text": (
