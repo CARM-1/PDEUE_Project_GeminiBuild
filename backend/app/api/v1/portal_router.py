@@ -578,6 +578,26 @@ def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str
     parent_house_quarantined = (
         (lineage_member["parent_house_status"] if lineage_member else "ACTIVE") == "QUARANTINED"
     )
+    is_frozen = quarantined or parent_house_quarantined
+    if is_frozen:
+        # A governance halt is an absolute zero-basis-point clamp, not the
+        # ordinary member governor's 50-bps lower bound.
+        risk_dial_pct = 0.0
+
+    # Member visualizations are transported exclusively as integer cents / basis
+    # points (ADR-008).  These deterministic defaults keep an unseeded desktop
+    # useful without implying that the educational examples are live orders.
+    reserve_floor_cents = cash_cents * 40 // 100
+    trajectory_points = [
+        {"milestone": "Seed Capital", "date": "2026-01-15", "balance_cents": 100_000, "yield_increment_cents": 0},
+        {"milestone": "First Settlement", "date": "2026-03-02", "balance_cents": 128_400, "yield_increment_cents": 2_400},
+        {"milestone": "40% Shield", "date": "2026-05-18", "balance_cents": 176_250, "yield_increment_cents": 7_850},
+        {"milestone": "High-Watermark Sweep", "date": "2026-09-30", "balance_cents": max(cash_cents, 235_000), "yield_increment_cents": 13_500},
+    ]
+    settled_contracts = [
+        {"contract_id": "KX-MIA-FRZ", "title": "NOAA Miami Temperature", "settled_at": "2026-09-28", "outcome": "SETTLED / WON", "gross_win_cents": 18_400, "scma_cents": 16_008, "family_shield_cents": 1_840, "platform_ops_cents": 552},
+        {"contract_id": "KX-CPI-PRINT", "title": "CPI Inflation Print", "settled_at": "2026-09-16", "outcome": "SETTLED / WON", "gross_win_cents": 12_000, "scma_cents": 10_440, "family_shield_cents": 1_200, "platform_ops_cents": 360},
+    ]
 
     return {
         "user_id": target["user_id"],
@@ -600,7 +620,20 @@ def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str
         "swept_cash_cents": swept_cash_cents,
         "passive_yield_cents": passive_yield_cents,
         "quarantined": quarantined,
+        "is_frozen": is_frozen,
         "parent_house_quarantined": parent_house_quarantined,
+        "allocation": {
+            "cap_cents": 2_500_000,
+            "active_float_cents": active_float_cents,
+            "active_utilization_bps": min(active_float_cents * 10_000 // 2_500_000, 10_000),
+            "reserve_floor_cents": reserve_floor_cents,
+            "reserve_floor_bps": 4_000,
+            "swept_reserve_cents": swept_cash_cents,
+            "earned_yield_cents": passive_yield_cents,
+            "apy_bps": 450,
+        },
+        "trajectory_points": trajectory_points,
+        "recent_settled_contracts": settled_contracts,
         "is_custodial": target["is_custodial"],
         "custodian_id": target["custodian_id"],
         "positions": [
@@ -631,6 +664,16 @@ def get_member_telemetry(scma_id: str) -> Dict[str, Any]:
 def update_current_member_risk_dial(req: RiskUpdateRequest):
     """Apply the member HUD's 50–200 bps, downward-only governor."""
     scma_id = req.scma_id or "SCMA-ELEANOR_-B2B31C9E"
+    portal_account = next(
+        (account for house in LINEAGE_DATA.values() for account in house["accounts"]
+         if account["scma_id"] == scma_id or account["user_id"] == scma_id),
+        None,
+    )
+    if portal_account and portal_account.get("is_custodial"):
+        raise HTTPException(
+            status_code=403,
+            detail="Custodial accounts require F2-H Head of Household authorization",
+        )
     try:
         member = _lineage_service.get_member_state(scma_id)
     except ValueError as err:
@@ -695,7 +738,7 @@ def update_member_risk_dial(scma_id: str, req: RiskUpdateRequest):
     if target["is_custodial"]:
         raise HTTPException(
             status_code=403,
-            detail=f"Custodial Account: Risk adjustments locked. Governed by custodian {target['custodian_id']}."
+            detail="Custodial accounts require F2-H Head of Household authorization",
         )
 
     val = req.requested_risk_pct

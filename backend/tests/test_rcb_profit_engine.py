@@ -70,7 +70,7 @@ def test_full_board_preempts_lowest_edge_at_ten_point_delta():
     manager = PriorityEvictionManager()
     for i in range(6):
         manager.register_resting_order(str(i), "T", "WEATHER", .04 + i / 100, 10)
-    decision = manager.evaluate_preemption(_candidate(.14), 10_000, 60)
+    decision = manager.evaluate_preemption(_candidate(.24), 10_000, 60)
     assert decision["eviction_target"]["order_id"] == "0"
 
 

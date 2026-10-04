@@ -36,8 +36,8 @@ class TokenBucket:
 class VenueRateLimiter:
     def __init__(self, default_rates: Optional[Dict[str, Dict[str, float]]] = None):
         configs = default_rates or {
-            'KALSHI': {'rate': 10.0, 'capacity': 15.0},
-            'POLYMARKET': {'rate': 20.0, 'capacity': 30.0}
+            'KALSHI': {'rate': 10.0, 'capacity': 10.0},
+            'POLYMARKET': {'rate': 10.0, 'capacity': 10.0}
         }
         self.buckets: Dict[str, TokenBucket] = {
             v.upper(): TokenBucket(c['rate'], c['capacity'])

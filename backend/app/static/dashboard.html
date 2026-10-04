@@ -66,6 +66,8 @@
     .revoke-orders { background: #7f1d1d; color: #fecaca; border: 1px solid #ef4444; }
     .lineage-status { display: none; margin-bottom: 12px; padding: 10px 14px; border: 1px solid #10b981; background: rgba(16,185,129,.1); color: #a7f3d0; border-radius: 6px; }
     .copilot-card { background:#020617; border:1px solid #334155; border-radius:7px; padding:10px; margin:8px 0; }
+    .copilot-clear-btn { background:#0f172a; color:#38BDF8; border:1px solid #64748B; border-radius:4px; padding:8px 12px; font-weight:700; cursor:pointer; }
+    .copilot-clear-btn:hover, .copilot-clear-btn:focus-visible { border-color:#38BDF8; background:#1e293b; }
     .copilot-card-label { color:#38bdf8; font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; margin-bottom:5px; }
     .telemetry-badge { display:inline-block; background:#172554; border:1px solid #3b82f6; border-radius:12px; padding:3px 7px; margin:2px; font-size:11px; }
     .info-tip { position:relative; display:inline-block; color:#38bdf8; cursor:help; font-size:14px; }
@@ -128,7 +130,26 @@
     <div class="card" style="margin-bottom: 20px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
         <div class="card-title" style="color: #38bdf8;">EQUITY COMPOUNDING CURVE (CENTS)</div>
-        <div style="color: #64748b; font-size: 11px;">Peak: 510,000¢ | Floor: 500,000¢</div>
+        <div style="color: #64748b; font-size: 11px;">Peak: 425,000¢ | Floor: 400,000¢</div>
+      </div>
+      <div class="chart-shell">
+        <svg id="chart-equity" viewBox="0 0 800 160" role="img" aria-labelledby="equity-chart-title equity-chart-desc" preserveAspectRatio="xMidYMid meet">
+          <title id="equity-chart-title">Equity compounding curve</title>
+          <desc id="equity-chart-desc">Equity rises from a 400,000 cent floor to a 425,000 cent peak.</desc>
+          <defs>
+            <linearGradient id="equity-area-gradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.42"/>
+              <stop offset="100%" stop-color="#38bdf8" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <g aria-hidden="true">
+            <line class="chart-grid" x1="58" y1="24" x2="770" y2="24"/><line class="chart-grid" x1="58" y1="66" x2="770" y2="66"/><line class="chart-grid" x1="58" y1="108" x2="770" y2="108"/><line class="chart-grid" x1="58" y1="136" x2="770" y2="136"/>
+            <path d="M58 136 C120 132 145 122 198 124 S282 104 326 108 S404 78 454 84 S540 58 590 62 S676 34 770 24 L770 136 L58 136 Z" fill="url(#equity-area-gradient)"/>
+            <path d="M58 136 C120 132 145 122 198 124 S282 104 326 108 S404 78 454 84 S540 58 590 62 S676 34 770 24" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="58" cy="136" r="4" fill="#38bdf8"/><circle cx="770" cy="24" r="4" fill="#38bdf8"/>
+            <text class="chart-label" x="58" y="153">FLOOR 400,000¢</text><text class="chart-label" x="770" y="16" text-anchor="end">PEAK 425,000¢</text>
+          </g>
+        </svg>
       </div>
       <svg id="chart-equity" class="equity-chart" viewBox="0 0 800 160" role="img" aria-labelledby="equity-title equity-desc"><title id="equity-title">Equity compounding curve</title><desc id="equity-desc">Equity rises smoothly from a four-thousand-dollar floor beyond four thousand two hundred fifty dollars.</desc><defs><linearGradient id="equity-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#38bdf8" stop-opacity=".38"/><stop offset="1" stop-color="#38bdf8" stop-opacity="0"/></linearGradient></defs><g class="equity-grid"><line x1="72" y1="24" x2="780" y2="24"/><line x1="72" y1="66" x2="780" y2="66"/><line x1="72" y1="108" x2="780" y2="108"/><line x1="72" y1="140" x2="780" y2="140"/></g><g class="equity-axis"><text x="4" y="28">425,000¢</text><text x="4" y="70">415,000¢</text><text x="4" y="112">405,000¢</text><text x="4" y="144">400,000¢ floor</text></g><path d="M72 140 C150 136 190 125 260 119 S370 91 435 88 S545 58 610 54 S710 31 780 24 L780 140 L72 140 Z" fill="url(#equity-fill)"/><path d="M72 140 C150 136 190 125 260 119 S370 91 435 88 S545 58 610 54 S710 31 780 24" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linecap="round"/></svg>
     </div>
@@ -502,7 +523,7 @@
           </button>
           <div class="subaccount-panel" ${openHouseIds.has(String(house.house_id)) || (isInitialRender && index === 0) ? '' : 'hidden'}>
             <table><thead><tr><th>SCMA ID</th><th>MEMBER NAME</th><th>ROLE / TAG</th><th>CURRENT BALANCE</th><th>RISK DIAL</th><th>RESTING MAKER ORDERS</th><th>ACTIONS</th></tr></thead>
-            <tbody>${house.members.map(member => `<tr data-scma="${member.scma_id}" data-baseline="${member.baseline_risk_dial || .01}"><td class="house-code">${member.scma_id}</td><td><a href="/member?scma=${member.scma_id}" style="color:#38bdf8;text-decoration:underline;">${member.name}</a></td><td>${member.role_tag || 'Lineal Member'}</td><td>${money(member.cash_cents)}</td><td class="risk-value">${(Number(member.risk_dial) * 100).toFixed(1)}%</td><td class="order-value">${(member.open_orders || []).length}</td><td>${member.scma_id === 'SCMA-FOUNDER_-C8575D7E' || member.role_tag === 'Sovereign Settlor' ? '<span style="background:#1e293b;border:1px solid #38bdf8;color:#38bdf8;padding:4px 8px;border-radius:4px;font-weight:bold;font-size:11px;">🛡️ Sovereign Immune</span>' : `<button class="lineage-action freeze-risk" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'freeze-risk', this)">⚡ Freeze Risk</button> <button class="lineage-action restore-risk" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'restore-risk', this)">↺ Restore Risk</button> <button class="lineage-action revoke-orders" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'cancel-orders', this)">✕ Revoke Orders</button>`}</td></tr>`).join('')}</tbody></table>
+            <tbody>${house.members.map(member => `<tr data-scma="${member.scma_id}" data-baseline="${member.baseline_risk_dial || .01}"><td class="house-code">${member.scma_id}</td><td><a href="/member?scma_id=${member.scma_id}" style="color:#38bdf8;text-decoration:underline;">${member.name}</a></td><td>${member.role_tag || 'Lineal Member'}</td><td>${money(member.cash_cents)}</td><td class="risk-value">${(Number(member.risk_dial) * 100).toFixed(1)}%</td><td class="order-value">${(member.open_orders || []).length}</td><td>${member.scma_id === 'SCMA-FOUNDER_-C8575D7E' || member.role_tag === 'Sovereign Settlor' ? '<span style="background:#1e293b;border:1px solid #38bdf8;color:#38bdf8;padding:4px 8px;border-radius:4px;font-weight:bold;font-size:11px;">🛡️ Sovereign Immune</span>' : `<button class="lineage-action freeze-risk" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'freeze-risk', this)">⚡ Freeze Risk</button> <button class="lineage-action restore-risk" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'restore-risk', this)">↺ Restore Risk</button> <button class="lineage-action revoke-orders" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'cancel-orders', this)">✕ Revoke Orders</button>`}</td></tr>`).join('')}</tbody></table>
           </div>
         </section>`).join('');
     }
@@ -765,10 +786,11 @@
   <button id="stage2-copilot-toggle" type="button" aria-controls="stage2-copilot-drawer" aria-expanded="false" onclick="toggleStage2Copilot()" style="position:fixed;right:20px;bottom:20px;z-index:10001;background:#0284c7;color:white;border:0;border-radius:22px;padding:10px 16px;font-weight:700;cursor:pointer;">AI Copilot</button>
   <aside id="stage2-copilot-drawer" aria-label="AI Copilot" hidden style="position:fixed;right:20px;bottom:72px;z-index:10000;width:min(470px,calc(100vw - 40px));background:#0f172a;border:1px solid #38bdf8;border-radius:8px;padding:16px;box-shadow:0 12px 30px rgba(0,0,0,.55);">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><strong>AI Copilot</strong><button type="button" onclick="toggleStage2Copilot()" aria-label="Close Copilot">Close</button></div>
-    <div id="stage2-copilot-output" role="status" aria-live="polite" style="min-height:54px;color:#cbd5e1;font-size:13px;margin-bottom:10px;">Ask for role-scoped guidance. Proposed actions still require approval.</div>
+    <div id="stage2-copilot-output" role="status" aria-live="polite" style="min-height:54px;color:#cbd5e1;font-size:13px;margin-bottom:10px;">PDEUE Governance Copilot online. Ask a question regarding risk envelopes, settlement mechanics, or decision packets.</div>
     <form onsubmit="submitStage2Copilot(event)" style="display:flex;gap:8px;">
       <input id="stage2-copilot-prompt" aria-label="Copilot prompt" required maxlength="8000" style="min-width:0;flex:1;padding:8px;background:#020617;color:white;border:1px solid #475569;border-radius:4px;" placeholder="Ask Copilot...">
       <button type="submit" style="padding:8px 12px;background:#38bdf8;border:0;border-radius:4px;font-weight:700;">Send</button>
+      <button id="clearCopilotBtn" type="button" class="copilot-clear-btn" aria-label="Clear current conversation and reset prompt" onclick="clearCopilotChat()">Clear answer</button>
     </form>
   </aside>
   <script>
@@ -779,6 +801,12 @@
       drawer.hidden = !drawer.hidden;
       button.setAttribute('aria-expanded', String(!drawer.hidden));
       if (!drawer.hidden) document.getElementById('stage2-copilot-prompt').focus();
+    }
+    function clearCopilotChat() {
+      const prompt = document.getElementById('stage2-copilot-prompt');
+      document.getElementById('stage2-copilot-output').textContent = 'PDEUE Governance Copilot online. Ask a question regarding risk envelopes, settlement mechanics, or decision packets.';
+      prompt.value = '';
+      prompt.focus();
     }
     function escapeCopilot(value) {
       const node = document.createElement('span'); node.textContent = String(value ?? ''); return node.innerHTML;

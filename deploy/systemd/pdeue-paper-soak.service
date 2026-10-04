@@ -1,0 +1,31 @@
+[Unit]
+Description=PDEUE Milestone 15 unattended paper soak daemon
+After=local-fs.target network.target
+
+[Service]
+Type=simple
+User=pdeue
+Group=pdeue
+WorkingDirectory=/opt/pdeue/backend
+Environment="PDEUE_SOAK_MODE=continuous-paper"
+Environment="PDEUE_VENUE_MODE=paper"
+Environment="PDEUE_CREDENTIAL_BROKER=ephemeral-memory"
+Environment="PDEUE_CREDENTIAL_LEASE_TTL_SECONDS=300"
+EnvironmentFile=-/etc/pdeue/paper-soak.env
+ExecStart=/opt/pdeue/venv/bin/python -m scripts.paper_soak_runner --mode ${PDEUE_SOAK_MODE} --venue-mode ${PDEUE_VENUE_MODE} --max-concurrent-orders 12 --output /var/lib/pdeue-paper-soak/health_summary.json
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+KillSignal=SIGTERM
+StandardOutput=journal
+StandardError=journal
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/pdeue-paper-soak
+LimitNOFILE=128
+MemoryMax=256M
+
+[Install]
+WantedBy=multi-user.target

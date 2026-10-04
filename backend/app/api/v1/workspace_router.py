@@ -203,6 +203,7 @@ def stage_order(payload: Dict[str, Any]):
         "vwap": f"{int(market_price * 100):.1f}¢",
         "cost": f"${committed_cents / 100.0:,.2f}",
         "cost_cents": committed_cents,
+        "cost_basis_cents": committed_cents,
         "mtm": "+$0.00",
         "target_house_id": house_id,
         "risk_envelope": {"allocated_stake_cents": committed_cents, "sizing_rule": "Quarter-Kelly (0.25 f*)"}

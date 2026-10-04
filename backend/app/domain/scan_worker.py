@@ -3,8 +3,11 @@ PDEUE Autonomous Scan Worker Domain Engine
 Provides venue polling, multi-house allocation, priority eviction preemption,
 and fail-closed execution gating.
 """
+import asyncio
+import os
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
+import httpx
 from app.adapters.kalshi_adapter import KalshiVenueAdapter
 from app.adapters.polymarket_adapter import PolymarketVenueAdapter
 from app.domain.priority_eviction import PriorityEvictionManager
@@ -13,12 +16,20 @@ from app.domain.capital_ledger import CapitalLedger
 from app.domain.position_book import PositionBook
 from app.domain.sweep_daemon import FloatSweepMonitor
 from app.domain.daemon_loop import AutonomousExecutionLoop
+from app.clients.kalshi_client import KalshiClient
+from app.clients.polymarket_client import PolymarketClient
+from app.services.credential_broker import CredentialBroker
 
 
 class AutonomousScanWorker:
     """Autonomous market scanner and dispatch orchestrator."""
 
     def __init__(self, *args, **kwargs):
+        self.execution_mode = str(
+            kwargs.get("execution_mode", os.getenv("VENUE_EXECUTION_MODE", "SIMULATION"))
+        ).upper()
+        if self.execution_mode not in {"SIMULATION", "TESTNET_SANDBOX", "PAPER"}:
+            raise ValueError("VENUE_EXECUTION_MODE must be SIMULATION, TESTNET_SANDBOX, or PAPER")
         self.circuit_breaker = kwargs.get("circuit_breaker")
         self.interval_seconds = kwargs.get("interval_seconds", 5.0)
         self.poll_interval_seconds = self.interval_seconds
@@ -30,8 +41,18 @@ class AutonomousScanWorker:
         self.position_book = kwargs.get("position_book") or PositionBook()
         self.accounting_gateway = kwargs.get("accounting_gateway") or AccountingGateway()
         self.float_sweep_monitor = kwargs.get("float_sweep_monitor") or FloatSweepMonitor()
-        self.kalshi_client = KalshiVenueAdapter()
-        self.poly_client = PolymarketVenueAdapter()
+        self.credential_broker = kwargs.get("credential_broker") or CredentialBroker()
+        if self.execution_mode == "TESTNET_SANDBOX":
+            tenant_id = kwargs.get("tenant_id", "DEFAULT")
+            self.kalshi_client = kwargs.get("kalshi_client") or KalshiClient(
+                self.credential_broker, tenant_id
+            )
+            self.poly_client = kwargs.get("polymarket_client") or PolymarketClient(
+                self.credential_broker, tenant_id
+            )
+        else:
+            self.kalshi_client = kwargs.get("kalshi_client") or KalshiVenueAdapter()
+            self.poly_client = kwargs.get("polymarket_client") or PolymarketVenueAdapter()
         self.is_running = False
         self.status = "IDLE"
         self.cycle_count = 0
@@ -89,7 +110,7 @@ class AutonomousScanWorker:
         return {
             "active_slots": len(self.eviction_manager.resting_orders) + len(self.eviction_manager.filled_orders),
             "slot_capacity": 12,
-            "dry_powder_floor_cents": max(4_000, (equity_cents * 40 + 99) // 100),
+            "dry_powder_floor_cents": max(4_000, (equity_cents * 40) // 100),
             "merged_shares_count": merged_shares_count,
             "staged_sweeps_count": staged_sweeps_count,
         }
@@ -191,6 +212,24 @@ class AutonomousScanWorker:
             })
         daemon_result = self.execution_loop.run_cycle(canonical_feed)
         dispatched_orders = daemon_result["dispatched_orders"]
+        venue_results = []
+        if self.execution_mode == "TESTNET_SANDBOX":
+            async def submit_orders() -> list[dict[str, Any]]:
+                results = []
+                for order in dispatched_orders:
+                    venue = str(order.get("venue", "KALSHI")).upper()
+                    try:
+                        if venue == "POLYMARKET":
+                            result = await self.poly_client.create_order(order)
+                        else:
+                            result = await self.kalshi_client.place_order(order)
+                        results.append({"venue": venue, "result": result})
+                    except (KeyError, OSError, TimeoutError, TypeError, ValueError, httpx.HTTPError) as exc:
+                        results.append({"venue": venue, "status": "REJECTED", "reason": type(exc).__name__})
+                return results
+
+            # ``run_single_cycle`` is intentionally synchronous for daemon compatibility.
+            venue_results = asyncio.run(submit_orders())
         dispatched_count = daemon_result["dispatched_count"]
         self.total_dispatched_count += dispatched_count
         self.stats["total_orders_dispatched"] += dispatched_count
@@ -216,6 +255,8 @@ class AutonomousScanWorker:
             "contracts_scanned": contracts_count,
             "dispatched_count": dispatched_count,
             "dispatched_orders": dispatched_orders,
+            "venue_execution_mode": self.execution_mode,
+            "venue_results": venue_results,
             "opportunities": self.latest_opportunities,
             "total_dispatched": self.total_dispatched_count,
             "timestamp": now_iso,
@@ -230,6 +271,7 @@ class AutonomousScanWorker:
         return {
             "worker": "AutonomousScanWorker",
             "status": "NOMINAL",
+            "venue_execution_mode": self.execution_mode,
             "cycle_number": self.cycle_count,
             "cycle": self.cycle_count,
             "is_running": self.is_running,
