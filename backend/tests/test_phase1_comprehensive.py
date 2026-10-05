@@ -60,7 +60,7 @@ def test_tech_tier_adaptation_and_redaction():
 def test_scoped_assistants():
     r_m = client.post("/api/v1/portal/member/ai-tutor", json={"query": "Explain compounding"})
     assert r_m.status_code == 200
-    assert "snowball" in r_m.json()["response"]
+    assert "87% stays in your private SCMA" in r_m.json()["response"]
 
     r_f = client.post("/api/v1/portal/advisor/copilot", json={"query": "Explain trade rationale"})
     assert r_f.status_code == 200

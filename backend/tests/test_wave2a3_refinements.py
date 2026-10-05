@@ -48,7 +48,7 @@ def test_ai_copilot_returns_deep_novice_explanation():
     engine = AICopilotEngine()
     response = engine.process_query("Explain the 87/10/3 waterfall simply for a novice")
     text = response["response_text"]
-    assert all(term in text for term in ("87%", "SCMA", "10%", "CFCP", "3%", "FAEP"))
-    assert "snowball" in text
-    assert len(text.split(". ")) >= 5
+    assert all(term in text for term in ("87%", "SCMA", "10%", "FSAP", "3%", "Stewardship"))
+    assert "never from member pockets" in text
+    assert "never deducted on losing trades" in text
     assert response["lineage_context"]["audience"] == "NOVICE"

@@ -130,9 +130,9 @@ def get_dashboard_html():
     return HTMLResponse(content=DASHBOARD_HTML_TEMPLATE)
 
 @workspace_router.post("/api/v1/operator/emergency-stop")
-def emergency_stop(payload: Dict[str, Any] | None = None):
-    """Trip the operator circuit breaker after institutional confirmation."""
-    return _service.trigger_emergency_stop(actor_id=(payload or {}).get("actor_id", "CHIEF_ADMIN"))
+def trigger_emergency_stop():
+    """Trip the fail-closed execution breaker from the operator cockpit."""
+    return _service.trigger_emergency_stop(actor_id="CHIEF_ADMIN", reason="Dashboard Kill Switch Activated")
 
 
 @workspace_router.get("/api/v1/operator/simulation/benchmark")

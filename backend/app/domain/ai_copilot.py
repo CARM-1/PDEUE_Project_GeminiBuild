@@ -32,6 +32,42 @@ class AICopilotEngine:
         # Advisor-domain explanations formerly lived as shallow HTTP-route
         # mocks.  They remain deterministic here for backwards compatibility,
         # but are now available to every caller of the shared engine.
+        if any(marker in q_str for marker in ("future", "diversification", "markets")):
+            return {
+                "response_text": (
+                    "Project FUTURE begins after the active trading float reaches its $25,000 ceiling. "
+                    "The same underwriting discipline then diversifies through SPAWN 2.0 into deep CME "
+                    "futures and rates, systematic sector equities and ETFs, G10 FX basis, and "
+                    "delta-neutral crypto funding while intraday rotation limits overnight gap risk."
+                ),
+                "unilateral_execution": False,
+                "lineage_context": {"intent": "PROJECT_FUTURE", "model_prob": 0.27},
+                "action_cards": [],
+            }
+        if any(marker in q_str for marker in ("foster", "sponsor")):
+            return {
+                "response_text": (
+                    "Pay-It-Forward Fostering lets a solvent member at the $25,000 float ceiling sponsor "
+                    "an incoming relative by transferring seed capital directly from protected swept bank "
+                    "cash. The sponsor becomes the new member's F1 Peer Mentor; lineage and custodial "
+                    "governance still apply."
+                ),
+                "unilateral_execution": False,
+                "lineage_context": {"intent": "MEMBER_FOSTERING", "model_prob": 0.27},
+                "action_cards": [],
+            }
+        if "monthly" in q_str or "after 25k" in q_str or "after $25k" in q_str:
+            return {
+                "response_text": (
+                    "After the active float reaches $25,000, it remains intact while excess personal net "
+                    "profits sweep off-venue. The modeled steady-state cash run rate is approximately "
+                    "$7,800–$11,300 per month, with swept cash earning 4.5% APY."
+                ),
+                "unilateral_execution": False,
+                "lineage_context": {"intent": "POST_CAP_CASH_ENGINE", "model_prob": 0.27},
+                "action_cards": [],
+            }
+
         if "withdrawal" in q_str or "distribution" in q_str:
             return {
                 "response_text": (
@@ -60,14 +96,47 @@ class AICopilotEngine:
         # deterministic and gives novices a useful mental model, not jargon.
         educational_response = None
         concept = None
-        if "87/10/3" in q_str or ("waterfall" in q_str and "explain" in q_str):
+        if not any(marker in q_str for marker in ("audit", "risk")) and any(
+            marker in q_str
+            for marker in (
+                "87/10/3",
+                "waterfall",
+                "simply",
+                "snowball",
+                "compound",
+                "family treasury",
+                "familial treasury",
+            )
+        ):
             concept = "WATERFALL_STEWARDSHIP"
             educational_response = (
-                "The 87/10/3 waterfall is a rule for dividing each realized gain into three purposeful buckets. "
-                "The largest share, 87%, stays in the private SCMA so the member's capital can compound and build on prior gains. "
-                "Another 10% goes to the CFCP family safety shield, a shared reserve intended to strengthen family resilience when support is needed. "
-                "The final 3% goes to the FAEP endowment pool, which supports long-term education and opportunity across generations. "
-                "Together, the split balances personal growth, near-term family protection, and lasting stewardship."
+                "The 87/10/3 waterfall divides each net realized gain into three purposeful buckets: "
+                "87% stays in your private SCMA to compound your balance; 10% routes to the "
+                "Familial Common Treasury to build our shared investment pool, debt relief "
+                "facility (FSAP), and emergency shield; and 3% supports Platform Infrastructure "
+                "& Stewardship to cover cloud servers and live data feeds. Stewardship is funded "
+                "strictly from net profits—never from member pockets—and is never deducted on "
+                "losing trades."
+            )
+        elif any(marker in q_str for marker in ("children", "minors", "custodial")):
+            concept = "CUSTODIAL_GOVERNANCE"
+            educational_response = (
+                "Every member of the lineage—including children and minors—can hold an "
+                "independent SCMA pre-funded with gifted seed capital. Because federal "
+                "regulations prohibit minors from holding exchange accounts directly, all "
+                "trades route through our family trust, while internal sub-ledgers track "
+                "personal equity. Minor accounts are managed under custodial supervision "
+                "(is_custodial: true), where parents set conservative risk bounds and "
+                "co-sign all withdrawals."
+            )
+        elif "pay it forward" in q_str or "fsap" in q_str:
+            concept = "FAMILIAL_STABILITY_ADVANCE_POOL"
+            educational_response = (
+                "Our family uses the Familial Stability Advance Pool (FSAP) to extinguish "
+                "predatory debt for relatives in need. Repayment occurs gradually through "
+                "automated profit sweeps without disrupting trading velocity. As accounts "
+                "reach maturity, members have the opportunity to pay it forward by sponsoring "
+                "seed accounts for the next generation."
             )
         elif "quarter-kelly" in q_str or "quarter kelly" in q_str:
             concept = "QUARTER_KELLY_SIZING"
@@ -88,13 +157,6 @@ class AICopilotEngine:
 
         if educational_response is not None:
             novice = any(marker in q_str for marker in ("novice", "simply", "explain like i'm 5", "explain like i’m 5"))
-            if novice:
-                analogy = (
-                    "Think of it like dividing snow from a growing snowball into three baskets: most makes your own snowball larger, some builds a family safety wall, and a little saves snow for future learners."
-                    if concept == "WATERFALL_STEWARDSHIP"
-                    else "Think of it like a speed governor on a learner's bicycle: it deliberately limits speed so one wobble does not cause a devastating crash."
-                )
-                educational_response = f"{analogy} {educational_response}"
             return {
                 "response_text": educational_response,
                 "unilateral_execution": False,

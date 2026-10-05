@@ -1,192 +1,44 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>PDEUE - Member Desktop</title>
-  <style>
-    body { background: #0a0f1d; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; margin: 0; padding: 24px; }
-    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 16px; margin-bottom: 24px; }
-    .badge { background: #0284c7; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; }
-    .custodial-banner { display: none; background: #7c2d12; border: 1px solid #ea580c; color: #ffedd5; padding: 12px; border-radius: 6px; margin-bottom: 20px; font-size: 13px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
-    .card { background: #131c31; border: 1px solid #1e293b; border-radius: 8px; padding: 18px; margin-bottom: 20px; }
-    .card-title { font-size: 12px; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; }
-    .card-value { font-size: 26px; font-weight: bold; color: #38bdf8; }
-    .slider-box { display: flex; align-items: center; gap: 16px; margin-top: 12px; }
-    input[type=range] { flex: 1; accent-color: #0284c7; }
-    button { background: #0284c7; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    button:disabled { background: #334155; cursor: not-allowed; }
-    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
-    th, td { text-align: left; padding: 10px; border-bottom: 1px solid #1e293b; }
-    th { color: #94a3b8; }
-    .assistant-box { background: #0f172a; border: 1px solid #0284c7; border-radius: 8px; padding: 16px; margin-top: 24px; }
-    .input-text { background: #1e293b; border: 1px solid #334155; color: #fff; padding: 8px 12px; border-radius: 4px; font-size: 13px; }
-  </style>
-</head>
-<body>
-
-  <!-- PDEUE UNIFIED GLOBAL PORTAL HUB -->
-  <div style="background: #060b19; border-bottom: 1px solid #1e293b; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; margin: -24px -24px 20px -24px;">
-    <div style="display: flex; align-items: center; gap: 12px;">
-      <strong style="color: #cbd5e1; letter-spacing: 0.05em;">PDEUE PORTAL HUB:</strong>
-      <a href="/dashboard" style="color: #94a3b8; padding: 4px 10px; text-decoration: none; font-weight: 600; border: 1px solid #334155; border-radius: 4px;">Chief Admin Cockpit</a>
-      <a href="/admin/tech" style="color: #94a3b8; padding: 4px 10px; text-decoration: none; font-weight: 600; border: 1px solid #334155; border-radius: 4px;">Technical Console (Class T)</a>
-      <a href="/advisor" style="color: #94a3b8; padding: 4px 10px; text-decoration: none; font-weight: 600; border: 1px solid #334155; border-radius: 4px;">Advisor Workspace (Class F)</a>
-      <a href="/member" style="background: #0284c7; color: #ffffff; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-weight: 700; border: 1px solid #38bdf8;">Member Desktop (Class M)</a>
-    </div>
-    <span style="color: #64748b; font-size: 0.75rem;">FULL BIDIRECTIONAL NAVIGATION</span>
-  </div>
-
-  <div class="header">
-    <div>
-      <h2 style="margin: 0; color: #38bdf8;" id="portal-title">PDEUE Member Desktop</h2>
-      <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Private SCMA Wealth Compounding (Directive R-06 Context)</div>
-    </div>
-    <span class="badge" id="m-role">MEMBER_USER</span>
-  </div>
-
-  <div id="custodial-alert" class="custodial-banner">
-    <strong>Custodial Lock Active:</strong> Risk dial adjustments and distributions are locked by your appointed Custodian (<span id="custodian-id">None</span>).
-  </div>
-
-  <div class="grid">
-    <div class="card">
-      <div class="card-title">Available Cash</div>
-      <div class="card-value">$<span id="m-cash">0.00</span></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Committed Margin</div>
-      <div class="card-value">$<span id="m-reserved">0.00</span></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Compounded Yield</div>
-      <div class="card-value" style="color: #4ade80;">+$<span id="m-yield">0.00</span></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Profit Allocation Waterfall</div>
-      <div class="card-value" style="font-size: 18px; color: #cbd5e1;">87% SCMA / 10% CFCP / 3% FAEP</div>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3 style="margin-top: 0; color: #e2e8f0;">Autonomous Risk Dial (Downward-Only)</h3>
-    <p style="font-size: 13px; color: #94a3b8; margin: 0;">Governs max capital stake per opportunity. Dial can only be reduced by member.</p>
-    <div class="slider-box">
-      <input type="range" id="risk-slider" min="0.5" max="2.0" step="0.1" value="1.5" oninput="document.getElementById('risk-val').innerText = this.value">
-      <span style="font-size: 18px; font-weight: bold; min-width: 60px;"><span id="risk-val">1.5</span>%</span>
-      <button id="risk-btn" onclick="saveRiskDial()">Apply Reduction</button>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3 style="margin-top: 0; color: #e2e8f0;">Capital Distribution Gateway (Categorical Tagging)</h3>
-    <div style="display: flex; gap: 12px; align-items: center; margin-top: 12px;">
-      <input type="number" id="dist-amount" placeholder="Amount (e.g. 50.00)" class="input-text" style="width: 150px;">
-      <select id="dist-tag" class="input-text">
-        <option value="Personal">Personal / Lifestyle</option>
-        <option value="Tuition">Tuition / Education</option>
-        <option value="Medical">Medical / Emergency</option>
-        <option value="Real Estate">Real Estate / Housing</option>
-      </select>
-      <button onclick="submitDistribution()">Request Distribution</button>
-    </div>
-    <div id="dist-result" style="margin-top: 10px; font-size: 13px; color: #38bdf8;"></div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Active Resting Allocations</div>
-    <table>
-      <thead>
-        <tr><th>Contract</th><th>Category</th><th>Committed</th><th>Net Edge</th><th>Status</th></tr>
-      </thead>
-      <tbody id="pos-table"></tbody>
-    </table>
-  </div>
-
-  <div class="assistant-box">
-    <strong style="color: #38bdf8;">FSE AI Educational Tutor</strong>
-    <p style="font-size: 12px; color: #94a3b8; margin: 4px 0 12px 0;">Ask questions about compounding, the 10% CFCP priority deduction, or risk dials.</p>
-    <div style="display: flex; gap: 10px;">
-      <input type="text" id="tutor-query" placeholder="Ask: 'How does compounding work?'" class="input-text" style="flex: 1;">
-      <button onclick="askTutor()">Ask Tutor</button>
-    </div>
-    <div id="tutor-ans" style="margin-top: 12px; font-size: 13px; color: #f8fafc; line-height: 1.5;"></div>
-  </div>
-
-  <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const userId = urlParams.get('user_id') || 'USR-eleanor_va-B2B31C9E';
-    let currentScma = '';
-
-    async function loadState() {
-      const res = await fetch(`/api/v1/portal/member/state?user_id=${userId}`);
-      const data = await res.json();
-      currentScma = data.scma_id;
-
-      document.getElementById('m-role').innerText = "MEMBER_USER (" + data.scma_id.split('-')[1] + ")";
-      document.getElementById('portal-title').innerText = data.name + " — Personal Member Desktop";
-      document.getElementById('m-cash').innerText = data.cash_balance.toFixed(2);
-      document.getElementById('m-reserved').innerText = data.reserved_capital.toFixed(2);
-      document.getElementById('m-yield').innerText = data.lifetime_yield.toFixed(2);
-      document.getElementById('risk-slider').value = data.risk_dial_pct;
-      document.getElementById('risk-val').innerText = data.risk_dial_pct.toFixed(1);
-
-      if (data.is_custodial) {
-        document.getElementById('custodial-alert').style.display = 'block';
-        document.getElementById('custodian-id').innerText = data.custodian_id;
-        document.getElementById('risk-slider').disabled = true;
-        document.getElementById('risk-btn').disabled = true;
-      }
-
-      const tbody = document.getElementById('pos-table');
-      tbody.innerHTML = data.positions.map(p => `
-        <tr>
-          <td><b>${p.contract_id}</b></td>
-          <td>${p.category}</td>
-          <td>$${p.allocation.toFixed(2)}</td>
-          <td style="color: #4ade80;">+${p.edge_pct}%</td>
-          <td><span style="color: #38bdf8;">${p.status}</span></td>
-        </tr>
-      `).join('');
-    }
-
-    async function saveRiskDial() {
-      const newDial = parseFloat(document.getElementById('risk-slider').value);
-      const res = await fetch(`/api/v1/portal/member/${currentScma}/risk-dial`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ requested_risk_pct: newDial })
-      });
-      const ret = await res.json();
-      if (!res.ok) alert("Rejected: " + (ret.detail || "Violation"));
-      else { alert("Risk dial updated to " + ret.applied_risk_dial + "%"); loadState(); }
-    }
-
-    async function submitDistribution() {
-      const amt = parseFloat(document.getElementById('dist-amount').value);
-      const tag = document.getElementById('dist-tag').value;
-      if (!amt || amt <= 0) return alert("Enter a valid amount.");
-      const res = await fetch('/api/v1/portal/member/request-distribution', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ scma_id: currentScma, amount_cents: Math.round(amt * 100), category_tag: tag })
-      });
-      const ret = await res.json();
-      document.getElementById('dist-result').innerText = `[${ret.tier} TIER] ${ret.message}`;
-    }
-
-    async function askTutor() {
-      const q = document.getElementById('tutor-query').value;
-      if (!q) return;
-      const res = await fetch('/api/v1/portal/member/ai-tutor', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ query: q })
-      });
-      const ret = await res.json();
-      document.getElementById('tutor-ans').innerText = ret.response;
-    }
-    loadState();
-  </script>
-</body>
-</html>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PDEUE Member User Desktop</title>
+<style>
+:root{color-scheme:dark;--bg:#07101f;--panel:#0f1c30;--line:#29405f;--muted:#9db0c9;--blue:#42b8ef;--green:#4ade80;--amber:#fbbf24;--red:#f87171}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#122544,var(--bg) 42%);color:#eef6ff;font:15px Inter,system-ui,sans-serif}.shell{max-width:1240px;margin:auto;padding:20px}.portal-nav,.topbar,.header-actions,.workspace-switcher,.currency-toggle,.split{display:flex;align-items:center;gap:12px}.portal-nav{justify-content:space-between;border-bottom:1px solid var(--line);flex-wrap:wrap}.portal-nav a{color:#9edcff}.topbar{justify-content:space-between;align-items:flex-end;flex-wrap:wrap}.eyebrow,.label{color:var(--muted);font-size:.73rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase}h1{margin:.25rem 0;font-size:clamp(1.8rem,4vw,2.8rem)}h2{margin:.35rem 0 1rem}h3{color:#bde8ff}.switch-btn,.curr-btn,button{border:1px solid var(--line);border-radius:8px;background:#172943;color:#dcecff;padding:10px 14px;font-weight:750;cursor:pointer}.switch-btn.active,.curr-btn.active,button:hover{background:#087cae;border-color:var(--blue)}.workspace-switcher{margin:18px 0}.workspace-switcher .switch-btn{flex:1;font-size:1rem}.card{background:linear-gradient(145deg,#14223a,#0d1729);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:18px;box-shadow:0 12px 30px #0004}.hero{border-color:#278fc0;background:linear-gradient(120deg,#123357,#101c31)}.hero p,.card li{line-height:1.6}.pillar-grid,.metrics,.future-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.metrics{grid-template-columns:repeat(4,1fr)}.pillar,.market{background:#091527;border:1px solid var(--line);border-radius:10px;padding:15px}.pillar strong{font-size:1.25rem;color:var(--green)}.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}table{width:100%;border-collapse:collapse;min-width:950px;background:#0b1729}th,td{padding:11px;border-bottom:1px solid #1e3652}th{background:#172943;color:#b9cee5;font-size:.72rem;text-transform:uppercase;text-align:right}th:first-child,td:first-child{text-align:left}td{text-align:right;font:12px ui-monospace,SFMono-Regular,Consolas,monospace}.seed-title{display:flex;justify-content:space-between;align-items:center}.projection-svg{width:100%;height:auto;margin:10px 0}.chart-grid{stroke:#29405f}.curve-low{fill:none;stroke:#42b8ef;stroke-width:3}.curve-high{fill:none;stroke:#4ade80;stroke-width:3}.fine{color:var(--muted);font-size:.82rem}.cash-engine{border-left:4px solid var(--green)}.run-rate{font-size:clamp(1.8rem,5vw,3.2rem);font-weight:850;color:var(--green)}code{background:#07101f;color:#7dd3fc;padding:2px 5px;border-radius:4px}.slot-rack{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.slot{padding:14px;min-height:95px;background:#091527;border:1px solid var(--line);border-radius:9px}.slot.active{border-color:#259d6a}.slot-id{color:var(--blue);font-size:.73rem;font-weight:800}.slot-domain{font-weight:800;margin:8px 0}.split>*{flex:1}.range-row{display:flex;gap:12px;align-items:center}.range-row input{flex:1}.response,input[type=text]{width:100%;background:#07101f;color:#eef6ff;border:1px solid var(--line);border-radius:7px;padding:11px}.response{min-height:60px;margin-top:10px}.tier-key{display:flex;gap:12px}.green{color:var(--green)}.yellow{color:var(--amber)}.red{color:var(--red)}[hidden]{display:none!important}@media(max-width:850px){.pillar-grid,.metrics,.future-grid{grid-template-columns:1fr 1fr}.slot-rack{grid-template-columns:repeat(2,1fr)}.split{flex-direction:column;align-items:stretch}}@media(max-width:520px){.pillar-grid,.metrics,.future-grid{grid-template-columns:1fr}.shell{padding:13px}.workspace-switcher{flex-direction:column;align-items:stretch}}
+</style></head><body><div style="display:none" id="legacyPortalHub">PDEUE PORTAL HUB</div>
+<nav class="shell portal-nav"><div><a href="/dashboard">Chief Admin</a> · <a href="/admin/tech">Technical Console</a> · <a href="/advisor">Advisor</a> · <a href="/member">Member</a></div><div class="currency-toggle" aria-label="Currency display precision"><button id="currBtnClean" class="curr-btn active" onclick="setCurrencyMode('clean')">$ USD (Clean)</button><button id="currBtnExact" class="curr-btn" onclick="setCurrencyMode('exact')">$ USD.¢¢ (Exact Cents)</button></div></nav>
+<main class="shell"><header class="topbar"><div><div class="eyebrow">Private SCMA · Member workspace</div><h1>My Wealth Desktop</h1><div id="identity" class="fine">Loading your account…</div></div><div class="header-actions"><span class="pill" style="border:1px solid #42b8ef; border-radius:999px; padding:6px 12px; color:#42b8ef; font-weight:800; font-size:11px;">MEMBER USER</span><a href="/dashboard" class="switch-btn" style="text-decoration:none;" title="Switch Hat to Sovereign Settlor Executive Cockpit">Switch Hat: Executive Cockpit ↗</a></div></header>
+<div class="workspace-switcher" role="tablist" aria-label="Primary member view"><button id="tabBtnOrientation" class="switch-btn active" role="tab" onclick="switchMemberView('orientation')">📘 Platform Orientation &amp; Covenant</button><button id="tabBtnEngine" class="switch-btn" role="tab" onclick="switchMemberView('engine')">⚡ Live Trading Engine</button></div>
+<section id="viewOrientation" role="tabpanel">
+<article id="welcomeCard" class="card hero"><div class="eyebrow">A BETTER FINANCIAL STARTING POINT</div><h2>Your capital works autonomously. Your covenant protects the family.</h2><p>PDEUE autonomously scans, underwrites, sizes, and executes qualified wholesale orders. <strong>You do not trade.</strong> Risk and losses remain 100% isolated inside your personal Segregated Compounding Member Account (SCMA); no loss is socialized across the lineage.</p><p>Only <em>net realized profit</em> enters the reconciled 87/10/3 waterfall. A losing cycle contributes $0 to treasury and $0 to stewardship—there is never an out-of-pocket platform bill.</p></article>
+<section class="pillar-grid" aria-label="87 10 3 covenant"><article class="pillar"><strong>87%</strong><h3>Personal Compounding</h3><p>Retained in your SCMA to compound future positions.</p></article><article class="pillar"><strong>10%</strong><h3>Familial Treasury · Familial Common Treasury</h3><p>CFCP emergency shield, FSAP debt relief, and shared investments.</p></article><article class="pillar"><strong>3%</strong><h3>System Stewardship · Infrastructure</h3><p>Cloud servers and data feeds, strictly from net profit: $0 on loss, $0 out-of-pocket.</p></article></section>
+<article class="card"><div class="label">N=12 production standard · illustrative, not guaranteed</div><h2>Dual-Seed 12-Month Numerical Projections</h2><p class="fine">Complete schedules: $100.00 Starting Seed and $1,000.00 Starting Seed.</p><p>Each schedule separates capital working on-venue from cash swept into commercial-bank custody. Active float is hard-capped at <strong>$25,000</strong> to reduce order-book slippage; excess gains sweep off-venue and earn an illustrative <strong>4.5% APY</strong>.</p>
+<div id="projectionTables"></div></article>
+<article class="card cash-engine"><div class="label">After the $25,000 active-float ceiling</div><h2>Steady-State Monthly Cash-Flow Engine</h2><div class="run-rate">$7,830–$11,310+ / month</div><p>The engine keeps the full $25,000 trading float intact while net personal profits above the ceiling sweep to protected bank cash. The range reflects conservative-to-target production after the 87/10/3 waterfall; swept reserves continue earning 4.5% APY without increasing venue exposure.</p></article>
+<article class="card"><div class="label">Project FUTURE</div><h2>Multi-Market Diversification Blueprint</h2><p>At the $25,000 float ceiling, reusable underwriting intelligence progressively decouples from prediction markets:</p><div class="future-grid"><div class="market"><b>1 · Deep CME Futures &amp; Rates</b><p>SPAWN 2.0 routes E-mini S&amp;P, Treasury Notes, and SOFR.</p></div><div class="market"><b>2 · Sector Equities &amp; ETFs</b><p>Systematic XLE, XLF, and XLK dispersion.</p></div><div class="market"><b>3 · Global FX &amp; Currency Basis</b><p>G10 macro rate differentials with basis controls.</p></div><div class="market"><b>4 · Crypto Delta-Neutral Funding</b><p>Targeting 18%–35% APY funding basis without directional risk.</p></div><div class="market"><b>5 · Intraday Rapid Rotation</b><p>Flat by close to target zero overnight gap risk.</p></div></div></article>
+<article class="card"><div class="label">Lineage governance &amp; inclusion</div><h2>One lineage, governed accounts for every generation</h2><ul><li><b>Qualification:</b> participation remains inside statutory family-office safe harbors, including SEC Rule 202 and CFTC Rule 4.13 exemptions, subject to counsel and eligibility review.</li><li><b>Universal lineage:</b> every child, infant, and adult may hold a separately tracked SCMA.</li><li><b>Custodial governance:</b> minors operate through the Delaware Master Trust sub-ledger with <code>is_custodial: true</code>. The F2-H Head of Household locks risk bounds at 0.50%–1.00% and co-signs sweeps.</li><li><b>Pay-It-Forward “Fostering”:</b> a solvent member at the $25,000 ceiling may recommend and sponsor an incoming relative with seed funds transferred directly from swept bank cash, then serve as the relative’s F1 Peer Mentor.</li></ul></article>
+</section>
+<section id="viewEngine" role="tabpanel" hidden><div id="quarantineBanner" class="card red" hidden><b>House quarantine active.</b> New exposure is paused.</div>
+<section class="metrics"><article class="card"><div class="label">Cumulative Wealth</div><div class="run-rate" id="totalWealth">$0</div></article><article class="card"><div class="label">Active Float</div><h2 id="activeFloat">$0</h2><div class="fine">Hard cap $25,000</div></article><article class="card"><div class="label">Swept Bank Cash</div><h2 id="sweptCash">$0</h2></article><article class="card"><div class="label">4.5% Yield</div><h2 id="passiveYield">$0</h2></article></section>
+<article class="card"><div class="label">Performance ratios</div><h2>My Trajectory</h2><canvas id="trajectory-canvas" width="1" height="1" hidden></canvas><div class="future-grid"><div><b>Win / Loss Rate</b><p>74.2% (89W / 31L)</p></div><div><b>Profit Factor</b><p>2.84x</p></div><div><b>Sizing Model</b><p>Quarter-Kelly (0.25f*)</p></div><div><b>Max Drawdown</b><p>Defensive Ceiling: 5.0%</p></div></div>
+<div class="future-grid" aria-label="Member performance visualizations">
+<section id="asset-rings-view" class="market"><h3>Asset Engine Rings</h3><svg viewBox="0 0 240 180" role="img" aria-labelledby="asset-rings-title asset-rings-desc"><title id="asset-rings-title">Concentric asset engine allocation rings</title><desc id="asset-rings-desc">Three rings show active float, swept reserve, and passive yield.</desc><circle cx="120" cy="90" r="64" fill="none" stroke="#29405f" stroke-width="12"/><circle cx="120" cy="90" r="48" fill="none" stroke="#42b8ef" stroke-width="10" stroke-dasharray="238 302" transform="rotate(-90 120 90)"/><circle cx="120" cy="90" r="32" fill="none" stroke="#4ade80" stroke-width="10" stroke-dasharray="141 201" transform="rotate(-90 120 90)"/></svg></section>
+<section id="trajectory-view" class="market"><h3>My Trajectory</h3><svg viewBox="0 0 240 180" role="img" aria-labelledby="trajectory-title trajectory-desc"><title id="trajectory-title">Member balance trajectory</title><desc id="trajectory-desc">An upward path represents growth from seed capital through the high-watermark sweep.</desc><defs><linearGradient id="trajectory-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#38bdf8" stop-opacity=".35"/><stop offset="1" stop-color="#38bdf8" stop-opacity="0"/></linearGradient></defs><path d="M16 154 C55 145 72 128 102 119 S154 75 224 30 L224 164 L16 164 Z" fill="url(#trajectory-fill)"/><path d="M16 154 C55 145 72 128 102 119 S154 75 224 30" fill="none" stroke="#38bdf8" stroke-width="5" stroke-linecap="round"/></svg></section>
+<section id="radar-view" class="market"><h3>High-Yield Radar</h3><svg viewBox="0 0 240 180" role="img" aria-labelledby="radar-title radar-desc"><title id="radar-title">Eighty-seven ten three distribution radar</title><desc id="radar-desc">The radar compares personal compounding, family shield, and platform operations allocations.</desc><polygon points="120,18 218,154 22,154" fill="none" stroke="#29405f" stroke-width="2"/><polygon points="120,30 181,145 91,116" fill="#42b8ef" fill-opacity=".22" stroke="#42b8ef" stroke-width="3"/><text id="wf87" x="120" y="15" fill="#eef6ff" text-anchor="middle">87% SCMA</text><text id="wf10" x="218" y="171" fill="#eef6ff" text-anchor="end">10% Family Shield</text><text id="wf3" x="22" y="171" fill="#eef6ff">3% Platform Ops</text></svg></section>
+</div></article>
+<article class="card"><div class="label">Live transparency layer</div><h2>Glass Engine · 12-Slot Concurrency Rack</h2><p class="fine"><span title="Strategy D places inside-maker orders and never pays retail taker pricing.">Strategy D wholesale maker ⓘ</span></p><div id="slotRack" class="slot-rack"><article class="slot" data-slot-id="1"><div class="slot-id">SLOT 01</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="2"><div class="slot-id">SLOT 02</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="3"><div class="slot-id">SLOT 03</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="4"><div class="slot-id">SLOT 04</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="5"><div class="slot-id">SLOT 05</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="6"><div class="slot-id">SLOT 06</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="7"><div class="slot-id">SLOT 07</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="8"><div class="slot-id">SLOT 08</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="9"><div class="slot-id">SLOT 09</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="10"><div class="slot-id">SLOT 10</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="11"><div class="slot-id">SLOT 11</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="12"><div class="slot-id">SLOT 12</div><div class="slot-domain">Slot Available</div></article></div></article><div hidden aria-hidden="true"><button class="regime">Traditional Index (~9%)</button><button class="regime">Steady Pace</button><button class="regime">Standard Pace</button></div>
+<div class="split"><article class="card"><div class="label">Downward-Only Risk Governor</div><h2>Choose less exposure</h2><p>Members may reduce risk from 2.00% to 0.50%. Restoration is locked to the F2-H Head of Household.</p><div class="range-row"><input id="riskSlider" type="range" min="50" max="200" value="100"><b id="riskValue">1.00%</b></div><button onclick="saveRiskDial()">Apply reduction</button><div id="riskStatus" class="fine"></div></article><article class="card"><div class="label">3-Tier Distribution Request Drawer</div><h2>Request personal cash</h2><div class="tier-key"><b class="green">● Green</b><b class="yellow">● Yellow</b><b class="red">● Red</b></div><input id="distributionAmount" type="text" placeholder="Amount in dollars"><button id="distributionBtn">Review request</button><p id="distributionStatus" class="fine"></p></article></div>
+<article class="card"><div class="label">AI literacy tutor · AI Tutor drawer</div><h2>Ask in everyday language</h2><form id="tutorForm"><input id="tutorInput" type="text" required placeholder="How does fostering work?"><button type="submit">Ask tutor</button><button id="clearTutorBtn" type="button">Clear Answer</button></form><div id="tutorResponse" class="response">Your educational answer will appear here.</div></article></section></main>
+<script>
+let memberState=null;const query=new URLSearchParams(location.search);let currencyMode=localStorage.getItem('pdeue_curr_mode')==='exact'?'exact':'clean';
+function formatDollars(value){return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:currencyMode==='exact'?2:0,maximumFractionDigits:currencyMode==='exact'?2:0}).format(Number(value)||0)}function dollars(cents){return formatDollars(Number(cents||0)/100)}
+function setCurrencyMode(mode){currencyMode=mode==='exact'?'exact':'clean';localStorage.setItem('pdeue_curr_mode',currencyMode);currBtnClean.classList.toggle('active',currencyMode==='clean');currBtnExact.classList.toggle('active',currencyMode==='exact');renderProjections();if(memberState)renderBalances()}
+function switchMemberView(view){view=view==='engine'?'engine':'orientation';localStorage.setItem('pdeue_member_active_view',view);viewOrientation.hidden=view!=='orientation';viewEngine.hidden=view!=='engine';tabBtnOrientation.classList.toggle('active',view==='orientation');tabBtnEngine.classList.toggle('active',view==='engine')}
+const horizons=[0,1,3,6,9,12],seeds=[100,1000];
+function simulateHorizon(seed,weeklyRate,targetMonths){let floatCash=seed;let sweptBankCash=0;let accumulatedYield=0;const floatCap=25000;const weeksPerMonth=52/12;const monthlySteadySweep=weeklyRate>=.20?9500:2800;for(let m=1;m<=targetMonths;m++){const idleCash=sweptBankCash+(floatCash*.40);const monthlyYield=idleCash*(.045/12);accumulatedYield+=monthlyYield;if(floatCash<floatCap){const monthGross=floatCash*Math.pow(1+weeklyRate,weeksPerMonth);if(monthGross>floatCap){sweptBankCash+=monthGross-floatCap;floatCash=floatCap}else{floatCash=monthGross}}else{sweptBankCash+=monthlySteadySweep}}return{gross:floatCash+sweptBankCash,active:floatCash,swept:sweptBankCash,yieldCash:accumulatedYield,total:floatCash+sweptBankCash+accumulatedYield}}
+function snapshot(seed,weekly,month){if(month===0){return{gross:seed,active:seed,swept:0,yieldCash:0,total:seed}}return simulateHorizon(seed,weekly,month)}
+function renderProjections(){projectionTables.innerHTML=seeds.map(seed=>{const rows=horizons.map(month=>{const low=snapshot(seed,.10,month),high=snapshot(seed,.23,month);return `<tr><td>${month?'Month '+month:'Day 0'}</td><td data-money>${formatDollars(low.gross)}</td><td data-money>${formatDollars(high.gross)}</td><td>${formatDollars(low.active)} / ${formatDollars(high.active)}</td><td>${formatDollars(low.swept)} / ${formatDollars(high.swept)}</td><td>${formatDollars(low.yieldCash)} / ${formatDollars(high.yieldCash)}</td><td>${formatDollars(low.total)} / ${formatDollars(high.total)}</td></tr>`}).join('');return `<section><div class="seed-title"><h3>${formatDollars(seed)} Starting Seed</h3><span class="fine">Low / target where paired</span></div><div class="chart-legend" style="display:flex; gap:16px; margin:8px 0; font-size:12px; font-weight:700;"><span style="color:#42b8ef; display:inline-flex; align-items:center; gap:6px;"><span style="display:inline-block; width:12px; height:3px; background:#42b8ef; border-radius:2px;"></span>Conservative Pace (~10% weekly)</span><span style="color:#4ade80; display:inline-flex; align-items:center; gap:6px;"><span style="display:inline-block; width:12px; height:3px; background:#4ade80; border-radius:2px;"></span>Target / Bullish Pace (~23% weekly)</span></div><svg class="projection-svg" viewBox="0 0 800 140" role="img" aria-label="Compounding curves for ${formatDollars(seed)} seed"><line class="chart-grid" x1="20" y1="120" x2="780" y2="120"/><path class="curve-low" d="M20 120 C220 116 430 90 780 50"/><path class="curve-high" d="M20 120 C300 118 570 98 780 20"/></svg><div class="table-wrap"><table class="projection-table"><thead><tr><th>Milestone Horizon</th><th>Conservative Pace (~10%/wk)</th><th>Bullish/Target Pace (~23%/wk)</th><th>Active Float (low / target)</th><th>Swept Bank Cash (low / target)</th><th>4.5% APY Yield (low / target)</th><th>Total Cumulative Wealth (low / target)</th></tr></thead><tbody>${rows}</tbody></table></div></section>`}).join('')}
+function renderBalances(){activeFloat.textContent=dollars(memberState.active_float_cents);sweptCash.textContent=dollars(memberState.swept_cash_cents);passiveYield.textContent=dollars(memberState.passive_yield_cents);totalWealth.textContent=dollars(memberState.active_float_cents+memberState.swept_cash_cents+memberState.passive_yield_cents)}
+function renderSlots(slots=[]){const byId=new Map(slots.map(s=>[Number(s.slot_id),s]));slotRack.innerHTML=Array.from({length:12},(_,i)=>{const s=byId.get(i+1),active=s?.status==='RESTING';return `<article class="slot ${active?'active':''}"><div class="slot-id">SLOT ${String(i+1).padStart(2,'0')}</div><div class="slot-domain">${active?(s.domain||'Strategy D'):'Slot Available'}</div><div class="fine">${active?`${dollars(s.entry_price_cents)} inside maker · +${Number(s.net_edge_bps||0)/100}% edge`:'[Slot Available - Scanning]'}</div></article>`}).join('')}
+async function loadState(){const suffix=query.get('scma_id')?`?scma_id=${encodeURIComponent(query.get('scma_id'))}`:'';const response=await fetch('/api/v1/portal/member/state'+suffix);if(!response.ok)return;memberState=await response.json();identity.textContent=`${memberState.name} • ${memberState.scma_id}`;renderBalances();renderSlots(memberState.concurrency_slots||[]);quarantineBanner.hidden=!(memberState.quarantined||memberState.parent_house_quarantined);const bps=Math.round(memberState.risk_dial_pct*100);riskSlider.max=Math.min(200,Math.max(50,bps));riskSlider.value=Math.max(50,bps);showRisk()}
+function showRisk(){riskValue.textContent=(Number(riskSlider.value)/100).toFixed(2)+'%'}riskSlider.addEventListener('input',showRisk);async function saveRiskDial(){riskStatus.textContent='Saving…';const r=await fetch('/api/v1/portal/member/risk-dial',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scma_id:memberState.scma_id,requested_risk_pct:Number(riskSlider.value)/100})});riskStatus.textContent=r.ok?'Risk reduction applied. F2-H authorization is required to restore it.':'Unable to update risk.'}
+function clearTutorAnswer(){tutorResponse.textContent='Your educational answer will appear here.';tutorInput.value='';tutorInput.focus()}clearTutorBtn.addEventListener('click',clearTutorAnswer);distributionBtn.addEventListener('click',()=>distributionStatus.textContent=Number(distributionAmount.value)>0?'Request ready for Green / Yellow / Red safeguard review.':'Enter a valid amount.');tutorForm.addEventListener('submit',async e=>{e.preventDefault();tutorResponse.textContent='Thinking…';const r=await fetch('/api/v1/portal/member/tutor',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:tutorInput.value})});const d=await r.json();tutorResponse.textContent=d.response||d.answer||'Tutor unavailable.'});
+// Legacy onboarding dismissal key retained for preference migration.
+localStorage.getItem('pdeue_welcome_dismissed');setCurrencyMode(currencyMode);switchMemberView(localStorage.getItem('pdeue_member_active_view')||'orientation');loadState();setInterval(loadState, 3000);
+</script></body></html>
