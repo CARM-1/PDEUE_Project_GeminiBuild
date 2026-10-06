@@ -76,7 +76,8 @@
     .modal-backdrop { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(4px); z-index: 20000; align-items: center; justify-content: center; }
     .modal-box { background: #111c44; border-radius: 10px; width: 560px; max-width: 90vw; padding: 24px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7); animation: modalIn 0.2s ease-out; }
     @keyframes modalIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
-  </style>
+      .campus-link { color: #f7c967 !important; font-weight: 800; white-space: nowrap; }
+</style>
 </head>
 <body>
 <div style="display:none" id="legacyPortalHub">PDEUE PORTAL HUB</div>
@@ -89,6 +90,7 @@
         <a href="/admin/tech" class="hub-btn inactive">Technical Console (Class T)</a>
         <a href="/advisor" class="hub-btn inactive">Advisor Workspace (Class F)</a>
         <a href="/member" class="hub-btn inactive">Member Desktop (Class M)</a>
+        <a href="/companion" class="nav-link campus-link" id="navCompanionLink">🎓 PDEUE University</a>
       </div>
     </div>
     <div class="currency-toggle" aria-label="Currency display precision"><button id="currBtnClean" class="curr-btn active" onclick="setCurrencyMode('clean')">$ USD (Clean)</button><button id="currBtnExact" class="curr-btn" onclick="setCurrencyMode('exact')">$ USD.¢¢ (Exact Cents)</button></div>

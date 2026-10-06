@@ -136,3 +136,9 @@ If the interface offers a capability contrary to this manual, the restrictive ru
 Before a material decision, be able to say: the correct hat is active; scope and identity are verified; data is current; money is integer cents; proposal and execution are distinguished; domestic co-signature remains F2-H-only; F2-A staging remains nonexecuting; F3 adjudication is independent; VaR, House, and venue concentration were reviewed; R-04 is respected; and ADR-008 and ADR-011 evidence can be audited.
 
 Class F is a system of checks rather than a hierarchy of convenience. Peer education, household protection, lineage advice, and macro-risk supervision remain separate so that no attractive recommendation or urgent request can silently become uncontrolled financial action.
+
+## PDEUE University curriculum alignment (Canonical Lexicon v0.5)
+
+This manual is the field guide for the **School of Fiduciary Stewardship (Class F Lineage Advisors F1–F3)**. The `/companion` campus supplies common demonstrations, but it grants no fiduciary authority. F2-H remains the domestic custodian of the risk lock: members may move risk downward, whereas restoration or any upward request requires explicit F2-H review and cannot exceed the certified 2.00% ceiling. Frozen or quarantined accounts remain at 0.00% until governed restoration.
+
+Supervisory co-signing preserves separation of duties. Under Directive R-15, Red distributions remain time-locked for 24 hours and require two valid F2-H attestations over the same immutable request; F2-A advice and AI explanation cannot substitute for either signature. For **Family Stability Amortization Program (FSAP)** obligations, verify debt identity, principal in integer cents, approved schedule, priority, and household dry-powder floor before each amortization. Post each payment as an auditable exact-cent event; never round away a remainder, accelerate from CFCP without authority, or describe projected debt relief as settled.

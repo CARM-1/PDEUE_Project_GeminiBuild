@@ -110,3 +110,9 @@ Keep these rules visible:
 * Remember that ADR-011 outbox events are signed accounting instructions, not bank transfers.
 
 These constraints make the member portal intentionally calm and limited. Its purpose is to make stewardship understandable while keeping execution, infrastructure, and fiduciary powers with the people and controls certified to exercise them.
+
+## PDEUE University curriculum alignment (Canonical Lexicon v0.5)
+
+This manual is the field guide for the **College of Foundations (Class M — Member Users)**. Open the self-contained campus at `/companion` and complete Chapters 1, 2, and 5 before treating the member workspace as familiar. Chapter 1 demonstrates the **87/10/3 Transaction Profit Waterfall (TPW)** using integer cents: SCMA and FAEP receive their truncated shares and CFCP receives its 10% share plus every residual cent. Chapter 2 rehearses the **Downward-Only Risk Governor**: the member may reduce the dial within 0.50%–2.00%, while any increase requires F2-H approval; quarantine sets it to 0.00%. Chapter 5 teaches the **Directive R-15 Three-Tier Distribution Gateway**: Green is autonomous, Yellow adds AI educational friction, and Red imposes a 24-hour lock and dual F2-H co-signing.
+
+The University is educational, not an authority surface. Simulator outcomes never mutate a ledger, approve a distribution, or restore risk. Complete its self-check, then follow the authenticated workflows in this manual.
