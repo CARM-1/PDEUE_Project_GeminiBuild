@@ -6,13 +6,15 @@ from app.main import app
 from scripts.audit_and_test_pdeue import PORTAL_ROUTES, run_audit
 
 
-def test_member_active_hat_link_is_functional():
+def test_member_active_hat_navigation_is_role_siloed():
     with TestClient(app) as client:
         response = client.get("/member")
 
     assert response.status_code == 200
-    assert 'href="/dashboard"' in response.text
-    assert "Switch Hat: Executive Cockpit" in response.text
+    nav = response.text.split("</nav>", 1)[0]
+    assert "Active Hat: MEMBER_USER" in nav
+    assert 'href="/companion"' in nav
+    assert 'href="/dashboard"' not in response.text
 
 
 def test_all_registered_portals_render_without_template_errors():

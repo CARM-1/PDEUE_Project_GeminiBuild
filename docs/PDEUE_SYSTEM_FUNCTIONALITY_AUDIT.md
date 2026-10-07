@@ -5,7 +5,7 @@
 ## Summary
 
 - Portal routes crawled: **4**
-- Interactive controls discovered: **51**
+- Interactive controls discovered: **44**
 - Dead or placeholder controls: **0**
 - API wires verified: **7/7 passing**
 
@@ -13,19 +13,16 @@
 
 | Route | Tag | Label | Target/Hook | Status | Detail |
 |---|---|---|---|---|---|
-| /member | a | Chief Admin | /dashboard | PASS | Control has a navigable or event-driven target. |
-| /member | a | Technical Console | /admin/tech | PASS | Control has a navigable or event-driven target. |
-| /member | a | Advisor | /advisor | PASS | Control has a navigable or event-driven target. |
-| /member | a | Member | /member | PASS | Control has a navigable or event-driven target. |
+| /member | a | 🎓 PDEUE University | /companion | PASS | Control has a navigable or event-driven target. |
 | /member | button | $ USD (Clean) | setCurrencyMode(&#x27;clean&#x27;) | PASS | Control has a navigable or event-driven target. |
 | /member | button | $ USD.¢¢ (Exact Cents) | setCurrencyMode(&#x27;exact&#x27;) | PASS | Control has a navigable or event-driven target. |
-| /member | a | Switch Hat: Executive Cockpit ↗ | /dashboard | PASS | Control has a navigable or event-driven target. |
 | /member | button | 📘 Platform Orientation &amp; Covenant | switchMemberView(&#x27;orientation&#x27;) | PASS | Control has a navigable or event-driven target. |
 | /member | button | ⚡ Live Trading Engine | switchMemberView(&#x27;engine&#x27;) | PASS | Control has a navigable or event-driven target. |
 | /dashboard | a | Chief Admin Cockpit | /dashboard | PASS | Control has a navigable or event-driven target. |
 | /dashboard | a | Technical Console (Class T) | /admin/tech | PASS | Control has a navigable or event-driven target. |
-| /dashboard | a | Advisor Workspace (Class F) | /advisor | PASS | Control has a navigable or event-driven target. |
+| /dashboard | a | Lineal Advisory (Class F) | /advisor | PASS | Control has a navigable or event-driven target. |
 | /dashboard | a | Member Desktop (Class M) | /member | PASS | Control has a navigable or event-driven target. |
+| /dashboard | a | 🎓 PDEUE University | /companion | PASS | Control has a navigable or event-driven target. |
 | /dashboard | button | $ USD (Clean) | setCurrencyMode(&#x27;clean&#x27;) | PASS | Control has a navigable or event-driven target. |
 | /dashboard | button | $ USD.¢¢ (Exact Cents) | setCurrencyMode(&#x27;exact&#x27;) | PASS | Control has a navigable or event-driven target. |
 | /dashboard | button | EMERGENCY KILL SWITCH | confirmKillSwitch() | WARN | Control invokes a synchronous alert/confirm dialog. |
@@ -42,20 +39,15 @@
 | /dashboard | button | Dismiss | closeSettleModal() | PASS | Control has a navigable or event-driven target. |
 | /dashboard | button | Execute Settlement &amp; Waterfall | executeSettlement() | PASS | Control has a navigable or event-driven target. |
 | /dashboard | button | AI Copilot | toggleStage2Copilot() | PASS | Control has a navigable or event-driven target. |
-| /advisor | a | Chief Admin | /dashboard | PASS | Control has a navigable or event-driven target. |
-| /advisor | a | Technical | /admin/tech | PASS | Control has a navigable or event-driven target. |
-| /advisor | a | Advisor | /advisor | PASS | Control has a navigable or event-driven target. |
-| /advisor | a | Member | /member | PASS | Control has a navigable or event-driven target. |
+| /advisor | a | 🎓 PDEUE University | /companion | PASS | Control has a navigable or event-driven target. |
 | /advisor | button | F1 (Peer Guide) | JavaScript event listener | PASS | Control has a navigable or event-driven target. |
 | /advisor | button | F2-H (Head of Household) | JavaScript event listener | PASS | Control has a navigable or event-driven target. |
 | /advisor | button | F2-A (Lineage Advisor) | JavaScript event listener | PASS | Control has a navigable or event-driven target. |
 | /advisor | button | F3 (CRO) | JavaScript event listener | PASS | Control has a navigable or event-driven target. |
 | /advisor | input | Explain this trade rationale | JavaScript event listener | PASS | Control has a navigable or event-driven target. |
 | /advisor | button | Consult Copilot | JavaScript event listener | PASS | Control has a navigable or event-driven target. |
-| /admin/tech | a | Chief Admin | /dashboard | PASS | Control has a navigable or event-driven target. |
-| /admin/tech | a | Technical | /admin/tech | PASS | Control has a navigable or event-driven target. |
-| /admin/tech | a | Advisor | /advisor | PASS | Control has a navigable or event-driven target. |
-| /admin/tech | a | Member | /member | PASS | Control has a navigable or event-driven target. |
+| /advisor | button | Clear answer | clearAdvisorCopilot() | PASS | Control has a navigable or event-driven target. |
+| /admin/tech | a | 🎓 PDEUE University | /companion | PASS | Control has a navigable or event-driven target. |
 | /admin/tech | button | Authenticate CA Override | JavaScript event listener | PASS | Control has a navigable or event-driven target. |
 | /admin/tech | button | T1 (Monitor) | JavaScript event listener | PASS | Control has a navigable or event-driven target. |
 | /admin/tech | button | T2 (Engineer) | JavaScript event listener | PASS | Control has a navigable or event-driven target. |
@@ -64,15 +56,16 @@
 | /admin/tech | button | Trigger Settlement | JavaScript event listener | PASS | Control has a navigable or event-driven target. |
 | /admin/tech | input | Explain worker latency or rate limits | JavaScript event listener | PASS | Control has a navigable or event-driven target. |
 | /admin/tech | button | Run Diagnostic | JavaScript event listener | PASS | Control has a navigable or event-driven target. |
+| /admin/tech | button | Clear answer | clearTechCopilot() | PASS | Control has a navigable or event-driven target. |
 
 ## API Wire Verification
 
 | Endpoint | Status | Latency | Verdict |
 |---|---:|---:|---|
-| GET /api/v1/portal/member/state?scma_id=SCMA-ELEANOR_-B2B31C9E | 200 | 4.96 ms | PASS |
-| POST /api/v1/portal/member/risk-dial | 200 | 5.34 ms | PASS |
-| POST /api/v1/portal/member/tutor | 200 | 5.53 ms | PASS |
-| GET /api/v1/operator/workspace-state | 200 | 73.18 ms | PASS |
-| GET /api/v1/lineage/governance/proposals | 200 | 4.32 ms | PASS |
-| GET /api/v1/operator/simulation/benchmark | 200 | 7.96 ms | PASS |
-| POST /api/v1/copilot/query | 200 | 3.20 ms | PASS |
+| GET /api/v1/portal/member/state?scma_id=SCMA-ELEANOR_-B2B31C9E | 200 | 7.48 ms | PASS |
+| POST /api/v1/portal/member/risk-dial | 200 | 5.01 ms | PASS |
+| POST /api/v1/portal/member/tutor | 200 | 4.23 ms | PASS |
+| GET /api/v1/operator/workspace-state | 200 | 66.57 ms | PASS |
+| GET /api/v1/lineage/governance/proposals | 200 | 4.80 ms | PASS |
+| GET /api/v1/operator/simulation/benchmark | 200 | 8.15 ms | PASS |
+| POST /api/v1/copilot/query | 200 | 3.52 ms | PASS |

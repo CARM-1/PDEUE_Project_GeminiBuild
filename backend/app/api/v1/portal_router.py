@@ -7,7 +7,7 @@ PDEUE Phase 1 Integrity Remediation Router
 - Directive R-12: Redacted Telemetry Plane on /admin/tech
 """
 from fastapi import APIRouter, Header, HTTPException, Query
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
@@ -426,6 +426,63 @@ def _render_lineage_h1_desk(house: Dict[str, Any]) -> str:
 @router.get("/member", response_class=HTMLResponse)
 def get_member_portal():
     return _load_html("member.html")
+
+
+@router.get("/companion", response_class=HTMLResponse)
+def get_companion_portal():
+    """Serve the offline-first PDEUE University learning campus."""
+    return _load_html("companion.html")
+
+
+@router.get("/api/v1/portal/companion/state")
+def get_companion_state() -> Dict[str, Any]:
+    """Return the versioned curriculum contract used by the campus shell."""
+    chapters = [
+        ("waterfall", "The 87/10/3 Transaction Profit Waterfall", 0),
+        ("risk-governor", "Downward-Only Risk Governor & Safety Envelope", 45),
+        ("segregation", "Ring-Fenced SCMA Sub-Ledger Segregation", 90),
+        ("float-ceiling", "$25k Active Float Ceiling & Post-Cap Compounding", 135),
+        ("distribution", "Directive R-15 Three-Tier Distribution Gateway", 180),
+        ("governance", "Sovereign Governance, Bicameral Voting & Self-Check", 225),
+    ]
+    return {
+        "curriculum": "PDEUE University",
+        "lexicon_version": "0.5",
+        "duration_seconds": 270,
+        "chapters": [
+            {"number": number, "id": slug, "title": title, "cue_seconds": cue}
+            for number, (slug, title, cue) in enumerate(chapters, start=1)
+        ],
+        "audio": {
+            "src": "/static/media/companion/pdeue-university.mp3",
+            "fallback": "silent_timeline",
+            "transcript_cues": [
+                {"start_seconds": cue, "chapter": number, "text": title}
+                for number, (_, title, cue) in enumerate(chapters, start=1)
+            ],
+        },
+        "invariants": {
+            "ADR-008": "Integer cents; SCMA and FAEP truncate and every residual cent routes to CFCP.",
+            "ADR-011": "Sweeps emit signed, sequenced, idempotent accounting outbox envelopes across the air gap.",
+            "risk": "Risk may move downward autonomously; increases require F2-H approval; frozen means 0 bps.",
+            "offline": "Campus scripts, styles, and SVG assets are local and inline; no CDN dependency.",
+        },
+    }
+
+
+@router.get("/api/v1/portal/companion/manual/{manual_name}", response_class=PlainTextResponse)
+def get_companion_manual(manual_name: str) -> PlainTextResponse:
+    """Serve only the four canonical, repository-backed University manuals."""
+    allowed = {
+        "USER_QUICKSTART.md",
+        "CLASS_F_FINANCIAL_MANUAL.md",
+        "CLASS_T_TECHNICAL_MANUAL.md",
+        "CHIEF_ADMIN_RUNBOOK.md",
+    }
+    if manual_name not in allowed:
+        raise HTTPException(status_code=404, detail="Canonical manual not found")
+    manual = pathlib.Path(__file__).resolve().parents[4] / "docs" / "manuals" / manual_name
+    return PlainTextResponse(manual.read_text(encoding="utf-8"), media_type="text/markdown")
 
 @router.get("/advisor", response_class=HTMLResponse)
 def get_advisor_portal():

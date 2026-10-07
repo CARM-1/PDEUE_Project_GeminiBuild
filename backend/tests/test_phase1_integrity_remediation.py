@@ -12,10 +12,12 @@ def test_admin_tech_clean_template():
     assert "$4,350.00" not in res.text
     assert "FOUNDER SCMA POOL" not in res.text
     assert "Trustee Quorum & Fiduciary Invariants" not in res.text
-    # Must contain full navigation hub
-    assert "PDEUE PORTAL HUB" in res.text
-    assert "/dashboard" in res.text
-    assert "/advisor" in res.text
+    # Technical navigation is role-siloed and retains the University route.
+    nav = res.text.split("</nav>", 1)[0]
+    assert "Technical Console (Class T)" in nav
+    assert "/companion" in nav
+    assert "/dashboard" not in nav
+    assert "/advisor" not in nav
 
 def test_dashboard_supervisory_lens_and_lineage_aggregate():
     res = client.get("/dashboard")
