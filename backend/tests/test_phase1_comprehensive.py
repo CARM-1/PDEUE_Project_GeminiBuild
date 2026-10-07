@@ -4,15 +4,20 @@ from app.main import app
 
 client = TestClient(app)
 
-def test_full_bidirectional_navigation_across_all_portals():
-    for route in ["/dashboard", "/admin/tech", "/advisor", "/member"]:
+def test_role_siloed_navigation_across_all_portals():
+    expected = {
+        "/dashboard": ("Chief Admin Cockpit", "Technical Console", "Lineal Advisory", "Member Desktop"),
+        "/admin/tech": ("Technical Console (Class T)",),
+        "/advisor": ("Lineal Advisory &amp; Trusts",),
+        "/member": ("Active Hat: MEMBER_USER",),
+    }
+    for route, labels in expected.items():
         res = client.get(route)
         assert res.status_code == 200
-        assert "PDEUE PORTAL HUB" in res.text
-        assert "/dashboard" in res.text
-        assert "/admin/tech" in res.text
-        assert "/advisor" in res.text
-        assert "/member" in res.text
+        assert all(label in res.text for label in labels)
+        assert "/companion" in res.text
+    assert "/admin/tech" not in client.get("/member").text.split("</nav>", 1)[0]
+    assert "/member" not in client.get("/admin/tech").text.split("</nav>", 1)[0]
 
 def test_three_tier_distribution_gateway():
     res_green = client.post("/api/v1/portal/member/request-distribution", json={
