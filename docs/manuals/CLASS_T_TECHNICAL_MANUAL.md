@@ -122,3 +122,9 @@ Every change needs an owner, review, rollback, qualification evidence, and obser
 At handoff, report tier, release, service state, cycles, reconciliation lag, circuit states, R-04 state, rate-limit anomalies, migration revision, RSS trend, outbox backlog, active secret rotations, active or revoked override grants, incidents, and next owner. Do not include masked values or tokens.
 
 Class T protects the machinery and evidence. It does not own the money. Maintaining that boundary—especially under pressure—is the central technical control.
+
+## PDEUE University curriculum alignment (Canonical Lexicon v0.5)
+
+This manual is the field guide for the **Institute of Systems Engineering (Class T Operators T1–T3)**. Chapter 4 of `/companion` visualizes the boundary but does not emit production instructions. The priority eviction engine is fixed at **N=12** admitted items: deterministic rank and tie-break rules evict the lowest-priority candidate rather than silently expanding capacity. Preserve the candidate evidence and reason code for every eviction.
+
+The **ADR-011 air-gap** permits only signed, sequenced, schema-valid, idempotent accounting envelopes such as IF-038 to cross from the platform to the downstream accounting adapter. It never carries banking credentials and an acknowledgement is not proof of settlement. For SQLite deployments, retain WAL operation with `PRAGMA journal_mode=WAL`, `PRAGMA synchronous=FULL`, a bounded `busy_timeout`, foreign keys enabled, and a single-writer discipline. Monitor and checkpoint the WAL through an approved maintenance path; do not delete `-wal` or `-shm` files from a live database.

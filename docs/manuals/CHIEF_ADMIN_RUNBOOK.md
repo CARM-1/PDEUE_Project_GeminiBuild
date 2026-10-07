@@ -110,3 +110,9 @@ Do not approve your own second-control step, reuse an override token, treat AI p
 Before handoff, attest that the active mode and R-04 state are explicit; all material amounts use reconciled integer cents; outstanding Action Cards identify their AUTH stage; Lineage House items show vote and Settlor status; float and outbox items are accounted for; secrets were not exposed; and the next operator has received a read-only summary through the approved channel. A safe handoff names uncertainty rather than hiding it.
 
 The Apex Authority is strongest when it remains constrained and reproducible. The cockpit supplies breadth, while AUTH-01 through AUTH-04, dual control, ADR-008, ADR-011, R-04, and role separation make every material act explainable after the fact.
+
+## PDEUE University curriculum alignment (Canonical Lexicon v0.5)
+
+This runbook is the field guide for the **Apex School of Sovereign Governance (Executive Chancellor Cockpit)**. The `/companion` campus rehearses the six canonical controls without changing production state. Use it for onboarding and recurrent qualification, never as approval evidence by itself.
+
+Emergency authority remains deliberately split. **Directive R-04** is the financial kill-switch: fail closed, prevent new commitments, preserve evidence, reconcile, and require governed dual-control recovery. A **T3 override** is a narrow, expiring, CA-authorized visibility grant under R-12; it may unmask only the approved diagnostic scope and can neither move funds nor clear R-04. For **mass onboarding**, validate the signed roster, House and role mappings, duplicate identities, SCMA segregation, custodial F2-H assignments, default downward-only ceilings, and exact-cent opening totals in a dry run. Require an independent count-and-digest review, stage bounded batches, reconcile each batch, quarantine exceptions, and retain rollback and audit evidence before activating identities.

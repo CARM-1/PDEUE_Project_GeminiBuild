@@ -76,7 +76,9 @@
     .modal-backdrop { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(4px); z-index: 20000; align-items: center; justify-content: center; }
     .modal-box { background: #111c44; border-radius: 10px; width: 560px; max-width: 90vw; padding: 24px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7); animation: modalIn 0.2s ease-out; }
     @keyframes modalIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
-  </style>
+      .campus-link { color: #f7c967 !important; font-weight: 800; white-space: nowrap; }
+    .table-card { margin-bottom: 32px; display: block; clear: both; overflow-x: auto; }
+</style>
 </head>
 <body>
 <div style="display:none" id="legacyPortalHub">PDEUE PORTAL HUB</div>
@@ -87,8 +89,9 @@
       <div class="hub-links">
         <a href="/dashboard" class="hub-btn active">Chief Admin Cockpit</a>
         <a href="/admin/tech" class="hub-btn inactive">Technical Console (Class T)</a>
-        <a href="/advisor" class="hub-btn inactive">Advisor Workspace (Class F)</a>
+        <a href="/advisor" class="hub-btn inactive">Lineal Advisory (Class F)</a>
         <a href="/member" class="hub-btn inactive">Member Desktop (Class M)</a>
+        <a href="/companion" class="nav-link campus-link" id="navCompanionLink">🎓 PDEUE University</a>
       </div>
     </div>
     <div class="currency-toggle" aria-label="Currency display precision"><button id="currBtnClean" class="curr-btn active" onclick="setCurrencyMode('clean')">$ USD (Clean)</button><button id="currBtnExact" class="curr-btn" onclick="setCurrencyMode('exact')">$ USD.¢¢ (Exact Cents)</button></div>
@@ -156,14 +159,14 @@
 
     <div class="card">
       <div class="card-title" style="color: #38bdf8; margin-bottom: 8px;">ACTIVE PORTFOLIO POSITIONS &amp; SETTLEMENT RECONCILIATION</div>
-      <table class="positions-table">
+      <div class="table-card"><table class="positions-table">
         <thead>
           <tr><th>CONTRACT</th><th>VENUE</th><th>SIDE</th><th class="numeric">QTY</th><th class="numeric">VWAP</th><th class="numeric">COST</th><th class="numeric">MTM / PNL</th><th class="status-cell">STATUS</th><th class="action-cell">ACTION</th></tr>
         </thead>
         <tbody id="pos-tbody">
           <tr><td colspan="9" class="status-cell" style="color:#94a3b8;padding:15px">Loading open positions...</td></tr>
         </tbody>
-      </table>
+      </table></div>
     </div>
   </div>
 
@@ -232,14 +235,14 @@
 
     <div class="card">
       <div class="card-title" style="color: #38bdf8; margin-bottom: 12px;">ACTIVE SCANNER QUEUE &amp; VOLATILITY RADAR</div>
-      <table>
+      <div class="table-card"><table>
         <thead>
           <tr><th>CONTRACT</th><th>VENUE</th><th>LINEAGE</th><th>MODEL PROB</th><th>MARKET PRICE</th><th>NET EDGE</th><th>STATUS</th><th>ACTION</th></tr>
         </thead>
         <tbody id="radar-table-body">
           <tr><td colspan="8" style="text-align: center; color: #94a3b8; padding: 20px;">Scanning prediction venues and public feeds...</td></tr>
         </tbody>
-      </table>
+      </table></div>
     </div>
   </div>
 
@@ -288,14 +291,14 @@
     <!-- PETITION INTAKE & RATIFICATION QUEUE -->
     <div class="card">
       <div class="card-title" style="color: #38bdf8; margin-bottom: 12px;">ACTIVE HOUSE PETITIONS AWAITING SOVEREIGN DETERMINATION</div>
-      <table>
+      <div class="table-card"><table>
         <thead>
           <tr><th>PETITION ID</th><th>PROPOSAL TITLE</th><th>TARGET LINEAGE</th><th>REQUESTED SUM</th><th>HOUSE QUORUM</th><th>PETITION STATUS</th><th>SOVEREIGN ACTIONS</th></tr>
         </thead>
         <tbody id="governance-tbody">
           <tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 15px;">Loading governance petitions...</td></tr>
         </tbody>
-      </table>
+      </table></div>
     </div>
   </div>
 
