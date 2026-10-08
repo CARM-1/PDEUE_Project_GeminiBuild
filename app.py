@@ -73,18 +73,39 @@ def get_ledger_summary():
     cursor = conn.cursor()
     cursor.execute("SELECT scma_id, user_id, cash_cents, reserved_cents, lifetime_profit_cents, risk_dial_pct, max_risk_dial_pct, bank_ref_token, status FROM accounts;")
     accounts = [dict(r) for r in cursor.fetchall()]
+    
     cursor.execute("SELECT * FROM accounting_outbox_events WHERE event_type = 'EMERGENCY_PETITION_STAGED' AND status = 'PENDING_CO_SIGN';")
     petitions = [dict(r) for r in cursor.fetchall()]
+
+    # Query Active Positions (Live Table)
+    cursor.execute("SELECT * FROM positions WHERE status != 'CLOSED';")
+    pos_rows = cursor.fetchall()
+    positions = []
+    for p in pos_rows:
+        positions.append({
+            "contract": p["contract_ticker"], "domain": p["domain"], "venue": p["venue"],
+            "side": p["side"], "qty": p["qty"], "vwap": f"${p['vwap_cents']/100:.2f}",
+            "cost": f"${p['cost_basis_cents']/100:.2f}", "mtm": f"${p['mtm_cents']/100:.2f}",
+            "status": p["status"]
+        })
+
+    # Query Closed Fills for Dynamic Performance Calculations
+    cursor.execute("SELECT COUNT(*), SUM(CASE WHEN is_win = 1 THEN 1 ELSE 0 END), SUM(CASE WHEN pnl_cents > 0 THEN pnl_cents ELSE 0 END), SUM(CASE WHEN pnl_cents < 0 THEN ABS(pnl_cents) ELSE 0 END) FROM fills;")
+    fill_stats = cursor.fetchone()
+    total_trades = fill_stats[0] or 0
+    wins = fill_stats[1] or 0
+    losses = total_trades - wins
+    gross_gains_cents = fill_stats[2] or 0
+    gross_losses_cents = fill_stats[3] or 0
+
+    win_rate_pct = (wins / total_trades * 100) if total_trades > 0 else 0.0
+    profit_factor = (gross_gains_cents / gross_losses_cents) if gross_losses_cents > 0 else (9.99 if gross_gains_cents > 0 else 0.0)
+
     conn.close()
 
     total_cash = sum(a["cash_cents"] for a in accounts)
     total_profit = sum(a["lifetime_profit_cents"] for a in accounts)
     dry_powder = int(total_cash * 0.40)
-
-    sample_positions = [
-        {"contract": "KX-MIA-FRZ-32", "domain": "Weather (NOAA)", "venue": "Kalshi", "side": "BUY_YES", "qty": 45, "vwap": "$0.22", "cost": "$9.90", "mtm": "$11.25", "status": "RESTING_MAKER"},
-        {"contract": "POLY-FED-RATE-01", "domain": "Macro Econ", "venue": "Polymarket", "side": "BUY_NO", "qty": 80, "vwap": "$0.18", "cost": "$14.40", "mtm": "$15.60", "status": "ORC_VALIDATED"}
-    ]
 
     return {
         "system_mode": GLOBAL_STATE["system_mode"],
@@ -95,10 +116,17 @@ def get_ledger_summary():
         "cfcp_meter_cents": int(total_profit * 0.10),
         "faep_meter_cents": int(total_profit * 0.03),
         "accounts": accounts,
-        "positions": sample_positions,
-        "emergency_petitions": petitions
+        "positions": positions,
+        "emergency_petitions": petitions,
+        "performance": {
+            "total_trades": total_trades,
+            "wins": wins,
+            "losses": losses,
+            "win_rate_pct": win_rate_pct,
+            "profit_factor": profit_factor,
+            "max_drawdown_pct": 0.0
+        }
     }
-
 class FreezeReq(BaseModel):
     scma_id: str
 
@@ -315,13 +343,13 @@ DASHBOARD_HTML = """<!DOCTYPE html>
   <div class="grid">
     <div class="card">
       <div class="card-title">Win / Loss Ratio</div>
-      <div class="card-value" style="color: var(--green);">74.2%</div>
-      <div class="card-sub">89 Wins / 31 Losses (Historical)</div>
+      <div class="card-value" id="winRateVal" style="color: var(--green);">0.0%</div>
+      <div class="card-sub" id="winRateSub">Awaiting Initial Fills</div>
     </div>
     <div class="card">
       <div class="card-title">Profit Factor</div>
-      <div class="card-value" style="color: var(--accent);">2.84x</div>
-      <div class="card-sub">Expectancy: +$0.44 / contract</div>
+      <div class="card-value" id="profitFactorVal" style="color: var(--accent);">0.00x</div>
+      <div class="card-sub" id="profitFactorSub">Expectancy: $0.00</div>
     </div>
     <div class="card">
       <div class="card-title">Capital Sizing Model</div>
@@ -440,6 +468,20 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         const data = await res.json();
         
         document.getElementById('sysModeBadge').textContent = data.system_mode;
+        
+        // Dynamic Performance Cards
+        const perf = data.performance;
+        if (perf) {
+          const wrEl = document.getElementById('winRateVal');
+          if (wrEl) wrEl.textContent = perf.total_trades > 0 ? (perf.win_rate_pct.toFixed(1) + '%') : '0.0%';
+          const wrSub = document.getElementById('winRateSub');
+          if (wrSub) wrSub.textContent = perf.total_trades > 0 ? (perf.wins + ' Wins / ' + perf.losses + ' Losses') : 'Awaiting Initial Fills';
+
+          const pfEl = document.getElementById('profitFactorVal');
+          if (pfEl) pfEl.textContent = perf.total_trades > 0 ? (perf.profit_factor.toFixed(2) + 'x') : '0.00x';
+          const pfSub = document.getElementById('profitFactorSub');
+          if (pfSub) pfSub.textContent = perf.total_trades > 0 ? 'Verified Execution' : 'Expectancy: $0.00';
+        }
         document.getElementById('totEquity').textContent = '$' + (data.total_cash_cents / 100).toFixed(2);
         document.getElementById('totCents').textContent = data.total_cash_cents.toLocaleString() + ' exact integer cents';
         document.getElementById('dryFloor').textContent = '$' + (data.dry_powder_cents / 100).toFixed(2);
@@ -449,7 +491,10 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         // Positions table
         const posTbody = document.getElementById('posTable');
         posTbody.innerHTML = '';
-        data.positions.forEach(p => {
+        if (data.positions.length === 0) {
+          posTbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--muted); padding:20px;">No open positions. Inventory flat (Standing by for orders).</td></tr>';
+        } else {
+          data.positions.forEach(p => {
           posTbody.innerHTML += `
             <tr>
               <td style="font-weight:700; color:var(--accent);">${p.contract}</td>
@@ -464,6 +509,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
             </tr>
           `;
         });
+        }
 
         // Roster table
         const rosTbody = document.getElementById('rosterTable');
@@ -621,13 +667,13 @@ MEMBER_HTML = """<!DOCTYPE html>
   <div class="grid">
     <div class="card">
       <div class="card-title">Win / Loss Ratio</div>
-      <div class="card-value" style="color: var(--green);">74.2%</div>
-      <div class="card-sub">89 Wins / 31 Losses (Historical)</div>
+      <div class="card-value" id="winRateVal" style="color: var(--green);">0.0%</div>
+      <div class="card-sub" id="winRateSub">Awaiting Initial Fills</div>
     </div>
     <div class="card">
       <div class="card-title">Profit Factor</div>
-      <div class="card-value" style="color: var(--accent);">2.84x</div>
-      <div class="card-sub">Expectancy: +$0.44 / contract</div>
+      <div class="card-value" id="profitFactorVal" style="color: var(--accent);">0.00x</div>
+      <div class="card-sub" id="profitFactorSub">Expectancy: $0.00</div>
     </div>
     <div class="card">
       <div class="card-title">Sizing Model</div>
