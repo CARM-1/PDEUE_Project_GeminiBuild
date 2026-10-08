@@ -289,6 +289,13 @@ def get_ledger_summary():
     total_profit = sum(a["lifetime_profit_cents"] for a in accounts)
     dry_powder = int(total_cash * 0.40)
 
+    cursor.execute("SELECT equity_cents FROM equity_checkpoints WHERE scma_id = 'SCMA-FOUNDER' ORDER BY checkpoint_id ASC;")
+    checkpoints = [r[0] for r in cursor.fetchall()]
+    if not checkpoints or len(checkpoints) == 0:
+        checkpoints = [10000, total_cash]
+    elif checkpoints[-1] != total_cash:
+        checkpoints.append(total_cash)
+
     rack_slots = []
     pos_by_slot = {p["slot_index"]: p for p in pos_rows}
     for i in range(1, 13):
@@ -317,6 +324,7 @@ def get_ledger_summary():
         "positions": pos_rows,
         "slots": rack_slots,
         "emergency_petitions": petitions,
+        "checkpoints": checkpoints,
         "performance": {
             "total_trades": total_trades, "wins": wins, "losses": losses,
             "win_rate_pct": win_rate_pct, "profit_factor": profit_factor, "max_drawdown_pct": 0.0
@@ -810,6 +818,18 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         document.getElementById('actMargin').textContent = '$' + (data.active_margin_cents / 100).toFixed(2);
         document.getElementById('cfcpPool').textContent = '$' + (data.cfcp_meter_cents / 100).toFixed(2);
 
+        // Update SVG Compounding Curve
+        const pts = data.checkpoints || [data.total_cash_cents];
+        drawSvgCurve('equityChartSvg', pts, data.dry_powder_cents, '#38bdf8', 'equityGrad');
+        document.getElementById('chartPeakVal').textContent = '$' + (Math.max(...pts)/100).toFixed(2) + ' Peak';
+
+        // Update Waterfall Cards
+        const tp = data.total_profit_cents || 0;
+        document.getElementById('wfScmaDollars').textContent = '$' + ((tp * 0.87)/100).toFixed(2);
+        document.getElementById('wfCfcpDollars').textContent = '$' + ((tp * 0.10)/100).toFixed(2);
+        document.getElementById('wfFaepDollars').textContent = '$' + ((tp * 0.03)/100).toFixed(2);
+
+
         const perf = data.performance;
         if (perf) {
           document.getElementById('winRateVal').textContent = perf.total_trades > 0 ? (perf.win_rate_pct.toFixed(1) + '%') : '0.0%';
@@ -909,6 +929,64 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     }
 
     
+    
+    function drawSvgCurve(svgId, points, floorCents, strokeColor, gradId) {
+      const svg = document.getElementById(svgId);
+      if (!svg) return;
+      const defs = svg.querySelector('defs');
+      svg.innerHTML = '';
+      if (defs) svg.appendChild(defs);
+
+      if (!points || points.length === 0) return;
+      
+      let minVal = Math.min(...points, floorCents || 0);
+      let maxVal = Math.max(...points);
+      if (maxVal === minVal) maxVal = minVal + 1000;
+      
+      const padBottom = 26, padTop = 16, padLeft = 36, padRight = 24;
+      const width = 800 - padLeft - padRight;
+      const height = 180 - padTop - padBottom;
+      
+      const getY = (val) => 180 - padBottom - ((val - minVal) / (maxVal - minVal)) * height;
+      const getX = (idx) => padLeft + (points.length === 1 ? width / 2 : (idx / (points.length - 1)) * width);
+
+      const floorY = getY(floorCents);
+      let gridHtml = `
+        <line x1="${padLeft}" y1="${getY(maxVal)}" x2="${800 - padRight}" y2="${getY(maxVal)}" stroke="#1e293b" stroke-width="1" stroke-dasharray="4"/>
+        <text x="${padLeft}" y="${getY(maxVal) - 4}" fill="#64748b" font-size="10">$${(maxVal/100).toFixed(2)} Peak</text>
+        <line x1="${padLeft}" y1="${floorY}" x2="${800 - padRight}" y2="${floorY}" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="4"/>
+        <text x="${padLeft}" y="${floorY + 12}" fill="#818cf8" font-size="10">$${(floorCents/100).toFixed(2)} (40% Floor Shield)</text>
+      `;
+
+      let pathD = '', areaD = '';
+      points.forEach((p, i) => {
+        const x = getX(i);
+        const y = getY(p);
+        if (i === 0) {
+          pathD += `M ${x} ${y}`;
+          areaD += `M ${x} ${180 - padBottom} L ${x} ${y}`;
+        } else {
+          pathD += ` L ${x} ${y}`;
+          areaD += ` L ${x} ${y}`;
+        }
+      });
+      const lastX = getX(points.length - 1);
+      areaD += ` L ${lastX} ${180 - padBottom} Z`;
+
+      let chartContent = gridHtml + `
+        <path d="${areaD}" fill="url(#${gradId})" />
+        <path d="${pathD}" fill="none" stroke="${strokeColor}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+      `;
+
+      points.forEach((p, i) => {
+        const x = getX(i);
+        const y = getY(p);
+        chartContent += `<circle cx="${x}" cy="${y}" r="3" fill="${strokeColor}" stroke="#090d16" stroke-width="1.5"/>`;
+      });
+
+      svg.innerHTML += chartContent;
+    }
+
     function openDepositModal(scmaId) {
       document.getElementById('depScma').value = scmaId;
       document.getElementById('depositModal').style.display = 'flex';
@@ -1198,6 +1276,64 @@ MEMBER_HTML = """<!DOCTYPE html>
     let currentScma = '__ACTIVE_SCMA_TARGET__';
     let rackExpanded = true;
 
+    
+    function drawSvgCurve(svgId, points, floorCents, strokeColor, gradId) {
+      const svg = document.getElementById(svgId);
+      if (!svg) return;
+      const defs = svg.querySelector('defs');
+      svg.innerHTML = '';
+      if (defs) svg.appendChild(defs);
+
+      if (!points || points.length === 0) return;
+      
+      let minVal = Math.min(...points, floorCents || 0);
+      let maxVal = Math.max(...points);
+      if (maxVal === minVal) maxVal = minVal + 1000;
+      
+      const padBottom = 26, padTop = 16, padLeft = 36, padRight = 24;
+      const width = 800 - padLeft - padRight;
+      const height = 180 - padTop - padBottom;
+      
+      const getY = (val) => 180 - padBottom - ((val - minVal) / (maxVal - minVal)) * height;
+      const getX = (idx) => padLeft + (points.length === 1 ? width / 2 : (idx / (points.length - 1)) * width);
+
+      const floorY = getY(floorCents);
+      let gridHtml = `
+        <line x1="${padLeft}" y1="${getY(maxVal)}" x2="${800 - padRight}" y2="${getY(maxVal)}" stroke="#1e293b" stroke-width="1" stroke-dasharray="4"/>
+        <text x="${padLeft}" y="${getY(maxVal) - 4}" fill="#64748b" font-size="10">$${(maxVal/100).toFixed(2)} Peak</text>
+        <line x1="${padLeft}" y1="${floorY}" x2="${800 - padRight}" y2="${floorY}" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="4"/>
+        <text x="${padLeft}" y="${floorY + 12}" fill="#818cf8" font-size="10">$${(floorCents/100).toFixed(2)} (40% Floor Shield)</text>
+      `;
+
+      let pathD = '', areaD = '';
+      points.forEach((p, i) => {
+        const x = getX(i);
+        const y = getY(p);
+        if (i === 0) {
+          pathD += `M ${x} ${y}`;
+          areaD += `M ${x} ${180 - padBottom} L ${x} ${y}`;
+        } else {
+          pathD += ` L ${x} ${y}`;
+          areaD += ` L ${x} ${y}`;
+        }
+      });
+      const lastX = getX(points.length - 1);
+      areaD += ` L ${lastX} ${180 - padBottom} Z`;
+
+      let chartContent = gridHtml + `
+        <path d="${areaD}" fill="url(#${gradId})" />
+        <path d="${pathD}" fill="none" stroke="${strokeColor}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+      `;
+
+      points.forEach((p, i) => {
+        const x = getX(i);
+        const y = getY(p);
+        chartContent += `<circle cx="${x}" cy="${y}" r="3" fill="${strokeColor}" stroke="#090d16" stroke-width="1.5"/>`;
+      });
+
+      svg.innerHTML += chartContent;
+    }
+
     function toggleRack() {
       rackExpanded = !rackExpanded;
       document.getElementById('rackGrid').style.display = rackExpanded ? 'grid' : 'none';
@@ -1235,6 +1371,18 @@ MEMBER_HTML = """<!DOCTYPE html>
           document.getElementById('mWinRate').textContent = perf.total_trades > 0 ? (perf.win_rate_pct.toFixed(1) + '%') : '0.0%';
           document.getElementById('mWinSub').textContent = perf.total_trades > 0 ? (perf.wins + ' Wins / ' + perf.losses + ' Losses') : 'Awaiting Initial Fills';
           document.getElementById('mProfitFactor').textContent = perf.total_trades > 0 ? (perf.profit_factor.toFixed(2) + 'x') : '0.00x';
+
+        // Update Personal SVG Compounding Curve
+        const pts = data.checkpoints || [acc.cash_cents];
+        const mFloor = Math.round(acc.cash_cents * 0.40);
+        drawSvgCurve('memberCurveSvg', pts, mFloor, '#10b981', 'memGrad');
+
+        // Update Allocation Breakdown
+        const actCents = (data.positions || []).reduce((sum, p) => sum + p.cost_basis_cents, 0);
+        document.getElementById('mAllocActive').textContent = '$' + (actCents / 100).toFixed(2);
+        document.getElementById('mAllocFloor').textContent = '$' + (mFloor / 100).toFixed(2);
+        document.getElementById('mAllocYield').textContent = '$' + (acc.lifetime_profit_cents / 100).toFixed(2);
+
         }
 
         const activeCount = data.slots.filter(s => s.status !== 'EMPTY').length;
