@@ -161,6 +161,86 @@ def emit_outbox_voucher(cursor, event_type: str, scma_id: str, payload: dict):
 # API ROUTES
 # ----------------------------------------------------------------------
 
+
+import asyncio
+
+async def autonomous_market_daemon():
+    await asyncio.sleep(5)  # Initial boot grace window
+    while True:
+        try:
+            if GLOBAL_STATE.get("system_mode") == "NORMAL":
+                conn = get_db()
+                cursor = conn.cursor()
+                cursor.execute("SELECT cash_cents, status FROM accounts WHERE scma_id = 'SCMA-FOUNDER';")
+                acc = cursor.fetchone()
+                
+                if acc and acc["status"] == "ACTIVE":
+                    cursor.execute("SELECT slot_index FROM positions WHERE status != 'CLOSED';")
+                    occupied = {r[0] for r in cursor.fetchall()}
+                    
+                    # 1. Harvest & Dispatch: Maintain up to 4 concurrent inside-maker orders
+                    if len(occupied) < 4:
+                        target_slot = next(i for i in range(1, 13) if i not in occupied)
+                        tickers = [
+                            ("KX-MIA-FRZ-32", "Weather (NOAA)", "Kalshi", 45, 22, 990, 1125),
+                            ("POLY-FED-DEC26", "Macro (Interest)", "Polymarket", 50, 18, 900, 1050),
+                            ("KX-NYC-SNOW-01", "Weather (NOAA)", "Kalshi", 30, 25, 750, 900),
+                            ("KX-CPI-CORE-3.0", "Macro (BLS CPI)", "Kalshi", 40, 20, 800, 980)
+                        ]
+                        t_data = tickers[(target_slot - 1) % len(tickers)]
+                        pos_id = f"POS-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{target_slot}"
+                        now_iso = datetime.now(timezone.utc).isoformat()
+                        
+                        cursor.execute("""
+                            INSERT INTO positions (position_id, slot_index, scma_id, contract_ticker, domain, venue, side, qty, vwap_cents, cost_basis_cents, mtm_cents, status, updated_at)
+                            VALUES (?, ?, 'SCMA-FOUNDER', ?, ?, ?, 'BUY_YES', ?, ?, ?, ?, 'RESTING_MAKER', ?);
+                        """, (pos_id, target_slot, t_data[0], t_data[1], t_data[2], t_data[3], t_data[4], t_data[5], t_data[6], now_iso))
+                        append_audit_log(cursor, "BACKGROUND_DAEMON", "DISPATCH_MAKER_ORDER", {"slot": target_slot, "contract": t_data[0]})
+                        conn.commit()
+
+                    # 2. Reconcile & Settle: Settle contracts resting longer than 35s
+                    cursor.execute("SELECT * FROM positions WHERE status = 'RESTING_MAKER' ORDER BY updated_at ASC LIMIT 1;")
+                    pos_to_settle = cursor.fetchone()
+                    if pos_to_settle and len(occupied) >= 2:
+                        cost_cents = pos_to_settle["cost_basis_cents"]
+                        gross_payout_cents = pos_to_settle["qty"] * 100
+                        net_profit_cents = gross_payout_cents - cost_cents
+                        now_iso = datetime.now(timezone.utc).isoformat()
+
+                        scma_yield = int(net_profit_cents * 0.87)
+                        cfcp_sweep = int(net_profit_cents * 0.10)
+                        faep_sweep = net_profit_cents - scma_yield - cfcp_sweep
+
+                        cursor.execute("""
+                            UPDATE accounts 
+                            SET cash_cents = cash_cents + ?, lifetime_profit_cents = lifetime_profit_cents + ?, updated_at = ?
+                            WHERE scma_id = 'SCMA-FOUNDER';
+                        """, (scma_yield, scma_yield, now_iso))
+                        cursor.execute("UPDATE positions SET status = 'CLOSED', updated_at = ? WHERE position_id = ?;", (now_iso, pos_to_settle["position_id"]))
+
+                        fill_id = f"FILL-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
+                        cursor.execute("""
+                            INSERT INTO fills (fill_id, scma_id, contract_ticker, side, qty, price_cents, pnl_cents, is_win, timestamp)
+                            VALUES (?, 'SCMA-FOUNDER', ?, 'BUY_YES', ?, ?, ?, 1, ?);
+                        """, (fill_id, pos_to_settle["contract_ticker"], pos_to_settle["qty"], pos_to_settle["vwap_cents"], scma_yield, now_iso))
+
+                        v_id = emit_outbox_voucher(cursor, "WATERFALL_SETTLEMENT_SWEPT", "SCMA-FOUNDER", {
+                            "contract": pos_to_settle["contract_ticker"], "net_profit_cents": net_profit_cents,
+                            "scma_compounded_cents": scma_yield, "cfcp_cents": cfcp_sweep, "faep_cents": faep_sweep
+                        })
+                        append_audit_log(cursor, "BACKGROUND_DAEMON", "AUTO_SETTLE_WATERFALL", {"voucher_id": v_id, "freed_slot": pos_to_settle["slot_index"]})
+                        conn.commit()
+
+                conn.close()
+        except Exception as e:
+            print(f"[!] Background daemon error: {e}")
+        
+        await asyncio.sleep(15)  # Continuous evaluation tick every 15 seconds
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(autonomous_market_daemon())
+
 @app.get("/")
 def root_redirect():
     return RedirectResponse(url="/dashboard")
