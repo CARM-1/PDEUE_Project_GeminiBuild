@@ -14,61 +14,122 @@ HMAC_SECRET = b"PDEUE_AIRGAP_SHARED_KEY_2026_RING1"
 app = FastAPI(title="PDEUE Production Node")
 GLOBAL_STATE = {"system_mode": "NORMAL"}
 
-def ensure_schema():
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("PRAGMA table_info(positions);")
-    cols = [r[1] for r in c.fetchall()]
-    if "slot_index" not in cols:
-        c.execute("DROP TABLE IF EXISTS positions;")
-        c.execute("""
-            CREATE TABLE positions (
-                position_id TEXT PRIMARY KEY,
-                slot_index INTEGER NOT NULL,
-                scma_id TEXT NOT NULL,
-                contract_ticker TEXT NOT NULL,
-                domain TEXT NOT NULL,
-                venue TEXT NOT NULL,
-                side TEXT NOT NULL,
-                qty INTEGER NOT NULL,
-                vwap_cents INTEGER NOT NULL,
-                cost_basis_cents INTEGER NOT NULL,
-                mtm_cents INTEGER NOT NULL,
-                status TEXT NOT NULL,
-                updated_at TEXT NOT NULL
-            );
-        """)
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS fills (
-            fill_id TEXT PRIMARY KEY,
-            scma_id TEXT NOT NULL,
-            contract_ticker TEXT NOT NULL,
-            side TEXT NOT NULL,
-            qty INTEGER NOT NULL,
-            price_cents INTEGER NOT NULL,
-            pnl_cents INTEGER NOT NULL DEFAULT 0,
-            is_win INTEGER NOT NULL DEFAULT 0,
-            timestamp TEXT NOT NULL
-        );
-    """)
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS equity_checkpoints (
-            checkpoint_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            scma_id TEXT NOT NULL,
-            equity_cents INTEGER NOT NULL,
-            timestamp TEXT NOT NULL
-        );
-    """)
-    conn.commit()
-    conn.close()
-
-ensure_schema()
-
-
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+def ensure_schema():
+    conn = get_db()
+    c = conn.cursor()
+    # Accounts
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS accounts (
+        scma_id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        cash_cents INTEGER NOT NULL,
+        reserved_cents INTEGER NOT NULL DEFAULT 0,
+        lifetime_profit_cents INTEGER NOT NULL DEFAULT 0,
+        risk_dial_pct REAL NOT NULL DEFAULT 2.00,
+        max_risk_dial_pct REAL NOT NULL DEFAULT 2.00,
+        bank_ref_token TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'ACTIVE',
+        updated_at TEXT NOT NULL
+    );
+    """)
+    # Audit log
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS audit_log_records (
+        record_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        prev_hash TEXT NOT NULL,
+        entry_hash TEXT NOT NULL,
+        actor_id TEXT NOT NULL,
+        action TEXT NOT NULL,
+        payload_json TEXT NOT NULL,
+        timestamp TEXT NOT NULL
+    );
+    """)
+    # Outbox
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS accounting_outbox_events (
+        event_id TEXT PRIMARY KEY,
+        sequence_num INTEGER NOT NULL,
+        event_type TEXT NOT NULL,
+        scma_id TEXT NOT NULL,
+        payload_json TEXT NOT NULL,
+        signature_hmac TEXT NOT NULL,
+        status TEXT NOT NULL,
+        created_at TEXT NOT NULL
+    );
+    """)
+    # Positions with slot_index self-healing
+    c.execute("PRAGMA table_info(positions);")
+    cols = [r[1] for r in c.fetchall()]
+    if not cols or "slot_index" not in cols:
+        c.execute("DROP TABLE IF EXISTS positions;")
+        c.execute("""
+        CREATE TABLE positions (
+            position_id TEXT PRIMARY KEY,
+            slot_index INTEGER NOT NULL,
+            scma_id TEXT NOT NULL,
+            contract_ticker TEXT NOT NULL,
+            domain TEXT NOT NULL,
+            venue TEXT NOT NULL,
+            side TEXT NOT NULL,
+            qty INTEGER NOT NULL,
+            vwap_cents INTEGER NOT NULL,
+            cost_basis_cents INTEGER NOT NULL,
+            mtm_cents INTEGER NOT NULL,
+            status TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+        """)
+    # Fills
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS fills (
+        fill_id TEXT PRIMARY KEY,
+        scma_id TEXT NOT NULL,
+        contract_ticker TEXT NOT NULL,
+        side TEXT NOT NULL,
+        qty INTEGER NOT NULL,
+        price_cents INTEGER NOT NULL,
+        pnl_cents INTEGER NOT NULL DEFAULT 0,
+        is_win INTEGER NOT NULL DEFAULT 0,
+        timestamp TEXT NOT NULL
+    );
+    """)
+    # Equity Checkpoints
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS equity_checkpoints (
+        checkpoint_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        scma_id TEXT NOT NULL,
+        equity_cents INTEGER NOT NULL,
+        timestamp TEXT NOT NULL
+    );
+    """)
+    # Seed Accounts if empty
+    c.execute("SELECT COUNT(*) FROM accounts WHERE scma_id = 'SCMA-FOUNDER';")
+    if c.fetchone()[0] == 0:
+        now_iso = datetime.now(timezone.utc).isoformat()
+        c.execute("""
+        INSERT INTO accounts (scma_id, user_id, cash_cents, reserved_cents, lifetime_profit_cents, risk_dial_pct, max_risk_dial_pct, bank_ref_token, status, updated_at)
+        VALUES ('SCMA-FOUNDER', 'USR-FOUNDER-00', 10000, 0, 0, 2.00, 2.00, 'EXT-REF-PENFED-****8800', 'ACTIVE', ?);
+        """, (now_iso,))
+        for idx in range(1, 6):
+            c.execute("""
+            INSERT INTO accounts (scma_id, user_id, cash_cents, reserved_cents, lifetime_profit_cents, risk_dial_pct, max_risk_dial_pct, bank_ref_token, status, updated_at)
+            VALUES (?, ?, 0, 0, 0, 2.00, 2.00, ?, 'PENDING_FUNDING', ?);
+            """, (f"SCMA-MEM-{idx:04d}", f"USR-MEM-{idx:04d}", f"EXT-REF-FBO-MEM{idx:02d}-****{4810+idx}", now_iso))
+    # Seed Baseline Checkpoint
+    c.execute("SELECT COUNT(*) FROM equity_checkpoints WHERE scma_id = 'SCMA-FOUNDER';")
+    if c.fetchone()[0] == 0:
+        c.execute("INSERT INTO equity_checkpoints (scma_id, equity_cents, timestamp) VALUES ('SCMA-FOUNDER', 10000, ?);",
+                  (datetime.now(timezone.utc).isoformat(),))
+    conn.commit()
+    conn.close()
+
+# Initialize schema immediately on module load
+ensure_schema()
 
 def append_audit_log(cursor, actor_id: str, action: str, payload: dict):
     cursor.execute("SELECT entry_hash FROM audit_log_records ORDER BY rowid DESC LIMIT 1;")
@@ -95,6 +156,10 @@ def emit_outbox_voucher(cursor, event_type: str, scma_id: str, payload: dict):
         VALUES (?, ?, ?, ?, ?, ?, 'PENDING_INGESTION', ?);
     """, (event_id, seq_num, event_type, scma_id, payload_str, sig, now_iso))
     return event_id
+
+# ----------------------------------------------------------------------
+# API ROUTES
+# ----------------------------------------------------------------------
 
 @app.get("/")
 def root_redirect():
@@ -124,21 +189,19 @@ def get_ledger_summary():
     cursor.execute("SELECT * FROM accounting_outbox_events WHERE event_type = 'EMERGENCY_PETITION_STAGED' AND status = 'PENDING_CO_SIGN';")
     petitions = [dict(r) for r in cursor.fetchall()]
 
-    # Query Active Positions for Concurrency Slots
     cursor.execute("SELECT * FROM positions WHERE status != 'CLOSED';")
     pos_rows = [dict(r) for r in cursor.fetchall()]
 
-    # Query Closed Fills for Dynamic Performance Calculations
     cursor.execute("SELECT COUNT(*), SUM(CASE WHEN is_win = 1 THEN 1 ELSE 0 END), SUM(CASE WHEN pnl_cents > 0 THEN pnl_cents ELSE 0 END), SUM(CASE WHEN pnl_cents < 0 THEN ABS(pnl_cents) ELSE 0 END) FROM fills;")
     fill_stats = cursor.fetchone()
     total_trades = fill_stats[0] or 0
     wins = fill_stats[1] or 0
     losses = total_trades - wins
-    gross_gains_cents = fill_stats[2] or 0
-    gross_losses_cents = fill_stats[3] or 0
+    gross_gains = fill_stats[2] or 0
+    gross_losses = fill_stats[3] or 0
 
     win_rate_pct = (wins / total_trades * 100) if total_trades > 0 else 0.0
-    profit_factor = (gross_gains_cents / gross_losses_cents) if gross_losses_cents > 0 else (9.99 if gross_gains_cents > 0 else 0.0)
+    profit_factor = (gross_gains / gross_losses) if gross_losses > 0 else (9.99 if gross_gains > 0 else 0.0)
 
     conn.close()
 
@@ -146,28 +209,20 @@ def get_ledger_summary():
     total_profit = sum(a["lifetime_profit_cents"] for a in accounts)
     dry_powder = int(total_cash * 0.40)
 
-    # Build 12-Slot Rack State
     rack_slots = []
     pos_by_slot = {p["slot_index"]: p for p in pos_rows}
     for i in range(1, 13):
         if i in pos_by_slot:
             p = pos_by_slot[i]
             rack_slots.append({
-                "slot": i,
-                "status": p["status"],
-                "contract": p["contract_ticker"],
-                "domain": p["domain"],
-                "stake_dollars": f"${p['cost_basis_cents']/100:.2f}",
+                "slot": i, "status": p["status"], "contract": p["contract_ticker"],
+                "domain": p["domain"], "stake_dollars": f"${p['cost_basis_cents']/100:.2f}",
                 "mtm_dollars": f"${p['mtm_cents']/100:.2f}"
             })
         else:
             rack_slots.append({
-                "slot": i,
-                "status": "EMPTY",
-                "contract": "Standby",
-                "domain": "Idle Buffer",
-                "stake_dollars": "$0.00",
-                "mtm_dollars": "$0.00"
+                "slot": i, "status": "EMPTY", "contract": "Standby",
+                "domain": "Idle Buffer", "stake_dollars": "$0.00", "mtm_dollars": "$0.00"
             })
 
     return {
@@ -183,12 +238,8 @@ def get_ledger_summary():
         "slots": rack_slots,
         "emergency_petitions": petitions,
         "performance": {
-            "total_trades": total_trades,
-            "wins": wins,
-            "losses": losses,
-            "win_rate_pct": win_rate_pct,
-            "profit_factor": profit_factor,
-            "max_drawdown_pct": 0.0
+            "total_trades": total_trades, "wins": wins, "losses": losses,
+            "win_rate_pct": win_rate_pct, "profit_factor": profit_factor, "max_drawdown_pct": 0.0
         }
     }
 
@@ -345,23 +396,19 @@ def execute_scan_cycle():
         conn.close()
         raise HTTPException(status_code=400, detail="SCMA-FOUNDER not active.")
     
-    cursor.execute("SELECT COUNT(*) FROM positions WHERE status != 'CLOSED';")
-    active_count = cursor.fetchone()[0]
-    if active_count >= 12:
+    cursor.execute("SELECT slot_index FROM positions WHERE status != 'CLOSED';")
+    occupied = {r[0] for r in cursor.fetchall()}
+    if len(occupied) >= 12:
         conn.close()
         return {"status": "SKIPPED", "message": "All 12 concurrency slots filled."}
 
-    # Find first vacant slot
-    cursor.execute("SELECT slot_index FROM positions WHERE status != 'CLOSED';")
-    occupied = {r[0] for r in cursor.fetchall()}
     target_slot = next(i for i in range(1, 13) if i not in occupied)
-
     pos_id = f"POS-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
     ticker = "KX-MIA-FRZ-32"
     qty = 45
-    vwap = 22  # $0.22/contract
-    cost = 990 # $9.90
-    mtm = 1125 # $11.25
+    vwap = 22
+    cost = 990
+    mtm = 1125
     now_iso = datetime.now(timezone.utc).isoformat()
 
     cursor.execute("""
@@ -385,11 +432,10 @@ def simulate_settlement():
         return {"status": "SKIPPED", "message": "No resting positions available to settle."}
 
     cost_cents = pos["cost_basis_cents"]
-    gross_payout_cents = 4500 # $45.00 total payout ($1.00 * 45 contracts)
-    net_profit_cents = gross_payout_cents - cost_cents # $35.10 net profit
+    gross_payout_cents = 4500
+    net_profit_cents = gross_payout_cents - cost_cents
     now_iso = datetime.now(timezone.utc).isoformat()
 
-    # 87/10/3 Waterfall Allocation
     scma_yield_cents = int(net_profit_cents * 0.87)
     cfcp_sweep_cents = int(net_profit_cents * 0.10)
     faep_sweep_cents = net_profit_cents - scma_yield_cents - cfcp_sweep_cents
@@ -501,7 +547,6 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- Dynamic Performance Ratios -->
   <div class="grid">
     <div class="card">
       <div class="card-title">Win / Loss Ratio</div>
@@ -525,7 +570,6 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- Active Positions Table -->
   <div class="chart-box">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
       <h3 style="font-size:1.05rem;">Active Portfolio Positions & Inside-Spread Resting Bids</h3>
@@ -552,7 +596,6 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     </table>
   </div>
 
-  <!-- Ring 1 Roster -->
   <div class="chart-box">
     <h3 style="font-size:1.05rem;">Ring 1 Multi-Account Registry (6 SCMAs)</h3>
     <table>
@@ -571,7 +614,6 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     </table>
   </div>
 
-  <!-- Emergency Queue -->
   <div class="chart-box" style="border-color: #7f1d1d;">
     <h3 style="font-size:1.05rem; color:#f87171;">Emergency Distribution & Co-Signature Queue (Directive R-15)</h3>
     <table>
@@ -603,7 +645,6 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         document.getElementById('actMargin').textContent = '$' + (data.active_margin_cents / 100).toFixed(2);
         document.getElementById('cfcpPool').textContent = '$' + (data.cfcp_meter_cents / 100).toFixed(2);
 
-        // Performance Ratios
         const perf = data.performance;
         if (perf) {
           document.getElementById('winRateVal').textContent = perf.total_trades > 0 ? (perf.win_rate_pct.toFixed(1) + '%') : '0.0%';
@@ -612,7 +653,6 @@ DASHBOARD_HTML = """<!DOCTYPE html>
           document.getElementById('profitFactorSub').textContent = perf.total_trades > 0 ? 'Verified Execution' : 'Expectancy: $0.00';
         }
 
-        // Positions
         const posTbody = document.getElementById('posTable');
         document.getElementById('openCountBadge').textContent = data.positions.length + ' OPEN';
         if (data.positions.length === 0) {
@@ -637,7 +677,6 @@ DASHBOARD_HTML = """<!DOCTYPE html>
           });
         }
 
-        // Roster
         const rosTbody = document.getElementById('rosterTable');
         rosTbody.innerHTML = '';
         data.accounts.forEach(a => {
@@ -654,7 +693,6 @@ DASHBOARD_HTML = """<!DOCTYPE html>
           `;
         });
 
-        // Petitions
         const emTbody = document.getElementById('emergencyTable');
         if (data.emergency_petitions && data.emergency_petitions.length > 0) {
           emTbody.innerHTML = '';
@@ -688,7 +726,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     }
 
     async function coSignPetition(vId) {
-      if (!confirm('Co-sign acute emergency release for voucher ' + vId + '?')) return;
+      if (!confirm('Co-sign emergency release for voucher ' + vId + '?')) return;
       await fetch('/api/v1/admin/co-sign-emergency', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -736,8 +774,6 @@ MEMBER_HTML = """<!DOCTYPE html>
     .chip-blue { background: #0c4a6e; color: #38bdf8; }
     .chip-empty { background: #1e293b; color: var(--muted); }
     .slider { width: 100%; margin-top: 10px; accent-color: var(--accent); }
-    
-    /* 12-Slot Concurrency Rack Styles */
     .rack-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; }
     .rack-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-top: 16px; }
     .slot-card { background: #0b111e; border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-size: 0.82rem; }
@@ -783,7 +819,6 @@ MEMBER_HTML = """<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- Dynamic Performance Ratios -->
   <div class="grid">
     <div class="card">
       <div class="card-title">Win / Loss Ratio</div>
@@ -807,7 +842,6 @@ MEMBER_HTML = """<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- 12-Slot Concurrency Rack (Collapsible & Transparent) -->
   <div class="card" style="margin-bottom: 20px;">
     <div class="rack-header" onclick="toggleRack()">
       <div>
@@ -821,7 +855,6 @@ MEMBER_HTML = """<!DOCTYPE html>
     <div class="rack-grid" id="rackGrid"></div>
   </div>
 
-  <!-- Downward-Only Risk Governor -->
   <div class="card" style="margin-bottom: 20px;">
     <div style="display: flex; justify-content: space-between; align-items: center;">
       <div>
@@ -840,7 +873,6 @@ MEMBER_HTML = """<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- Directive R-15 Capital Distribution Gateway -->
   <div class="card" style="margin-bottom: 24px;">
     <div style="display: flex; justify-content: space-between; align-items: center;">
       <div>
@@ -890,7 +922,6 @@ MEMBER_HTML = """<!DOCTYPE html>
           document.getElementById('riskSlider').value = acc.risk_dial_pct;
         }
 
-        // Performance Ratios
         const perf = data.performance;
         if (perf) {
           document.getElementById('mWinRate').textContent = perf.total_trades > 0 ? (perf.win_rate_pct.toFixed(1) + '%') : '0.0%';
@@ -898,7 +929,6 @@ MEMBER_HTML = """<!DOCTYPE html>
           document.getElementById('mProfitFactor').textContent = perf.total_trades > 0 ? (perf.profit_factor.toFixed(2) + 'x') : '0.00x';
         }
 
-        // 12-Slot Rack Rendering
         const activeCount = data.slots.filter(s => s.status !== 'EMPTY').length;
         document.getElementById('rackSummary').textContent = `${activeCount} Active Maker Bids • ${12 - activeCount} Idle Buffer Slots`;
         
@@ -921,7 +951,6 @@ MEMBER_HTML = """<!DOCTYPE html>
             </div>
           `;
         });
-
       } catch (e) {
         console.error('Failed to load member state:', e);
       }
