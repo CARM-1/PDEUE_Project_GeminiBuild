@@ -50,7 +50,7 @@ def test_runner_sizes_resting_orders_and_preempts_only_for_ten_percent_edge(tmp_
     preempted = runner.execute_cycle({
         "domain": "SPORTS", "observed_at": 3, "available_at": 3,
         "contract_id": "high", "order_cents": 500, "spread": 0.01,
-        "net_edge": 0.14, "execution_status": "RESTING",
+        "net_edge": 0.24, "execution_status": "RESTING",
     })
 
     assert first["admitted"] is True
@@ -73,3 +73,24 @@ def test_runner_enforces_configured_dry_powder_floor(tmp_path):
     })
     assert result["admitted"] is False
     assert result["slot_occupancy"] == 0
+
+
+def test_simulation_soak_writes_phase5_qualification_report(tmp_path):
+    export_file = tmp_path / "phase5.json"
+    runner = PaperSoakRunner(
+        mode=PaperSoakRunner.SIMULATION_SOAK,
+        total_cycles=2,
+        cycle_interval_sec=0,
+        health_export_path=str(export_file),
+    )
+
+    asyncio.run(runner.run_simulation_qualification(tick_interval_ms=0))
+
+    payload = json.loads(export_file.read_text(encoding="utf-8"))
+    assert payload["qualification_status"] == "PASS"
+    assert payload["completed_cycles"] == payload["requested_cycles"] == 2
+    assert payload["live_network_actions"] == 0
+    assert all(invariant["passed"] for invariant in payload["invariants"].values())
+    waterfall = payload["invariants"]["waterfall_87_10_3"]
+    assert waterfall["conserved_cents"] == waterfall["input_cents"]
+    assert waterfall["residual_cents_routed_to_cfcp"] == 1

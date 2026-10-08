@@ -5,14 +5,14 @@ from app.domain.two_tier_risk import TwoTierRiskEnvelope
 
 def test_eviction_manager_initialization_defaults():
     mgr = PriorityEvictionManager()
-    assert mgr.max_concurrent_orders == 6
+    assert mgr.max_concurrent_orders == 12
     assert mgr.dry_powder_floor_pct == 0.40
     assert mgr.max_expiry_hours == 6.0
     assert mgr.preemption_alpha_threshold == 0.03
     assert mgr.min_edge_delta == 0.10
 
 def test_expiry_horizon_hard_filter_rejection():
-    mgr = PriorityEvictionManager()
+    mgr = PriorityEvictionManager(max_concurrent_orders=5)
     candidate = {"ticker": "KX-LONG-01", "net_edge": 0.25, "proposed_stake_cents": 300, "expiry_hours": 12.0}
     res = mgr.evaluate_preemption(candidate, total_equity_cents=10000, currently_committed_cents=0)
     assert res["admitted"] is False
@@ -28,9 +28,9 @@ def test_normal_admission_within_capacity_and_dry_powder():
     assert res["eviction_target"] is None
 
 def test_preemption_approved_when_resting_bid_outperformed():
-    mgr = PriorityEvictionManager()
-    # Fill all 6 concurrent slots with low/moderate edge resting orders
-    for i in range(1, 7):
+    mgr = PriorityEvictionManager(max_concurrent_orders=5)
+    # Fill all 5 concurrent slots with low/moderate edge resting orders
+    for i in range(1, 6):
         mgr.register_resting_order(f"ORD-0{i}", f"TICKER-0{i}", "WEATHER", net_edge=0.05 + (i * 0.01), stake_cents=1000)
 
     # Candidate with +24% edge arrives, 2 hours expiry
@@ -48,8 +48,8 @@ def test_preemption_approved_when_resting_bid_outperformed():
     assert "ORD-01" not in mgr.resting_orders
     assert len(mgr.eviction_history) == 1
 
-def test_admission_rejected_when_candidate_edge_below_threshold():
-    mgr = PriorityEvictionManager()
+def test_preemption_rejected_when_candidate_alpha_below_threshold():
+    mgr = PriorityEvictionManager(max_concurrent_orders=5)
     for i in range(1, 6):
         mgr.register_resting_order(f"ORD-0{i}", f"TICKER-0{i}", "SPORTS", net_edge=0.04, stake_cents=1000)
 
@@ -62,8 +62,8 @@ def test_admission_rejected_when_candidate_edge_below_threshold():
     assert res["eviction_target"] is None
 
 def test_preemption_rejected_when_edge_delta_insufficient():
-    mgr = PriorityEvictionManager()
-    for i in range(1, 7):
+    mgr = PriorityEvictionManager(max_concurrent_orders=5)
+    for i in range(1, 6):
         mgr.register_resting_order(f"ORD-0{i}", f"TICKER-0{i}", "MACRO", net_edge=0.16, stake_cents=1000)
 
     # Candidate has +21% edge (meets 20% threshold, but delta vs 16% is only 5% < 10% min delta)
@@ -74,9 +74,9 @@ def test_preemption_rejected_when_edge_delta_insufficient():
     assert "INSUFFICIENT_DELTA" in res["reason"]
 
 def test_filled_inventory_is_strictly_immune_from_eviction():
-    mgr = PriorityEvictionManager()
-    # 6 orders all filled
-    for i in range(1, 7):
+    mgr = PriorityEvictionManager(max_concurrent_orders=5)
+    # 5 orders all filled
+    for i in range(1, 6):
         oid = f"ORD-FILL-0{i}"
         mgr.register_resting_order(oid, f"TICKER-0{i}", "CRYPTO", net_edge=0.03, stake_cents=1000)
         mgr.mark_order_filled(oid)

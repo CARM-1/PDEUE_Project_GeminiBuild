@@ -24,6 +24,8 @@ class TokenBucket:
         return False
 
     async def acquire(self, tokens: float = 1.0, timeout: float = 5.0) -> bool:
+        if tokens <= 0 or tokens > self.capacity:
+            return False
         start = time.monotonic()
         while (time.monotonic() - start) < timeout:
             if self.consume(tokens):
@@ -34,8 +36,8 @@ class TokenBucket:
 class VenueRateLimiter:
     def __init__(self, default_rates: Optional[Dict[str, Dict[str, float]]] = None):
         configs = default_rates or {
-            'KALSHI': {'rate': 10.0, 'capacity': 15.0},
-            'POLYMARKET': {'rate': 20.0, 'capacity': 30.0}
+            'KALSHI': {'rate': 10.0, 'capacity': 10.0},
+            'POLYMARKET': {'rate': 10.0, 'capacity': 10.0}
         }
         self.buckets: Dict[str, TokenBucket] = {
             v.upper(): TokenBucket(c['rate'], c['capacity'])
@@ -63,6 +65,10 @@ class VenueRateLimiter:
         if not allowed:
             self.warnings_count += 1
         return allowed
+
+    async def acquire(self, venue: str, tokens: float = 1.0, timeout: float = 5.0) -> bool:
+        """Conventional alias used by venue adapters."""
+        return await self.acquire_permit(venue, tokens, timeout)
 
     def compute_backoff(self, venue: str, base_delay: float = 0.5, max_delay: float = 10.0) -> float:
         v = venue.upper()

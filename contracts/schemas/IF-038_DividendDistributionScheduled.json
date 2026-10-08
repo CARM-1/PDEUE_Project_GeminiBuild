@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "IF-038_DividendDistributionScheduled",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "@context": { "type": "string", "const": "https://schema.pdeue.org/accounting/v1" },
+    "event_type": { "type": "string", "const": "DIVIDEND_DISTRIBUTION_SCHEDULED" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "scma_id": { "type": "string", "minLength": 1 },
+    "amount_cents": { "type": "integer", "minimum": 1 },
+    "tier": { "type": "string", "enum": ["GREEN", "YELLOW", "RED"] },
+    "destination_opaque_token": { "type": "string", "minLength": 1 }
+  },
+  "required": ["@context", "event_type", "timestamp", "scma_id", "amount_cents", "tier", "destination_opaque_token"]
+}

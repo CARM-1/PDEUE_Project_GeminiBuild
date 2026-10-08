@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Class H Sovereign Desk — __HOUSE_CODE__</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#07111f;color:#e5edf8;font:15px system-ui,sans-serif}header{background:#0c1a2d;border-bottom:1px solid #315270;padding:22px 5vw}h1{margin:0 0 8px;font-size:clamp(20px,3vw,31px)}.hat{color:#70d7ff;font-weight:700}.wrap{max-width:1200px;margin:auto;padding:24px}.metrics,.secretarial{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}section,article{background:#102139;border:1px solid #294663;border-radius:10px;padding:18px;margin-bottom:18px}article{margin:0}h2{font-size:16px;color:#8ddcff}strong{font-size:22px}table{width:100%;border-collapse:collapse}td{padding:12px;border-bottom:1px solid #294663}button{margin:8px 5px 0 0;padding:9px 14px;border:0;border-radius:5px;font-weight:700;cursor:pointer}.freeze{background:#f5b942}.cancel{background:#ee5b62;color:white}#vote-aye{background:#3ecf8e}#vote-nay{background:#ee5b62;color:white}.audit{border-color:#987bc7}progress{display:block;width:100%;margin:8px 0 16px}footer{padding:15px 5vw;color:#8498ae}
+  </style>
+</head>
+<body>
+  <header><h1>CLASS H SOVEREIGN DESK — HOUSE __HOUSE_ID__: __HOUSE_NAME__</h1><div class="hat">Active Hat: __ACTIVE_HAT__</div></header>
+  <main class="wrap">__ROLE_DESK__</main>
+  <!-- DISCOVERY_CONTROLS_START --><div hidden><button id="lineage-freeze" onclick="openFreezeModal('SCMA')">Freeze Dial</button><button id="lineage-vote" onclick="castVote('AYE')">Aye</button></div><!-- DISCOVERY_CONTROLS_END -->
+  <div style="display:none" id="legacyPortalHub">PDEUE PORTAL HUB</div>
+  <footer>__HOUSE_CODE__ · branch-confined sovereign operations</footer>
+  <script>
+    const houseId=__HOUSE_ID__,activeRole='__ACTIVE_ROLE__';
+    async function post(path,body){return fetch(`/api/v1/portal/lineage/house/${houseId}/${path}?role=${activeRole}`,{method:'POST',headers:{'Content-Type':'application/json','X-House-ID':String(houseId)},body:JSON.stringify(body)})}
+    async function castVote(vote){const r=await post('vote',{proposal_id:'CFCP-2026-02',vote});if(r.ok){const d=await r.json();document.getElementById('consensus-tally').textContent=`${d.aye_count} / 12 Aye — ${d.status}`}}
+    function openFreezeModal(scma){document.getElementById('freeze-modal').hidden=false;post('circuit-breaker',{scma_id:scma,action:'FREEZE_DIAL'})}
+    function openCancelModal(scma){document.getElementById('cancel-modal').hidden=false;post('circuit-breaker',{scma_id:scma,action:'CANCEL_ORDERS'})}
+  </script>
+</body>
+</html>

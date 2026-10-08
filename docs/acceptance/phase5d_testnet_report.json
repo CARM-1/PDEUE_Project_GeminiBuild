@@ -1,0 +1,29 @@
+{
+  "completed_cycles": 50,
+  "dynamic_credential_leases": {
+    "acquired": 125,
+    "active": 0,
+    "revoked": 125
+  },
+  "integer_cent_ledger_reconciliation": {
+    "checks": 50,
+    "exact_match_percent": 100,
+    "status": "EXACT_MATCH"
+  },
+  "mode": "TESTNET_SANDBOX_QUALIFIED",
+  "network": {
+    "outbound_internet_calls": 0,
+    "simulated_requests": 101,
+    "transport": "HTTPX_MOCK"
+  },
+  "plaintext_secret_exposure_check": "CLEAN / ZERO LEAKS",
+  "qualification_status": "PASS",
+  "rate_limiter": {
+    "ceiling_requests_per_second": 10,
+    "events": 2,
+    "http_429_backoffs": 1,
+    "throttle_violations": 0
+  },
+  "requested_cycles": 50,
+  "schema_version": "phase5d-testnet-qualification.v1"
+}
