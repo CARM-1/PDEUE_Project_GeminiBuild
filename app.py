@@ -14,13 +14,64 @@ HMAC_SECRET = b"PDEUE_AIRGAP_SHARED_KEY_2026_RING1"
 app = FastAPI(title="PDEUE Production Node")
 GLOBAL_STATE = {"system_mode": "NORMAL"}
 
+def ensure_schema():
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("PRAGMA table_info(positions);")
+    cols = [r[1] for r in c.fetchall()]
+    if "slot_index" not in cols:
+        c.execute("DROP TABLE IF EXISTS positions;")
+        c.execute("""
+            CREATE TABLE positions (
+                position_id TEXT PRIMARY KEY,
+                slot_index INTEGER NOT NULL,
+                scma_id TEXT NOT NULL,
+                contract_ticker TEXT NOT NULL,
+                domain TEXT NOT NULL,
+                venue TEXT NOT NULL,
+                side TEXT NOT NULL,
+                qty INTEGER NOT NULL,
+                vwap_cents INTEGER NOT NULL,
+                cost_basis_cents INTEGER NOT NULL,
+                mtm_cents INTEGER NOT NULL,
+                status TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+        """)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS fills (
+            fill_id TEXT PRIMARY KEY,
+            scma_id TEXT NOT NULL,
+            contract_ticker TEXT NOT NULL,
+            side TEXT NOT NULL,
+            qty INTEGER NOT NULL,
+            price_cents INTEGER NOT NULL,
+            pnl_cents INTEGER NOT NULL DEFAULT 0,
+            is_win INTEGER NOT NULL DEFAULT 0,
+            timestamp TEXT NOT NULL
+        );
+    """)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS equity_checkpoints (
+            checkpoint_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            scma_id TEXT NOT NULL,
+            equity_cents INTEGER NOT NULL,
+            timestamp TEXT NOT NULL
+        );
+    """)
+    conn.commit()
+    conn.close()
+
+ensure_schema()
+
+
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
 def append_audit_log(cursor, actor_id: str, action: str, payload: dict):
-    cursor.execute("SELECT entry_hash FROM audit_log_records ORDER BY record_id DESC LIMIT 1;")
+    cursor.execute("SELECT entry_hash FROM audit_log_records ORDER BY rowid DESC LIMIT 1;")
     row = cursor.fetchone()
     prev_hash = row[0] if row else "0" * 64
     now_iso = datetime.now(timezone.utc).isoformat()
