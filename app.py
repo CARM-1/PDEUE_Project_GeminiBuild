@@ -246,6 +246,90 @@ def get_ledger_summary():
 class FreezeReq(BaseModel):
     scma_id: str
 
+
+class DepositReq(BaseModel):
+    scma_id: str
+    amount_dollars: float
+    memo: str
+
+@app.post("/api/v1/admin/deposit-funds")
+def deposit_funds(req: DepositReq):
+    cents = int(round(req.amount_dollars * 100))
+    if cents <= 0:
+        raise HTTPException(status_code=400, detail="Deposit must exceed $0.00.")
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT scma_id, cash_cents, bank_ref_token FROM accounts WHERE scma_id = ?;", (req.scma_id,))
+    acc = cursor.fetchone()
+    if not acc:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Account not found.")
+    
+    now_iso = datetime.now(timezone.utc).isoformat()
+    cursor.execute("""
+        UPDATE accounts 
+        SET cash_cents = cash_cents + ?, updated_at = ?
+        WHERE scma_id = ?;
+    """, (cents, now_iso, req.scma_id))
+    
+    # Emit ADR-011 Outbox Voucher for IFAS General Ledger Ingestion
+    v_id = emit_outbox_voucher(cursor, "CAPITAL_DEPOSIT_RECORDED", req.scma_id, {
+        "amount_cents": cents, "dollars": req.amount_dollars, "memo": req.memo,
+        "bank_ref": acc["bank_ref_token"], "event": "PRINCIPAL_DEPOSIT_INJECTION"
+    })
+    
+    append_audit_log(cursor, "CHIEF_ADMINISTRATOR", "CAPITAL_DEPOSIT_APPLIED", {
+        "scma_id": req.scma_id, "amount_cents": cents, "voucher_id": v_id, "memo": req.memo
+    })
+    
+    conn.commit()
+    conn.close()
+    return {"status": "SUCCESS", "message": f"Deposited ${req.amount_dollars:.2f} to {req.scma_id}.", "voucher_id": v_id}
+
+class OnboardReq(BaseModel):
+    scma_id: str
+    user_id: str
+    role_tier: str
+    initial_seed_dollars: float
+    bank_institution: str
+    account_last4: str
+
+@app.post("/api/v1/admin/onboard-member")
+def onboard_member(req: OnboardReq):
+    seed_cents = int(round(req.initial_seed_dollars * 100))
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT scma_id FROM accounts WHERE scma_id = ?;", (req.scma_id,))
+    existing = cursor.fetchone()
+    
+    bank_token = f"EXT-REF-{req.bank_institution.upper()}-****{req.account_last4}"
+    now_iso = datetime.now(timezone.utc).isoformat()
+    
+    if existing:
+        cursor.execute("""
+            UPDATE accounts 
+            SET user_id = ?, cash_cents = cash_cents + ?, bank_ref_token = ?, status = 'ACTIVE', updated_at = ?
+            WHERE scma_id = ?;
+        """, (req.user_id, seed_cents, bank_token, now_iso, req.scma_id))
+    else:
+        cursor.execute("""
+            INSERT INTO accounts (scma_id, user_id, cash_cents, reserved_cents, lifetime_profit_cents, risk_dial_pct, max_risk_dial_pct, bank_ref_token, status, updated_at)
+            VALUES (?, ?, ?, 0, 0, 2.00, 2.00, ?, 'ACTIVE', ?);
+        """, (req.scma_id, req.user_id, seed_cents, bank_token, now_iso))
+        
+    v_id = emit_outbox_voucher(cursor, "MEMBER_PROVISIONED_IFAS", req.scma_id, {
+        "user_id": req.user_id, "role_tier": req.role_tier, "seed_cents": seed_cents,
+        "bank_ref": bank_token, "status": "ACTIVE"
+    })
+    
+    append_audit_log(cursor, "CHIEF_ADMINISTRATOR", "MEMBER_ONBOARDED", {
+        "scma_id": req.scma_id, "role": req.role_tier, "voucher_id": v_id
+    })
+    
+    conn.commit()
+    conn.close()
+    return {"status": "SUCCESS", "message": f"Successfully provisioned {req.scma_id} for {req.user_id} ({req.role_tier}).", "voucher_id": v_id}
+
 @app.post("/api/v1/admin/toggle-freeze")
 def toggle_freeze(req: FreezeReq):
     conn = get_db()
@@ -520,6 +604,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     <div style="display: flex; gap: 12px; align-items: center;">
       <span class="chip chip-green" id="sysModeBadge">NORMAL</span>
       <button class="btn btn-red" onclick="toggleHalt()">Master Emergency Halt</button>
+      <button class="btn btn-blue" onclick="openOnboardModal()">+ Onboard Member</button>
       <a href="/member" class="btn btn-blue">Switch Hat: Member View →</a>
     </div>
   </div>
@@ -688,7 +773,10 @@ DASHBOARD_HTML = """<!DOCTYPE html>
               <td>${a.risk_dial_pct.toFixed(2)}%</td>
               <td><span class="chip ${a.status==='ACTIVE'?'chip-green':(a.status==='FROZEN'?'chip-yellow':'chip-blue')}">${a.status}</span></td>
               <td style="color:var(--muted);">${a.bank_ref_token}</td>
-              <td><button class="btn btn-blue" style="padding:4px 8px; font-size:0.75rem;" onclick="toggleFreeze('${a.scma_id}')">Quarantine / Freeze</button></td>
+              <td style="display:flex; gap:6px;">
+                <button class="btn btn-blue" style="background:#064e3b; color:#34d399; border:none; padding:4px 8px; font-size:0.75rem;" onclick="openDepositModal('${a.scma_id}')">+ Fund</button>
+                <button class="btn btn-blue" style="padding:4px 8px; font-size:0.75rem;" onclick="toggleFreeze('${a.scma_id}')">Freeze</button>
+              </td>
             </tr>
           `;
         });
@@ -740,9 +828,149 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       refreshData();
     }
 
+    
+    function openDepositModal(scmaId) {
+      document.getElementById('depScma').value = scmaId;
+      document.getElementById('depositModal').style.display = 'flex';
+    }
+    function closeDepositModal() {
+      document.getElementById('depositModal').style.display = 'none';
+    }
+    async function submitDeposit() {
+      const scma = document.getElementById('depScma').value;
+      const amt = parseFloat(document.getElementById('depAmount').value);
+      const memo = document.getElementById('depMemo').value;
+      if (!amt || amt <= 0) { alert('Enter a valid deposit amount.'); return; }
+      const res = await fetch('/api/v1/admin/deposit-funds', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ scma_id: scma, amount_dollars: amt, memo: memo })
+      });
+      if (res.ok) {
+        closeDepositModal();
+        refreshData();
+      } else {
+        const d = await res.json();
+        alert('Deposit Error: ' + d.detail);
+      }
+    }
+
+    function openOnboardModal() {
+      document.getElementById('onboardModal').style.display = 'flex';
+    }
+    function closeOnboardModal() {
+      document.getElementById('onboardModal').style.display = 'none';
+    }
+    async function submitOnboard() {
+      const scma = document.getElementById('onbScma').value;
+      const role = document.getElementById('onbRole').value;
+      const user = document.getElementById('onbUser').value;
+      const seed = parseFloat(document.getElementById('onbSeed').value) || 0;
+      const bank = document.getElementById('onbBank').value;
+      const last4 = document.getElementById('onbLast4').value || '0000';
+      if (!user) { alert('Enter member name / description.'); return; }
+      const res = await fetch('/api/v1/admin/onboard-member', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          scma_id: scma, user_id: user, role_tier: role, initial_seed_dollars: seed,
+          bank_institution: bank, account_last4: last4
+        })
+      });
+      if (res.ok) {
+        closeOnboardModal();
+        refreshData();
+      } else {
+        const d = await res.json();
+        alert('Onboarding Error: ' + d.detail);
+      }
+    }
+
     setInterval(refreshData, 3000);
     refreshData();
   </script>
+
+  <!-- Modal: Deposit Capital -->
+  <div id="depositModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
+    <div style="background:var(--card); border:1px solid var(--border); border-radius:8px; padding:24px; width:440px; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+      <h3 style="font-size:1.15rem; margin-bottom:8px;">Capital Injection & Account Funding</h3>
+      <p style="font-size:0.8rem; color:var(--muted); margin-bottom:16px;">Credit cash equity in exact integer cents under ADR-008. Dynamic 40% reserve floor and working margin will recalculate immediately.</p>
+      
+      <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Target Account</label>
+      <input type="text" id="depScma" readonly style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px; font-weight:700;">
+      
+      <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Deposit Amount (USD)</label>
+      <input type="number" id="depAmount" step="10.00" placeholder="1500.00" style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:var(--accent); font-weight:800; font-size:1.1rem; border-radius:4px;">
+      
+      <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Source Memo / Bank Rail</label>
+      <input type="text" id="depMemo" placeholder="PenFed ACH - Lineage Capital Top-Off" value="PenFed ACH - Lineage Capital Top-Off" style="width:100%; padding:8px; margin:4px 0 20px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px;">
+      
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button class="btn btn-secondary" onclick="closeDepositModal()">Cancel</button>
+        <button class="btn btn-blue" style="background:var(--green); color:#000;" onclick="submitDeposit()">Confirm & Credit Ledger</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Onboard Member -->
+  <div id="onboardModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
+    <div style="background:var(--card); border:1px solid var(--border); border-radius:8px; padding:24px; width:480px; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+      <h3 style="font-size:1.15rem; margin-bottom:8px;">Lineage Member Provisioning & Governance</h3>
+      <p style="font-size:0.8rem; color:var(--muted); margin-bottom:16px;">Configure an SCMA sub-ledger with assigned authority tier and opaque ADR-011 banking reference.</p>
+      
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div>
+          <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Target SCMA Slot</label>
+          <select id="onbScma" style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px;">
+            <option value="SCMA-MEM-0001">SCMA-MEM-0001 (Member 1)</option>
+            <option value="SCMA-MEM-0002">SCMA-MEM-0002 (Member 2)</option>
+            <option value="SCMA-MEM-0003">SCMA-MEM-0003 (Member 3)</option>
+            <option value="SCMA-MEM-0004">SCMA-MEM-0004 (Member 4)</option>
+            <option value="SCMA-MEM-0005">SCMA-MEM-0005 (Member 5)</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Role / Governance Tier</label>
+          <select id="onbRole" style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px;">
+            <option value="MEMBER_USER">MEMBER_USER (Autonomous Member)</option>
+            <option value="F1">F1 (Lineage Peer Guide)</option>
+            <option value="F2-H">F2-H (Head of Household)</option>
+            <option value="F2-A">F2-A (Lineage Financial Advisor)</option>
+            <option value="F3">F3 (Chief Risk Officer)</option>
+            <option value="T1">T1 (Systems Monitor - Read Only)</option>
+            <option value="T2">T2 (Systems Maintenance Engineer)</option>
+          </select>
+        </div>
+      </div>
+
+      <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Member Full Name / Lineage Identity</label>
+      <input type="text" id="onbUser" placeholder="e.g. Sarah Carmichael" style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px;">
+      
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div>
+          <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Initial Gifted Seed ($)</label>
+          <input type="number" id="onbSeed" value="100.00" step="25.00" style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:var(--green); font-weight:700; border-radius:4px;">
+        </div>
+        <div>
+          <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Banking Institution</label>
+          <select id="onbBank" style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px;">
+            <option value="PENFED">PenFed Credit Union</option>
+            <option value="FBO-TRUST">Delaware FBO Master Trust</option>
+            <option value="COMMERCIAL">Commercial Checking</option>
+          </select>
+        </div>
+      </div>
+
+      <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Bank Account Last 4 Digits (For Opaque Token)</label>
+      <input type="text" id="onbLast4" maxlength="4" value="4811" placeholder="4811" style="width:100%; padding:8px; margin:4px 0 20px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px;">
+
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button class="btn btn-secondary" onclick="closeOnboardModal()">Cancel</button>
+        <button class="btn btn-blue" onclick="submitOnboard()">Provision & Activate SCMA</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
 """
@@ -1004,6 +1232,88 @@ MEMBER_HTML = """<!DOCTYPE html>
     setInterval(loadAccount, 3000);
     loadAccount();
   </script>
+
+  <!-- Modal: Deposit Capital -->
+  <div id="depositModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
+    <div style="background:var(--card); border:1px solid var(--border); border-radius:8px; padding:24px; width:440px; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+      <h3 style="font-size:1.15rem; margin-bottom:8px;">Capital Injection & Account Funding</h3>
+      <p style="font-size:0.8rem; color:var(--muted); margin-bottom:16px;">Credit cash equity in exact integer cents under ADR-008. Dynamic 40% reserve floor and working margin will recalculate immediately.</p>
+      
+      <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Target Account</label>
+      <input type="text" id="depScma" readonly style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px; font-weight:700;">
+      
+      <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Deposit Amount (USD)</label>
+      <input type="number" id="depAmount" step="10.00" placeholder="1500.00" style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:var(--accent); font-weight:800; font-size:1.1rem; border-radius:4px;">
+      
+      <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Source Memo / Bank Rail</label>
+      <input type="text" id="depMemo" placeholder="PenFed ACH - Lineage Capital Top-Off" value="PenFed ACH - Lineage Capital Top-Off" style="width:100%; padding:8px; margin:4px 0 20px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px;">
+      
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button class="btn btn-secondary" onclick="closeDepositModal()">Cancel</button>
+        <button class="btn btn-blue" style="background:var(--green); color:#000;" onclick="submitDeposit()">Confirm & Credit Ledger</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Onboard Member -->
+  <div id="onboardModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
+    <div style="background:var(--card); border:1px solid var(--border); border-radius:8px; padding:24px; width:480px; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+      <h3 style="font-size:1.15rem; margin-bottom:8px;">Lineage Member Provisioning & Governance</h3>
+      <p style="font-size:0.8rem; color:var(--muted); margin-bottom:16px;">Configure an SCMA sub-ledger with assigned authority tier and opaque ADR-011 banking reference.</p>
+      
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div>
+          <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Target SCMA Slot</label>
+          <select id="onbScma" style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px;">
+            <option value="SCMA-MEM-0001">SCMA-MEM-0001 (Member 1)</option>
+            <option value="SCMA-MEM-0002">SCMA-MEM-0002 (Member 2)</option>
+            <option value="SCMA-MEM-0003">SCMA-MEM-0003 (Member 3)</option>
+            <option value="SCMA-MEM-0004">SCMA-MEM-0004 (Member 4)</option>
+            <option value="SCMA-MEM-0005">SCMA-MEM-0005 (Member 5)</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Role / Governance Tier</label>
+          <select id="onbRole" style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px;">
+            <option value="MEMBER_USER">MEMBER_USER (Autonomous Member)</option>
+            <option value="F1">F1 (Lineage Peer Guide)</option>
+            <option value="F2-H">F2-H (Head of Household)</option>
+            <option value="F2-A">F2-A (Lineage Financial Advisor)</option>
+            <option value="F3">F3 (Chief Risk Officer)</option>
+            <option value="T1">T1 (Systems Monitor - Read Only)</option>
+            <option value="T2">T2 (Systems Maintenance Engineer)</option>
+          </select>
+        </div>
+      </div>
+
+      <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Member Full Name / Lineage Identity</label>
+      <input type="text" id="onbUser" placeholder="e.g. Sarah Carmichael" style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px;">
+      
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div>
+          <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Initial Gifted Seed ($)</label>
+          <input type="number" id="onbSeed" value="100.00" step="25.00" style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:var(--green); font-weight:700; border-radius:4px;">
+        </div>
+        <div>
+          <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Banking Institution</label>
+          <select id="onbBank" style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px;">
+            <option value="PENFED">PenFed Credit Union</option>
+            <option value="FBO-TRUST">Delaware FBO Master Trust</option>
+            <option value="COMMERCIAL">Commercial Checking</option>
+          </select>
+        </div>
+      </div>
+
+      <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Bank Account Last 4 Digits (For Opaque Token)</label>
+      <input type="text" id="onbLast4" maxlength="4" value="4811" placeholder="4811" style="width:100%; padding:8px; margin:4px 0 20px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px;">
+
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button class="btn btn-secondary" onclick="closeOnboardModal()">Cancel</button>
+        <button class="btn btn-blue" onclick="submitOnboard()">Provision & Activate SCMA</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
 """
