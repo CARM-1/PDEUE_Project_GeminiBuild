@@ -169,15 +169,26 @@ async def autonomous_market_daemon():
                         assigned_policy = FleetDomainRouter.ASSIGNMENTS.get(target_scma, {})
                         eligible = [t for t in tickers if t[1] == assigned_policy.get("domain")]
                         t_data = eligible[0] if eligible else tickers[(target_slot - 1) % len(tickers)]
-                        FleetDomainRouter.validate_order(target_scma, t_data[1], t_data[2])
                         pos_id = f"POS-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{target_slot}"
                         now_iso = datetime.now(timezone.utc).isoformat()
                         
-                        cursor.execute("""
-                            INSERT INTO positions (position_id, slot_index, scma_id, contract_ticker, domain, venue, side, qty, vwap_cents, cost_basis_cents, mtm_cents, status, updated_at)
-                            VALUES (?, ?, ?, ?, ?, ?, 'BUY_YES', ?, ?, ?, ?, 'RESTING_MAKER', ?);
-                        """, (pos_id, target_slot, target_scma, t_data[0], t_data[1], t_data[2], t_data[3], t_data[4], t_data[5], t_data[6], now_iso))
-                        append_audit_log(cursor, "BACKGROUND_DAEMON", "DISPATCH_MAKER_ORDER", {"slot": target_slot, "scma": target_scma, "contract": t_data[0]})
+                        try:
+                            # Route through UnifiedVenueRouter under active ephemeral lease
+                            dispatch_res = FLEET_VENUE_ROUTER.dispatch_order(
+                                target_scma, t_data[1], t_data[2], t_data[0], t_data[3], t_data[4]
+                            )
+                            lease_fp = dispatch_res.get("lease_fingerprint", "INTERNAL-SIM")
+                            cursor.execute("""
+                                INSERT INTO positions (position_id, slot_index, scma_id, contract_ticker, domain, venue, side, qty, vwap_cents, cost_basis_cents, mtm_cents, status, updated_at)
+                                VALUES (?, ?, ?, ?, ?, ?, 'BUY_YES', ?, ?, ?, ?, 'RESTING_MAKER', ?);
+                            """, (pos_id, target_slot, target_scma, t_data[0], t_data[1], t_data[2], t_data[3], t_data[4], t_data[5], t_data[6], now_iso))
+                            append_audit_log(cursor, "BACKGROUND_DAEMON", "DISPATCH_MAKER_ORDER", {
+                                "slot": target_slot, "scma": target_scma, "contract": t_data[0], "lease": lease_fp
+                            })
+                        except Exception as route_err:
+                            append_audit_log(cursor, "BACKGROUND_DAEMON", "DISPATCH_ABSTAIN_POLICY", {
+                                "slot": target_slot, "scma": target_scma, "reason": str(route_err)
+                            })
                         conn.commit()
 
                     # 2. Settle oldest resting contract and compound into that member account
@@ -2050,6 +2061,7 @@ if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
 
 FLEET_CREDENTIAL_BROKER = VenueCredentialBroker()
+FLEET_VENUE_ROUTER = UnifiedVenueRouter(FLEET_CREDENTIAL_BROKER)
 
 
 # --- STAGE 1B: EPHEMERAL KEY INGRESS & FLEET TELEMETRY ---
