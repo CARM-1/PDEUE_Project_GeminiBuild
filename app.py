@@ -287,8 +287,30 @@ def get_ledger_summary():
                 "domain": "Idle Buffer", "stake_dollars": "$0.00", "mtm_dollars": "$0.00"
             })
 
+
+    # Tab 2: 12-House Matrix Rollup Data
+    house_matrix = [
+        {"house_id": f"HOUSE-{i:02d}", "name": name, "scma_count": 1 if i <= 2 else 0, "status": "ACTIVE" if i <= 2 else "STANDBY", "allocated_cents": 180000 if i == 1 else (10000 if i == 2 else 0)}
+        for i, name in enumerate([
+            "House of Judah (Alpha)", "House of Benjamin (Beta)", "House of Levi", "House of Reuben",
+            "House of Simeon", "House of Issachar", "House of Zebulun", "House of Dan",
+            "House of Naphtali", "House of Gad", "House of Asher", "House of Joseph"
+        ], start=1)
+    ]
+
+    # Tab 3: Multi-Category Hybrid Velocity Radar Candidates
+    radar_feed = [
+        {"ticker": "KX-MIA-FRZ-32", "domain": "Weather (NOAA)", "venue": "Kalshi", "prob": 0.88, "ask_cents": 22, "edge_pct": 14.5, "expiry": "12h"},
+        {"ticker": "POLY-FED-DEC26", "domain": "Macro (Interest)", "venue": "Polymarket", "prob": 0.72, "ask_cents": 18, "edge_pct": 11.2, "expiry": "48h"},
+        {"ticker": "KX-NYC-SNOW-01", "domain": "Weather (NOAA)", "venue": "Kalshi", "prob": 0.65, "ask_cents": 25, "edge_pct": 9.8, "expiry": "18h"},
+        {"ticker": "KX-CPI-CORE-3.0", "domain": "Macro (BLS CPI)", "venue": "Kalshi", "prob": 0.81, "ask_cents": 20, "edge_pct": 12.0, "expiry": "72h"},
+        {"ticker": "POLY-BTC-100K-Q4", "domain": "Crypto (Derivatives)", "venue": "Polymarket", "prob": 0.58, "ask_cents": 35, "edge_pct": 8.4, "expiry": "36h"}
+    ]
+
     return {
         "system_mode": GLOBAL_STATE["system_mode"],
+        "houses": house_matrix,
+        "radar": radar_feed,
         "total_cash_cents": total_cash,
         "total_profit_cents": total_profit,
         "dry_powder_cents": dry_powder,
@@ -522,12 +544,30 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       --accent: #38bdf8; --purple: #a855f7;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; }
-    body { background: var(--bg); color: var(--text); padding: 24px; }
-    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 24px; }
+    body { background: var(--bg); color: var(--text); padding: 0 24px 24px 24px; }
+    
+    /* Top Persistent Portal Hub Ribbon */
+    .portal-hub { background: #0b111e; border-bottom: 1px solid var(--border); margin: 0 -24px 20px -24px; padding: 8px 24px; display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; }
+    .hub-links { display: flex; gap: 14px; align-items: center; }
+    .hub-link { color: var(--muted); text-decoration: none; display: flex; align-items: center; gap: 5px; font-weight: 600; padding: 4px 8px; border-radius: 4px; }
+    .hub-link:hover { color: #fff; background: #1e293d; }
+    .hub-link.active { color: var(--accent); background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); }
+
+    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 20px; }
     .btn { padding: 8px 16px; border-radius: 6px; font-weight: 700; cursor: pointer; border: none; font-size: 0.85rem; text-decoration: none; }
     .btn-red { background: var(--red); color: #fff; }
     .btn-blue { background: #1e293b; color: var(--accent); border: 1px solid var(--accent); }
     .btn-secondary { background: #1e293b; color: var(--text); border: 1px solid var(--border); }
+    
+    /* Tab Navigation Styles */
+    .nav-tabs { display: flex; gap: 8px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+    .tab-btn { background: transparent; border: none; color: var(--muted); padding: 10px 18px; font-size: 0.88rem; font-weight: 700; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
+    .tab-btn:hover { color: #fff; }
+    .tab-btn.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
+    
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px; }
     .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 18px; }
     .card-title { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
@@ -544,6 +584,20 @@ DASHBOARD_HTML = """<!DOCTYPE html>
   </style>
 </head>
 <body>
+  <!-- Top Persistent Portal Hub Ribbon -->
+  <div class="portal-hub">
+    <div class="hub-links">
+      <span style="color:var(--muted); font-weight:800; letter-spacing:0.05em; margin-right:4px;">PDEUE PORTAL HUB:</span>
+      <a href="/dashboard" class="hub-link active">● Chief Admin Cockpit</a>
+      <a href="/admin/tech" class="hub-link">○ Technical Console (Class T)</a>
+      <a href="/advisor" class="hub-link">○ Financial Advisor (Class F)</a>
+      <a href="/member" class="hub-link">○ Member Capital Desktop</a>
+    </div>
+    <div style="color:var(--muted); font-size:0.75rem;">
+      Node IP: <strong style="color:#fff;">13.221.153.12</strong> • ADR-011 Air-Gap: <span style="color:var(--green); font-weight:700;">ENFORCED</span>
+    </div>
+  </div>
+
   <div class="header">
     <div>
       <h1 style="font-size: 1.4rem;">PDEUE Master Cockpit & Registry</h1>
@@ -557,164 +611,234 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     </div>
   </div>
 
-  <div class="grid">
-    <div class="card">
-      <div class="card-title">Total Ring 1 Equity</div>
-      <div class="card-value" id="totEquity">$0.00</div>
-      <div class="card-sub" id="totCents">0 exact integer cents</div>
-    </div>
-    <div class="card">
-      <div class="card-title">40% Dry-Powder Floor</div>
-      <div class="card-value" id="dryFloor" style="color: var(--accent);">$0.00</div>
-      <div class="card-sub">Untouchable liquid cash reserve</div>
-    </div>
-    <div class="card">
-      <div class="card-title">Active Working Margin</div>
-      <div class="card-value" id="actMargin" style="color: var(--green);">$0.00</div>
-      <div class="card-sub">Max allowable trade collateral</div>
-    </div>
-    <div class="card">
-      <div class="card-title">Central Family Shield (CFCP)</div>
-      <div class="card-value" id="cfcpPool" style="color: var(--purple);">$0.00</div>
-      <div class="card-sub">Accumulates 10% of net profits</div>
-    </div>
+  <!-- Operational Workspace Tabs -->
+  <div class="nav-tabs">
+    <button class="tab-btn active" onclick="switchTab('tab1', this)">1. Lineage Executive Overview</button>
+    <button class="tab-btn" onclick="switchTab('tab2', this)">2. Family Lineal Pools & 12-House Matrix</button>
+    <button class="tab-btn" onclick="switchTab('tab3', this)">3. Hybrid Velocity Radar</button>
+    <button class="tab-btn" onclick="switchTab('tab4', this)">4. Governance & Dual-Control Consensus</button>
   </div>
 
-  <div class="grid">
-    <div class="card">
-      <div class="card-title">Win / Loss Ratio</div>
-      <div class="card-value" id="winRateVal" style="color: var(--green);">0.0%</div>
-      <div class="card-sub" id="winRateSub">Awaiting Initial Fills</div>
+  <!-- TAB 1: EXECUTIVE OVERVIEW -->
+  <div id="tab1" class="tab-pane active">
+    <div class="grid">
+      <div class="card">
+        <div class="card-title">Total Ring 1 Equity</div>
+        <div class="card-value" id="totEquity">$0.00</div>
+        <div class="card-sub" id="totCents">0 exact integer cents</div>
+      </div>
+      <div class="card">
+        <div class="card-title">40% Dry-Powder Floor</div>
+        <div class="card-value" id="dryFloor" style="color: var(--accent);">$0.00</div>
+        <div class="card-sub">Untouchable liquid cash reserve</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Active Working Margin</div>
+        <div class="card-value" id="actMargin" style="color: var(--green);">$0.00</div>
+        <div class="card-sub">Max allowable trade collateral</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Central Family Shield (CFCP)</div>
+        <div class="card-value" id="cfcpPool" style="color: var(--purple);">$0.00</div>
+        <div class="card-sub">Accumulates 10% of net profits</div>
+      </div>
     </div>
-    <div class="card">
-      <div class="card-title">Profit Factor</div>
-      <div class="card-value" id="profitFactorVal" style="color: var(--accent);">0.00x</div>
-      <div class="card-sub" id="profitFactorSub">Expectancy: $0.00</div>
-    </div>
-    <div class="card">
-      <div class="card-title">Capital Sizing Model</div>
-      <div class="card-value" style="color: #fff;">0.25f*</div>
-      <div class="card-sub">Quarter-Kelly Risk Governor</div>
-    </div>
-    <div class="card">
-      <div class="card-title">Max Drawdown</div>
-      <div class="card-value" style="color: var(--gold);">0.00%</div>
-      <div class="card-sub">5.0% Administrative Ceiling</div>
-    </div>
-  </div>
 
-  <!-- Lineage Equity Compounding Curve & Waterfall -->
-  <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px;">
-    <div class="chart-box" style="margin-bottom: 0;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+    <div class="grid">
+      <div class="card">
+        <div class="card-title">Win / Loss Ratio</div>
+        <div class="card-value" id="winRateVal" style="color: var(--green);">0.0%</div>
+        <div class="card-sub" id="winRateSub">Awaiting Initial Fills</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Profit Factor</div>
+        <div class="card-value" id="profitFactorVal" style="color: var(--accent);">0.00x</div>
+        <div class="card-sub" id="profitFactorSub">Expectancy: $0.00</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Capital Sizing Model</div>
+        <div class="card-value" style="color: #fff;">0.25f*</div>
+        <div class="card-sub">Quarter-Kelly Risk Governor</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Max Drawdown</div>
+        <div class="card-value" style="color: var(--gold);">0.00%</div>
+        <div class="card-sub">5.0% Administrative Ceiling</div>
+      </div>
+    </div>
+
+    <!-- Lineage Equity Compounding Curve & Waterfall -->
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px;">
+      <div class="chart-box" style="margin-bottom: 0;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <div>
+            <h3 style="font-size:1.05rem;">Lineage Equity Compounding Curve</h3>
+            <p style="font-size:0.78rem; color:var(--muted); margin-top:2px;">Real-time integer-cent trajectory across automated settlement cycles</p>
+          </div>
+          <div style="font-size:0.85rem; color:var(--accent); font-weight:700;" id="chartPeakVal">$0.00 Peak</div>
+        </div>
+        <div style="width:100%; height:180px; position:relative;">
+          <svg id="equityChartSvg" viewBox="0 0 800 180" style="width:100%; height:100%; overflow:visible;">
+            <defs>
+              <linearGradient id="equityGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.35"/>
+                <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.0"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+      </div>
+      
+      <div class="chart-box" style="margin-bottom: 0; display:flex; flex-direction:column; justify-content:space-between;">
         <div>
-          <h3 style="font-size:1.05rem;">Lineage Equity Compounding Curve</h3>
-          <p style="font-size:0.78rem; color:var(--muted); margin-top:2px;">Real-time integer-cent trajectory across automated settlement cycles</p>
+          <h3 style="font-size:1.05rem; margin-bottom:4px;">Waterfall Distribution (87/10/3)</h3>
+          <p style="font-size:0.78rem; color:var(--muted); margin-bottom:14px;">Deterministic realized profit allocation</p>
+          <div style="height:14px; width:100%; background:#1e293b; border-radius:7px; overflow:hidden; display:flex; margin-bottom:14px;">
+            <div style="width:87%; background:#38bdf8;" title="87% Lineage Compounding"></div>
+            <div style="width:10%; background:#a855f7;" title="10% CFCP Shield"></div>
+            <div style="width:3%; background:#f59e0b;" title="3% FAEP Ops"></div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px; font-size:0.82rem;">
+            <div style="display:flex; justify-content:space-between;">
+              <span style="display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:50%; background:#38bdf8;"></span> Compounding (87%)</span>
+              <strong id="wfScmaDollars" style="color:#38bdf8;">$0.00</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+              <span style="display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:50%; background:#a855f7;"></span> Family Shield (10%)</span>
+              <strong id="wfCfcpDollars" style="color:#a855f7;">$0.00</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+              <span style="display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:50%; background:#f59e0b;"></span> Platform Ops (3%)</span>
+              <strong id="wfFaepDollars" style="color:#f59e0b;">$0.00</strong>
+            </div>
+          </div>
         </div>
-        <div style="font-size:0.85rem; color:var(--accent); font-weight:700;" id="chartPeakVal">$0.00 Peak</div>
-      </div>
-      <div style="width:100%; height:180px; position:relative;">
-        <svg id="equityChartSvg" viewBox="0 0 800 180" style="width:100%; height:100%; overflow:visible;">
-          <defs>
-            <linearGradient id="equityGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.35"/>
-              <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.0"/>
-            </linearGradient>
-          </defs>
-        </svg>
+        <div style="border-top:1px solid var(--border); padding-top:10px; font-size:0.74rem; color:var(--muted);">
+          Verified ADR-008 exact-cent allocation with zero fractional leakage.
+        </div>
       </div>
     </div>
-    
-    <div class="chart-box" style="margin-bottom: 0; display:flex; flex-direction:column; justify-content:space-between;">
-      <div>
-        <h3 style="font-size:1.05rem; margin-bottom:4px;">Waterfall Distribution (87/10/3)</h3>
-        <p style="font-size:0.78rem; color:var(--muted); margin-bottom:14px;">Deterministic realized profit allocation</p>
-        <div style="height:14px; width:100%; background:#1e293b; border-radius:7px; overflow:hidden; display:flex; margin-bottom:14px;">
-          <div style="width:87%; background:#38bdf8;" title="87% Lineage Compounding"></div>
-          <div style="width:10%; background:#a855f7;" title="10% CFCP Shield"></div>
-          <div style="width:3%; background:#f59e0b;" title="3% FAEP Ops"></div>
-        </div>
-        <div style="display:flex; flex-direction:column; gap:8px; font-size:0.82rem;">
-          <div style="display:flex; justify-content:space-between;">
-            <span style="display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:50%; background:#38bdf8;"></span> Compounding (87%)</span>
-            <strong id="wfScmaDollars" style="color:#38bdf8;">$0.00</strong>
-          </div>
-          <div style="display:flex; justify-content:space-between;">
-            <span style="display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:50%; background:#a855f7;"></span> Family Shield (10%)</span>
-            <strong id="wfCfcpDollars" style="color:#a855f7;">$0.00</strong>
-          </div>
-          <div style="display:flex; justify-content:space-between;">
-            <span style="display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:50%; background:#f59e0b;"></span> Platform Ops (3%)</span>
-            <strong id="wfFaepDollars" style="color:#f59e0b;">$0.00</strong>
-          </div>
-        </div>
+
+    <!-- Active Portfolio Table -->
+    <div class="chart-box">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <h3 style="font-size:1.05rem;">Active Portfolio Positions & Inside-Spread Resting Bids</h3>
+        <span class="chip chip-blue" id="openCountBadge">0 OPEN</span>
       </div>
-      <div style="border-top:1px solid var(--border); padding-top:10px; font-size:0.74rem; color:var(--muted);">
-        Verified ADR-008 exact-cent allocation with zero fractional leakage.
-      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Slot</th>
+            <th>Contract</th>
+            <th>Domain</th>
+            <th>Venue</th>
+            <th>Side</th>
+            <th>Qty</th>
+            <th>VWAP</th>
+            <th>Cost Basis</th>
+            <th>Mark-to-Market</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="posTable">
+          <tr><td colspan="10" style="text-align:center; color:var(--muted); padding:16px;">No open positions. Inventory flat.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Registry -->
+    <div class="chart-box">
+      <h3 style="font-size:1.05rem;">Ring 1 Multi-Account Registry</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>SCMA ID</th>
+            <th>User ID / Description</th>
+            <th>Cash Balance</th>
+            <th>Risk Dial</th>
+            <th>Status</th>
+            <th>Bank Reference Token</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="rosterTable"></tbody>
+      </table>
     </div>
   </div>
 
-  <div class="chart-box">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-      <h3 style="font-size:1.05rem;">Active Portfolio Positions & Inside-Spread Resting Bids</h3>
-      <span class="chip chip-blue" id="openCountBadge">0 OPEN</span>
+  <!-- TAB 2: 12-HOUSE MATRIX -->
+  <div id="tab2" class="tab-pane">
+    <div class="chart-box">
+      <h3 style="font-size:1.05rem; margin-bottom:6px;">12-House Lineal Governance Matrix</h3>
+      <p style="font-size:0.8rem; color:var(--muted); margin-bottom:14px;">Tribal branch sub-ledgers and sovereign risk allocation boundaries.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>House Identifier</th>
+            <th>Tribal Name</th>
+            <th>Active SCMAs</th>
+            <th>Allocated Capital</th>
+            <th>Governance Posture</th>
+            <th>Circuit Breaker</th>
+          </tr>
+        </thead>
+        <tbody id="houseTable"></tbody>
+      </table>
     </div>
-    <table>
-      <thead>
-        <tr>
-          <th>Slot</th>
-          <th>Contract</th>
-          <th>Domain</th>
-          <th>Venue</th>
-          <th>Side</th>
-          <th>Qty</th>
-          <th>VWAP</th>
-          <th>Cost Basis</th>
-          <th>Mark-to-Market</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody id="posTable">
-        <tr><td colspan="10" style="text-align:center; color:var(--muted); padding:16px;">No open positions. Inventory flat.</td></tr>
-      </tbody>
-    </table>
   </div>
 
-  <div class="chart-box">
-    <h3 style="font-size:1.05rem;">Ring 1 Multi-Account Registry</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>SCMA ID</th>
-          <th>User ID / Description</th>
-          <th>Cash Balance</th>
-          <th>Risk Dial</th>
-          <th>Status</th>
-          <th>Bank Reference Token</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody id="rosterTable"></tbody>
-    </table>
+  <!-- TAB 3: VELOCITY RADAR -->
+  <div id="tab3" class="tab-pane">
+    <div class="chart-box">
+      <h3 style="font-size:1.05rem; margin-bottom:6px;">Hybrid Velocity Radar (Multi-Category Opportunity Feed)</h3>
+      <p style="font-size:0.8rem; color:var(--muted); margin-bottom:14px;">Real-time underwriting queue: Weather (NOAA), Macro (CPI/Fed), Crypto, and Sports opportunities.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Contract Ticker</th>
+            <th>Domain</th>
+            <th>Venue</th>
+            <th>Model Probability</th>
+            <th>Market Ask</th>
+            <th>Net Edge</th>
+            <th>Expiry Horizon</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="radarTable"></tbody>
+      </table>
+    </div>
   </div>
 
-  <div class="chart-box" style="border-color: #7f1d1d;">
-    <h3 style="font-size:1.05rem; color:#f87171;">Emergency Distribution & Co-Signature Queue (Directive R-15)</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Voucher ID</th>
-          <th>SCMA Target</th>
-          <th>Requested Amount</th>
-          <th>Reason</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody id="emergencyTable">
-        <tr><td colspan="5" style="text-align:center; color:var(--muted); padding:16px;">No pending emergency petitions.</td></tr>
-      </tbody>
-    </table>
+  <!-- TAB 4: DUAL-CONTROL & CONSENSUS -->
+  <div id="tab4" class="tab-pane">
+    <div class="chart-box" style="border-color: #7f1d1d; margin-bottom:20px;">
+      <h3 style="font-size:1.05rem; color:#f87171;">Emergency Distribution & Co-Signature Queue (Directive R-15)</h3>
+      <p style="font-size:0.8rem; color:var(--muted); margin-bottom:14px;">Demands dual-control co-signature for requests that breach the 40% capital floor.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Voucher ID</th>
+            <th>SCMA Target</th>
+            <th>Requested Amount</th>
+            <th>Reason</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="emergencyTable">
+          <tr><td colspan="5" style="text-align:center; color:var(--muted); padding:16px;">No pending emergency petitions.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="chart-box">
+      <h3 style="font-size:1.05rem; margin-bottom:8px;">Dual-Control Consensus Ledger</h3>
+      <div style="font-size:0.82rem; color:var(--muted); line-height:1.6;">
+        <div>• <strong>AUTH-01 (Chief Administrator):</strong> Sovereign Settlor Master Authority active.</div>
+        <div>• <strong>AUTH-02 (Trustee / F3 CRO):</strong> Dual-sign threshold enforced on red-tier events.</div>
+        <div>• <strong>Consensus Invariant:</strong> Unilateral withdrawal of core lineage principal is permanently barred.</div>
+      </div>
+    </div>
   </div>
 
   <!-- Deposit Modal -->
@@ -799,6 +923,13 @@ DASHBOARD_HTML = """<!DOCTYPE html>
   </div>
 
   <script>
+    function switchTab(tabId, btn) {
+      document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      btn.classList.add('active');
+    }
+
     function drawSvgCurve(svgId, points, floorCents, strokeColor, gradId) {
       const svg = document.getElementById(svgId);
       if (!svg) return;
@@ -928,6 +1059,45 @@ DASHBOARD_HTML = """<!DOCTYPE html>
           `;
         });
 
+        // Tab 2: House Matrix Render
+        const hTbody = document.getElementById('houseTable');
+        if (hTbody && data.houses) {
+          hTbody.innerHTML = '';
+          data.houses.forEach(h => {
+            hTbody.innerHTML += `
+              <tr>
+                <td style="font-weight:700;">${h.house_id}</td>
+                <td style="font-weight:600; color:#fff;">${h.name}</td>
+                <td>${h.scma_count} SCMAs</td>
+                <td style="color:var(--green); font-weight:700;">$${(h.allocated_cents / 100).toFixed(2)}</td>
+                <td><span class="chip ${h.status==='ACTIVE'?'chip-green':'chip-yellow'}">${h.status}</span></td>
+                <td><button class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem;">Clamp 0.5%</button></td>
+              </tr>
+            `;
+          });
+        }
+
+        // Tab 3: Velocity Radar Render
+        const rTbody = document.getElementById('radarTable');
+        if (rTbody && data.radar) {
+          rTbody.innerHTML = '';
+          data.radar.forEach(r => {
+            rTbody.innerHTML += `
+              <tr>
+                <td style="font-weight:700; color:var(--accent);">${r.ticker}</td>
+                <td>${r.domain}</td>
+                <td>${r.venue}</td>
+                <td style="font-weight:700; color:var(--green);">${(r.prob * 100).toFixed(0)}%</td>
+                <td>$${(r.ask_cents / 100).toFixed(2)}</td>
+                <td style="color:var(--accent); font-weight:700;">+${r.edge_pct.toFixed(1)}%</td>
+                <td>${r.expiry}</td>
+                <td><span class="chip chip-blue">QUEUED</span></td>
+              </tr>
+            `;
+          });
+        }
+
+        // Tab 4: Emergency Petitions
         const emTbody = document.getElementById('emergencyTable');
         if (data.emergency_petitions && data.emergency_petitions.length > 0) {
           emTbody.innerHTML = '';
@@ -1015,7 +1185,6 @@ DASHBOARD_HTML = """<!DOCTYPE html>
 </body>
 </html>
 """
-
 MEMBER_HTML = """<!DOCTYPE html>
 <html lang="en">
 <head>
