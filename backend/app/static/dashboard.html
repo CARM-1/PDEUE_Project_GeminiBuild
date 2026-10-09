@@ -136,25 +136,9 @@
         <div style="color: #64748b; font-size: 11px;">Peak: 425,000¢ | Floor: 400,000¢</div>
       </div>
       <div class="chart-shell">
-        <svg id="chart-equity" viewBox="0 0 800 160" role="img" aria-labelledby="equity-chart-title equity-chart-desc" preserveAspectRatio="xMidYMid meet">
-          <title id="equity-chart-title">Equity compounding curve</title>
-          <desc id="equity-chart-desc">Equity rises from a 400,000 cent floor to a 425,000 cent peak.</desc>
-          <defs>
-            <linearGradient id="equity-area-gradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.42"/>
-              <stop offset="100%" stop-color="#38bdf8" stop-opacity="0"/>
-            </linearGradient>
-          </defs>
-          <g aria-hidden="true">
-            <line class="chart-grid" x1="58" y1="24" x2="770" y2="24"/><line class="chart-grid" x1="58" y1="66" x2="770" y2="66"/><line class="chart-grid" x1="58" y1="108" x2="770" y2="108"/><line class="chart-grid" x1="58" y1="136" x2="770" y2="136"/>
-            <path d="M58 136 C120 132 145 122 198 124 S282 104 326 108 S404 78 454 84 S540 58 590 62 S676 34 770 24 L770 136 L58 136 Z" fill="url(#equity-area-gradient)"/>
-            <path d="M58 136 C120 132 145 122 198 124 S282 104 326 108 S404 78 454 84 S540 58 590 62 S676 34 770 24" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linecap="round"/>
-            <circle cx="58" cy="136" r="4" fill="#38bdf8"/><circle cx="770" cy="24" r="4" fill="#38bdf8"/>
-            <text class="chart-label" x="58" y="153">FLOOR 400,000¢</text><text class="chart-label" x="770" y="16" text-anchor="end">PEAK 425,000¢</text>
-          </g>
-        </svg>
+        
       </div>
-      <svg id="chart-equity" class="equity-chart" viewBox="0 0 800 160" role="img" aria-labelledby="equity-title equity-desc"><title id="equity-title">Equity compounding curve</title><desc id="equity-desc">Equity rises smoothly from a four-thousand-dollar floor beyond four thousand two hundred fifty dollars.</desc><defs><linearGradient id="equity-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#38bdf8" stop-opacity=".38"/><stop offset="1" stop-color="#38bdf8" stop-opacity="0"/></linearGradient></defs><g class="equity-grid"><line x1="72" y1="24" x2="780" y2="24"/><line x1="72" y1="66" x2="780" y2="66"/><line x1="72" y1="108" x2="780" y2="108"/><line x1="72" y1="140" x2="780" y2="140"/></g><g class="equity-axis"><text x="4" y="28">425,000¢</text><text x="4" y="70">415,000¢</text><text x="4" y="112">405,000¢</text><text x="4" y="144">400,000¢ floor</text></g><path d="M72 140 C150 136 190 125 260 119 S370 91 435 88 S545 58 610 54 S710 31 780 24 L780 140 L72 140 Z" fill="url(#equity-fill)"/><path d="M72 140 C150 136 190 125 260 119 S370 91 435 88 S545 58 610 54 S710 31 780 24" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linecap="round"/></svg>
+      
     </div>
 
     <div class="card">
@@ -235,7 +219,7 @@
 
     <div class="card">
       <div class="card-title" style="color: #38bdf8; margin-bottom: 12px;">ACTIVE SCANNER QUEUE &amp; VOLATILITY RADAR</div>
-      <div class="table-card"><table>
+      <div class="table-card"><table style="width: 100%; margin-bottom: 32px; border-collapse: collapse; display: table;">
         <thead>
           <tr><th>CONTRACT</th><th>VENUE</th><th>LINEAGE</th><th>MODEL PROB</th><th>MARKET PRICE</th><th>NET EDGE</th><th>STATUS</th><th>ACTION</th></tr>
         </thead>
@@ -291,7 +275,7 @@
     <!-- PETITION INTAKE & RATIFICATION QUEUE -->
     <div class="card">
       <div class="card-title" style="color: #38bdf8; margin-bottom: 12px;">ACTIVE HOUSE PETITIONS AWAITING SOVEREIGN DETERMINATION</div>
-      <div class="table-card"><table>
+      <div class="table-card"><table style="width: 100%; margin-bottom: 32px; border-collapse: collapse; display: table;">
         <thead>
           <tr><th>PETITION ID</th><th>PROPOSAL TITLE</th><th>TARGET LINEAGE</th><th>REQUESTED SUM</th><th>HOUSE QUORUM</th><th>PETITION STATUS</th><th>SOVEREIGN ACTIONS</th></tr>
         </thead>
@@ -525,7 +509,7 @@
             <span class="house-freeze ${house.status === 'QUARANTINED' ? 'house-restore' : ''}" role="button" onclick="event.stopPropagation(); setHouseQuarantine(${house.house_id}, '${house.status === 'QUARANTINED' ? 'restore' : 'freeze'}')">${house.status === 'QUARANTINED' ? '↺ Restore House' : '⚡ Freeze Entire House'}</span>
           </button>
           <div class="subaccount-panel" ${openHouseIds.has(String(house.house_id)) || (isInitialRender && index === 0) ? '' : 'hidden'}>
-            <table><thead><tr><th>SCMA ID</th><th>MEMBER NAME</th><th>ROLE / TAG</th><th>CURRENT BALANCE</th><th>RISK DIAL</th><th>RESTING MAKER ORDERS</th><th>ACTIONS</th></tr></thead>
+            <table style="width: 100%; margin-bottom: 32px; border-collapse: collapse; display: table;"><thead><tr><th>SCMA ID</th><th>MEMBER NAME</th><th>ROLE / TAG</th><th>CURRENT BALANCE</th><th>RISK DIAL</th><th>RESTING MAKER ORDERS</th><th>ACTIONS</th></tr></thead>
             <tbody>${house.members.map(member => `<tr data-scma="${member.scma_id}" data-baseline="${member.baseline_risk_dial || .01}"><td class="house-code">${member.scma_id}</td><td><a href="/member?scma_id=${member.scma_id}" style="color:#38bdf8;text-decoration:underline;">${member.name}</a></td><td>${member.role_tag || 'Lineal Member'}</td><td>${money(member.cash_cents)}</td><td class="risk-value">${(Number(member.risk_dial) * 100).toFixed(1)}%</td><td class="order-value">${(member.open_orders || []).length}</td><td>${member.scma_id === 'SCMA-FOUNDER_-C8575D7E' || member.role_tag === 'Sovereign Settlor' ? '<span style="background:#1e293b;border:1px solid #38bdf8;color:#38bdf8;padding:4px 8px;border-radius:4px;font-weight:bold;font-size:11px;">🛡️ Sovereign Immune</span>' : `<button class="lineage-action freeze-risk" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'freeze-risk', this)">⚡ Freeze Risk</button> <button class="lineage-action restore-risk" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'restore-risk', this)">↺ Restore Risk</button> <button class="lineage-action revoke-orders" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'cancel-orders', this)">✕ Revoke Orders</button>`}</td></tr>`).join('')}</tbody></table>
           </div>
         </section>`).join('');

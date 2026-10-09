@@ -38,4 +38,37 @@ const cues=[{t:0,id:'chapter-waterfall',text:'Chapter 1. The exact-cent waterfal
 function renderMarkdown(markdown){const lines=markdown.split('\n'),title=lines.find(l=>l.startsWith('# '))||'# Canonical Manual';let html=`<h1>${title.slice(2)}</h1>`,section=[],heading='Overview';const flush=()=>{if(!section.length)return;const safe=section.join('\n').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));html+=`<details open><summary>${heading}</summary><pre>${safe}</pre></details>`;section=[]};lines.slice(1).forEach(line=>{if(/^#{2,3} /.test(line)){flush();heading=line.replace(/^#+ /,'')}else section.push(line)});flush();$('manual-reader-container').innerHTML=html}async function loadManual(){const name=$('manualSelect').value;$('manual-reader-container').innerHTML='<p>Loading local canonical manual…</p>';try{const response=await fetch('/api/v1/portal/companion/manual/'+encodeURIComponent(name));if(!response.ok)throw new Error('Manual unavailable');renderMarkdown(await response.text())}catch(error){$('manual-reader-container').innerHTML=`<p role="alert">${error.message}. The repository manual remains available in docs/manuals.</p>`}}$('loadManual').onclick=loadManual;$('manualSelect').onchange=loadManual;$('printManual').onclick=()=>{$('printManual').textContent='Print dialog opened';window.print();setTimeout(()=>$('printManual').textContent='Print / Save PDF',1500)};document.querySelectorAll('.tab').forEach(tab=>tab.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.setAttribute('aria-selected',String(x===tab)));['simulator','colleges'].forEach(id=>$(id).classList.toggle('hidden',id!==tab.dataset.panel));if(tab.dataset.panel==='colleges')loadManual()});seek(0);
 })();
 </script>
+
+<script>
+function downloadActiveManual() {
+  const sel = document.getElementById("manual-select") || document.getElementById("syllabus-select");
+  const key = sel ? sel.value : "USER_QUICKSTART";
+  const manualContent = (window.EMBEDDED_MANUALS && window.EMBEDDED_MANUALS[key]) 
+    ? window.EMBEDDED_MANUALS[key] 
+    : (document.getElementById("manual-content") ? document.getElementById("manual-content").innerText : "# PDEUE Manual");
+  
+  const blob = new Blob([manualContent], { type: "text/markdown;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = key + ".md";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+// Fix Chromium SpeechSynthesis garbage-collection and boundary triggers
+window._persistedUtterance = null;
+function speakTranscriptSafely(text, rate) {
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  if (!text || text.trim() === '') return;
+  
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.rate = rate || 1.0;
+  utter.pitch = 1.0;
+  window._persistedUtterance = utter;
+  window.speechSynthesis.speak(utter);
+}
+</script>
+
 </body></html>
