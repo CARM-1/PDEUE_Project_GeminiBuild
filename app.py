@@ -2155,7 +2155,7 @@ def operator_trigger_daemon_cycle():
     open_pos = cursor.fetchall()
     occupied = {r[0] for r in open_pos}
 
-    vacant_slots = [i for i in range(1, 13) if i not in occupied]
+    vacant_slots = [i for i in range(1, 5) if i not in occupied]
     if not vacant_slots:
         conn.close()
         return {"status": "SUCCESS", "message": "ALL_SLOTS_FULL"}
@@ -2269,3 +2269,137 @@ def evaluate_paper_candidate(payload: dict):
     elif category == "U.S. Treasury Auction Tails":
         return TREASURY_ROUTER.evaluate_contract(spec)
     return {"status": "ERROR", "reason": "UNSUPPORTED_TIER2_CATEGORY"}
+
+
+# ----------------------------------------------------------------------
+# SPRINT 4: TIER 2 PAPER SOAK DAEMON & UNIFIED RACK TELEMETRY
+# ----------------------------------------------------------------------
+@app.post("/api/v1/operator/soak/cycle")
+def operator_trigger_paper_soak_cycle():
+    """Executes an autonomous evaluation cycle for Tier 2 paper slots (5-8)."""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT slot_index, contract_ticker FROM positions WHERE status != 'CLOSED';")
+    open_pos = cursor.fetchall()
+    occupied = {r[0] for r in open_pos}
+
+    paper_slots = [i for i in range(5, 9) if i not in occupied]
+    if not paper_slots:
+        conn.close()
+        return {"status": "SUCCESS", "message": "ALL_PAPER_SLOTS_FULL"}
+
+    target_slot = paper_slots[0]
+    now_iso = datetime.now(timezone.utc).isoformat()
+    pos_id = f"POS-PAPER-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{target_slot}"
+
+    # Alternate between Sports Poisson and Treasury Tail candidates
+    if target_slot % 2 == 1:
+        # Sports candidate
+        eval_res = SPORTS_ROUTER.evaluate_contract({
+            "home_expected_td": 2.8, "home_expected_fg": 1.8,
+            "away_expected_td": 1.8, "away_expected_fg": 1.4,
+            "target_spread": 3.0, "stadium_wind_mph": 10.0,
+            "market_ask_cents": 48
+        })
+        ticker = f"SIM-NFL-SPR-{target_slot}"
+        domain = "Sports Analytics & Spreads"
+        cost_basis = 480
+        qty = 10
+        vwap = 48
+    else:
+        # Treasury Tail candidate
+        eval_res = TREASURY_ROUTER.evaluate_contract({
+            "expected_tail_bps": 0.8, "strike_tail_bps": 1.0,
+            "dealer_absorption_pct": 24.0, "btc_delta": -0.20,
+            "market_ask_cents": 35
+        })
+        ticker = f"SIM-TRES-TAIL-{target_slot}"
+        domain = "U.S. Treasury Auction Tails"
+        cost_basis = 350
+        qty = 10
+        vwap = 35
+
+    if not eval_res.get("is_admissible", False):
+        conn.close()
+        return {"status": "ABSTAIN", "reason": "CANDIDATE_FAILED_ADMISSION_GATE"}
+
+    cursor.execute("""
+        INSERT INTO positions (position_id, slot_index, scma_id, contract_ticker, domain, venue, side, qty, vwap_cents, cost_basis_cents, mtm_cents, status, updated_at)
+        VALUES (?, ?, 'SCMA-SIM-SOAK', ?, ?, 'SIMULATOR', 'BUY_YES', ?, ?, ?, ?, 'PAPER_MAKER', ?);
+    """, (pos_id, target_slot, ticker, domain, qty, vwap, cost_basis, cost_basis + 50, now_iso))
+
+    append_audit_log(cursor, "PAPER_SOAK_DAEMON", "DISPATCH_SIMULATED_MAKER", {
+        "slot": target_slot, "contract": ticker, "domain": domain, "edge": eval_res.get("net_edge")
+    })
+    conn.commit()
+    conn.close()
+    return {
+        "status": "SUCCESS", "slot": target_slot, "regime": "TIER2_PAPER",
+        "contract": ticker, "domain": domain, "net_edge": eval_res.get("net_edge")
+    }
+
+@app.post("/api/v1/operator/soak/settle")
+def operator_trigger_paper_soak_settle():
+    """Settles oldest resting paper position to simulate Strategy D turnover."""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM positions WHERE status = 'PAPER_MAKER' ORDER BY updated_at ASC LIMIT 1;")
+    pos = cursor.fetchone()
+    if not pos:
+        conn.close()
+        return {"status": "SUCCESS", "message": "NO_PAPER_POSITIONS_TO_SETTLE"}
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    cursor.execute("UPDATE positions SET status = 'CLOSED', updated_at = ? WHERE position_id = ?;", (now_iso, pos["position_id"]))
+    append_audit_log(cursor, "PAPER_SOAK_DAEMON", "SETTLE_SIMULATED_POSITION", {
+        "slot": pos["slot_index"], "contract": pos["contract_ticker"]
+    })
+    conn.commit()
+    conn.close()
+    return {"status": "SUCCESS", "message": f"Settled paper slot {pos['slot_index']} ({pos['contract_ticker']})"}
+
+@app.get("/api/v1/fleet/telemetry")
+def get_fleet_telemetry():
+    """Returns unified real-time telemetry across all 12 concurrency slots."""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT slot_index, scma_id, contract_ticker, domain, venue, status, cost_basis_cents FROM positions WHERE status != 'CLOSED';")
+    open_pos = {r["slot_index"]: dict(r) for r in cursor.fetchall()}
+
+    rack_slots = []
+    for s in range(1, 13):
+        if 1 <= s <= 4:
+            regime = "TIER1_LIVE"
+        elif 5 <= s <= 8:
+            regime = "TIER2_PAPER"
+        else:
+            regime = "RESERVE_STANDBY"
+
+        pos = open_pos.get(s)
+        rack_slots.append({
+            "slot_index": s,
+            "regime": regime,
+            "is_occupied": pos is not None,
+            "position": pos
+        })
+
+    cursor.execute("SELECT scma_id, cash_cents, is_custodial FROM accounts;")
+    accounts = [dict(a) for a in cursor.fetchall()]
+    conn.close()
+
+    live_active_count = sum(1 for s in rack_slots if s["regime"] == "TIER1_LIVE" and s["is_occupied"])
+    paper_active_count = sum(1 for s in rack_slots if s["regime"] == "TIER2_PAPER" and s["is_occupied"])
+
+    return {
+        "status": "SUCCESS",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "summary": {
+            "live_slots_occupied": live_active_count,
+            "live_slots_capacity": 4,
+            "paper_slots_occupied": paper_active_count,
+            "paper_slots_capacity": 4,
+            "reserve_slots_capacity": 4
+        },
+        "rack": rack_slots,
+        "accounts": accounts
+    }
