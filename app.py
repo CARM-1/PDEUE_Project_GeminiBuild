@@ -1,3 +1,4 @@
+from venue_adapters import UnifiedVenueRouter
 from fleet_engine import VenueCredentialBroker, FleetDomainRouter, VirtualLineageVault, DomainCollusionError, MinorProtectionError
 #!/usr/bin/env python3
 import sqlite3
@@ -2049,3 +2050,74 @@ if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
 
 FLEET_CREDENTIAL_BROKER = VenueCredentialBroker()
+
+
+# --- STAGE 1B: EPHEMERAL KEY INGRESS & FLEET TELEMETRY ---
+class CredentialIngestReq(BaseModel):
+    scma_id: str
+    venue: str
+    api_key: str
+    api_secret: str
+
+@app.post("/api/v1/operator/credentials/ingest")
+def ingest_credentials(req: CredentialIngestReq):
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT is_custodial, status FROM accounts WHERE scma_id = ?;", (req.scma_id,))
+    row = c.fetchone()
+    conn.close()
+    if not row:
+        raise HTTPException(status_code=404, detail="Account not found.")
+    if row["is_custodial"] == 1:
+        raise HTTPException(status_code=403, detail=f"Statutory Violation: Minors ({req.scma_id}) cannot register external exchange credentials.")
+    try:
+        FLEET_CREDENTIAL_BROKER.register_credential(req.scma_id, req.venue, f"{req.api_key}:{req.api_secret}", is_custodial=False)
+        lease = FLEET_CREDENTIAL_BROKER.acquire_lease(req.scma_id, req.venue, is_custodial=False)
+        return {
+            "status": "SUCCESS",
+            "scma_id": req.scma_id,
+            "venue": req.venue,
+            "lease_fingerprint": lease.fingerprint,
+            "expires_at": lease.expires_at
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/api/v1/fleet/status")
+def get_fleet_status():
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT * FROM accounts ORDER BY scma_id ASC;")
+    accounts = [dict(r) for r in c.fetchall()]
+    conn.close()
+    fleet_summary = []
+    for acc in accounts:
+        s_id = acc["scma_id"]
+        policy = FleetDomainRouter.ASSIGNMENTS.get(s_id, {})
+        is_custodial = acc.get("is_custodial", 0) == 1
+        has_lease = False
+        lease_fingerprint = None
+        if not is_custodial and policy:
+            venue = policy.get("venue", "Kalshi")
+            lease_key = f"{s_id}:{venue}"
+            lease = FLEET_CREDENTIAL_BROKER._leases.get(lease_key)
+            if lease and lease.is_valid():
+                has_lease = True
+                lease_fingerprint = lease.fingerprint
+        fleet_summary.append({
+            "scma_id": s_id,
+            "user_id": acc.get("user_id"),
+            "household": policy.get("household", "Virtual Core"),
+            "domain": policy.get("domain", "Lineage Reserve Pool"),
+            "venue": policy.get("venue", "Internal Ledger"),
+            "is_custodial": is_custodial,
+            "status": acc.get("status"),
+            "cash_cents": acc.get("cash_cents", 0),
+            "has_active_lease": has_lease,
+            "lease_fingerprint": lease_fingerprint
+        })
+    return {
+        "status": "SUCCESS",
+        "nodes_count": len(fleet_summary),
+        "fleet": fleet_summary
+    }
