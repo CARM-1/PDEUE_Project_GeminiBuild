@@ -1,3 +1,4 @@
+import priority_eviction
 import sports_adapter
 import treasury_adapter
 from venue_adapters import UnifiedVenueRouter
@@ -2403,3 +2404,72 @@ def get_fleet_telemetry():
         "rack": rack_slots,
         "accounts": accounts
     }
+
+
+# ----------------------------------------------------------------------
+# SPRINT 6: RUNTIME PRIORITY EVICTION & PREEMPTION API
+# ----------------------------------------------------------------------
+EVICTION_MANAGER = priority_eviction.PriorityEvictionManager(capacity=12, min_edge_hurdle=0.20, min_advantage=0.10)
+
+@app.post("/api/v1/operator/eviction/preempt")
+def operator_trigger_preemption(payload: dict):
+    """
+    Evaluates an out-of-band high-alpha candidate against current active slots.
+    If preemption conditions are met, cancels the resting order and executes replacement.
+    """
+    candidate_ticker = payload.get("contract_ticker", "KX-ALPHA-STRIKE")
+    candidate_edge = float(payload.get("net_edge", 0.28))
+    domain = payload.get("domain", "Macro & Rates")
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT slot_index, contract_ticker, status, cost_basis_cents FROM positions WHERE status != 'CLOSED';")
+    active_rows = cursor.fetchall()
+    
+    active_slots = []
+    for r in active_rows:
+        # Default mock net edge for existing maker bids
+        s_edge = 0.04 if r["slot_index"] in (1, 2) else 0.08
+        active_slots.append({
+            "slot_index": r["slot_index"],
+            "contract_ticker": r["contract_ticker"],
+            "status": r["status"],
+            "is_filled": False if "MAKER" in r["status"] else True,
+            "net_edge": s_edge
+        })
+
+    decision = EVICTION_MANAGER.evaluate_eviction(active_slots, {"contract_ticker": candidate_ticker, "net_edge": candidate_edge})
+    
+    if decision["action"] == "EVICT_AND_REPLACE":
+        target_slot = decision["target_slot"]
+        now_iso = datetime.now(timezone.utc).isoformat()
+        
+        # 1. Cancel the resting order
+        cursor.execute("UPDATE positions SET status = 'CLOSED', updated_at = ? WHERE slot_index = ? AND status != 'CLOSED';", (now_iso, target_slot))
+        
+        # 2. Insert the high-alpha replacement
+        pos_id = f"POS-PREEMPT-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{target_slot}"
+        cursor.execute("""
+            INSERT INTO positions (position_id, slot_index, scma_id, contract_ticker, domain, venue, side, qty, vwap_cents, cost_basis_cents, mtm_cents, status, updated_at)
+            VALUES (?, ?, 'SCMA-FOUNDER', ?, ?, 'KALSHI', 'BUY_YES', 10, 50, 500, 550, 'RESTING_MAKER', ?);
+        """, (pos_id, target_slot, candidate_ticker, domain, now_iso))
+
+        append_audit_log(cursor, "PRIORITY_EVICTION", "PREEMPT_RESTING_ORDER", {
+            "evicted_slot": target_slot,
+            "evicted_ticker": decision["evicted_ticker"],
+            "replacement_ticker": candidate_ticker,
+            "edge_delta": decision["edge_delta"]
+        })
+        conn.commit()
+        conn.close()
+        return {
+            "status": "SUCCESS",
+            "action": "EVICTED_AND_REPLACED",
+            "evicted_slot": target_slot,
+            "evicted_ticker": decision["evicted_ticker"],
+            "replacement_ticker": candidate_ticker,
+            "edge_delta": decision["edge_delta"]
+        }
+    
+    conn.close()
+    return {"status": "REJECTED", "reason": decision.get("reason"), "edge_delta": decision.get("edge_delta")}
