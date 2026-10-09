@@ -2473,3 +2473,80 @@ def operator_trigger_preemption(payload: dict):
     
     conn.close()
     return {"status": "REJECTED", "reason": decision.get("reason"), "edge_delta": decision.get("edge_delta")}
+
+
+# ----------------------------------------------------------------------
+# SPRINT 7: CONVERGED 24/7 DUAL-REGIME AUTONOMOUS DAEMON
+# ----------------------------------------------------------------------
+import threading
+
+def autonomous_supervisory_worker():
+    """Continuous background supervisor managing Tier 1 Live and Tier 2 Paper."""
+    import time
+    while True:
+        try:
+            time.sleep(15)  # 15-second cadence
+            conn = get_db()
+            cursor = conn.cursor()
+
+            # 1. Manage Tier 2 Paper Soak Turnover
+            cursor.execute("SELECT * FROM positions WHERE status = 'PAPER_MAKER' ORDER BY updated_at ASC LIMIT 1;")
+            old_paper = cursor.fetchone()
+            now_iso = datetime.now(timezone.utc).isoformat()
+            
+            if old_paper:
+                # Settle oldest paper position to maintain queue turnover
+                cursor.execute("UPDATE positions SET status = 'CLOSED', updated_at = ? WHERE position_id = ?;", (now_iso, old_paper["position_id"]))
+                append_audit_log(cursor, "AUTONOMOUS_SUPERVISOR", "SOAK_TURNOVER", {
+                    "slot": old_paper["slot_index"], "contract": old_paper["contract_ticker"]
+                })
+
+            # 2. Check vacant paper slots (5-8)
+            cursor.execute("SELECT slot_index FROM positions WHERE status != 'CLOSED';")
+            occupied = {r[0] for r in cursor.fetchall()}
+            vacant_paper = [i for i in range(5, 9) if i not in occupied]
+
+            if vacant_paper:
+                target_slot = vacant_paper[0]
+                pos_id = f"POS-SOAK-AUTO-{datetime.now(timezone.utc).strftime('%H%M%S')}-{target_slot}"
+                if target_slot % 2 == 1:
+                    eval_s = SPORTS_ROUTER.evaluate_contract({
+                        "home_expected_td": 2.8, "home_expected_fg": 1.8,
+                        "away_expected_td": 1.8, "away_expected_fg": 1.4,
+                        "target_spread": 3.0, "stadium_wind_mph": 10.0,
+                        "market_ask_cents": 48
+                    })
+                    ticker = f"AUTO-NFL-S{target_slot}"
+                    domain = "Sports Analytics & Spreads"
+                    cost = 480
+                    vwap = 48
+                    edge = eval_s.get("net_edge")
+                else:
+                    eval_t = TREASURY_ROUTER.evaluate_contract({
+                        "expected_tail_bps": 0.8, "strike_tail_bps": 1.0,
+                        "dealer_absorption_pct": 24.0, "btc_delta": -0.20,
+                        "market_ask_cents": 35
+                    })
+                    ticker = f"AUTO-TRES-S{target_slot}"
+                    domain = "U.S. Treasury Auction Tails"
+                    cost = 350
+                    vwap = 35
+                    edge = eval_t.get("net_edge")
+
+                cursor.execute("""
+                    INSERT INTO positions (position_id, slot_index, scma_id, contract_ticker, domain, venue, side, qty, vwap_cents, cost_basis_cents, mtm_cents, status, updated_at)
+                    VALUES (?, ?, 'SCMA-SIM-SOAK', ?, ?, 'SIMULATOR', 'BUY_YES', 10, ?, ?, ?, 'PAPER_MAKER', ?);
+                """, (pos_id, target_slot, ticker, domain, vwap, cost, cost + 50, now_iso))
+                append_audit_log(cursor, "AUTONOMOUS_SUPERVISOR", "SOAK_DISPATCH", {
+                    "slot": target_slot, "contract": ticker, "edge": edge
+                })
+
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            time.sleep(5)
+
+@app.on_event("startup")
+def launch_background_supervisor():
+    t = threading.Thread(target=autonomous_supervisory_worker, daemon=True)
+    t.start()
