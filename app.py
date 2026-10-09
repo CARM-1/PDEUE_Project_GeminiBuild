@@ -401,6 +401,45 @@ def onboard_member(req: OnboardReq):
 class FreezeReq(BaseModel):
     scma_id: str
 
+class AccountActionReq(BaseModel):
+    scma_id: str
+
+@app.post("/api/v1/admin/freeze")
+def freeze_account(req: AccountActionReq):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT status, user_id FROM accounts WHERE scma_id = ?;", (req.scma_id,))
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Account not found.")
+    
+    now_iso = datetime.now(timezone.utc).isoformat()
+    cursor.execute("UPDATE accounts SET status = 'FROZEN', updated_at = ? WHERE scma_id = ?;", (now_iso, req.scma_id))
+    append_audit_log(cursor, "CHIEF_ADMINISTRATOR", "FREEZE_ACCOUNT", {"scma_id": req.scma_id, "user_id": row["user_id"]})
+    conn.commit()
+    conn.close()
+    return {"status": "SUCCESS", "scma_id": req.scma_id, "new_status": "FROZEN"}
+
+@app.post("/api/v1/admin/unfreeze")
+def unfreeze_account(req: AccountActionReq):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT status, cash_cents, user_id FROM accounts WHERE scma_id = ?;", (req.scma_id,))
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Account not found.")
+    
+    # Restore to ACTIVE if account holds cash or is Founder; otherwise PENDING_FUNDING
+    new_status = "ACTIVE" if (row["cash_cents"] > 0 or req.scma_id == "SCMA-FOUNDER") else "PENDING_FUNDING"
+    now_iso = datetime.now(timezone.utc).isoformat()
+    cursor.execute("UPDATE accounts SET status = ?, updated_at = ? WHERE scma_id = ?;", (new_status, now_iso, req.scma_id))
+    append_audit_log(cursor, "CHIEF_ADMINISTRATOR", "UNFREEZE_ACCOUNT", {"scma_id": req.scma_id, "user_id": row["user_id"], "new_status": new_status})
+    conn.commit()
+    conn.close()
+    return {"status": "SUCCESS", "scma_id": req.scma_id, "new_status": new_status}
+
 @app.post("/api/v1/admin/toggle-freeze")
 def toggle_freeze(req: FreezeReq):
     conn = get_db()
@@ -1198,6 +1237,16 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       else { const d = await res.json(); alert('Onboarding Error: ' + d.detail); }
     }
 
+    
+    async function executeFreeze(scma) {
+      await fetch('/api/v1/admin/freeze', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ scma_id: scma }) });
+      refreshData();
+    }
+    async function executeUnfreeze(scma) {
+      await fetch('/api/v1/admin/unfreeze', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ scma_id: scma }) });
+      refreshData();
+    }
+
     async function toggleFreeze(scma) {
       await fetch('/api/v1/admin/toggle-freeze', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ scma_id: scma }) });
       refreshData();
@@ -1276,21 +1325,41 @@ MEMBER_HTML = """<!DOCTYPE html>
     <a href="/dashboard" class="btn btn-secondary" style="font-size:0.75rem; padding:4px 10px;">← Exit to Master Cockpit</a>
   </div>
 
-  <div class="header">
+  <!-- Directive R-06 Supervisory Audit Lens Banner -->
+  <div id="supervisoryLensBanner" style="display:none; background:#78350f; border:1px solid #f59e0b; color:#fef3c7; padding:14px 20px; border-radius:8px; margin-bottom:20px; justify-content:space-between; align-items:center;">
     <div>
-      <h1 style="font-size: 1.4rem;">Member Capital Portal</h1>
-      <p style="font-size: 0.82rem; color: var(--muted); margin-top: 4px;">Personal Compounding Sub-Ledger • Self-Contained Member Account (SCMA)</p>
+      <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.06em; color:#fde68a; font-weight:800;">Directive R-06 Supervisory Audit Lens Active</div>
+      <div style="font-size:1.2rem; font-weight:800; margin-top:2px; color:#fff;">
+        Forensic Review: <span id="supTargetName" style="color:#38bdf8;">Loading Member...</span>
+        <span style="font-size:0.85rem; color:#fde68a; font-weight:600; margin-left:8px;">(<span id="supTargetScma"></span>)</span>
+      </div>
+      <div style="font-size:0.8rem; color:#fef3c7; margin-top:3px;">
+        Ledger Status: <span id="supStatusBadge" class="chip chip-green">ACTIVE</span> • Sovereign Chief Administrator Jurisdiction
+      </div>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <button id="supFreezeBtn" class="btn btn-secondary" style="background:#7f1d1d; color:#fecaca; border:1px solid #ef4444; font-size:0.78rem; padding:6px 12px;" onclick="executeSupFreeze()">Freeze</button>
+      <button id="supUnfreezeBtn" class="btn btn-secondary" style="background:#065f46; color:#a7f3d0; border:1px solid #10b981; font-size:0.78rem; padding:6px 12px;" onclick="executeSupUnfreeze()">Unfreeze ✓</button>
+      <a href="/dashboard" class="btn btn-blue" style="background:#1e3a8a; color:#fff; font-size:0.78rem; padding:6px 12px; text-decoration:none;">← Return to Master Cockpit</a>
+    </div>
+  </div>
+
+  <!-- Primary Identity Card -->
+  <div class="header" style="background:var(--card); border:1px solid var(--border); border-radius:8px; padding:18px 22px; margin-bottom:20px;">
+    <div>
+      <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.07em; color:var(--muted); font-weight:800;">Authenticated Sub-Ledger Identity</div>
+      <h1 id="mMemberName" style="font-size: 1.55rem; color: #fff; margin-top:3px; font-weight:800;">Loading Member Identity...</h1>
+      <p style="font-size: 0.82rem; color: var(--muted); margin-top: 4px;">
+        SCMA Sub-Ledger: <strong id="mScmaDisplay" style="color:var(--accent);">--</strong> • Account Status: <span id="mStatusBadge" class="chip chip-green">ACTIVE</span>
+      </p>
     </div>
     <div style="display: flex; gap: 12px; align-items: center;">
-      <select id="scmaSelector" onchange="switchScma()" style="background:#1e293b; color:#fff; border:1px solid var(--border); padding:6px 12px; border-radius:6px; font-size:0.85rem;">
-        <option value="SCMA-FOUNDER">SCMA-FOUNDER (Founder / Active)</option>
-        <option value="SCMA-MEM-0001">SCMA-MEM-0001 (Member 1)</option>
-        <option value="SCMA-MEM-0002">SCMA-MEM-0002 (Member 2)</option>
-        <option value="SCMA-MEM-0003">SCMA-MEM-0003 (Member 3)</option>
-        <option value="SCMA-MEM-0004">SCMA-MEM-0004 (Member 4)</option>
-        <option value="SCMA-MEM-0005">SCMA-MEM-0005 (Member 5)</option>
-      </select>
-      <a href="/dashboard" class="btn btn-secondary">Admin Cockpit →</a>
+      <div>
+        <label style="font-size:0.7rem; color:var(--muted); text-transform:uppercase; display:block; margin-bottom:4px; font-weight:700;">Switch Member View</label>
+        <select id="scmaSelector" onchange="switchScma()" style="background:#0b111e; color:#fff; border:1px solid var(--border); padding:8px 14px; border-radius:6px; font-size:0.85rem; font-weight:600;">
+        </select>
+      </div>
+      <a href="/dashboard" class="btn btn-secondary" style="margin-top:16px;">Admin Cockpit →</a>
     </div>
   </div>
 
@@ -1525,6 +1594,16 @@ MEMBER_HTML = """<!DOCTYPE html>
       document.getElementById('rackToggleBtn').textContent = rackExpanded ? 'Collapse ▲' : 'Expand ▼';
     }
 
+    
+    async function executeSupFreeze() {
+      await fetch('/api/v1/admin/freeze', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ scma_id: currentScma }) });
+      loadAccount();
+    }
+    async function executeSupUnfreeze() {
+      await fetch('/api/v1/admin/unfreeze', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ scma_id: currentScma }) });
+      loadAccount();
+    }
+
     function switchScma() {
       const sel = document.getElementById('scmaSelector');
       window.location.href = '/member?scma=' + sel.value;
@@ -1541,8 +1620,55 @@ MEMBER_HTML = """<!DOCTYPE html>
       try {
         const res = await fetch('/api/v1/admin/ledger-summary');
         const data = await res.json();
+        
+        // Populate Selector with Named Members
+        const sel = document.getElementById('scmaSelector');
+        if (sel && sel.options.length <= 1) {
+          sel.innerHTML = '';
+          (data.accounts || []).forEach(a => {
+            const opt = document.createElement('option');
+            opt.value = a.scma_id;
+            opt.textContent = `${a.scma_id} (${a.user_id} - ${a.status})`;
+            if (a.scma_id === currentScma) opt.selected = true;
+            sel.appendChild(opt);
+          });
+        } else if (sel) {
+          sel.value = currentScma;
+        }
+
         const acc = data.accounts.find(a => a.scma_id === currentScma);
         if (acc) {
+          // Bind Identity Card
+          document.getElementById('mMemberName').textContent = acc.user_id || acc.scma_id;
+          document.getElementById('mScmaDisplay').textContent = acc.scma_id;
+          const sBadge = document.getElementById('mStatusBadge');
+          sBadge.textContent = acc.status;
+          sBadge.className = 'chip ' + (acc.status === 'ACTIVE' ? 'chip-green' : (acc.status === 'FROZEN' ? 'chip-yellow' : 'chip-blue'));
+
+          // Bind Supervisory Lens
+          const isSupervisory = urlParams.get('supervisory') === 'true';
+          const supBanner = document.getElementById('supervisoryLensBanner');
+          if (supBanner) {
+            supBanner.style.display = isSupervisory ? 'flex' : 'none';
+            document.getElementById('supTargetName').textContent = acc.user_id || acc.scma_id;
+            document.getElementById('supTargetScma').textContent = acc.scma_id;
+            const supBadge = document.getElementById('supStatusBadge');
+            supBadge.textContent = acc.status;
+            supBadge.className = 'chip ' + (acc.status === 'ACTIVE' ? 'chip-green' : (acc.status === 'FROZEN' ? 'chip-yellow' : 'chip-blue'));
+            
+            const sfBtn = document.getElementById('supFreezeBtn');
+            const suBtn = document.getElementById('supUnfreezeBtn');
+            if (sfBtn && suBtn) {
+              sfBtn.disabled = acc.status === 'FROZEN';
+              sfBtn.style.opacity = acc.status === 'FROZEN' ? '0.5' : '1.0';
+              sfBtn.style.cursor = acc.status === 'FROZEN' ? 'not-allowed' : 'pointer';
+              suBtn.disabled = acc.status !== 'FROZEN';
+              suBtn.style.opacity = acc.status !== 'FROZEN' ? '0.5' : '1.0';
+              suBtn.style.cursor = acc.status !== 'FROZEN' ? 'not-allowed' : 'pointer';
+            }
+          }
+
+
           document.getElementById('mCash').textContent = '$' + (acc.cash_cents / 100).toFixed(2);
           document.getElementById('mCents').textContent = acc.cash_cents.toLocaleString() + ' exact integer cents';
           document.getElementById('mYield').textContent = '$' + (acc.lifetime_profit_cents / 100).toFixed(2);
