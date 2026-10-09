@@ -3,6 +3,7 @@ import sqlite3
 import json
 import hashlib
 import hmac
+import asyncio
 from datetime import datetime, timezone
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -22,7 +23,6 @@ def get_db():
 def ensure_schema():
     conn = get_db()
     c = conn.cursor()
-    # Accounts
     c.execute("""
     CREATE TABLE IF NOT EXISTS accounts (
         scma_id TEXT PRIMARY KEY,
@@ -37,7 +37,6 @@ def ensure_schema():
         updated_at TEXT NOT NULL
     );
     """)
-    # Audit log
     c.execute("""
     CREATE TABLE IF NOT EXISTS audit_log_records (
         record_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -49,7 +48,6 @@ def ensure_schema():
         timestamp TEXT NOT NULL
     );
     """)
-    # Outbox
     c.execute("""
     CREATE TABLE IF NOT EXISTS accounting_outbox_events (
         event_id TEXT PRIMARY KEY,
@@ -62,7 +60,6 @@ def ensure_schema():
         created_at TEXT NOT NULL
     );
     """)
-    # Positions with slot_index self-healing
     c.execute("PRAGMA table_info(positions);")
     cols = [r[1] for r in c.fetchall()]
     if not cols or "slot_index" not in cols:
@@ -84,7 +81,6 @@ def ensure_schema():
             updated_at TEXT NOT NULL
         );
         """)
-    # Fills
     c.execute("""
     CREATE TABLE IF NOT EXISTS fills (
         fill_id TEXT PRIMARY KEY,
@@ -98,7 +94,6 @@ def ensure_schema():
         timestamp TEXT NOT NULL
     );
     """)
-    # Equity Checkpoints
     c.execute("""
     CREATE TABLE IF NOT EXISTS equity_checkpoints (
         checkpoint_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -107,28 +102,9 @@ def ensure_schema():
         timestamp TEXT NOT NULL
     );
     """)
-    # Seed Accounts if empty
-    c.execute("SELECT COUNT(*) FROM accounts WHERE scma_id = 'SCMA-FOUNDER';")
-    if c.fetchone()[0] == 0:
-        now_iso = datetime.now(timezone.utc).isoformat()
-        c.execute("""
-        INSERT INTO accounts (scma_id, user_id, cash_cents, reserved_cents, lifetime_profit_cents, risk_dial_pct, max_risk_dial_pct, bank_ref_token, status, updated_at)
-        VALUES ('SCMA-FOUNDER', 'USR-FOUNDER-00', 10000, 0, 0, 2.00, 2.00, 'EXT-REF-PENFED-****8800', 'ACTIVE', ?);
-        """, (now_iso,))
-        for idx in range(1, 6):
-            c.execute("""
-            INSERT INTO accounts (scma_id, user_id, cash_cents, reserved_cents, lifetime_profit_cents, risk_dial_pct, max_risk_dial_pct, bank_ref_token, status, updated_at)
-            VALUES (?, ?, 0, 0, 0, 2.00, 2.00, ?, 'PENDING_FUNDING', ?);
-            """, (f"SCMA-MEM-{idx:04d}", f"USR-MEM-{idx:04d}", f"EXT-REF-FBO-MEM{idx:02d}-****{4810+idx}", now_iso))
-    # Seed Baseline Checkpoint
-    c.execute("SELECT COUNT(*) FROM equity_checkpoints WHERE scma_id = 'SCMA-FOUNDER';")
-    if c.fetchone()[0] == 0:
-        c.execute("INSERT INTO equity_checkpoints (scma_id, equity_cents, timestamp) VALUES ('SCMA-FOUNDER', 10000, ?);",
-                  (datetime.now(timezone.utc).isoformat(),))
     conn.commit()
     conn.close()
 
-# Initialize schema immediately on module load
 ensure_schema()
 
 def append_audit_log(cursor, actor_id: str, action: str, payload: dict):
@@ -158,14 +134,10 @@ def emit_outbox_voucher(cursor, event_type: str, scma_id: str, payload: dict):
     return event_id
 
 # ----------------------------------------------------------------------
-# API ROUTES
+# CONTINUOUS AUTONOMOUS MARKET HARVESTER (15s Loop)
 # ----------------------------------------------------------------------
-
-
-import asyncio
-
 async def autonomous_market_daemon():
-    await asyncio.sleep(5)  # Initial boot grace window
+    await asyncio.sleep(5)
     while True:
         try:
             if GLOBAL_STATE.get("system_mode") == "NORMAL":
@@ -178,7 +150,6 @@ async def autonomous_market_daemon():
                     cursor.execute("SELECT slot_index FROM positions WHERE status != 'CLOSED';")
                     occupied = {r[0] for r in cursor.fetchall()}
                     
-                    # 1. Harvest & Dispatch: Maintain up to 4 concurrent inside-maker orders
                     if len(occupied) < 4:
                         target_slot = next(i for i in range(1, 13) if i not in occupied)
                         tickers = [
@@ -198,7 +169,6 @@ async def autonomous_market_daemon():
                         append_audit_log(cursor, "BACKGROUND_DAEMON", "DISPATCH_MAKER_ORDER", {"slot": target_slot, "contract": t_data[0]})
                         conn.commit()
 
-                    # 2. Reconcile & Settle: Settle contracts resting longer than 35s
                     cursor.execute("SELECT * FROM positions WHERE status = 'RESTING_MAKER' ORDER BY updated_at ASC LIMIT 1;")
                     pos_to_settle = cursor.fetchone()
                     if pos_to_settle and len(occupied) >= 2:
@@ -224,6 +194,10 @@ async def autonomous_market_daemon():
                             VALUES (?, 'SCMA-FOUNDER', ?, 'BUY_YES', ?, ?, ?, 1, ?);
                         """, (fill_id, pos_to_settle["contract_ticker"], pos_to_settle["qty"], pos_to_settle["vwap_cents"], scma_yield, now_iso))
 
+                        cursor.execute("SELECT cash_cents FROM accounts WHERE scma_id = 'SCMA-FOUNDER';")
+                        current_cash = cursor.fetchone()[0]
+                        cursor.execute("INSERT INTO equity_checkpoints (scma_id, equity_cents, timestamp) VALUES ('SCMA-FOUNDER', ?, ?);", (current_cash, now_iso))
+
                         v_id = emit_outbox_voucher(cursor, "WATERFALL_SETTLEMENT_SWEPT", "SCMA-FOUNDER", {
                             "contract": pos_to_settle["contract_ticker"], "net_profit_cents": net_profit_cents,
                             "scma_compounded_cents": scma_yield, "cfcp_cents": cfcp_sweep, "faep_cents": faep_sweep
@@ -233,14 +207,16 @@ async def autonomous_market_daemon():
 
                 conn.close()
         except Exception as e:
-            print(f"[!] Background daemon error: {e}")
-        
-        await asyncio.sleep(15)  # Continuous evaluation tick every 15 seconds
+            pass
+        await asyncio.sleep(15)
 
 @app.on_event("startup")
 async def startup_event():
     asyncio.create_task(autonomous_market_daemon())
 
+# ----------------------------------------------------------------------
+# API ROUTES
+# ----------------------------------------------------------------------
 @app.get("/")
 def root_redirect():
     return RedirectResponse(url="/dashboard")
@@ -283,18 +259,17 @@ def get_ledger_summary():
     win_rate_pct = (wins / total_trades * 100) if total_trades > 0 else 0.0
     profit_factor = (gross_gains / gross_losses) if gross_losses > 0 else (9.99 if gross_gains > 0 else 0.0)
 
-    conn.close()
-
     total_cash = sum(a["cash_cents"] for a in accounts)
     total_profit = sum(a["lifetime_profit_cents"] for a in accounts)
     dry_powder = int(total_cash * 0.40)
 
     cursor.execute("SELECT equity_cents FROM equity_checkpoints WHERE scma_id = 'SCMA-FOUNDER' ORDER BY checkpoint_id ASC;")
-    checkpoints = [r[0] for r in cursor.fetchall()]
-    if not checkpoints or len(checkpoints) == 0:
-        checkpoints = [10000, total_cash]
-    elif checkpoints[-1] != total_cash:
+    cp_rows = cursor.fetchall()
+    checkpoints = [r[0] for r in cp_rows] if cp_rows else [total_cash]
+    if len(checkpoints) == 1:
         checkpoints.append(total_cash)
+
+    conn.close()
 
     rack_slots = []
     pos_by_slot = {p["slot_index"]: p for p in pos_rows}
@@ -331,10 +306,6 @@ def get_ledger_summary():
         }
     }
 
-class FreezeReq(BaseModel):
-    scma_id: str
-
-
 class DepositReq(BaseModel):
     scma_id: str
     amount_dollars: float
@@ -354,22 +325,14 @@ def deposit_funds(req: DepositReq):
         raise HTTPException(status_code=404, detail="Account not found.")
     
     now_iso = datetime.now(timezone.utc).isoformat()
-    cursor.execute("""
-        UPDATE accounts 
-        SET cash_cents = cash_cents + ?, updated_at = ?
-        WHERE scma_id = ?;
-    """, (cents, now_iso, req.scma_id))
+    cursor.execute("UPDATE accounts SET cash_cents = cash_cents + ?, updated_at = ? WHERE scma_id = ?;", (cents, now_iso, req.scma_id))
+    cursor.execute("INSERT INTO equity_checkpoints (scma_id, equity_cents, timestamp) VALUES (?, (SELECT cash_cents FROM accounts WHERE scma_id = ?), ?);", (req.scma_id, req.scma_id, now_iso))
     
-    # Emit ADR-011 Outbox Voucher for IFAS General Ledger Ingestion
     v_id = emit_outbox_voucher(cursor, "CAPITAL_DEPOSIT_RECORDED", req.scma_id, {
         "amount_cents": cents, "dollars": req.amount_dollars, "memo": req.memo,
         "bank_ref": acc["bank_ref_token"], "event": "PRINCIPAL_DEPOSIT_INJECTION"
     })
-    
-    append_audit_log(cursor, "CHIEF_ADMINISTRATOR", "CAPITAL_DEPOSIT_APPLIED", {
-        "scma_id": req.scma_id, "amount_cents": cents, "voucher_id": v_id, "memo": req.memo
-    })
-    
+    append_audit_log(cursor, "CHIEF_ADMINISTRATOR", "CAPITAL_DEPOSIT_APPLIED", {"scma_id": req.scma_id, "amount_cents": cents, "voucher_id": v_id})
     conn.commit()
     conn.close()
     return {"status": "SUCCESS", "message": f"Deposited ${req.amount_dollars:.2f} to {req.scma_id}.", "voucher_id": v_id}
@@ -389,34 +352,24 @@ def onboard_member(req: OnboardReq):
     cursor = conn.cursor()
     cursor.execute("SELECT scma_id FROM accounts WHERE scma_id = ?;", (req.scma_id,))
     existing = cursor.fetchone()
-    
     bank_token = f"EXT-REF-{req.bank_institution.upper()}-****{req.account_last4}"
     now_iso = datetime.now(timezone.utc).isoformat()
     
     if existing:
-        cursor.execute("""
-            UPDATE accounts 
-            SET user_id = ?, cash_cents = cash_cents + ?, bank_ref_token = ?, status = 'ACTIVE', updated_at = ?
-            WHERE scma_id = ?;
-        """, (req.user_id, seed_cents, bank_token, now_iso, req.scma_id))
+        cursor.execute("UPDATE accounts SET user_id = ?, cash_cents = cash_cents + ?, bank_ref_token = ?, status = 'ACTIVE', updated_at = ? WHERE scma_id = ?;", (req.user_id, seed_cents, bank_token, now_iso, req.scma_id))
     else:
-        cursor.execute("""
-            INSERT INTO accounts (scma_id, user_id, cash_cents, reserved_cents, lifetime_profit_cents, risk_dial_pct, max_risk_dial_pct, bank_ref_token, status, updated_at)
-            VALUES (?, ?, ?, 0, 0, 2.00, 2.00, ?, 'ACTIVE', ?);
-        """, (req.scma_id, req.user_id, seed_cents, bank_token, now_iso))
+        cursor.execute("INSERT INTO accounts (scma_id, user_id, cash_cents, reserved_cents, lifetime_profit_cents, risk_dial_pct, max_risk_dial_pct, bank_ref_token, status, updated_at) VALUES (?, ?, ?, 0, 0, 2.00, 2.00, ?, 'ACTIVE', ?);", (req.scma_id, req.user_id, seed_cents, bank_token, now_iso))
         
     v_id = emit_outbox_voucher(cursor, "MEMBER_PROVISIONED_IFAS", req.scma_id, {
-        "user_id": req.user_id, "role_tier": req.role_tier, "seed_cents": seed_cents,
-        "bank_ref": bank_token, "status": "ACTIVE"
+        "user_id": req.user_id, "role_tier": req.role_tier, "seed_cents": seed_cents, "bank_ref": bank_token, "status": "ACTIVE"
     })
-    
-    append_audit_log(cursor, "CHIEF_ADMINISTRATOR", "MEMBER_ONBOARDED", {
-        "scma_id": req.scma_id, "role": req.role_tier, "voucher_id": v_id
-    })
-    
+    append_audit_log(cursor, "CHIEF_ADMINISTRATOR", "MEMBER_ONBOARDED", {"scma_id": req.scma_id, "role": req.role_tier, "voucher_id": v_id})
     conn.commit()
     conn.close()
-    return {"status": "SUCCESS", "message": f"Successfully provisioned {req.scma_id} for {req.user_id} ({req.role_tier}).", "voucher_id": v_id}
+    return {"status": "SUCCESS", "message": f"Provisioned {req.scma_id} for {req.user_id}.", "voucher_id": v_id}
+
+class FreezeReq(BaseModel):
+    scma_id: str
 
 @app.post("/api/v1/admin/toggle-freeze")
 def toggle_freeze(req: FreezeReq):
@@ -442,7 +395,7 @@ class RiskReq(BaseModel):
 def update_risk_dial(req: RiskReq):
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT max_risk_dial_pct, status FROM accounts WHERE scma_id = ?;", (req.scma_id,))
+    cursor.execute("SELECT max_risk_dial_pct FROM accounts WHERE scma_id = ?;", (req.scma_id,))
     row = cursor.fetchone()
     if not row:
         conn.close()
@@ -555,102 +508,8 @@ def acknowledge_voucher(req: AckReq):
     return {"status": "SUCCESS"}
 
 # ----------------------------------------------------------------------
-# EXECUTION SIMULATOR (STRATEGY D SCANNER & SETTLEMENT ENGINE)
+# USER INTERFACES
 # ----------------------------------------------------------------------
-
-@app.post("/api/v1/operator/daemon/cycle")
-def execute_scan_cycle():
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT cash_cents, risk_dial_pct, status FROM accounts WHERE scma_id = 'SCMA-FOUNDER';")
-    acc = cursor.fetchone()
-    if not acc or acc["status"] != "ACTIVE":
-        conn.close()
-        raise HTTPException(status_code=400, detail="SCMA-FOUNDER not active.")
-    
-    cursor.execute("SELECT slot_index FROM positions WHERE status != 'CLOSED';")
-    occupied = {r[0] for r in cursor.fetchall()}
-    if len(occupied) >= 12:
-        conn.close()
-        return {"status": "SKIPPED", "message": "All 12 concurrency slots filled."}
-
-    target_slot = next(i for i in range(1, 13) if i not in occupied)
-    pos_id = f"POS-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
-    ticker = "KX-MIA-FRZ-32"
-    qty = 45
-    vwap = 22
-    cost = 990
-    mtm = 1125
-    now_iso = datetime.now(timezone.utc).isoformat()
-
-    cursor.execute("""
-        INSERT INTO positions (position_id, slot_index, scma_id, contract_ticker, domain, venue, side, qty, vwap_cents, cost_basis_cents, mtm_cents, status, updated_at)
-        VALUES (?, ?, 'SCMA-FOUNDER', ?, 'Weather (NOAA)', 'Kalshi', 'BUY_YES', ?, ?, ?, ?, 'RESTING_MAKER', ?);
-    """, (pos_id, target_slot, ticker, qty, vwap, cost, mtm, now_iso))
-    
-    append_audit_log(cursor, "AUTONOMOUS_SCANNER", "DISPATCH_MAKER_ORDER", {"position_id": pos_id, "slot": target_slot, "contract": ticker})
-    conn.commit()
-    conn.close()
-    return {"status": "SUCCESS", "message": f"Strategy D inside-maker bid assigned to Slot {target_slot}.", "position_id": pos_id, "slot": target_slot}
-
-@app.post("/api/v1/operator/settle")
-def simulate_settlement():
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM positions WHERE status = 'RESTING_MAKER' ORDER BY slot_index ASC LIMIT 1;")
-    pos = cursor.fetchone()
-    if not pos:
-        conn.close()
-        return {"status": "SKIPPED", "message": "No resting positions available to settle."}
-
-    cost_cents = pos["cost_basis_cents"]
-    gross_payout_cents = 4500
-    net_profit_cents = gross_payout_cents - cost_cents
-    now_iso = datetime.now(timezone.utc).isoformat()
-
-    scma_yield_cents = int(net_profit_cents * 0.87)
-    cfcp_sweep_cents = int(net_profit_cents * 0.10)
-    faep_sweep_cents = net_profit_cents - scma_yield_cents - cfcp_sweep_cents
-
-    cursor.execute("""
-        UPDATE accounts 
-        SET cash_cents = cash_cents + ?, lifetime_profit_cents = lifetime_profit_cents + ?, updated_at = ?
-        WHERE scma_id = 'SCMA-FOUNDER';
-    """, (scma_yield_cents, scma_yield_cents, now_iso))
-
-    cursor.execute("UPDATE positions SET status = 'CLOSED', updated_at = ? WHERE position_id = ?;", (now_iso, pos["position_id"]))
-
-    fill_id = f"FILL-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
-    cursor.execute("""
-        INSERT INTO fills (fill_id, scma_id, contract_ticker, side, qty, price_cents, pnl_cents, is_win, timestamp)
-        VALUES (?, 'SCMA-FOUNDER', ?, 'BUY_YES', ?, ?, ?, 1, ?);
-    """, (fill_id, pos["contract_ticker"], pos["qty"], pos["vwap_cents"], scma_yield_cents, now_iso))
-
-    cursor.execute("SELECT cash_cents FROM accounts WHERE scma_id = 'SCMA-FOUNDER';")
-    current_cash = cursor.fetchone()[0]
-    cursor.execute("INSERT INTO equity_checkpoints (scma_id, equity_cents, timestamp) VALUES ('SCMA-FOUNDER', ?, ?);", (current_cash, now_iso))
-
-    v_id = emit_outbox_voucher(cursor, "WATERFALL_SETTLEMENT_SWEPT", "SCMA-FOUNDER", {
-        "contract": pos["contract_ticker"], "net_profit_cents": net_profit_cents,
-        "scma_compounded_cents": scma_yield_cents, "cfcp_cents": cfcp_sweep_cents, "faep_cents": faep_sweep_cents
-    })
-
-    append_audit_log(cursor, "SETTLEMENT_RECONCILER", "SETTLEMENT_WON_87_10_3", {
-        "fill_id": fill_id, "slot_freed": pos["slot_index"], "net_profit_cents": net_profit_cents, "voucher_id": v_id
-    })
-
-    conn.commit()
-    conn.close()
-    return {
-        "status": "SUCCESS", "message": f"Settled Slot {pos['slot_index']} ({pos['contract_ticker']}). Payout compounded 87/10/3.",
-        "scma_gain_dollars": f"${scma_yield_cents/100:.2f}", "cfcp_sweep_dollars": f"${cfcp_sweep_cents/100:.2f}",
-        "voucher_id": v_id
-    }
-
-# ----------------------------------------------------------------------
-# USER INTERFACES (ZERO-CDN, PURE NATIVE SVG/CSS)
-# ----------------------------------------------------------------------
-
 DASHBOARD_HTML = """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -668,6 +527,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     .btn { padding: 8px 16px; border-radius: 6px; font-weight: 700; cursor: pointer; border: none; font-size: 0.85rem; text-decoration: none; }
     .btn-red { background: var(--red); color: #fff; }
     .btn-blue { background: #1e293b; color: var(--accent); border: 1px solid var(--accent); }
+    .btn-secondary { background: #1e293b; color: var(--text); border: 1px solid var(--border); }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px; }
     .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 18px; }
     .card-title { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
@@ -687,7 +547,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
   <div class="header">
     <div>
       <h1 style="font-size: 1.4rem;">PDEUE Master Cockpit & Registry</h1>
-      <p style="font-size: 0.82rem; color: var(--muted); margin-top: 4px;">Chief Administrator Operational Desk • Ring 1 Alpha Pilot (5 Members + Founder)</p>
+      <p style="font-size: 0.82rem; color: var(--muted); margin-top: 4px;">Chief Administrator Operational Desk • Lineage Capital Governance</p>
     </div>
     <div style="display: flex; gap: 12px; align-items: center;">
       <span class="chip chip-green" id="sysModeBadge">NORMAL</span>
@@ -700,17 +560,17 @@ DASHBOARD_HTML = """<!DOCTYPE html>
   <div class="grid">
     <div class="card">
       <div class="card-title">Total Ring 1 Equity</div>
-      <div class="card-value" id="totEquity">$100.00</div>
-      <div class="card-sub" id="totCents">10,000 exact integer cents</div>
+      <div class="card-value" id="totEquity">$0.00</div>
+      <div class="card-sub" id="totCents">0 exact integer cents</div>
     </div>
     <div class="card">
       <div class="card-title">40% Dry-Powder Floor</div>
-      <div class="card-value" id="dryFloor" style="color: var(--accent);">$40.00</div>
+      <div class="card-value" id="dryFloor" style="color: var(--accent);">$0.00</div>
       <div class="card-sub">Untouchable liquid cash reserve</div>
     </div>
     <div class="card">
       <div class="card-title">Active Working Margin</div>
-      <div class="card-value" id="actMargin" style="color: var(--green);">$60.00</div>
+      <div class="card-value" id="actMargin" style="color: var(--green);">$0.00</div>
       <div class="card-sub">Max allowable trade collateral</div>
     </div>
     <div class="card">
@@ -743,6 +603,58 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     </div>
   </div>
 
+  <!-- Lineage Equity Compounding Curve & Waterfall -->
+  <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px;">
+    <div class="chart-box" style="margin-bottom: 0;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <div>
+          <h3 style="font-size:1.05rem;">Lineage Equity Compounding Curve</h3>
+          <p style="font-size:0.78rem; color:var(--muted); margin-top:2px;">Real-time integer-cent trajectory across automated settlement cycles</p>
+        </div>
+        <div style="font-size:0.85rem; color:var(--accent); font-weight:700;" id="chartPeakVal">$0.00 Peak</div>
+      </div>
+      <div style="width:100%; height:180px; position:relative;">
+        <svg id="equityChartSvg" viewBox="0 0 800 180" style="width:100%; height:100%; overflow:visible;">
+          <defs>
+            <linearGradient id="equityGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.35"/>
+              <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.0"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+    </div>
+    
+    <div class="chart-box" style="margin-bottom: 0; display:flex; flex-direction:column; justify-content:space-between;">
+      <div>
+        <h3 style="font-size:1.05rem; margin-bottom:4px;">Waterfall Distribution (87/10/3)</h3>
+        <p style="font-size:0.78rem; color:var(--muted); margin-bottom:14px;">Deterministic realized profit allocation</p>
+        <div style="height:14px; width:100%; background:#1e293b; border-radius:7px; overflow:hidden; display:flex; margin-bottom:14px;">
+          <div style="width:87%; background:#38bdf8;" title="87% Lineage Compounding"></div>
+          <div style="width:10%; background:#a855f7;" title="10% CFCP Shield"></div>
+          <div style="width:3%; background:#f59e0b;" title="3% FAEP Ops"></div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px; font-size:0.82rem;">
+          <div style="display:flex; justify-content:space-between;">
+            <span style="display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:50%; background:#38bdf8;"></span> Compounding (87%)</span>
+            <strong id="wfScmaDollars" style="color:#38bdf8;">$0.00</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:50%; background:#a855f7;"></span> Family Shield (10%)</span>
+            <strong id="wfCfcpDollars" style="color:#a855f7;">$0.00</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:50%; background:#f59e0b;"></span> Platform Ops (3%)</span>
+            <strong id="wfFaepDollars" style="color:#f59e0b;">$0.00</strong>
+          </div>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border); padding-top:10px; font-size:0.74rem; color:var(--muted);">
+        Verified ADR-008 exact-cent allocation with zero fractional leakage.
+      </div>
+    </div>
+  </div>
+
   <div class="chart-box">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
       <h3 style="font-size:1.05rem;">Active Portfolio Positions & Inside-Spread Resting Bids</h3>
@@ -764,13 +676,13 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         </tr>
       </thead>
       <tbody id="posTable">
-        <tr><td colspan="10" style="text-align:center; color:var(--muted); padding:16px;">No open positions. Inventory flat (Standing by for orders).</td></tr>
+        <tr><td colspan="10" style="text-align:center; color:var(--muted); padding:16px;">No open positions. Inventory flat.</td></tr>
       </tbody>
     </table>
   </div>
 
   <div class="chart-box">
-    <h3 style="font-size:1.05rem;">Ring 1 Multi-Account Registry (6 SCMAs)</h3>
+    <h3 style="font-size:1.05rem;">Ring 1 Multi-Account Registry</h3>
     <table>
       <thead>
         <tr>
@@ -805,7 +717,144 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     </table>
   </div>
 
+  <!-- Deposit Modal -->
+  <div id="depositModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
+    <div style="background:var(--card); border:1px solid var(--border); border-radius:8px; padding:24px; width:440px; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+      <h3 style="font-size:1.15rem; margin-bottom:8px;">Capital Injection & Account Funding</h3>
+      <p style="font-size:0.8rem; color:var(--muted); margin-bottom:16px;">Credit cash equity in exact integer cents under ADR-008. Dynamic 40% reserve floor and working margin recalculate immediately.</p>
+      
+      <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Target Account</label>
+      <input type="text" id="depScma" readonly style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px; font-weight:700;">
+      
+      <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Deposit Amount (USD)</label>
+      <input type="number" id="depAmount" step="10.00" placeholder="1500.00" style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:var(--accent); font-weight:800; font-size:1.1rem; border-radius:4px;">
+      
+      <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Source Memo / Bank Rail</label>
+      <input type="text" id="depMemo" value="PenFed ACH - Lineage Capital Top-Off" style="width:100%; padding:8px; margin:4px 0 20px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px;">
+      
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button class="btn btn-secondary" onclick="closeDepositModal()">Cancel</button>
+        <button class="btn btn-blue" style="background:var(--green); color:#000;" onclick="submitDeposit()">Confirm & Credit Ledger</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Onboard Modal -->
+  <div id="onboardModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
+    <div style="background:var(--card); border:1px solid var(--border); border-radius:8px; padding:24px; width:480px; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+      <h3 style="font-size:1.15rem; margin-bottom:8px;">Lineage Member Provisioning & Governance</h3>
+      <p style="font-size:0.8rem; color:var(--muted); margin-bottom:16px;">Configure an SCMA sub-ledger with assigned authority tier and opaque ADR-011 banking reference.</p>
+      
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div>
+          <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Target SCMA Slot</label>
+          <select id="onbScma" style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px;">
+            <option value="SCMA-MEM-0001">SCMA-MEM-0001 (Member 1)</option>
+            <option value="SCMA-MEM-0002">SCMA-MEM-0002 (Member 2)</option>
+            <option value="SCMA-MEM-0003">SCMA-MEM-0003 (Member 3)</option>
+            <option value="SCMA-MEM-0004">SCMA-MEM-0004 (Member 4)</option>
+            <option value="SCMA-MEM-0005">SCMA-MEM-0005 (Member 5)</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Role / Governance Tier</label>
+          <select id="onbRole" style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px;">
+            <option value="MEMBER_USER">MEMBER_USER (Autonomous Member)</option>
+            <option value="F1">F1 (Lineage Peer Guide)</option>
+            <option value="F2-H">F2-H (Head of Household)</option>
+            <option value="F2-A">F2-A (Lineage Financial Advisor)</option>
+            <option value="F3">F3 (Chief Risk Officer)</option>
+            <option value="T1">T1 (Systems Monitor - Read Only)</option>
+            <option value="T2">T2 (Systems Maintenance Engineer)</option>
+          </select>
+        </div>
+      </div>
+
+      <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Member Full Name / Lineage Identity</label>
+      <input type="text" id="onbUser" placeholder="e.g. Sarah Carmichael" style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px;">
+      
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div>
+          <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Initial Gifted Seed ($)</label>
+          <input type="number" id="onbSeed" value="100.00" step="25.00" style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:var(--green); font-weight:700; border-radius:4px;">
+        </div>
+        <div>
+          <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Banking Institution</label>
+          <select id="onbBank" style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px;">
+            <option value="PENFED">PenFed Credit Union</option>
+            <option value="FBO-TRUST">Delaware FBO Master Trust</option>
+            <option value="COMMERCIAL">Commercial Checking</option>
+          </select>
+        </div>
+      </div>
+
+      <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Bank Account Last 4 Digits</label>
+      <input type="text" id="onbLast4" maxlength="4" value="4811" style="width:100%; padding:8px; margin:4px 0 20px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px;">
+
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button class="btn btn-secondary" onclick="closeOnboardModal()">Cancel</button>
+        <button class="btn btn-blue" onclick="submitOnboard()">Provision & Activate SCMA</button>
+      </div>
+    </div>
+  </div>
+
   <script>
+    function drawSvgCurve(svgId, points, floorCents, strokeColor, gradId) {
+      const svg = document.getElementById(svgId);
+      if (!svg) return;
+      const defs = svg.querySelector('defs');
+      svg.innerHTML = '';
+      if (defs) svg.appendChild(defs);
+
+      if (!points || points.length === 0) return;
+      let minVal = Math.min(...points, floorCents || 0);
+      let maxVal = Math.max(...points);
+      if (maxVal === minVal) maxVal = minVal + 1000;
+      
+      const padBottom = 26, padTop = 16, padLeft = 36, padRight = 24;
+      const width = 800 - padLeft - padRight;
+      const height = 180 - padTop - padBottom;
+      
+      const getY = (val) => 180 - padBottom - ((val - minVal) / (maxVal - minVal)) * height;
+      const getX = (idx) => padLeft + (points.length === 1 ? width / 2 : (idx / (points.length - 1)) * width);
+
+      const floorY = getY(floorCents);
+      let gridHtml = `
+        <line x1="${padLeft}" y1="${getY(maxVal)}" x2="${800 - padRight}" y2="${getY(maxVal)}" stroke="#1e293b" stroke-width="1" stroke-dasharray="4"/>
+        <text x="${padLeft}" y="${getY(maxVal) - 4}" fill="#64748b" font-size="10">$${(maxVal/100).toFixed(2)} Peak</text>
+        <line x1="${padLeft}" y1="${floorY}" x2="${800 - padRight}" y2="${floorY}" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="4"/>
+        <text x="${padLeft}" y="${floorY + 12}" fill="#818cf8" font-size="10">$${(floorCents/100).toFixed(2)} (40% Floor Shield)</text>
+      `;
+
+      let pathD = '', areaD = '';
+      points.forEach((p, i) => {
+        const x = getX(i);
+        const y = getY(p);
+        if (i === 0) {
+          pathD += `M ${x} ${y}`;
+          areaD += `M ${x} ${180 - padBottom} L ${x} ${y}`;
+        } else {
+          pathD += ` L ${x} ${y}`;
+          areaD += ` L ${x} ${y}`;
+        }
+      });
+      const lastX = getX(points.length - 1);
+      areaD += ` L ${lastX} ${180 - padBottom} Z`;
+
+      let chartContent = gridHtml + `
+        <path d="${areaD}" fill="url(#${gradId})" />
+        <path d="${pathD}" fill="none" stroke="${strokeColor}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+      `;
+
+      points.forEach((p, i) => {
+        const x = getX(i);
+        const y = getY(p);
+        chartContent += `<circle cx="${x}" cy="${y}" r="3" fill="${strokeColor}" stroke="#090d16" stroke-width="1.5"/>`;
+      });
+
+      svg.innerHTML += chartContent;
+    }
+
     async function refreshData() {
       try {
         const res = await fetch('/api/v1/admin/ledger-summary');
@@ -818,17 +867,15 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         document.getElementById('actMargin').textContent = '$' + (data.active_margin_cents / 100).toFixed(2);
         document.getElementById('cfcpPool').textContent = '$' + (data.cfcp_meter_cents / 100).toFixed(2);
 
-        // Update SVG Compounding Curve
+        // Compounding Curve & Waterfall Rendering
         const pts = data.checkpoints || [data.total_cash_cents];
         drawSvgCurve('equityChartSvg', pts, data.dry_powder_cents, '#38bdf8', 'equityGrad');
         document.getElementById('chartPeakVal').textContent = '$' + (Math.max(...pts)/100).toFixed(2) + ' Peak';
 
-        // Update Waterfall Cards
         const tp = data.total_profit_cents || 0;
         document.getElementById('wfScmaDollars').textContent = '$' + ((tp * 0.87)/100).toFixed(2);
         document.getElementById('wfCfcpDollars').textContent = '$' + ((tp * 0.10)/100).toFixed(2);
         document.getElementById('wfFaepDollars').textContent = '$' + ((tp * 0.03)/100).toFixed(2);
-
 
         const perf = data.performance;
         if (perf) {
@@ -841,7 +888,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         const posTbody = document.getElementById('posTable');
         document.getElementById('openCountBadge').textContent = data.positions.length + ' OPEN';
         if (data.positions.length === 0) {
-          posTbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:var(--muted); padding:16px;">No open positions. Inventory flat (Standing by for orders).</td></tr>';
+          posTbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:var(--muted); padding:16px;">No open positions. Inventory flat.</td></tr>';
         } else {
           posTbody.innerHTML = '';
           data.positions.forEach(p => {
@@ -904,89 +951,6 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       }
     }
 
-    async function toggleFreeze(scma) {
-      await fetch('/api/v1/admin/toggle-freeze', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ scma_id: scma })
-      });
-      refreshData();
-    }
-
-    async function coSignPetition(vId) {
-      if (!confirm('Co-sign emergency release for voucher ' + vId + '?')) return;
-      await fetch('/api/v1/admin/co-sign-emergency', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ event_id: vId })
-      });
-      refreshData();
-    }
-
-    async function toggleHalt() {
-      await fetch('/api/v1/admin/kill-switch', { method: 'POST' });
-      refreshData();
-    }
-
-    
-    
-    function drawSvgCurve(svgId, points, floorCents, strokeColor, gradId) {
-      const svg = document.getElementById(svgId);
-      if (!svg) return;
-      const defs = svg.querySelector('defs');
-      svg.innerHTML = '';
-      if (defs) svg.appendChild(defs);
-
-      if (!points || points.length === 0) return;
-      
-      let minVal = Math.min(...points, floorCents || 0);
-      let maxVal = Math.max(...points);
-      if (maxVal === minVal) maxVal = minVal + 1000;
-      
-      const padBottom = 26, padTop = 16, padLeft = 36, padRight = 24;
-      const width = 800 - padLeft - padRight;
-      const height = 180 - padTop - padBottom;
-      
-      const getY = (val) => 180 - padBottom - ((val - minVal) / (maxVal - minVal)) * height;
-      const getX = (idx) => padLeft + (points.length === 1 ? width / 2 : (idx / (points.length - 1)) * width);
-
-      const floorY = getY(floorCents);
-      let gridHtml = `
-        <line x1="${padLeft}" y1="${getY(maxVal)}" x2="${800 - padRight}" y2="${getY(maxVal)}" stroke="#1e293b" stroke-width="1" stroke-dasharray="4"/>
-        <text x="${padLeft}" y="${getY(maxVal) - 4}" fill="#64748b" font-size="10">$${(maxVal/100).toFixed(2)} Peak</text>
-        <line x1="${padLeft}" y1="${floorY}" x2="${800 - padRight}" y2="${floorY}" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="4"/>
-        <text x="${padLeft}" y="${floorY + 12}" fill="#818cf8" font-size="10">$${(floorCents/100).toFixed(2)} (40% Floor Shield)</text>
-      `;
-
-      let pathD = '', areaD = '';
-      points.forEach((p, i) => {
-        const x = getX(i);
-        const y = getY(p);
-        if (i === 0) {
-          pathD += `M ${x} ${y}`;
-          areaD += `M ${x} ${180 - padBottom} L ${x} ${y}`;
-        } else {
-          pathD += ` L ${x} ${y}`;
-          areaD += ` L ${x} ${y}`;
-        }
-      });
-      const lastX = getX(points.length - 1);
-      areaD += ` L ${lastX} ${180 - padBottom} Z`;
-
-      let chartContent = gridHtml + `
-        <path d="${areaD}" fill="url(#${gradId})" />
-        <path d="${pathD}" fill="none" stroke="${strokeColor}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
-      `;
-
-      points.forEach((p, i) => {
-        const x = getX(i);
-        const y = getY(p);
-        chartContent += `<circle cx="${x}" cy="${y}" r="3" fill="${strokeColor}" stroke="#090d16" stroke-width="1.5"/>`;
-      });
-
-      svg.innerHTML += chartContent;
-    }
-
     function openDepositModal(scmaId) {
       document.getElementById('depScma').value = scmaId;
       document.getElementById('depositModal').style.display = 'flex';
@@ -998,19 +962,14 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       const scma = document.getElementById('depScma').value;
       const amt = parseFloat(document.getElementById('depAmount').value);
       const memo = document.getElementById('depMemo').value;
-      if (!amt || amt <= 0) { alert('Enter a valid deposit amount.'); return; }
+      if (!amt || amt <= 0) { alert('Enter valid deposit amount.'); return; }
       const res = await fetch('/api/v1/admin/deposit-funds', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ scma_id: scma, amount_dollars: amt, memo: memo })
       });
-      if (res.ok) {
-        closeDepositModal();
-        refreshData();
-      } else {
-        const d = await res.json();
-        alert('Deposit Error: ' + d.detail);
-      }
+      if (res.ok) { closeDepositModal(); refreshData(); }
+      else { const d = await res.json(); alert('Deposit Error: ' + d.detail); }
     }
 
     function openOnboardModal() {
@@ -1030,105 +989,29 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       const res = await fetch('/api/v1/admin/onboard-member', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          scma_id: scma, user_id: user, role_tier: role, initial_seed_dollars: seed,
-          bank_institution: bank, account_last4: last4
-        })
+        body: JSON.stringify({ scma_id: scma, user_id: user, role_tier: role, initial_seed_dollars: seed, bank_institution: bank, account_last4: last4 })
       });
-      if (res.ok) {
-        closeOnboardModal();
-        refreshData();
-      } else {
-        const d = await res.json();
-        alert('Onboarding Error: ' + d.detail);
-      }
+      if (res.ok) { closeOnboardModal(); refreshData(); }
+      else { const d = await res.json(); alert('Onboarding Error: ' + d.detail); }
+    }
+
+    async function toggleFreeze(scma) {
+      await fetch('/api/v1/admin/toggle-freeze', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ scma_id: scma }) });
+      refreshData();
+    }
+    async function coSignPetition(vId) {
+      if (!confirm('Co-sign release for voucher ' + vId + '?')) return;
+      await fetch('/api/v1/admin/co-sign-emergency', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ event_id: vId }) });
+      refreshData();
+    }
+    async function toggleHalt() {
+      await fetch('/api/v1/admin/kill-switch', { method: 'POST' });
+      refreshData();
     }
 
     setInterval(refreshData, 3000);
     refreshData();
   </script>
-
-  <!-- Modal: Deposit Capital -->
-  <div id="depositModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
-    <div style="background:var(--card); border:1px solid var(--border); border-radius:8px; padding:24px; width:440px; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
-      <h3 style="font-size:1.15rem; margin-bottom:8px;">Capital Injection & Account Funding</h3>
-      <p style="font-size:0.8rem; color:var(--muted); margin-bottom:16px;">Credit cash equity in exact integer cents under ADR-008. Dynamic 40% reserve floor and working margin will recalculate immediately.</p>
-      
-      <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Target Account</label>
-      <input type="text" id="depScma" readonly style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px; font-weight:700;">
-      
-      <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Deposit Amount (USD)</label>
-      <input type="number" id="depAmount" step="10.00" placeholder="1500.00" style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:var(--accent); font-weight:800; font-size:1.1rem; border-radius:4px;">
-      
-      <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Source Memo / Bank Rail</label>
-      <input type="text" id="depMemo" placeholder="PenFed ACH - Lineage Capital Top-Off" value="PenFed ACH - Lineage Capital Top-Off" style="width:100%; padding:8px; margin:4px 0 20px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px;">
-      
-      <div style="display:flex; justify-content:flex-end; gap:10px;">
-        <button class="btn btn-secondary" onclick="closeDepositModal()">Cancel</button>
-        <button class="btn btn-blue" style="background:var(--green); color:#000;" onclick="submitDeposit()">Confirm & Credit Ledger</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: Onboard Member -->
-  <div id="onboardModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
-    <div style="background:var(--card); border:1px solid var(--border); border-radius:8px; padding:24px; width:480px; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
-      <h3 style="font-size:1.15rem; margin-bottom:8px;">Lineage Member Provisioning & Governance</h3>
-      <p style="font-size:0.8rem; color:var(--muted); margin-bottom:16px;">Configure an SCMA sub-ledger with assigned authority tier and opaque ADR-011 banking reference.</p>
-      
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-        <div>
-          <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Target SCMA Slot</label>
-          <select id="onbScma" style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px;">
-            <option value="SCMA-MEM-0001">SCMA-MEM-0001 (Member 1)</option>
-            <option value="SCMA-MEM-0002">SCMA-MEM-0002 (Member 2)</option>
-            <option value="SCMA-MEM-0003">SCMA-MEM-0003 (Member 3)</option>
-            <option value="SCMA-MEM-0004">SCMA-MEM-0004 (Member 4)</option>
-            <option value="SCMA-MEM-0005">SCMA-MEM-0005 (Member 5)</option>
-          </select>
-        </div>
-        <div>
-          <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Role / Governance Tier</label>
-          <select id="onbRole" style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px;">
-            <option value="MEMBER_USER">MEMBER_USER (Autonomous Member)</option>
-            <option value="F1">F1 (Lineage Peer Guide)</option>
-            <option value="F2-H">F2-H (Head of Household)</option>
-            <option value="F2-A">F2-A (Lineage Financial Advisor)</option>
-            <option value="F3">F3 (Chief Risk Officer)</option>
-            <option value="T1">T1 (Systems Monitor - Read Only)</option>
-            <option value="T2">T2 (Systems Maintenance Engineer)</option>
-          </select>
-        </div>
-      </div>
-
-      <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Member Full Name / Lineage Identity</label>
-      <input type="text" id="onbUser" placeholder="e.g. Sarah Carmichael" style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px;">
-      
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-        <div>
-          <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Initial Gifted Seed ($)</label>
-          <input type="number" id="onbSeed" value="100.00" step="25.00" style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:var(--green); font-weight:700; border-radius:4px;">
-        </div>
-        <div>
-          <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Banking Institution</label>
-          <select id="onbBank" style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px;">
-            <option value="PENFED">PenFed Credit Union</option>
-            <option value="FBO-TRUST">Delaware FBO Master Trust</option>
-            <option value="COMMERCIAL">Commercial Checking</option>
-          </select>
-        </div>
-      </div>
-
-      <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Bank Account Last 4 Digits (For Opaque Token)</label>
-      <input type="text" id="onbLast4" maxlength="4" value="4811" placeholder="4811" style="width:100%; padding:8px; margin:4px 0 20px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px;">
-
-      <div style="display:flex; justify-content:flex-end; gap:10px;">
-        <button class="btn btn-secondary" onclick="closeOnboardModal()">Cancel</button>
-        <button class="btn btn-blue" onclick="submitOnboard()">Provision & Activate SCMA</button>
-      </div>
-    </div>
-  </div>
-
 </body>
 </html>
 """
@@ -1190,8 +1073,8 @@ MEMBER_HTML = """<!DOCTYPE html>
   <div class="grid">
     <div class="card">
       <div class="card-title">Your Unreserved Cash Balance</div>
-      <div class="card-value" id="mCash">$100.00</div>
-      <div class="card-sub" id="mCents">10,000 exact integer cents</div>
+      <div class="card-value" id="mCash">$0.00</div>
+      <div class="card-sub" id="mCents">0 exact integer cents</div>
     </div>
     <div class="card">
       <div class="card-title">Lifetime Compounded Yield</div>
@@ -1228,6 +1111,54 @@ MEMBER_HTML = """<!DOCTYPE html>
     </div>
   </div>
 
+  <!-- Member Personal Compounding Trajectory & Allocation -->
+  <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px;">
+    <div class="card" style="margin-bottom:0;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <div>
+          <h3 style="font-size:1.05rem;">Personal Compounding Horizon</h3>
+          <p style="font-size:0.78rem; color:var(--muted); margin-top:2px;">Autonomous geometric wealth trajectory (87% net retention)</p>
+        </div>
+        <span class="chip chip-green">+87% Compounder</span>
+      </div>
+      <div style="width:100%; height:180px; position:relative;">
+        <svg id="memberCurveSvg" viewBox="0 0 800 180" style="width:100%; height:100%; overflow:visible;">
+          <defs>
+            <linearGradient id="memGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#10b981" stop-opacity="0.35"/>
+              <stop offset="100%" stop-color="#10b981" stop-opacity="0.0"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+    </div>
+    
+    <div class="card" style="margin-bottom:0; display:flex; flex-direction:column; justify-content:space-between;">
+      <div>
+        <h3 style="font-size:1.05rem; margin-bottom:4px;">Capital Allocation Envelope</h3>
+        <p style="font-size:0.78rem; color:var(--muted); margin-bottom:14px;">Real-time risk envelope utilization</p>
+        <div style="display:flex; flex-direction:column; gap:8px; font-size:0.82rem;">
+          <div style="display:flex; justify-content:space-between;">
+            <span style="display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:50%; background:#38bdf8;"></span> Active Trade Margin</span>
+            <strong id="mAllocActive">$0.00</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:50%; background:#6366f1;"></span> 40% Dry-Powder Floor</span>
+            <strong id="mAllocFloor">$0.00</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:50%; background:#10b981;"></span> Compounded Yield Added</span>
+            <strong id="mAllocYield" style="color:var(--green);">$0.00</strong>
+          </div>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border); padding-top:10px; font-size:0.74rem; color:var(--muted);">
+        Quarter-Kelly sizing dynamically constrains active margin within safe thresholds.
+      </div>
+    </div>
+  </div>
+
+  <!-- 12-Slot Concurrency Rack -->
   <div class="card" style="margin-bottom: 20px;">
     <div class="rack-header" onclick="toggleRack()">
       <div>
@@ -1241,6 +1172,7 @@ MEMBER_HTML = """<!DOCTYPE html>
     <div class="rack-grid" id="rackGrid"></div>
   </div>
 
+  <!-- Downward-Only Risk Governor -->
   <div class="card" style="margin-bottom: 20px;">
     <div style="display: flex; justify-content: space-between; align-items: center;">
       <div>
@@ -1259,6 +1191,7 @@ MEMBER_HTML = """<!DOCTYPE html>
     </div>
   </div>
 
+  <!-- Distribution Gateway -->
   <div class="card" style="margin-bottom: 24px;">
     <div style="display: flex; justify-content: space-between; align-items: center;">
       <div>
@@ -1276,7 +1209,6 @@ MEMBER_HTML = """<!DOCTYPE html>
     let currentScma = '__ACTIVE_SCMA_TARGET__';
     let rackExpanded = true;
 
-    
     function drawSvgCurve(svgId, points, floorCents, strokeColor, gradId) {
       const svg = document.getElementById(svgId);
       if (!svg) return;
@@ -1285,7 +1217,6 @@ MEMBER_HTML = """<!DOCTYPE html>
       if (defs) svg.appendChild(defs);
 
       if (!points || points.length === 0) return;
-      
       let minVal = Math.min(...points, floorCents || 0);
       let maxVal = Math.max(...points);
       if (maxVal === minVal) maxVal = minVal + 1000;
@@ -1364,6 +1295,16 @@ MEMBER_HTML = """<!DOCTYPE html>
           document.getElementById('mBank').textContent = acc.bank_ref_token;
           document.getElementById('riskValDisplay').textContent = acc.risk_dial_pct.toFixed(2) + '%';
           document.getElementById('riskSlider').value = acc.risk_dial_pct;
+
+          // Personal Compounding Curve & Envelope
+          const pts = data.checkpoints || [acc.cash_cents];
+          const mFloor = Math.round(acc.cash_cents * 0.40);
+          drawSvgCurve('memberCurveSvg', pts, mFloor, '#10b981', 'memGrad');
+
+          const actCents = (data.positions || []).reduce((sum, p) => sum + p.cost_basis_cents, 0);
+          document.getElementById('mAllocActive').textContent = '$' + (actCents / 100).toFixed(2);
+          document.getElementById('mAllocFloor').textContent = '$' + (mFloor / 100).toFixed(2);
+          document.getElementById('mAllocYield').textContent = '$' + (acc.lifetime_profit_cents / 100).toFixed(2);
         }
 
         const perf = data.performance;
@@ -1371,18 +1312,6 @@ MEMBER_HTML = """<!DOCTYPE html>
           document.getElementById('mWinRate').textContent = perf.total_trades > 0 ? (perf.win_rate_pct.toFixed(1) + '%') : '0.0%';
           document.getElementById('mWinSub').textContent = perf.total_trades > 0 ? (perf.wins + ' Wins / ' + perf.losses + ' Losses') : 'Awaiting Initial Fills';
           document.getElementById('mProfitFactor').textContent = perf.total_trades > 0 ? (perf.profit_factor.toFixed(2) + 'x') : '0.00x';
-
-        // Update Personal SVG Compounding Curve
-        const pts = data.checkpoints || [acc.cash_cents];
-        const mFloor = Math.round(acc.cash_cents * 0.40);
-        drawSvgCurve('memberCurveSvg', pts, mFloor, '#10b981', 'memGrad');
-
-        // Update Allocation Breakdown
-        const actCents = (data.positions || []).reduce((sum, p) => sum + p.cost_basis_cents, 0);
-        document.getElementById('mAllocActive').textContent = '$' + (actCents / 100).toFixed(2);
-        document.getElementById('mAllocFloor').textContent = '$' + (mFloor / 100).toFixed(2);
-        document.getElementById('mAllocYield').textContent = '$' + (acc.lifetime_profit_cents / 100).toFixed(2);
-
         }
 
         const activeCount = data.slots.filter(s => s.status !== 'EMPTY').length;
@@ -1415,7 +1344,6 @@ MEMBER_HTML = """<!DOCTYPE html>
     function onSliderMove(val) {
       document.getElementById('riskValDisplay').textContent = parseFloat(val).toFixed(2) + '%';
     }
-
     async function saveRiskDial(val) {
       await fetch('/api/v1/member/update-risk-dial', {
         method: 'POST',
@@ -1424,18 +1352,15 @@ MEMBER_HTML = """<!DOCTYPE html>
       });
       loadAccount();
     }
-
     async function promptDistribution() {
-      const amt = prompt("Enter distribution amount in USD (e.g. 15.00):");
+      const amt = prompt("Enter distribution amount in USD:");
       if (!amt) return;
-      const reason = prompt("Enter withdrawal reason (e.g. Living expense, Emergency medical):", "Personal Distribution");
+      const reason = prompt("Enter withdrawal reason:", "Personal Distribution");
       if (!reason) return;
-
       const st = document.getElementById('distStatus');
       st.style.display = 'block';
       st.style.color = '#38bdf8';
       st.textContent = 'Submitting request through Directive R-15 gateway...';
-
       try {
         const res = await fetch('/api/v1/member/request-distribution', {
           method: 'POST',
@@ -1460,88 +1385,6 @@ MEMBER_HTML = """<!DOCTYPE html>
     setInterval(loadAccount, 3000);
     loadAccount();
   </script>
-
-  <!-- Modal: Deposit Capital -->
-  <div id="depositModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
-    <div style="background:var(--card); border:1px solid var(--border); border-radius:8px; padding:24px; width:440px; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
-      <h3 style="font-size:1.15rem; margin-bottom:8px;">Capital Injection & Account Funding</h3>
-      <p style="font-size:0.8rem; color:var(--muted); margin-bottom:16px;">Credit cash equity in exact integer cents under ADR-008. Dynamic 40% reserve floor and working margin will recalculate immediately.</p>
-      
-      <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Target Account</label>
-      <input type="text" id="depScma" readonly style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px; font-weight:700;">
-      
-      <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Deposit Amount (USD)</label>
-      <input type="number" id="depAmount" step="10.00" placeholder="1500.00" style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:var(--accent); font-weight:800; font-size:1.1rem; border-radius:4px;">
-      
-      <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Source Memo / Bank Rail</label>
-      <input type="text" id="depMemo" placeholder="PenFed ACH - Lineage Capital Top-Off" value="PenFed ACH - Lineage Capital Top-Off" style="width:100%; padding:8px; margin:4px 0 20px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px;">
-      
-      <div style="display:flex; justify-content:flex-end; gap:10px;">
-        <button class="btn btn-secondary" onclick="closeDepositModal()">Cancel</button>
-        <button class="btn btn-blue" style="background:var(--green); color:#000;" onclick="submitDeposit()">Confirm & Credit Ledger</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: Onboard Member -->
-  <div id="onboardModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
-    <div style="background:var(--card); border:1px solid var(--border); border-radius:8px; padding:24px; width:480px; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
-      <h3 style="font-size:1.15rem; margin-bottom:8px;">Lineage Member Provisioning & Governance</h3>
-      <p style="font-size:0.8rem; color:var(--muted); margin-bottom:16px;">Configure an SCMA sub-ledger with assigned authority tier and opaque ADR-011 banking reference.</p>
-      
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-        <div>
-          <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Target SCMA Slot</label>
-          <select id="onbScma" style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px;">
-            <option value="SCMA-MEM-0001">SCMA-MEM-0001 (Member 1)</option>
-            <option value="SCMA-MEM-0002">SCMA-MEM-0002 (Member 2)</option>
-            <option value="SCMA-MEM-0003">SCMA-MEM-0003 (Member 3)</option>
-            <option value="SCMA-MEM-0004">SCMA-MEM-0004 (Member 4)</option>
-            <option value="SCMA-MEM-0005">SCMA-MEM-0005 (Member 5)</option>
-          </select>
-        </div>
-        <div>
-          <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Role / Governance Tier</label>
-          <select id="onbRole" style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px;">
-            <option value="MEMBER_USER">MEMBER_USER (Autonomous Member)</option>
-            <option value="F1">F1 (Lineage Peer Guide)</option>
-            <option value="F2-H">F2-H (Head of Household)</option>
-            <option value="F2-A">F2-A (Lineage Financial Advisor)</option>
-            <option value="F3">F3 (Chief Risk Officer)</option>
-            <option value="T1">T1 (Systems Monitor - Read Only)</option>
-            <option value="T2">T2 (Systems Maintenance Engineer)</option>
-          </select>
-        </div>
-      </div>
-
-      <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Member Full Name / Lineage Identity</label>
-      <input type="text" id="onbUser" placeholder="e.g. Sarah Carmichael" style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px;">
-      
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-        <div>
-          <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Initial Gifted Seed ($)</label>
-          <input type="number" id="onbSeed" value="100.00" step="25.00" style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:var(--green); font-weight:700; border-radius:4px;">
-        </div>
-        <div>
-          <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Banking Institution</label>
-          <select id="onbBank" style="width:100%; padding:8px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px;">
-            <option value="PENFED">PenFed Credit Union</option>
-            <option value="FBO-TRUST">Delaware FBO Master Trust</option>
-            <option value="COMMERCIAL">Commercial Checking</option>
-          </select>
-        </div>
-      </div>
-
-      <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase;">Bank Account Last 4 Digits (For Opaque Token)</label>
-      <input type="text" id="onbLast4" maxlength="4" value="4811" placeholder="4811" style="width:100%; padding:8px; margin:4px 0 20px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:4px;">
-
-      <div style="display:flex; justify-content:flex-end; gap:10px;">
-        <button class="btn btn-secondary" onclick="closeOnboardModal()">Cancel</button>
-        <button class="btn btn-blue" onclick="submitOnboard()">Provision & Activate SCMA</button>
-      </div>
-    </div>
-  </div>
-
 </body>
 </html>
 """
