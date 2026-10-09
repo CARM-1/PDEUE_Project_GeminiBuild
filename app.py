@@ -143,15 +143,21 @@ async def autonomous_market_daemon():
             if GLOBAL_STATE.get("system_mode") == "NORMAL":
                 conn = get_db()
                 cursor = conn.cursor()
-                cursor.execute("SELECT cash_cents, status FROM accounts WHERE scma_id = 'SCMA-FOUNDER';")
-                acc = cursor.fetchone()
+                cursor.execute("SELECT scma_id, cash_cents, status FROM accounts WHERE status = 'ACTIVE' ORDER BY scma_id ASC;")
+                active_accounts = [dict(r) for r in cursor.fetchall()]
                 
-                if acc and acc["status"] == "ACTIVE":
-                    cursor.execute("SELECT slot_index FROM positions WHERE status != 'CLOSED';")
-                    occupied = {r[0] for r in cursor.fetchall()}
+                if active_accounts:
+                    cursor.execute("SELECT slot_index, scma_id FROM positions WHERE status != 'CLOSED';")
+                    open_pos = cursor.fetchall()
+                    occupied = {r[0] for r in open_pos}
                     
+                    # 1. Harvest & Dispatch across active SCMAs proportionally
                     if len(occupied) < 4:
                         target_slot = next(i for i in range(1, 13) if i not in occupied)
+                        # Alternate between active accounts
+                        assigned_acc = active_accounts[(target_slot - 1) % len(active_accounts)]
+                        target_scma = assigned_acc["scma_id"]
+                        
                         tickers = [
                             ("KX-MIA-FRZ-32", "Weather (NOAA)", "Kalshi", 45, 22, 990, 1125),
                             ("POLY-FED-DEC26", "Macro (Interest)", "Polymarket", 50, 18, 900, 1050),
@@ -164,14 +170,16 @@ async def autonomous_market_daemon():
                         
                         cursor.execute("""
                             INSERT INTO positions (position_id, slot_index, scma_id, contract_ticker, domain, venue, side, qty, vwap_cents, cost_basis_cents, mtm_cents, status, updated_at)
-                            VALUES (?, ?, 'SCMA-FOUNDER', ?, ?, ?, 'BUY_YES', ?, ?, ?, ?, 'RESTING_MAKER', ?);
-                        """, (pos_id, target_slot, t_data[0], t_data[1], t_data[2], t_data[3], t_data[4], t_data[5], t_data[6], now_iso))
-                        append_audit_log(cursor, "BACKGROUND_DAEMON", "DISPATCH_MAKER_ORDER", {"slot": target_slot, "contract": t_data[0]})
+                            VALUES (?, ?, ?, ?, ?, ?, 'BUY_YES', ?, ?, ?, ?, 'RESTING_MAKER', ?);
+                        """, (pos_id, target_slot, target_scma, t_data[0], t_data[1], t_data[2], t_data[3], t_data[4], t_data[5], t_data[6], now_iso))
+                        append_audit_log(cursor, "BACKGROUND_DAEMON", "DISPATCH_MAKER_ORDER", {"slot": target_slot, "scma": target_scma, "contract": t_data[0]})
                         conn.commit()
 
+                    # 2. Settle oldest resting contract and compound into that member account
                     cursor.execute("SELECT * FROM positions WHERE status = 'RESTING_MAKER' ORDER BY updated_at ASC LIMIT 1;")
                     pos_to_settle = cursor.fetchone()
                     if pos_to_settle and len(occupied) >= 2:
+                        p_scma = pos_to_settle["scma_id"]
                         cost_cents = pos_to_settle["cost_basis_cents"]
                         gross_payout_cents = pos_to_settle["qty"] * 100
                         net_profit_cents = gross_payout_cents - cost_cents
@@ -184,25 +192,25 @@ async def autonomous_market_daemon():
                         cursor.execute("""
                             UPDATE accounts 
                             SET cash_cents = cash_cents + ?, lifetime_profit_cents = lifetime_profit_cents + ?, updated_at = ?
-                            WHERE scma_id = 'SCMA-FOUNDER';
-                        """, (scma_yield, scma_yield, now_iso))
+                            WHERE scma_id = ?;
+                        """, (scma_yield, scma_yield, now_iso, p_scma))
                         cursor.execute("UPDATE positions SET status = 'CLOSED', updated_at = ? WHERE position_id = ?;", (now_iso, pos_to_settle["position_id"]))
 
                         fill_id = f"FILL-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
                         cursor.execute("""
                             INSERT INTO fills (fill_id, scma_id, contract_ticker, side, qty, price_cents, pnl_cents, is_win, timestamp)
-                            VALUES (?, 'SCMA-FOUNDER', ?, 'BUY_YES', ?, ?, ?, 1, ?);
-                        """, (fill_id, pos_to_settle["contract_ticker"], pos_to_settle["qty"], pos_to_settle["vwap_cents"], scma_yield, now_iso))
+                            VALUES (?, ?, ?, 'BUY_YES', ?, ?, ?, 1, ?);
+                        """, (fill_id, p_scma, pos_to_settle["contract_ticker"], pos_to_settle["qty"], pos_to_settle["vwap_cents"], scma_yield, now_iso))
 
-                        cursor.execute("SELECT cash_cents FROM accounts WHERE scma_id = 'SCMA-FOUNDER';")
+                        cursor.execute("SELECT cash_cents FROM accounts WHERE scma_id = ?;", (p_scma,))
                         current_cash = cursor.fetchone()[0]
-                        cursor.execute("INSERT INTO equity_checkpoints (scma_id, equity_cents, timestamp) VALUES ('SCMA-FOUNDER', ?, ?);", (current_cash, now_iso))
+                        cursor.execute("INSERT INTO equity_checkpoints (scma_id, equity_cents, timestamp) VALUES (?, ?, ?);", (p_scma, current_cash, now_iso))
 
-                        v_id = emit_outbox_voucher(cursor, "WATERFALL_SETTLEMENT_SWEPT", "SCMA-FOUNDER", {
+                        v_id = emit_outbox_voucher(cursor, "WATERFALL_SETTLEMENT_SWEPT", p_scma, {
                             "contract": pos_to_settle["contract_ticker"], "net_profit_cents": net_profit_cents,
                             "scma_compounded_cents": scma_yield, "cfcp_cents": cfcp_sweep, "faep_cents": faep_sweep
                         })
-                        append_audit_log(cursor, "BACKGROUND_DAEMON", "AUTO_SETTLE_WATERFALL", {"voucher_id": v_id, "freed_slot": pos_to_settle["slot_index"]})
+                        append_audit_log(cursor, "BACKGROUND_DAEMON", "AUTO_SETTLE_WATERFALL", {"voucher_id": v_id, "scma": p_scma, "freed_slot": pos_to_settle["slot_index"]})
                         conn.commit()
 
                 conn.close()
@@ -413,6 +421,21 @@ class RiskReq(BaseModel):
     scma_id: str
     risk_dial_pct: float
 
+
+@app.get("/api/v1/member/fills")
+def get_member_fills(scma_id: str = "SCMA-FOUNDER"):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT fill_id, scma_id, contract_ticker, side, qty, price_cents, pnl_cents, is_win, timestamp 
+        FROM fills 
+        WHERE scma_id = ? 
+        ORDER BY timestamp DESC LIMIT 25;
+    """, (scma_id,))
+    rows = [dict(r) for r in cursor.fetchall()]
+    conn.close()
+    return {"status": "SUCCESS", "scma_id": scma_id, "fills": rows}
+
 @app.post("/api/v1/member/update-risk-dial")
 def update_risk_dial(req: RiskReq):
     conn = get_db()
@@ -596,6 +619,15 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     <div style="color:var(--muted); font-size:0.75rem;">
       Node IP: <strong style="color:#fff;">13.221.153.12</strong> • ADR-011 Air-Gap: <span style="color:var(--green); font-weight:700;">ENFORCED</span>
     </div>
+  </div>
+
+    <!-- Directive R-06 Supervisory Audit Lens Banner -->
+  <div id="supervisoryLensBanner" style="display:none; background:#78350f; border:1px solid #f59e0b; color:#fef3c7; padding:12px 18px; border-radius:8px; margin-bottom:20px; justify-content:space-between; align-items:center;">
+    <div>
+      <span style="font-weight:800; letter-spacing:0.04em;">⚠️ SUPERVISORY AUDIT LENS ACTIVE</span>
+      <span style="margin-left:10px; font-size:0.82rem; color:#fde68a;">Chief Administrator acting under Directive R-06. Read-Only Forensic Observation.</span>
+    </div>
+    <a href="/dashboard" class="btn btn-secondary" style="font-size:0.75rem; padding:4px 10px;">← Exit to Master Cockpit</a>
   </div>
 
   <div class="header">
@@ -1052,6 +1084,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
               <td><span class="chip ${a.status==='ACTIVE'?'chip-green':(a.status==='FROZEN'?'chip-yellow':'chip-blue')}">${a.status}</span></td>
               <td style="color:var(--muted);">${a.bank_ref_token}</td>
               <td style="display:flex; gap:6px;">
+                <a href="/member?scma=${a.scma_id}&supervisory=true" class="btn btn-blue" style="background:#1e3a8a; color:#93c5fd; border:none; padding:4px 8px; font-size:0.75rem; text-decoration:none;">Inspect 🔍</a>
                 <button class="btn btn-blue" style="background:#064e3b; color:#34d399; border:none; padding:4px 8px; font-size:0.75rem;" onclick="openDepositModal('${a.scma_id}')">+ Fund</button>
                 <button class="btn btn-blue" style="padding:4px 8px; font-size:0.75rem;" onclick="toggleFreeze('${a.scma_id}')">Freeze</button>
               </td>
@@ -1234,6 +1267,15 @@ MEMBER_HTML = """<!DOCTYPE html>
       SCMA View • ADR-011 Air-Gap: <span style="color:var(--green); font-weight:700;">VERIFIED</span>
     </div>
   </div>
+    <!-- Directive R-06 Supervisory Audit Lens Banner -->
+  <div id="supervisoryLensBanner" style="display:none; background:#78350f; border:1px solid #f59e0b; color:#fef3c7; padding:12px 18px; border-radius:8px; margin-bottom:20px; justify-content:space-between; align-items:center;">
+    <div>
+      <span style="font-weight:800; letter-spacing:0.04em;">⚠️ SUPERVISORY AUDIT LENS ACTIVE</span>
+      <span style="margin-left:10px; font-size:0.82rem; color:#fde68a;">Chief Administrator acting under Directive R-06. Read-Only Forensic Observation.</span>
+    </div>
+    <a href="/dashboard" class="btn btn-secondary" style="font-size:0.75rem; padding:4px 10px;">← Exit to Master Cockpit</a>
+  </div>
+
   <div class="header">
     <div>
       <h1 style="font-size: 1.4rem;">Member Capital Portal</h1>
@@ -1352,6 +1394,36 @@ MEMBER_HTML = """<!DOCTYPE html>
       <span class="btn btn-secondary" id="rackToggleBtn" style="padding: 4px 10px; font-size: 0.75rem;">Collapse ▲</span>
     </div>
     <div class="rack-grid" id="rackGrid"></div>
+  </div>
+
+  <!-- Personal Execution & Settled Contracts Ledger -->
+  <div class="card" style="margin-bottom: 20px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <div>
+        <h3 style="font-size: 1.05rem; color:#fff;">Personal Execution & Settled Contracts Ledger</h3>
+        <p style="font-size: 0.8rem; color: var(--muted); margin-top: 2px;">
+          Deterministic 87% realized yield credits settled to your SCMA cash balance
+        </p>
+      </div>
+      <span class="chip chip-green" id="memberFillCount">0 Settled</span>
+    </div>
+    <table style="width:100%; border-collapse:collapse; margin-top:8px; font-size:0.82rem;">
+      <thead>
+        <tr>
+          <th style="text-align:left; padding:8px; color:var(--muted); border-bottom:1px solid var(--border);">Fill ID</th>
+          <th style="text-align:left; padding:8px; color:var(--muted); border-bottom:1px solid var(--border);">Contract</th>
+          <th style="text-align:left; padding:8px; color:var(--muted); border-bottom:1px solid var(--border);">Side</th>
+          <th style="text-align:left; padding:8px; color:var(--muted); border-bottom:1px solid var(--border);">Qty</th>
+          <th style="text-align:left; padding:8px; color:var(--muted); border-bottom:1px solid var(--border);">Cost/VWAP</th>
+          <th style="text-align:left; padding:8px; color:var(--muted); border-bottom:1px solid var(--border);">87% Net Yield</th>
+          <th style="text-align:left; padding:8px; color:var(--muted); border-bottom:1px solid var(--border);">Outcome</th>
+          <th style="text-align:left; padding:8px; color:var(--muted); border-bottom:1px solid var(--border);">Timestamp</th>
+        </tr>
+      </thead>
+      <tbody id="memberFillsTbody">
+        <tr><td colspan="8" style="text-align:center; color:var(--muted); padding:16px;">No settled executions for this account.</td></tr>
+      </tbody>
+    </table>
   </div>
 
   <!-- Downward-Only Risk Governor -->
@@ -1495,6 +1567,39 @@ MEMBER_HTML = """<!DOCTYPE html>
           document.getElementById('mWinSub').textContent = perf.total_trades > 0 ? (perf.wins + ' Wins / ' + perf.losses + ' Losses') : 'Awaiting Initial Fills';
           document.getElementById('mProfitFactor').textContent = perf.total_trades > 0 ? (perf.profit_factor.toFixed(2) + 'x') : '0.00x';
         }
+
+        
+      // Handle Supervisory Mode Query Parameter
+      const isSupervisory = urlParams.get('supervisory') === 'true';
+      const supBanner = document.getElementById('supervisoryLensBanner');
+      if (supBanner) supBanner.style.display = isSupervisory ? 'flex' : 'none';
+
+      // Load Settled Fills
+      try {
+        const fRes = await fetch('/api/v1/member/fills?scma_id=' + currentScma);
+        const fData = await fRes.json();
+        const fTbody = document.getElementById('memberFillsTbody');
+        document.getElementById('memberFillCount').textContent = (fData.fills || []).length + ' Settled';
+        if (fData.fills && fData.fills.length > 0) {
+          fTbody.innerHTML = '';
+          fData.fills.forEach(f => {
+            fTbody.innerHTML += `
+              <tr>
+                <td style="font-weight:700;">${f.fill_id}</td>
+                <td style="font-weight:700; color:var(--accent);">${f.contract_ticker}</td>
+                <td>${f.side}</td>
+                <td>${f.qty}</td>
+                <td>$${(f.price_cents/100).toFixed(2)}</td>
+                <td style="color:var(--green); font-weight:700;">+$${(f.pnl_cents/100).toFixed(2)}</td>
+                <td><span class="chip chip-green">SETTLED WIN</span></td>
+                <td style="color:var(--muted);">${f.timestamp.substring(11, 19)} UTC</td>
+              </tr>
+            `;
+          });
+        } else {
+          fTbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--muted); padding:16px;">No settled executions for this account.</td></tr>';
+        }
+      } catch(e) { console.error('Fills load err:', e); }
 
         const activeCount = data.slots.filter(s => s.status !== 'EMPTY').length;
         document.getElementById('rackSummary').textContent = `${activeCount} Active Maker Bids • ${12 - activeCount} Idle Buffer Slots`;
