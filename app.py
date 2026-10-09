@@ -1355,12 +1355,15 @@ MEMBER_HTML = """<!DOCTYPE html>
       </p>
     </div>
     <div style="display: flex; gap: 12px; align-items: center;">
-      <div>
-        <label style="font-size:0.7rem; color:var(--muted); text-transform:uppercase; display:block; margin-bottom:4px; font-weight:700;">Switch Member View</label>
-        <select id="scmaSelector" onchange="switchScma()" style="background:#0b111e; color:#fff; border:1px solid var(--border); padding:8px 14px; border-radius:6px; font-size:0.85rem; font-weight:600;">
-        </select>
+      <div style="display:flex; gap:10px; align-items:flex-end;">
+        <div>
+          <label style="font-size:0.7rem; color:var(--muted); text-transform:uppercase; display:block; margin-bottom:4px; font-weight:700;">Switch Member View</label>
+          <select id="scmaSelector" onchange="switchScma()" style="background:#0b111e; color:#fff; border:1px solid var(--border); padding:8px 14px; border-radius:6px; font-size:0.85rem; font-weight:600;">
+          </select>
+        </div>
+        <button class="btn btn-blue" onclick="openOrientationModal()">📘 Platform Orientation</button>
+        <a href="/dashboard" class="btn btn-secondary">Admin Cockpit →</a>
       </div>
-      <a href="/dashboard" class="btn btn-secondary" style="margin-top:16px;">Admin Cockpit →</a>
     </div>
   </div>
 
@@ -1429,25 +1432,50 @@ MEMBER_HTML = """<!DOCTYPE html>
     
     <div class="card" style="margin-bottom:0; display:flex; flex-direction:column; justify-content:space-between;">
       <div>
-        <h3 style="font-size:1.05rem; margin-bottom:4px;">Capital Allocation Envelope</h3>
-        <p style="font-size:0.78rem; color:var(--muted); margin-bottom:14px;">Real-time risk envelope utilization</p>
-        <div style="display:flex; flex-direction:column; gap:8px; font-size:0.82rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <h3 style="font-size:1.05rem;">Concentric Asset Engine Rings</h3>
+          <span class="chip chip-blue" id="floatCapBadge">$25k Cap Active</span>
+        </div>
+        <p style="font-size:0.78rem; color:var(--muted); margin-top:2px; margin-bottom:12px;">Multi-layer capital governance envelope</p>
+        
+        <!-- Concentric Donut SVG -->
+        <div style="display:flex; align-items:center; justify-content:center; position:relative; height:150px; margin-bottom:10px;">
+          <svg id="concentricRingsSvg" viewBox="0 0 160 160" style="width:150px; height:150px; transform: rotate(-90deg);">
+            <!-- Outer Ring Track & Arc: Float Collateral (Cyan) -->
+            <circle cx="80" cy="80" r="68" fill="none" stroke="#1e293b" stroke-width="8"/>
+            <circle id="ringFloat" cx="80" cy="80" r="68" fill="none" stroke="#38bdf8" stroke-width="8" stroke-dasharray="427" stroke-dashoffset="427" stroke-linecap="round"/>
+            
+            <!-- Middle Ring Track & Arc: 40% Dry Powder Floor (Indigo) -->
+            <circle cx="80" cy="80" r="54" fill="none" stroke="#1e293b" stroke-width="8"/>
+            <circle id="ringFloor" cx="80" cy="80" r="54" fill="none" stroke="#6366f1" stroke-width="8" stroke-dasharray="339" stroke-dashoffset="339" stroke-linecap="round"/>
+            
+            <!-- Inner Ring Track & Arc: Retained Compounded Yield (Emerald) -->
+            <circle cx="80" cy="80" r="40" fill="none" stroke="#1e293b" stroke-width="8"/>
+            <circle id="ringYield" cx="80" cy="80" r="40" fill="none" stroke="#10b981" stroke-width="8" stroke-dasharray="251" stroke-dashoffset="251" stroke-linecap="round"/>
+          </svg>
+          <div style="position:absolute; text-align:center;">
+            <div style="font-size:0.65rem; color:var(--muted); text-transform:uppercase;">SCMA Equity</div>
+            <div id="ringCenterEquity" style="font-size:0.95rem; font-weight:800; color:#fff;">$0.00</div>
+          </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:6px; font-size:0.8rem;">
           <div style="display:flex; justify-content:space-between;">
-            <span style="display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:50%; background:#38bdf8;"></span> Active Trade Margin</span>
+            <span style="display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:50%; background:#38bdf8;"></span> Active Trade Float</span>
             <strong id="mAllocActive">$0.00</strong>
           </div>
           <div style="display:flex; justify-content:space-between;">
-            <span style="display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:50%; background:#6366f1;"></span> 40% Dry-Powder Floor</span>
+            <span style="display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:50%; background:#6366f1;"></span> 40% Floor Shield</span>
             <strong id="mAllocFloor">$0.00</strong>
           </div>
           <div style="display:flex; justify-content:space-between;">
-            <span style="display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:50%; background:#10b981;"></span> Compounded Yield Added</span>
+            <span style="display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:50%; background:#10b981;"></span> Compounded Yield (87%)</span>
             <strong id="mAllocYield" style="color:var(--green);">$0.00</strong>
           </div>
         </div>
       </div>
-      <div style="border-top:1px solid var(--border); padding-top:10px; font-size:0.74rem; color:var(--muted);">
-        Quarter-Kelly sizing dynamically constrains active margin within safe thresholds.
+      <div style="border-top:1px solid var(--border); padding-top:8px; font-size:0.72rem; color:var(--muted); margin-top:8px;">
+        Outer: Active Float • Mid: 40% Floor • Inner: Retained Yield
       </div>
     </div>
   </div>
@@ -1755,6 +1783,115 @@ MEMBER_HTML = """<!DOCTYPE html>
       }
     }
 
+    
+    function openOrientationModal() {
+      document.getElementById('orientationModal').style.display = 'flex';
+    }
+    function closeOrientationModal() {
+      document.getElementById('orientationModal').style.display = 'none';
+    }
+
+    function promptDistribution() {
+      document.getElementById('distModal').style.display = 'flex';
+      updateFrictionPreview();
+    }
+    function closeDistributionModal() {
+      document.getElementById('distModal').style.display = 'none';
+    }
+
+    function updateFrictionPreview() {
+      const amt = parseFloat(document.getElementById('distAmountInput').value) || 0;
+      const fBox = document.getElementById('projFrictionVal');
+      const tBadge = document.getElementById('projTierBadge');
+      const fWarn = document.getElementById('floorBreachWarning');
+      
+      // Estimated 24-month geometric loss: ~2.8x withdrawal amount at active win expectancy
+      const estLoss = (amt * 2.8).toFixed(2);
+      fBox.textContent = '-$' + estLoss;
+
+      const cashMatch = document.getElementById('mCash').textContent.replace('$', '').replace(',', '');
+      const currentCash = parseFloat(cashMatch) || 0;
+      const floorLimit = currentCash * 0.40;
+      const afterBal = currentCash - amt;
+
+      const yieldMatch = document.getElementById('mYield').textContent.replace('$', '').replace(',', '');
+      const currentYield = parseFloat(yieldMatch) || 0;
+
+      if (amt <= currentYield && amt > 0) {
+        tBadge.textContent = 'GREEN (AUTONOMOUS PROFIT SWEEP)';
+        tBadge.className = 'chip chip-green';
+        fWarn.style.display = 'none';
+      } else if (afterBal >= floorLimit && amt > 0) {
+        tBadge.textContent = 'YELLOW (FLOAT DRAWDOWN)';
+        tBadge.className = 'chip chip-yellow';
+        fWarn.style.display = 'none';
+      } else if (amt > 0) {
+        tBadge.textContent = 'RED (FLOOR BREACH - CO-SIGN REQD)';
+        tBadge.className = 'chip chip-blue';
+        tBadge.style.background = '#7f1d1d';
+        tBadge.style.color = '#fecaca';
+        fWarn.style.display = 'block';
+      } else {
+        tBadge.textContent = 'AWAITING AMOUNT';
+        tBadge.className = 'chip chip-secondary';
+        fWarn.style.display = 'none';
+      }
+    }
+
+    async function submitCategoricalDistribution() {
+      const amt = parseFloat(document.getElementById('distAmountInput').value);
+      const cat = document.getElementById('distCategory').value;
+      const memo = document.getElementById('distMemoInput').value || 'Routine Lineage Sweep';
+      if (!amt || amt <= 0) { alert('Please enter a valid distribution amount.'); return; }
+      
+      const fullReason = '[' + cat + '] ' + memo;
+      closeDistributionModal();
+      
+      const st = document.getElementById('distStatus');
+      st.style.display = 'block';
+      st.style.color = '#38bdf8';
+      st.textContent = 'Submitting request through Directive R-15 gateway...';
+      try {
+        const res = await fetch('/api/v1/member/request-distribution', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ scma_id: currentScma, amount_dollars: amt, reason: fullReason })
+        });
+        const d = await res.json();
+        if (res.ok) {
+          st.style.color = d.tier === 'RED' ? '#f87171' : '#34d399';
+          st.textContent = '[' + d.tier + ' TIER]: ' + d.message;
+          loadAccount();
+        } else {
+          st.style.color = '#ef4444';
+          st.textContent = 'Error: ' + d.detail;
+        }
+      } catch (e) {
+        st.style.color = '#ef4444';
+        st.textContent = 'Network error: ' + e;
+      }
+    }
+
+    function updateConcentricRings(cashCents, activeCents, floorCents, yieldCents) {
+      document.getElementById('ringCenterEquity').textContent = '$' + (cashCents / 100).toFixed(2);
+      
+      // Outer Ring: Float Collateral vs $25,000 Exchange Float Ceiling (2,500,000 cents, Circ = 427)
+      const maxFloatCents = 2500000;
+      const floatPct = Math.min(1.0, activeCents / maxFloatCents);
+      const ringFloat = document.getElementById('ringFloat');
+      if (ringFloat) ringFloat.style.strokeDashoffset = 427 - (427 * floatPct);
+
+      // Middle Ring: 40% Floor Shield Proportion (Circ = 339)
+      const floorPct = Math.min(1.0, floorCents / (cashCents || 1));
+      const ringFloor = document.getElementById('ringFloor');
+      if (ringFloor) ringFloor.style.strokeDashoffset = 339 - (339 * floorPct);
+
+      // Inner Ring: Compounded Retained Yield vs Total Cash (Circ = 251)
+      const yieldPct = Math.min(1.0, yieldCents / (cashCents || 1));
+      const ringYield = document.getElementById('ringYield');
+      if (ringYield) ringYield.style.strokeDashoffset = 251 - (251 * yieldPct);
+    }
+
     function onSliderMove(val) {
       document.getElementById('riskValDisplay').textContent = parseFloat(val).toFixed(2) + '%';
     }
@@ -1799,6 +1936,94 @@ MEMBER_HTML = """<!DOCTYPE html>
     setInterval(loadAccount, 3000);
     loadAccount();
   </script>
+  <!-- Modal: Platform Orientation & Lineage Covenant -->
+  <div id="orientationModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center; padding:20px;">
+    <div style="background:var(--card); border:1px solid var(--border); border-radius:10px; padding:28px; max-width:620px; width:100%; box-shadow:0 12px 40px rgba(0,0,0,0.6); max-height:85vh; overflow-y:auto;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
+        <div>
+          <span style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--accent); font-weight:800;">Fiduciary Education</span>
+          <h2 style="font-size:1.35rem; color:#fff; margin-top:2px;">PDEUE Lineage Covenant & System Architecture</h2>
+        </div>
+        <button class="btn btn-secondary" onclick="closeOrientationModal()" style="padding:4px 10px; font-size:0.8rem;">✕ Close</button>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:16px; font-size:0.85rem; line-height:1.6; color:#cbd5e1;">
+        <div style="background:#0b111e; border:1px solid var(--border); border-radius:6px; padding:14px;">
+          <h4 style="color:#38bdf8; font-size:0.95rem; margin-bottom:4px;">1. The 87/10/3 Realized Waterfall</h4>
+          <p style="color:var(--muted); font-size:0.82rem;">Every settled winning turn is mathematically partitioned under ADR-008 exact-cent conservation:</p>
+          <ul style="margin:8px 0 0 18px; font-size:0.82rem;">
+            <li><strong style="color:#38bdf8;">87% Direct Retention:</strong> Compounded automatically into your unreserved cash balance.</li>
+            <li><strong style="color:#a855f7;">10% Central Family Shield (CFCP):</strong> Swept into the mutual lineage insurance reserve pool.</li>
+            <li><strong style="color:#f59e0b;">3% Platform Infrastructure (FAEP):</strong> Sinking fund maintaining servers and network integrity.</li>
+          </ul>
+        </div>
+
+        <div style="background:#0b111e; border:1px solid var(--border); border-radius:6px; padding:14px;">
+          <h4 style="color:#10b981; font-size:0.95rem; margin-bottom:4px;">2. Dual-Seed Lineage Pathways</h4>
+          <p style="color:var(--muted); font-size:0.82rem;">Capital onboarding adheres to generational stewardship:</p>
+          <ul style="margin:8px 0 0 18px; font-size:0.82rem;">
+            <li><strong>$100.00 Apprentice Seed:</strong> Low-risk entry threshold for developing financial literacy and discipline.</li>
+            <li><strong>$1,000.00 Sovereign Baseline:</strong> Fully capitalized autonomous trading float operating at full Quarter-Kelly capacity.</li>
+          </ul>
+        </div>
+
+        <div style="background:#0b111e; border:1px solid var(--border); border-radius:6px; padding:14px;">
+          <h4 style="color:#fde047; font-size:0.95rem; margin-bottom:4px;">3. Inviolable Governance Invariants</h4>
+          <ul style="margin:6px 0 0 18px; font-size:0.82rem;">
+            <li><strong>40% Dry-Powder Liquid Floor:</strong> You can never deploy more than 60% of your capital to open market risk.</li>
+            <li><strong>Downward-Only Risk Dial:</strong> You may adjust risk down to 0.50% at will; raising risk past 2.00% is mathematically barred.</li>
+            <li><strong>Zero Banking Exposure:</strong> Execution nodes store zero bank routing numbers or credentials (ADR-011 air-gap).</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="margin-top:20px; display:flex; justify-content:flex-end;">
+        <button class="btn btn-blue" onclick="closeOrientationModal()">Understood & Certified</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Categorical Distribution Gateway (Directive R-15) -->
+  <div id="distModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center; padding:20px;">
+    <div style="background:var(--card); border:1px solid var(--border); border-radius:10px; padding:26px; max-width:500px; width:100%; box-shadow:0 12px 40px rgba(0,0,0,0.6);">
+      <h3 style="font-size:1.2rem; color:#fff; margin-bottom:4px;">Capital Distribution Gateway (Directive R-15)</h3>
+      <p style="font-size:0.8rem; color:var(--muted); margin-bottom:16px;">Request an autonomous profit sweep or capital withdrawal with exact life-event tagging.</p>
+
+      <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase; font-weight:700;">Life-Event Governance Category</label>
+      <select id="distCategory" onchange="updateFrictionPreview()" style="width:100%; padding:9px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:6px; font-size:0.88rem;">
+        <option value="DOMESTIC">Domestic Living Allowance (Green/Yellow Tier)</option>
+        <option value="TUITION">Lineage Educational Grant / Tuition (Green/Yellow Tier)</option>
+        <option value="MEDICAL">Acute Medical / Health Emergency (Red-Tier Dual Control)</option>
+        <option value="REAL_ESTATE">Lineage Real Estate / Capital Asset Acquisition</option>
+      </select>
+
+      <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase; font-weight:700;">Distribution Amount (USD)</label>
+      <input type="number" id="distAmountInput" step="5.00" placeholder="50.00" oninput="updateFrictionPreview()" style="width:100%; padding:9px; margin:4px 0 12px 0; background:#0b111e; border:1px solid var(--border); color:var(--accent); font-size:1.15rem; font-weight:800; border-radius:6px;">
+
+      <label style="font-size:0.75rem; color:var(--muted); text-transform:uppercase; font-weight:700;">Fiduciary Rationale / Purpose Memo</label>
+      <input type="text" id="distMemoInput" placeholder="e.g. Q4 University Textbook Reimbursement" style="width:100%; padding:9px; margin:4px 0 16px 0; background:#0b111e; border:1px solid var(--border); color:#fff; border-radius:6px; font-size:0.85rem;">
+
+      <!-- Live Compounding Friction Projector -->
+      <div id="frictionBox" style="background:#0b111e; border:1px solid var(--border); border-radius:6px; padding:12px; margin-bottom:20px; font-size:0.8rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <span style="color:var(--muted); font-weight:700;">Projected Tier:</span>
+          <span id="projTierBadge" class="chip chip-green">GREEN (AUTONOMOUS SWEEP)</span>
+        </div>
+        <div style="color:var(--muted); font-size:0.78rem;">
+          24-Month Geometric Opportunity Drag: <strong id="projFrictionVal" style="color:#f87171;">-$0.00</strong>
+        </div>
+        <div id="floorBreachWarning" style="color:#f87171; font-size:0.75rem; margin-top:6px; display:none;">
+          ⚠️ Request breaches the 40% liquid floor and will require Chief Administrator dual-signature approval.
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button class="btn btn-secondary" onclick="closeDistributionModal()">Cancel</button>
+        <button class="btn btn-blue" onclick="submitCategoricalDistribution()">Submit Distribution</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
 """
