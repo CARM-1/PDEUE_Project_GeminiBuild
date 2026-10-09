@@ -2133,3 +2133,119 @@ def get_fleet_status():
         "nodes_count": len(fleet_summary),
         "fleet": fleet_summary
     }
+
+
+# ----------------------------------------------------------------------
+# OPERATOR MANUAL DISPATCH & WATERFALL SETTLEMENT ENDPOINTS
+# ----------------------------------------------------------------------
+@app.post("/api/v1/operator/daemon/cycle")
+def operator_trigger_daemon_cycle():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT scma_id, cash_cents, status FROM accounts WHERE status = 'ACTIVE' AND is_custodial = 0 ORDER BY scma_id ASC;")
+    active_accounts = [dict(r) for r in cursor.fetchall()]
+    if not active_accounts:
+        conn.close()
+        return {"status": "SUCCESS", "message": "NO_ACTIVE_ACCOUNTS"}
+
+    cursor.execute("SELECT slot_index, scma_id FROM positions WHERE status != 'CLOSED';")
+    open_pos = cursor.fetchall()
+    occupied = {r[0] for r in open_pos}
+
+    vacant_slots = [i for i in range(1, 13) if i not in occupied]
+    if not vacant_slots:
+        conn.close()
+        return {"status": "SUCCESS", "message": "ALL_SLOTS_FULL"}
+
+    target_slot = vacant_slots[0]
+    assigned_acc = active_accounts[(target_slot - 1) % len(active_accounts)]
+    target_scma = assigned_acc["scma_id"]
+
+    tickers = [
+        ("KX-MIA-FRZ-32", "Weather (NOAA)", "Kalshi", 45, 22, 990, 1125),
+        ("POLY-FED-DEC26", "Macro (Interest)", "Polymarket", 50, 18, 900, 1050),
+        ("KX-NYC-SNOW-01", "Weather (NOAA)", "Kalshi", 30, 25, 750, 900),
+        ("KX-CPI-CORE-3.0", "Macro (BLS CPI)", "Kalshi", 40, 20, 800, 980)
+    ]
+    assigned_policy = FleetDomainRouter.ASSIGNMENTS.get(target_scma, {})
+    eligible = [t for t in tickers if t[1] == assigned_policy.get("domain")]
+    t_data = eligible[0] if eligible else tickers[(target_slot - 1) % len(tickers)]
+    pos_id = f"POS-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{target_slot}"
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    try:
+        dispatch_res = FLEET_VENUE_ROUTER.dispatch_order(
+            target_scma, t_data[1], t_data[2], t_data[0], t_data[3], t_data[4]
+        )
+        lease_fp = dispatch_res.get("lease_fingerprint", "INTERNAL-SIM")
+        cursor.execute("""
+            INSERT INTO positions (position_id, slot_index, scma_id, contract_ticker, domain, venue, side, qty, vwap_cents, cost_basis_cents, mtm_cents, status, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, 'BUY_YES', ?, ?, ?, ?, 'RESTING_MAKER', ?);
+        """, (pos_id, target_slot, target_scma, t_data[0], t_data[1], t_data[2], t_data[3], t_data[4], t_data[5], t_data[6], now_iso))
+        append_audit_log(cursor, "OPERATOR_TRIGGER", "DISPATCH_MAKER_ORDER", {
+            "slot": target_slot, "scma": target_scma, "contract": t_data[0], "lease": lease_fp
+        })
+        conn.commit()
+        conn.close()
+        return {"status": "SUCCESS", "slot": target_slot, "scma": target_scma, "contract": t_data[0], "lease": lease_fp}
+    except Exception as route_err:
+        append_audit_log(cursor, "OPERATOR_TRIGGER", "DISPATCH_ABSTAIN_POLICY", {
+            "slot": target_slot, "scma": target_scma, "reason": str(route_err)
+        })
+        conn.commit()
+        conn.close()
+        return {"status": "ABSTAIN", "reason": str(route_err)}
+
+@app.post("/api/v1/operator/settle")
+def operator_trigger_settle():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM positions WHERE status = 'RESTING_MAKER' ORDER BY updated_at ASC LIMIT 1;")
+    pos_to_settle = cursor.fetchone()
+    if not pos_to_settle:
+        conn.close()
+        return {"status": "SUCCESS", "message": "NO_POSITIONS_TO_SETTLE"}
+
+    p_scma = pos_to_settle["scma_id"]
+    cost_cents = pos_to_settle["cost_basis_cents"]
+    gross_payout_cents = pos_to_settle["qty"] * 100
+    net_profit_cents = gross_payout_cents - cost_cents
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    scma_yield = int(net_profit_cents * 0.87)
+    cfcp_sweep = int(net_profit_cents * 0.10)
+    faep_sweep = net_profit_cents - scma_yield - cfcp_sweep
+
+    cursor.execute("""
+        UPDATE accounts 
+        SET cash_cents = cash_cents + ?, lifetime_profit_cents = lifetime_profit_cents + ?, updated_at = ?
+        WHERE scma_id = ?;
+    """, (scma_yield, scma_yield, now_iso, p_scma))
+    VirtualLineageVault.credit_cfcp_split(cursor, cfcp_sweep, now_iso)
+    cursor.execute("UPDATE positions SET status = 'CLOSED', updated_at = ? WHERE position_id = ?;", (now_iso, pos_to_settle["position_id"]))
+
+    fill_id = f"FILL-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
+    cursor.execute("""
+        INSERT INTO fills (fill_id, scma_id, contract_ticker, side, qty, price_cents, pnl_cents, is_win, timestamp)
+        VALUES (?, ?, ?, 'BUY_YES', ?, ?, ?, 1, ?);
+    """, (fill_id, p_scma, pos_to_settle["contract_ticker"], pos_to_settle["qty"], pos_to_settle["vwap_cents"], scma_yield, now_iso))
+
+    cursor.execute("SELECT cash_cents FROM accounts WHERE scma_id = ?;", (p_scma,))
+    current_cash = cursor.fetchone()[0]
+    cursor.execute("INSERT INTO equity_checkpoints (scma_id, equity_cents, timestamp) VALUES (?, ?, ?);", (p_scma, current_cash, now_iso))
+
+    v_id = emit_outbox_voucher(cursor, "WATERFALL_SETTLEMENT_SWEPT", p_scma, {
+        "contract": pos_to_settle["contract_ticker"], "net_profit_cents": net_profit_cents,
+        "scma_compounded_cents": scma_yield, "cfcp_cents": cfcp_sweep, "faep_cents": faep_sweep
+    })
+    append_audit_log(cursor, "OPERATOR_TRIGGER", "AUTO_SETTLE_WATERFALL", {"voucher_id": v_id, "scma": p_scma, "freed_slot": pos_to_settle["slot_index"]})
+    conn.commit()
+    conn.close()
+    return {
+        "status": "SUCCESS",
+        "message": "Settled " + str(pos_to_settle["contract_ticker"]) + " for " + str(p_scma),
+        "net_profit_cents": net_profit_cents,
+        "scma_yield_cents": scma_yield,
+        "cfcp_sweep_cents": cfcp_sweep,
+        "faep_sweep_cents": faep_sweep
+    }
