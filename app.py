@@ -1122,10 +1122,11 @@ DASHBOARD_HTML = """<!DOCTYPE html>
               <td>${a.risk_dial_pct.toFixed(2)}%</td>
               <td><span class="chip ${a.status==='ACTIVE'?'chip-green':(a.status==='FROZEN'?'chip-yellow':'chip-blue')}">${a.status}</span></td>
               <td style="color:var(--muted);">${a.bank_ref_token}</td>
-              <td style="display:flex; gap:6px;">
+              <td style="display:flex; gap:6px; align-items:center;">
                 <a href="/member?scma=${a.scma_id}&supervisory=true" class="btn btn-blue" style="background:#1e3a8a; color:#93c5fd; border:none; padding:4px 8px; font-size:0.75rem; text-decoration:none;">Inspect 🔍</a>
                 <button class="btn btn-blue" style="background:#064e3b; color:#34d399; border:none; padding:4px 8px; font-size:0.75rem;" onclick="openDepositModal('${a.scma_id}')">+ Fund</button>
-                <button class="btn btn-blue" style="padding:4px 8px; font-size:0.75rem;" onclick="toggleFreeze('${a.scma_id}')">Freeze</button>
+                <button class="btn btn-blue" style="background:${a.status === 'FROZEN' ? '#1e293b' : '#7f1d1d'}; color:${a.status === 'FROZEN' ? '#64748b' : '#fecaca'}; border:${a.status === 'FROZEN' ? '1px solid #334155' : '1px solid #ef4444'}; padding:4px 8px; font-size:0.75rem; cursor:${a.status === 'FROZEN' ? 'not-allowed' : 'pointer'};" ${a.status === 'FROZEN' ? 'disabled' : ''} onclick="executeFreeze('${a.scma_id}')">Freeze</button>
+                <button class="btn btn-blue" style="background:${a.status !== 'FROZEN' ? '#1e293b' : '#065f46'}; color:${a.status !== 'FROZEN' ? '#64748b' : '#a7f3d0'}; border:${a.status !== 'FROZEN' ? '1px solid #334155' : '1px solid #10b981'}; padding:4px 8px; font-size:0.75rem; cursor:${a.status !== 'FROZEN' ? 'not-allowed' : 'pointer'};" ${a.status !== 'FROZEN' ? 'disabled' : ''} onclick="executeUnfreeze('${a.scma_id}')">Unfreeze ✓</button>
               </td>
             </tr>
           `;
