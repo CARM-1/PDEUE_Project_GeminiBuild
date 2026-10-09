@@ -5,6 +5,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY app.py .
+COPY fleet_engine.py .
+COPY venue_adapters.py .
 COPY ifas_local_bridge.py .
 COPY fund_member.py .
 COPY pdeue.db .
