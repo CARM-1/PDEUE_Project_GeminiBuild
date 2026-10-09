@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-PDEUE Orthogonal Fleet Engine (Stage 1A)
+PDEUE Orthogonal Fleet Engine (Stage 1A + 12-Category Dynamic Mutex)
 Enforces CFTC Rule 150.4 Anti-Aggregation, Ephemeral Credential Leasing,
-and Statutory Minor Virtual Lineage Allocations.
+Statutory Minor Virtual Lineage Allocations, and Contract-Level Mutex Locking.
 """
 import time
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Any
 
 class DomainCollusionError(Exception):
     """Raised when an account attempts to place orders outside its assigned sector."""
@@ -13,6 +13,14 @@ class DomainCollusionError(Exception):
 
 class MinorProtectionError(PermissionError):
     """Raised when external exchange credentials or trading are requested for minors."""
+    pass
+
+class ContractCollisionError(Exception):
+    """Raised when an account attempts to acquire a lock already held by another account."""
+    pass
+
+class HouseholdAffinityCollisionError(Exception):
+    """Raised when co-habitating nodes attempt to trade correlated contracts in the same event series."""
     pass
 
 class CredentialLease:
@@ -33,17 +41,17 @@ class VenueCredentialBroker:
 
     def register_credential(self, scma_id: str, venue: str, key_material: str, is_custodial: bool = False):
         if is_custodial:
-            raise MinorProtectionError(f"Statutory Violation: Minors ({scma_id}) cannot hold external exchange credentials.")
+            raise MinorProtectionError("Statutory Violation: Minors (" + scma_id + ") cannot hold external exchange credentials.")
         if scma_id not in self._keyring:
             self._keyring[scma_id] = {}
         self._keyring[scma_id][venue] = key_material
 
     def acquire_lease(self, scma_id: str, venue: str, is_custodial: bool = False) -> CredentialLease:
         if is_custodial:
-            raise MinorProtectionError(f"Statutory Violation: Minors ({scma_id}) cannot acquire trading leases.")
-        fingerprint = f"LEAS-SHA256-{scma_id[:4]}-{venue[:3]}-{int(time.time())}"
+            raise MinorProtectionError("Statutory Violation: Minors (" + scma_id + ") cannot acquire trading leases.")
+        fingerprint = "LEAS-SHA256-" + scma_id[:4] + "-" + venue[:3] + "-" + str(int(time.time()))
         lease = CredentialLease(scma_id, venue, fingerprint)
-        self._leases[f"{scma_id}:{venue}"] = lease
+        self._leases[scma_id + ":" + venue] = lease
         return lease
 
 class FleetDomainRouter:
@@ -60,11 +68,10 @@ class FleetDomainRouter:
     def validate_order(cls, scma_id: str, domain: str, venue: str) -> bool:
         policy = cls.ASSIGNMENTS.get(scma_id)
         if not policy:
-            raise DomainCollusionError(f"Account {scma_id} has no registered market domain.")
+            raise DomainCollusionError("Account " + scma_id + " has no registered market domain.")
         if policy["domain"] != domain or policy["venue"] != venue:
             raise DomainCollusionError(
-                f"DOMAIN_COLLUSION_PROHIBITED: {scma_id} is locked to {policy['domain']} on {policy['venue']}. "
-                f"Attempted {domain} on {venue}."
+                "DOMAIN_COLLUSION_PROHIBITED: " + scma_id + " is locked to " + policy["domain"] + " on " + policy["venue"] + ". Attempted " + domain + " on " + venue + "."
             )
         return True
 
@@ -85,19 +92,27 @@ class VirtualLineageVault:
                 (credit, credit, timestamp_iso, m_id)
             )
 
-
-class ContractCollisionError(Exception):
-    """Raised when an account attempts to acquire a lock already held by another account."""
-    pass
-
-class HouseholdAffinityCollisionError(Exception):
-    """Raised when co-habitating nodes attempt to trade correlated contracts in the same event series."""
-    pass
+class FleetCategoryRegistry:
+    """12-Category Quantitative Superset for 24/7/365 Concurrency."""
+    CATEGORIES = {
+        1:  {"name": "NOAA Climate & Weather", "oracle": "NOAA / ASOS", "cycle": "Daily"},
+        2:  {"name": "Fed Funds & Interest Rates", "oracle": "CME FedWatch / NY Fed", "cycle": "Weekly"},
+        3:  {"name": "Macro Inflation (CPI/PPI)", "oracle": "BLS", "cycle": "Monthly"},
+        4:  {"name": "Employment & Labor (NFP)", "oracle": "BLS / Initial Claims", "cycle": "Weekly"},
+        5:  {"name": "Energy & Crude Petroleum", "oracle": "EIA", "cycle": "Weekly"},
+        6:  {"name": "U.S. Treasury Auction Tails", "oracle": "U.S. Treasury", "cycle": "Weekly"},
+        7:  {"name": "Equity Index Daily Brackets", "oracle": "S&P / NDX / RUT", "cycle": "Daily"},
+        8:  {"name": "Transportation & Logistics", "oracle": "FAA / TSA Feeds", "cycle": "Daily"},
+        9:  {"name": "Foreign Exchange (FX) Fix", "oracle": "ECB / Fed H.10", "cycle": "Daily"},
+        10: {"name": "Digital Asset Price Brackets", "oracle": "Pyth / Chainlink", "cycle": "Hourly"},
+        11: {"name": "Sports Analytics & Spreads", "oracle": "League Consensus Feeds", "cycle": "Intraday"},
+        12: {"name": "Perpetual Funding Binaries", "oracle": "Hyperliquid L1", "cycle": "8-Hour Rolling"}
+    }
 
 class ContractMutexRegistry:
     """
-    Enforces contract-level mutual exclusion and household event affinity under CFTC Rule 150.4.
-    Replaces static sector silos with a dynamic global mutex queue.
+    Contract-level mutual exclusion and household event affinity under CFTC Rule 150.4.
+    Safeguards the 12-category dynamic priority queue against multi-account collisions.
     """
     HOUSEHOLD_1_NODES = {"SCMA-FOUNDER", "SCMA-MEM-0001"}
 
@@ -120,9 +135,8 @@ class ContractMutexRegistry:
         if row:
             if row[0] != scma_id:
                 raise ContractCollisionError(
-                    f"CONTRACT_COLLISION: Contract {contract_id} on {venue} is already locked by {row[0]}."
+                    "CONTRACT_COLLISION: Contract " + contract_id + " on " + venue + " is already locked by " + row[0] + "."
                 )
-            # Re-lock / refresh lease for the same owner
             cursor.execute(
                 "UPDATE contract_mutex_locks SET expires_at = ? WHERE contract_id = ?;",
                 (expires_at, contract_id)
@@ -139,8 +153,7 @@ class ContractMutexRegistry:
             conflict = cursor.fetchone()
             if conflict:
                 raise HouseholdAffinityCollisionError(
-                    f"HOUSEHOLD_AFFINITY_COLLISION: {scma_id} cannot trade series {series_ticker}. "
-                    f"Co-habitant {other_hh1} holds active lock on contract {conflict[0]}."
+                    "HOUSEHOLD_AFFINITY_COLLISION: " + scma_id + " cannot trade series " + series_ticker + ". Co-habitant " + other_hh1 + " holds active lock on contract " + conflict[0] + "."
                 )
 
         cursor.execute("""
