@@ -1,3 +1,5 @@
+import sports_adapter
+import treasury_adapter
 from venue_adapters import UnifiedVenueRouter
 from fleet_engine import VenueCredentialBroker, FleetDomainRouter, VirtualLineageVault, DomainCollusionError, MinorProtectionError
 #!/usr/bin/env python3
@@ -2251,3 +2253,19 @@ def operator_trigger_settle():
         "cfcp_sweep_cents": cfcp_sweep,
         "faep_sweep_cents": faep_sweep
     }
+
+# ----------------------------------------------------------------------
+# TIER 2 PAPER SANDBOX EVALUATION ROUTE
+# ----------------------------------------------------------------------
+SPORTS_ROUTER = sports_adapter.SportsDomainAdapter()
+TREASURY_ROUTER = treasury_adapter.TreasuryDomainAdapter()
+
+@app.post("/api/v1/paper/evaluate")
+def evaluate_paper_candidate(payload: dict):
+    category = payload.get("category")
+    spec = payload.get("spec", {})
+    if category == "Sports Analytics & Spreads":
+        return SPORTS_ROUTER.evaluate_contract(spec)
+    elif category == "U.S. Treasury Auction Tails":
+        return TREASURY_ROUTER.evaluate_contract(spec)
+    return {"status": "ERROR", "reason": "UNSUPPORTED_TIER2_CATEGORY"}
