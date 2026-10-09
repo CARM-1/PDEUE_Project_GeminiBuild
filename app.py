@@ -1,3 +1,4 @@
+from fleet_engine import VenueCredentialBroker, FleetDomainRouter, VirtualLineageVault, DomainCollusionError, MinorProtectionError
 #!/usr/bin/env python3
 import sqlite3
 import json
@@ -143,7 +144,7 @@ async def autonomous_market_daemon():
             if GLOBAL_STATE.get("system_mode") == "NORMAL":
                 conn = get_db()
                 cursor = conn.cursor()
-                cursor.execute("SELECT scma_id, cash_cents, status FROM accounts WHERE status = 'ACTIVE' ORDER BY scma_id ASC;")
+                cursor.execute("SELECT scma_id, cash_cents, status FROM accounts WHERE status = 'ACTIVE' AND is_custodial = 0 ORDER BY scma_id ASC;")
                 active_accounts = [dict(r) for r in cursor.fetchall()]
                 
                 if active_accounts:
@@ -164,7 +165,10 @@ async def autonomous_market_daemon():
                             ("KX-NYC-SNOW-01", "Weather (NOAA)", "Kalshi", 30, 25, 750, 900),
                             ("KX-CPI-CORE-3.0", "Macro (BLS CPI)", "Kalshi", 40, 20, 800, 980)
                         ]
-                        t_data = tickers[(target_slot - 1) % len(tickers)]
+                        assigned_policy = FleetDomainRouter.ASSIGNMENTS.get(target_scma, {})
+                        eligible = [t for t in tickers if t[1] == assigned_policy.get("domain")]
+                        t_data = eligible[0] if eligible else tickers[(target_slot - 1) % len(tickers)]
+                        FleetDomainRouter.validate_order(target_scma, t_data[1], t_data[2])
                         pos_id = f"POS-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{target_slot}"
                         now_iso = datetime.now(timezone.utc).isoformat()
                         
@@ -194,6 +198,7 @@ async def autonomous_market_daemon():
                             SET cash_cents = cash_cents + ?, lifetime_profit_cents = lifetime_profit_cents + ?, updated_at = ?
                             WHERE scma_id = ?;
                         """, (scma_yield, scma_yield, now_iso, p_scma))
+                        VirtualLineageVault.credit_cfcp_split(cursor, cfcp_sweep, now_iso)
                         cursor.execute("UPDATE positions SET status = 'CLOSED', updated_at = ? WHERE position_id = ?;", (now_iso, pos_to_settle["position_id"]))
 
                         fill_id = f"FILL-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
@@ -2042,3 +2047,5 @@ def member_user_desktop(scma: str = "SCMA-FOUNDER"):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+
+FLEET_CREDENTIAL_BROKER = VenueCredentialBroker()
