@@ -1221,6 +1221,19 @@ MEMBER_HTML = """<!DOCTYPE html>
   </style>
 </head>
 <body>
+  <!-- Top Persistent Portal Hub Ribbon -->
+  <div style="background:#0b111e; border-bottom:1px solid var(--border); margin:-24px -24px 20px -24px; padding:8px 24px; display:flex; justify-content:space-between; align-items:center; font-size:0.78rem;">
+    <div style="display:flex; gap:14px; align-items:center;">
+      <span style="color:var(--muted); font-weight:800; letter-spacing:0.05em; margin-right:4px;">PDEUE PORTAL HUB:</span>
+      <a href="/dashboard" style="color:var(--muted); text-decoration:none; padding:4px 8px;">○ Chief Admin Cockpit</a>
+      <a href="/admin/tech" style="color:var(--muted); text-decoration:none; padding:4px 8px;">○ Technical Console (Class T)</a>
+      <a href="/advisor" style="color:var(--muted); text-decoration:none; padding:4px 8px;">○ Financial Advisor (Class F)</a>
+      <a href="/member" style="color:var(--accent); background:rgba(56, 189, 248, 0.1); border:1px solid rgba(56, 189, 248, 0.3); text-decoration:none; padding:4px 8px; border-radius:4px; font-weight:700;">● Member Capital Desktop</a>
+    </div>
+    <div style="color:var(--muted); font-size:0.75rem;">
+      SCMA View • ADR-011 Air-Gap: <span style="color:var(--green); font-weight:700;">VERIFIED</span>
+    </div>
+  </div>
   <div class="header">
     <div>
       <h1 style="font-size: 1.4rem;">Member Capital Portal</h1>
