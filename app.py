@@ -1714,6 +1714,9 @@ MEMBER_HTML = """<!DOCTYPE html>
           document.getElementById('mAllocActive').textContent = '$' + (actCents / 100).toFixed(2);
           document.getElementById('mAllocFloor').textContent = '$' + (mFloor / 100).toFixed(2);
           document.getElementById('mAllocYield').textContent = '$' + (acc.lifetime_profit_cents / 100).toFixed(2);
+          if (typeof updateConcentricRings === 'function') {
+            updateConcentricRings(acc.cash_cents, actCents, mFloor, acc.lifetime_profit_cents);
+          }
         }
 
         const perf = data.performance;
