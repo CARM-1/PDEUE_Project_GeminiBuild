@@ -161,13 +161,14 @@ async def autonomous_market_daemon():
                         target_scma = assigned_acc["scma_id"]
                         
                         tickers = [
+                            ("KX-FED-DEC26", "Macro (Interest)", "Kalshi", 50, 18, 900, 1050),
                             ("KX-MIA-FRZ-32", "Weather (NOAA)", "Kalshi", 45, 22, 990, 1125),
-                            ("POLY-FED-DEC26", "Macro (Interest)", "Polymarket", 50, 18, 900, 1050),
                             ("KX-NYC-SNOW-01", "Weather (NOAA)", "Kalshi", 30, 25, 750, 900),
-                            ("KX-CPI-CORE-3.0", "Macro (BLS CPI)", "Kalshi", 40, 20, 800, 980)
+                            ("KX-CPI-CORE-3.0", "Macro (BLS CPI)", "Kalshi", 40, 20, 800, 980),
+                            ("POLY-FED-DEC26", "Macro (Interest)", "Polymarket", 50, 18, 900, 1050)
                         ]
                         assigned_policy = FleetDomainRouter.ASSIGNMENTS.get(target_scma, {})
-                        eligible = [t for t in tickers if t[1] == assigned_policy.get("domain")]
+                        eligible = [t for t in tickers if t[1] == assigned_policy.get("domain") and t[2] == assigned_policy.get("venue")]
                         t_data = eligible[0] if eligible else tickers[(target_slot - 1) % len(tickers)]
                         pos_id = f"POS-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{target_slot}"
                         now_iso = datetime.now(timezone.utc).isoformat()
@@ -2162,13 +2163,14 @@ def operator_trigger_daemon_cycle():
     target_scma = assigned_acc["scma_id"]
 
     tickers = [
+        ("KX-FED-DEC26", "Macro (Interest)", "Kalshi", 50, 18, 900, 1050),
         ("KX-MIA-FRZ-32", "Weather (NOAA)", "Kalshi", 45, 22, 990, 1125),
-        ("POLY-FED-DEC26", "Macro (Interest)", "Polymarket", 50, 18, 900, 1050),
         ("KX-NYC-SNOW-01", "Weather (NOAA)", "Kalshi", 30, 25, 750, 900),
-        ("KX-CPI-CORE-3.0", "Macro (BLS CPI)", "Kalshi", 40, 20, 800, 980)
+        ("KX-CPI-CORE-3.0", "Macro (BLS CPI)", "Kalshi", 40, 20, 800, 980),
+        ("POLY-FED-DEC26", "Macro (Interest)", "Polymarket", 50, 18, 900, 1050)
     ]
     assigned_policy = FleetDomainRouter.ASSIGNMENTS.get(target_scma, {})
-    eligible = [t for t in tickers if t[1] == assigned_policy.get("domain")]
+    eligible = [t for t in tickers if t[1] == assigned_policy.get("domain") and t[2] == assigned_policy.get("venue")]
     t_data = eligible[0] if eligible else tickers[(target_slot - 1) % len(tickers)]
     pos_id = f"POS-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{target_slot}"
     now_iso = datetime.now(timezone.utc).isoformat()
