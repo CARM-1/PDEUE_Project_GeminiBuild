@@ -1,0 +1,52 @@
+================================================================================
+           CARMICHAEL LINEAGE FIDUCIARY TRUST - CONSOLIDATED REPORT
+                 DELAWARE STATUTORY TRUST • AIR-GAPPED FBO CUSTODY
+================================================================================
+Report Issued:      2026-10-10 00:13:16 UTC
+Accounting Standard: GAAP Integer-Cent Double-Entry (ADR-008)
+Security Standard:   ADR-011 Air-Gapped Banking Isolation
+Cryptographic Seal:  SHA256:305fc85185514b7f3fec233e... [CERTIFIED UNBROKEN]
+Settlement Source:   pdeue-production-node (AWS Virginia us-east-1)
+
+--------------------------------------------------------------------------------
+1. CAPITAL HARVEST & WATERFALL SUMMARY
+--------------------------------------------------------------------------------
+  • Total Cryptographic Settlement Vouchers Reconciled: 513
+  • Cumulative Waterfall Proceeds Distributed:         $16,939.80
+  • General Ledger Debits  (Assets: PenFed Operating):   $16,939.80
+  • General Ledger Credits (Member Sub-Ledger Equity):  $16,939.80
+  • Exact-Cent Ledger Variance:                          $0.0000 (BALANCED)
+
+--------------------------------------------------------------------------------
+2. LINEAGE BENEFICIARY CAPITAL DISTRIBUTIONS
+--------------------------------------------------------------------------------
+  [SCMA-FOUNDER] Carmichael Settlor / Founder
+    • GL Account:         3010 (Equity:Members:SCMA-FOUNDER)
+    • Total Allocation:   $  9,185.18  (54.22% of harvested pool)
+    • Voucher Count:      258 sweeps
+    • Clearance Status:   STAGED FOR NACHA ACH BATCH 0000001 (PenFed FBO)
+  [SCMA-MEM-0001] Sarah Carmichael
+    • GL Account:         3020 (Equity:Members:SCMA-MEM-0001)
+    • Total Allocation:   $  7,754.62  (45.78% of harvested pool)
+    • Voucher Count:      255 sweeps
+    • Clearance Status:   STAGED FOR NACHA ACH BATCH 0000001 (PenFed FBO)
+
+--------------------------------------------------------------------------------
+3. RUNTIME ASSET & FAMILIAL RESERVE METRICS
+--------------------------------------------------------------------------------
+  • Active Lineage Float (Trade Node):  $74,042.18
+  • 40% Liquid Dry-Powder Floor Shield: $29,616.87 (INVIOLABLE RESERVE)
+  • Central Familial Common Pool (CFCP):$7,800.94 (10% Familial Buffer)
+  • Strategy Win Rate Trajectory:       100.0%
+
+--------------------------------------------------------------------------------
+4. STATUTORY & TAX CLASSIFICATION (PRELIMINARY SCHEDULE K-1)
+--------------------------------------------------------------------------------
+  • Entity Classification:  Pass-Through Familial Trust (FBO Sub-Accounts)
+  • Character of Income:    Section 1256 Regulated Event Underwriting Gains
+  • Dual-Control Approval:  Ratified per Directive R-15 Governance Protocol
+  • Physical Banking Isolation: 100% Certified (Zero cloud banking exposure)
+
+================================================================================
+>>> END OF CONSOLIDATED TRUST REPORT — CARMICHAEL LINEAGE FIDUCIARY TRUST <<<
+================================================================================

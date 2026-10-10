@@ -1,0 +1,30 @@
+================================================================================
+                  CARMICHAEL LINEAGE TRUST — MEMBER CAPITAL STATEMENT
+================================================================================
+Beneficiary Name:    Sarah Carmichael
+Sub-Ledger ID:       SCMA-MEM-0001
+GL Equity Account:   3020 — Equity:Members:SCMA-MEM-0001
+Reporting Date:      2026-10-10 00:13:16 UTC
+Settlement Currency: USD (64-Bit Exact Integer Cents)
+
+--------------------------------------------------------------------------------
+CAPITAL ACTIVITY SUMMARY
+--------------------------------------------------------------------------------
+  • Gross Cumulative Allocation:       $7,754.62
+  • Realized Waterfall Sweeps:         255 Transactions
+  • Net Retained Compounding Rate:     87.0% (Inviolable Waterfall Split)
+  • Banking Clearance Channel:         Direct ACH Batch Clearance
+  • FBO Routing Destination:           PenFed Master Settlement (****8800)
+
+--------------------------------------------------------------------------------
+PRELIMINARY TAX CLASSIFICATION NOTICE
+--------------------------------------------------------------------------------
+  All distributions represent net underwriting returns processed through the
+  87/10/3 capital waterfall. Year-end formal tax allocations will be reflected
+  on your Form K-1 / 1099 statement. No manual action is required.
+
+--------------------------------------------------------------------------------
+Cryptographic Provenance:
+  Vault Record Hash: SHA256:305fc85185514b7f3fec233e62d46e18...
+  All vouchers HMAC-SHA256 authenticated prior to general ledger posting.
+================================================================================
