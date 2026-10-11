@@ -1,0 +1,3 @@
+{"trade_id": "P-TRD-001", "contract_id": "KX-SPX-CLOSE", "category": "equity_index", "timestamp_ns": 1700000005000, "price_cents": 22, "volume": 300, "aggressor_side": "SELL"}
+{"trade_id": "P-TRD-002", "contract_id": "KX-SPX-CLOSE", "category": "equity_index", "timestamp_ns": 1700000006000, "price_cents": 22, "volume": 150, "aggressor_side": "SELL"}
+{"trade_id": "P-TRD-003", "contract_id": "KX-NFL-KC", "category": "sports_spreads", "timestamp_ns": 1700000007000, "price_cents": 53, "volume": 250, "aggressor_side": "SELL"}
