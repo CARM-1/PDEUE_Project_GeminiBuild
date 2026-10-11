@@ -1,7 +1,6 @@
 """
-PDEUE Continuous 12-Category Crowd Benchmark Runner & Audit Visualizer (WP-8C)
-Evaluates Strategy D inside-maker execution against real historical crowd VWAP and retail taker fee drag.
-Outputs the certified head-to-head terminal scorecard.
+PDEUE Continuous 12-Category Crowd Benchmark Runner & Dynamic Audit Visualizer
+Evaluates Strategy D execution against crowd metrics with zero phantom accounting.
 """
 
 from dataclasses import dataclass
@@ -14,13 +13,9 @@ from app.domain.expansion_adapters import UnderwritingDecision
 class CategoryBenchmarkResult:
     category: str
     contracts_evaluated: int
-    strategy_d_equity_cents: int
-    crowd_vwap_equity_cents: int
-    spread_savings_cents: int
-    taker_fees_avoided_cents: int
-    maker_rebates_cents: int
-    news_pulls_executed: int
+    orders_filled: int
     dynamic_harvests: int
+    news_pulls_executed: int
 
 class CrowdBenchmarkRunner:
     def __init__(self, initial_equity_cents: int = 1_000_000):
@@ -35,9 +30,9 @@ class CrowdBenchmarkRunner:
             cid = c["contract_id"]
             best_bid = c["best_bid_cents"]
             best_ask = c["best_ask_cents"]
-            l2_depth = c.get("l2_depth_ahead", 200)
+            l2_depth = c.get("l2_depth_ahead", 100)
 
-            # 1. Underwriting Decision
+            # 1. Underwrite
             adapter = self.engine.adapters.get(cat)
             p_fair = c.get("p_fair", 0.65)
             should_pull = c.get("seconds_to_release", 120.0) <= 5.0
@@ -53,7 +48,7 @@ class CrowdBenchmarkRunner:
                 harvest_eligible=rec_bid >= 80
             )
 
-            # 2. Stage Order in CLOB
+            # 2. Stage Order
             oid = f"ORD-{cid}"
             order = self.engine.evaluate_and_stage_order(
                 order_id=oid,
@@ -67,7 +62,7 @@ class CrowdBenchmarkRunner:
             )
 
             if order:
-                # 3. Register in Microstructure Queue Tracker
+                # 3. Register in Queue Tracker
                 self.queue_tracker.register_order_in_queue(
                     order_id=oid,
                     contract_id=cid,
@@ -76,34 +71,30 @@ class CrowdBenchmarkRunner:
                     existing_l2_book_depth=l2_depth
                 )
 
-                # 4. Process Historical Trade Prints
+                # 4. Ingest Historical Trade Prints
                 for tp in c.get("trade_prints", []):
                     fills = self.queue_tracker.process_incoming_trade_print(tp)
                     for filled_oid, filled_qty in fills:
                         self.engine.process_trade_tape_print(cid, tp.price_cents, filled_qty)
 
-                # 5. Check Dynamic Early Harvest
+                # 5. Expire unfilled residue to release locked margin for future contracts
+                self.engine.expire_unfilled_order(oid)
+
+                # 6. Check Dynamic Early Harvest
                 if c.get("market_bid_later_cents", 0) >= 80:
                     self.engine.evaluate_early_harvest(cid, c["market_bid_later_cents"])
 
-            # Accumulate category level stats
+            # Category tracking
             if cat not in self.category_stats:
                 self.category_stats[cat] = CategoryBenchmarkResult(
-                    category=cat,
-                    contracts_evaluated=0,
-                    strategy_d_equity_cents=0,
-                    crowd_vwap_equity_cents=0,
-                    spread_savings_cents=0,
-                    taker_fees_avoided_cents=0,
-                    maker_rebates_cents=0,
-                    news_pulls_executed=0,
-                    dynamic_harvests=0
+                    category=cat, contracts_evaluated=0, orders_filled=0,
+                    dynamic_harvests=0, news_pulls_executed=0
                 )
             stat = self.category_stats[cat]
             stat.contracts_evaluated += 1
             if should_pull:
                 stat.news_pulls_executed += 1
-            if c.get("market_bid_later_cents", 0) >= 80:
+            if c.get("market_bid_later_cents", 0) >= 80 and cid not in self.engine.resting_orders:
                 stat.dynamic_harvests += 1
 
         return self.generate_audit_report()
@@ -138,10 +129,18 @@ class CrowdBenchmarkRunner:
         cfcp_dol = rep['cfcp_cents'] / 100
         faep_dol = rep['faep_cents'] / 100
 
+        # Dynamic Audit Status Determination
+        if s.orders_filled == 0 and s.total_orders_staged > 0:
+            status_text = "FAILED (EXECUTION DEADLOCK - ZERO FILLS)"
+        elif rep['net_profit_cents'] > 0 and s.orders_filled > 0:
+            status_text = "CERTIFIED GREEN (VERIFIED COMPOUNDING)"
+        else:
+            status_text = "REVIEW REQUIRED (NON-COMPOUNDING)"
+
         print("=" * 110)
         print("          PDEUE HISTORICAL MICROSTRUCTURE REPLAY ENGINE — 12-CATEGORY AUDIT SCORECARD")
         print("=" * 110)
-        print(f" INITIAL CAPITAL: ${init_dol:,.2f}  |  FINAL EQUITY: ${final_dol:,.2f}  |  STATUS: CERTIFIED GREEN")
+        print(f" INITIAL CAPITAL: ${init_dol:,.2f}  |  FINAL EQUITY: ${final_dol:,.2f}  |  STATUS: {status_text}")
         print("-" * 110)
         print(" 1. MICROSTRUCTURE COST FRICTION & ALPHA AUDIT")
         print("-" * 110)
@@ -149,8 +148,8 @@ class CrowdBenchmarkRunner:
         print(f"  • Total Contracts Filled:          {s.orders_filled}")
         print(f"  • News Shocks Quote Pulls (Δt<=5s):{s.orders_cancelled_news_pull} (Adverse sweeps eliminated)")
         print(f"  • Dynamic Early Harvests (>=80%):  {s.positions_harvested_early} (Binary wipeouts dodged)")
-        print(f"  • Wholesale Spread Savings:        +${spread_dol:,.2f} (Bought at Inside Bid)")
-        print(f"  • Taker Fee Drag Eliminated:       +${fee_dol:,.2f} (0¢ exchange fee paid)")
+        print(f"  • Wholesale Spread Savings:        +${spread_dol:,.2f} (Attributed Strictly on Confirmed Fills)")
+        print(f"  • Taker Fee Drag Eliminated:       +${fee_dol:,.2f} (0¢ exchange fee paid on executed volume)")
         print(f"  • Liquidity Maker Rebates Earned:  +${rebate_dol:,.2f}")
         print(f"  • Factor Group Ceilings Enforced:  {s.factor_cap_violations_blocked} (10% cluster cap preserved)")
         print(f"  • Dry-Powder Floor Enforced:       {s.cash_floor_violations_blocked} (40% cash floor active)")
