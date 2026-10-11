@@ -4,14 +4,14 @@
 Beneficiary Name:    Sarah Carmichael
 Sub-Ledger ID:       SCMA-MEM-0001
 GL Equity Account:   3020 — Equity:Members:SCMA-MEM-0001
-Reporting Date:      2026-10-10 00:13:16 UTC
+Reporting Date:      2026-10-11 00:59:09 UTC
 Settlement Currency: USD (64-Bit Exact Integer Cents)
 
 --------------------------------------------------------------------------------
 CAPITAL ACTIVITY SUMMARY
 --------------------------------------------------------------------------------
-  • Gross Cumulative Allocation:       $7,754.62
-  • Realized Waterfall Sweeps:         255 Transactions
+  • Gross Cumulative Allocation:       $23,263.86
+  • Realized Waterfall Sweeps:         763 Transactions
   • Net Retained Compounding Rate:     87.0% (Inviolable Waterfall Split)
   • Banking Clearance Channel:         Direct ACH Batch Clearance
   • FBO Routing Destination:           PenFed Master Settlement (****8800)
@@ -25,6 +25,6 @@ PRELIMINARY TAX CLASSIFICATION NOTICE
 
 --------------------------------------------------------------------------------
 Cryptographic Provenance:
-  Vault Record Hash: SHA256:305fc85185514b7f3fec233e62d46e18...
+  Vault Record Hash: SHA256:7f5836774323f360be2e5ed255dfa522...
   All vouchers HMAC-SHA256 authenticated prior to general ledger posting.
 ================================================================================

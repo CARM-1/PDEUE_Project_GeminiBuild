@@ -2,19 +2,19 @@
            CARMICHAEL LINEAGE FIDUCIARY TRUST - CONSOLIDATED REPORT
                  DELAWARE STATUTORY TRUST • AIR-GAPPED FBO CUSTODY
 ================================================================================
-Report Issued:      2026-10-10 00:13:16 UTC
+Report Issued:      2026-10-11 00:59:09 UTC
 Accounting Standard: GAAP Integer-Cent Double-Entry (ADR-008)
 Security Standard:   ADR-011 Air-Gapped Banking Isolation
-Cryptographic Seal:  SHA256:305fc85185514b7f3fec233e... [CERTIFIED UNBROKEN]
+Cryptographic Seal:  SHA256:7f5836774323f360be2e5ed2... [CERTIFIED UNBROKEN]
 Settlement Source:   pdeue-production-node (AWS Virginia us-east-1)
 
 --------------------------------------------------------------------------------
 1. CAPITAL HARVEST & WATERFALL SUMMARY
 --------------------------------------------------------------------------------
-  • Total Cryptographic Settlement Vouchers Reconciled: 513
-  • Cumulative Waterfall Proceeds Distributed:         $16,939.80
-  • General Ledger Debits  (Assets: PenFed Operating):   $16,939.80
-  • General Ledger Credits (Member Sub-Ledger Equity):  $16,939.80
+  • Total Cryptographic Settlement Vouchers Reconciled: 1,532
+  • Cumulative Waterfall Proceeds Distributed:         $50,645.09
+  • General Ledger Debits  (Assets: PenFed Operating):   $50,645.09
+  • General Ledger Credits (Member Sub-Ledger Equity):  $50,645.09
   • Exact-Cent Ledger Variance:                          $0.0000 (BALANCED)
 
 --------------------------------------------------------------------------------
@@ -22,21 +22,21 @@ Settlement Source:   pdeue-production-node (AWS Virginia us-east-1)
 --------------------------------------------------------------------------------
   [SCMA-FOUNDER] Carmichael Settlor / Founder
     • GL Account:         3010 (Equity:Members:SCMA-FOUNDER)
-    • Total Allocation:   $  9,185.18  (54.22% of harvested pool)
-    • Voucher Count:      258 sweeps
+    • Total Allocation:   $ 27,381.23  (54.06% of harvested pool)
+    • Voucher Count:      769 sweeps
     • Clearance Status:   STAGED FOR NACHA ACH BATCH 0000001 (PenFed FBO)
   [SCMA-MEM-0001] Sarah Carmichael
     • GL Account:         3020 (Equity:Members:SCMA-MEM-0001)
-    • Total Allocation:   $  7,754.62  (45.78% of harvested pool)
-    • Voucher Count:      255 sweeps
+    • Total Allocation:   $ 23,263.86  (45.94% of harvested pool)
+    • Voucher Count:      763 sweeps
     • Clearance Status:   STAGED FOR NACHA ACH BATCH 0000001 (PenFed FBO)
 
 --------------------------------------------------------------------------------
 3. RUNTIME ASSET & FAMILIAL RESERVE METRICS
 --------------------------------------------------------------------------------
-  • Active Lineage Float (Trade Node):  $74,042.18
-  • 40% Liquid Dry-Powder Floor Shield: $29,616.87 (INVIOLABLE RESERVE)
-  • Central Familial Common Pool (CFCP):$7,800.94 (10% Familial Buffer)
+  • Active Lineage Float (Trade Node):  $303,074.61
+  • 40% Liquid Dry-Powder Floor Shield: $121,229.84 (INVIOLABLE RESERVE)
+  • Central Familial Common Pool (CFCP):$30,704.18 (10% Familial Buffer)
   • Strategy Win Rate Trajectory:       100.0%
 
 --------------------------------------------------------------------------------
