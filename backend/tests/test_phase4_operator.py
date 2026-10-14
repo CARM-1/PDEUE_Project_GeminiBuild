@@ -1,4 +1,4 @@
-from app.domain.operator import OperatorControlEngine
+from app.domain.operator_domain import OperatorControlEngine
 
 def test_operator_paper_session_and_audit():
     engine = OperatorControlEngine()

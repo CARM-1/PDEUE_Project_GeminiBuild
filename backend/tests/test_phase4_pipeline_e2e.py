@@ -1,7 +1,7 @@
 from app.domain.event_queue import EventIngestionQueue
 from app.domain.decision_packet import DecisionPacketBuilder
 from app.domain.market_depth import MarketDepthEngine
-from app.domain.operator import OperatorControlEngine
+from app.domain.operator_domain import OperatorControlEngine
 
 def test_full_pipeline_e2e_execution():
     # 1. Ingestion Queue Dequeue

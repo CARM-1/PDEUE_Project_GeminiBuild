@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Dict, Any
-from app.domain.operator import OperatorControlEngine
+from app.domain.operator_domain import OperatorControlEngine
 from app.core.security import verify_jwt_token
 
 router = APIRouter(prefix="/operator", tags=["operator"])
