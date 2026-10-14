@@ -6,7 +6,7 @@ assumptions. Prints cannot reconstruct a book or estimate Bitcoin spot prices.
 One inside maker bid is decided before the first print; future prints only drive
 queue execution. The settlement spot is used only after replay ends.
 """
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from decimal import Decimal
 import hashlib
 import json
@@ -15,6 +15,9 @@ from pathlib import Path
 
 from app.domain.microstructure_queue_tracker import MicrostructureQueueTracker, nonnegative_integer
 from app.domain.settlement_engine import SettlementEngine
+from app.adapters.authentic_polymarket_tape_loader import (
+    DEFAULT_TAPE, MarketTradePrint, parse_authentic_polymarket_tape,
+)
 
 DEFAULT_FIXTURE = Path(__file__).resolve().parents[2] / 'tests/fixtures/static_crypto_history.jsonl'
 YEAR_NS = 365 * 24 * 60 * 60 * 1_000_000_000
@@ -91,6 +94,7 @@ def _parse_trade_prints(content: str, contract_id: str) -> tuple[dict, ...]:
 
 class WalkForwardReplayHarness:
     def __init__(self, scenario: ReplayScenario | None = None):
+        self.explicit_scenario = scenario is not None
         self.scenario = scenario or ReplayScenario()
 
     def run(self, fixture_path: Path = DEFAULT_FIXTURE) -> dict:
@@ -98,6 +102,65 @@ class WalkForwardReplayHarness:
         # Read once so the digest and the replay refer to the same static tape.
         tape_bytes = Path(fixture_path).read_bytes()
         rows = _parse_trade_prints(tape_bytes.decode('utf-8'), s.contract_id)
+        return self._run_rows(rows, hashlib.sha256(tape_bytes).hexdigest(),
+                              'synthetic static historical test vector')
+
+    def run_authentic(self, tape_path: Path = DEFAULT_TAPE) -> dict:
+        """Hash and parse the same captured bytes; never infer a book or outcome."""
+        tape_bytes = Path(tape_path).read_bytes()
+        return self.run_prints(parse_authentic_polymarket_tape(tape_bytes),
+                               hashlib.sha256(tape_bytes).hexdigest())
+
+    def run_prints(self, prints: list[MarketTradePrint], fixture_sha256: str) -> dict:
+        """Replay normalized prints with explicitly supplied independent inputs.
+
+        Raw trade feeds alone cannot establish fair probability, visible queue,
+        or settlement. Without a scenario the audited result is an abstention.
+        """
+        if not prints:
+            raise ValueError('empty trade tape')
+        seen = set()
+        previous = (-1, '')
+        for trade in prints:
+            if not isinstance(trade, MarketTradePrint):
+                raise ValueError('expected MarketTradePrint')
+            key = (trade.timestamp_ns, trade.trade_id)
+            for name in ('timestamp_ns', 'price_cents', 'volume'):
+                nonnegative_integer(getattr(trade, name), name)
+            if (not trade.trade_id or trade.trade_id in seen or key <= previous or
+                    not trade.contract_id or not trade.contract_spec or
+                    trade.price_cents > 100 or trade.volume == 0 or
+                    trade.aggressor_side not in ('BUY', 'SELL')):
+                raise ValueError('invalid or duplicate trade print')
+            seen.add(trade.trade_id)
+            previous = key
+        if not self.explicit_scenario:
+            return {
+                'status': 'ABSTAINED', 'reason': 'ABSTAINED',
+                'abstention_detail': 'MISSING_INDEPENDENT_REPLAY_SCENARIO',
+                'trade_print_count': len(prints), 'p_fair': None, 'net_edge': None,
+                'limit_price_cents': None, 'posted_quantity': 0,
+                'initial_q_ahead': 0, 'remaining_q_ahead': 0,
+                'unfilled_quantity': 0, 'filled_quantity': 0, 'fills': [],
+                'deployed_cents': 0, 'fee_cents': 0, 'payout_cents': 0,
+                'net_pnl_cents': 0,
+                'waterfall': SettlementEngine().calculate_waterfall_split(0),
+                'initial_capital_cents': self.scenario.initial_capital_cents,
+                'final_capital_cents': self.scenario.initial_capital_cents,
+                'fixture_sha256': fixture_sha256,
+                'data_provenance': 'captured Polymarket raw trade tape',
+            }
+        if any(trade.contract_id != self.scenario.contract_id for trade in prints):
+            raise ValueError('unexpected contract in authentic replay')
+        result = self._run_rows([asdict(trade) for trade in prints], fixture_sha256,
+                                'captured Polymarket raw trade tape')
+        if result['reason'] != 'ADMITTED':
+            result['abstention_detail'] = result['reason']
+            result['reason'] = 'ABSTAINED'
+        return result
+
+    def _run_rows(self, rows, fixture_sha256: str, provenance: str) -> dict:
+        s = self.scenario
         for name in ('observed_at_ns', 'decision_at_ns', 'expiry_ns', 'quantity',
                      'fee_cents_per_contract', 'initial_capital_cents', 'best_bid_cents', 'best_ask_cents'):
             nonnegative_integer(getattr(s, name), name)
@@ -148,6 +211,6 @@ class WalkForwardReplayHarness:
             'payout_cents': payout, 'net_pnl_cents': pnl, 'waterfall': waterfall,
             'initial_capital_cents': s.initial_capital_cents,
             'final_capital_cents': s.initial_capital_cents + pnl,
-            'fixture_sha256': hashlib.sha256(tape_bytes).hexdigest(),
-            'data_provenance': 'synthetic static historical test vector',
+            'fixture_sha256': fixture_sha256,
+            'data_provenance': provenance,
         }
