@@ -60,7 +60,8 @@ class MicrostructureQueueTracker:
         """
         fills = []
         for oid, qstate in list(self.active_queues.items()):
-            if qstate.contract_id == print_record.contract_id and print_record.price_cents <= qstate.target_price_cents:
+            if (print_record.aggressor_side == 'SELL' and qstate.contract_id == print_record.contract_id
+                    and print_record.price_cents <= qstate.target_price_cents):
                 available_vol = print_record.volume
                 if qstate.queue_ahead_volume > 0:
                     if available_vol <= qstate.queue_ahead_volume:

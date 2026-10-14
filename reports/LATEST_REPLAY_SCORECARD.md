@@ -1,39 +1,45 @@
-# PDEUE Work Package 8N: Authentic Polymarket Replay Scorecard
+# PDEUE WP-8P Maker Fill Calibration Scorecard
 
-**Target Branch:** `ring1-alpha`  
-**Source Artifact:** `backend/reports/authentic_batch_replay_scorecard.json`  
-**Execution Mode:** Batch Walk-Forward Engine (Authentic Polymarket L2 Data)  
-**Accounting Standard:** ADR-008 Integer-Cent Ledger Conservation  
+Source: `backend/reports/authentic_batch_replay_scorecard.json`.
+Mode: captured trades with **simulated Strategy D maker execution and assumed settlement**.
+The spread, five-lot queue, fair-value inputs, and winning payout are assumptions;
+these are not observed Level 2 books or official realized venue profits.
 
----
+| Metric | Unique-capture result |
+| --- | ---: |
+| Total unique trades | 100 |
+| Post-decision token prints replayed | 9 |
+| Initialization prints excluded | 2 |
+| Maker fill events | 1 |
+| Filled volume (lots) | 10 |
+| Deployed capital (cents) | 590 |
+| Settlement payout (simulated cents) | 1000 |
+| Fees (cents) | 0 |
+| Net realized PnL (simulated cents) | 410 |
 
-## 1. Executive Performance Summary
+| ADR-008 allocation | Rule | Integer cents |
+| --- | --- | ---: |
+| SCMA | 87% floor on gains; all losses | 356 |
+| FAEP | 3% floor on gains | 12 |
+| CFCP | 10% plus residual on gains | 42 |
+| Total | Equals net PnL exactly | 410 |
 
-| Metric | Recorded Value | Microstructure Invariant Verification |
-| :--- | :--- | :--- |
-| **Total Market Tapes Ingested** | **30** | 30 raw JSON captures parsed from `data/venues/polymarket/` |
-| **Total Level 2 Prints Parsed** | **3,000** | 100 prints per file across all 30 captures |
-| **Filtered Target Contract Prints** | **630** | Filtered to primary contract (`0x64cb...`) without cross-book collision |
-| **Fiduciary Underwriting Admissions**| **30** | Valid zero-lookahead point-in-time scenarios admitted |
-| **Fiduciary Underwriting Abstentions**| **0** | Zero unhedged orders placed without pre-trade inputs |
-| **Maker Limit Fills Executed** | **0** | Strategy D resting limit orders ({ahead}$ priority preserved) |
-| **Total Capital Deployed** | **$0.00** | Seed capital conserved (00.00 intact) |
-| **Simulated Net Realized PnL** | **$0.00** | Exact-cent ledger tracking |
+Unique-capture cent conservation: **PASS**.
 
----
+The batch evaluated 30 files and parsed 3000
+records: 1 unique captures and 29 duplicate copies.
+File-level admissions/abstentions/rejections: 30/0/0.
+Financial headline metrics count each capture once. Repeated-file totals remain
+in the JSON for comparison and must not be treated as independent executions.
 
-## 2. ADR-008 Exact-Cent Fiduciary Waterfall
+The initial token print seeds the assumed best bid; ask is bid+2 cents and the
+resting inside bid is bid+1. Five lots ahead must clear before fills. Decisions
+follow the initial timestamp, and every print at that timestamp is excluded.
+Only subsequent SELL prints at or below the limit consume queue; fills are priced
+at the resting limit. Other outcome tokens and BUY prints cannot fill that bid.
 
-| Distribution Leg | Target Allocation | Split Amount | Ledger Verification |
-| :--- | :--- | :--- | :--- |
-| **SCMA (Member Equity)** | 87% (Floored on gain, absorbs 100% loss) | $0.00 | PASS (Exact-cent allocation) |
-| **CFCP (Family Shield Reserve)** | 10% (+ Residual integer cent) | $0.00 | PASS (Zero fractional leakage) |
-| **FAEP (Platform Operations)** | 3% | $0.00 | PASS (Exact integer calculation) |
-| **Total Reconciled Waterfall** | **100%** | **$0.00** | **MATCHES NET PNL EXACTLY** |
-
----
-
-## 3. Disclosed Tape Ingestion Findings
-1. **Corpus Duplication Identified:** All 30 harvested files contain the identical 100-trade execution snapshot. The underlying harvester script polled the Polymarket endpoint without a rolling timestamp cursor.
-2. **Resting Maker Dynamics:** Maker limit orders were underwritten with valid pre-tape timestamps, but aggressive sell flow did not cross into our resting limit bid depth ({ahead}$), resulting in zero maker fills and zero capital risk.
-3. **Purity Gate Clearance:** The multi-contract collision at line 154 is eliminated; only prints belonging to the underwritten contract were ingested into the harness.
+The corrected harvester uses market-filtered offset pagination, exact condition
+and YES-token verification, and cross-market hash uniqueness before writing files.
+Fresh harvesting has not been verified for this offline report. Existing duplicate
+captures remain preserved; their filename markets do not establish their contents'
+settled-market provenance. Official settlement is not available for this simulation.

@@ -13,14 +13,17 @@ import json
 import urllib.request
 import urllib.error
 import hashlib
+from decimal import Decimal, InvalidOperation
+from urllib.parse import urlencode
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from app.domain.venue_tape_ingestor import MarketTradePrint, MicrostructureQueueTracker
 from app.domain.clob_replay_engine import CLOBReplayEngine
 from app.domain.expansion_adapters import UnderwritingDecision
+from app.domain.settlement_engine import SettlementEngine
+from app.adapters.authentic_polymarket_tape_loader import parse_authentic_polymarket_tape
 
-DATA_DIR = Path("data/venues/polymarket")
-DATA_DIR.mkdir(parents=True, exist_ok=True)
+DATA_DIR = Path(__file__).resolve().parents[3] / 'data/venues/polymarket'
 
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) PDEUE-AuthenticAudit/1.0"
 
@@ -55,117 +58,133 @@ def safe_parse_json(val: Any, default: Any = None) -> Any:
                 pass
     return default if default is not None else []
 
-def harvest_real_polymarket_archive(limit: int = 20) -> List[Dict[str, Any]]:
-    print("=" * 110)
-    print("      HARVESTING AUTHENTIC SETTLED MARKETS FROM POLYMARKET PUBLIC CLOB ARCHIVE")
-    print("=" * 110)
-    
-    # 1. Fetch high-volume settled markets from Gamma API
-    markets_url = f"https://gamma-api.polymarket.com/markets?closed=true&limit={limit}&order=volumeNum&ascending=false"
-    print(f"[*] Querying Gamma API: {markets_url}")
-    raw_markets = fetch_json(markets_url)
-    
-    if not raw_markets or not isinstance(raw_markets, list):
-        markets_url = f"https://gamma-api.polymarket.com/markets?closed=true&limit={limit}"
-        raw_markets = fetch_json(markets_url)
+def fetch_market_trade_pages(condition_id: str, token_id: str, *, page_size: int = 100,
+                             max_pages: int = 100) -> list[dict]:
+    """Paginate the supported market filter; never fall back to a global feed.
 
-    if not raw_markets:
-        raise RuntimeError("FATAL: Could not fetch authentic venue data from public endpoints.")
+    Offset advances by raw page length, including overlap and other-outcome
+    prints. Repeated pages, foreign markets, changed duplicate records, and
+    request failures abort rather than certify a partial archive.
+    """
+    if not 1 <= page_size <= 500 or max_pages <= 0:
+        raise ValueError('invalid pagination bounds')
+    records = {}
+    page_seen = {}
+    offset = 0
+    for _ in range(max_pages):
+        query = urlencode({'market': condition_id, 'limit': page_size,
+                           'offset': offset, 'takerOnly': 'false'})
+        page = fetch_json('https://data-api.polymarket.com/trades?' + query)
+        if not isinstance(page, list):
+            raise RuntimeError(f'trade page failed for {condition_id} at offset {offset}')
+        if not page:
+            break
+        new_ids = 0
+        for row in page:
+            if not isinstance(row, dict) or row.get('conditionId') != condition_id:
+                raise ValueError('market-filtered endpoint returned a foreign trade')
+            trade_id = row.get('transactionHash')
+            if not isinstance(trade_id, str) or not trade_id:
+                raise ValueError('missing transactionHash in harvested trade')
+            if trade_id in page_seen:
+                if page_seen[trade_id] != row:
+                    raise ValueError('conflicting duplicate transactionHash')
+                continue
+            page_seen[trade_id] = row
+            new_ids += 1
+            if str(row.get('asset')) == token_id:
+                records[trade_id] = row
+        if not new_ids:
+            raise RuntimeError('trade pagination made no progress')
+        offset += len(page)
+        if len(page) < page_size:
+            break
+    else:
+        raise RuntimeError('trade pagination exceeded max_pages; archive is incomplete')
+    trades = sorted(records.values(), key=lambda row: (int(row['timestamp']), row['transactionHash']))
+    if trades:
+        # Validate raw fields with the same exact-cent adapter used by replay.
+        parse_authentic_polymarket_tape(json.dumps(trades))
+    return trades
 
-    manifest_path = DATA_DIR / "raw_settled_markets_manifest.json"
-    manifest_path.write_text(json.dumps(raw_markets, indent=2), encoding="utf-8")
-    manifest_hash = sha256_file(manifest_path)
-    print(f"[+] Downloaded {len(raw_markets)} authentic market definitions.")
-    print(f"    • Saved to: {manifest_path}")
-    print(f"    • SHA-256:  {manifest_hash}")
-    print("-" * 110)
 
-    harvested_contracts = []
+def harvest_real_polymarket_archive(limit: int = 30, *, manifest_path: Path | None = None,
+                                    data_dir: Path = DATA_DIR, page_size: int = 100,
+                                    max_pages: int = 100) -> List[Dict[str, Any]]:
+    """Harvest distinct settled YES contracts from the saved market manifest.
 
-    for m in raw_markets:
-        cid = m.get("conditionId") or m.get("id")
-        question = m.get("question", "Unknown Contract")
-        category = m.get("category", "general")
-        
-        # Schema resolution: parse outcomes, outcomePrices, clobTokenIds
-        outcomes = safe_parse_json(m.get("outcomes"), ["Yes", "No"])
-        outcome_prices = safe_parse_json(m.get("outcomePrices"), [])
-        clob_tokens = safe_parse_json(m.get("clobTokenIds"), [])
-
-        if not cid:
+    All requests and validations finish before any capture is overwritten.
+    Only exact resolved 0/1 outcomes qualify; unknown resolution is not a loss.
+    """
+    if limit <= 0:
+        raise ValueError('limit must be positive')
+    data_dir = Path(data_dir)
+    manifest_path = Path(manifest_path) if manifest_path else data_dir / 'raw_settled_markets_manifest.json'
+    raw_markets = json.loads(manifest_path.read_text())
+    if not isinstance(raw_markets, list):
+        raise ValueError('settled market manifest must be a JSON array')
+    harvested = []
+    staged = []
+    markets_seen = set()
+    trades_seen = set()
+    for market in raw_markets:
+        if not isinstance(market, dict) or market.get('closed') is not True:
             continue
-
-        # Extract YES token ID
-        yes_token_id = str(clob_tokens[0]) if (clob_tokens and len(clob_tokens) > 0) else None
-
-        # Determine official settlement payout (100¢ vs 0¢)
-        yes_won = False
-        if outcome_prices and len(outcome_prices) > 0:
-            try:
-                yes_price = float(outcome_prices[0])
-                yes_won = (yes_price >= 0.90)
-            except (ValueError, TypeError):
-                pass
-        elif m.get("winningOutcome"):
-            yes_won = (str(m.get("winningOutcome")).lower() in ("yes", "1"))
-
-        # 2. Fetch authentic trade tape prints for this market
-        raw_trades = None
-        if yes_token_id:
-            trades_url = f"https://data-api.polymarket.com/trades?asset_id={yes_token_id}&limit=100"
-            raw_trades = fetch_json(trades_url)
-            
-        if not raw_trades or not isinstance(raw_trades, list):
-            trades_url = f"https://data-api.polymarket.com/trades?market={cid}&limit=100"
-            raw_trades = fetch_json(trades_url)
-
-        trade_prints: List[MarketTradePrint] = []
-        if raw_trades and isinstance(raw_trades, list) and len(raw_trades) > 0:
-            # Polymarket returns newest first; reverse to replay chronologically (t0 -> tn)
-            raw_trades = list(reversed(raw_trades))
-            
-            tape_path = DATA_DIR / f"raw_trades_{cid[:16]}.json"
-            tape_path.write_text(json.dumps(raw_trades, indent=2), encoding="utf-8")
-            tape_hash = sha256_file(tape_path)
-            
-            for t_idx, tr in enumerate(raw_trades):
-                try:
-                    price_val = float(tr.get("price", 0.50))
-                    price_cents = max(1, min(99, int(round(price_val * 100))))
-                    size_val = float(tr.get("size", 10.0))
-                    volume = max(1, int(round(size_val)))
-                    side = str(tr.get("side", "SELL")).upper()
-                    ts = int(tr.get("timestamp", 1700000000 + t_idx * 10))
-                    
-                    trade_prints.append(MarketTradePrint(
-                        trade_id=f"POLY-{cid[:8]}-{t_idx}",
-                        contract_id=cid,
-                        category=category,
-                        timestamp_ns=ts * 1_000_000_000 if ts < 1e12 else ts * 1_000_000,
-                        price_cents=price_cents,
-                        volume=volume,
-                        aggressor_side=side
-                    ))
-                except Exception:
-                    continue
-        else:
-            tape_hash = "NO_TRADES_RECORDED"
-
-        print(f"[*] Ingested: [{category.upper()[:8]}] {question[:55]}...")
-        print(f"    • Real Venue Resolution: {'YES (100¢)' if yes_won else 'NO (0¢)'}")
-        print(f"    • Authentic Tape Prints: {len(trade_prints)} trades (Tape SHA-256: {tape_hash[:16]}...)")
-
-        if len(trade_prints) > 0:
-            harvested_contracts.append({
-                "contract_id": cid,
-                "question": question,
-                "category": category,
-                "yes_won": yes_won,
-                "trade_prints": trade_prints
-            })
-
-    print(f"\n[+] Successfully prepared {len(harvested_contracts)} contracts with authentic trade tapes.")
-    return harvested_contracts
+        cid = market.get('conditionId')
+        if not isinstance(cid, str) or len(cid) != 66 or not cid.startswith('0x') or any(
+                char not in '0123456789abcdefABCDEF' for char in cid[2:]):
+            raise ValueError('invalid manifest conditionId')
+        if cid in markets_seen:
+            continue
+        markets_seen.add(cid)
+        outcomes = safe_parse_json(market.get('outcomes'))
+        prices = safe_parse_json(market.get('outcomePrices'))
+        tokens = safe_parse_json(market.get('clobTokenIds'))
+        if 'Yes' not in outcomes:
+            continue
+        if not isinstance(outcomes, list) or len(outcomes) != 2 or set(outcomes) != {'Yes', 'No'}:
+            raise ValueError('harvester requires a binary Yes/No contract')
+        yes_index = outcomes.index('Yes')
+        if len(prices) != len(outcomes) or len(tokens) != len(outcomes):
+            raise ValueError('incomplete manifest outcome metadata')
+        try:
+            resolved_prices = [Decimal(str(price)) for price in prices]
+        except InvalidOperation as exc:
+            raise ValueError('invalid settlement prices') from exc
+        if any(price not in (Decimal(0), Decimal(1)) for price in resolved_prices) or sum(resolved_prices) != 1:
+            raise ValueError('manifest settlement is unresolved')
+        token_id = str(tokens[yes_index])
+        raw_trades = fetch_market_trade_pages(cid, token_id, page_size=page_size, max_pages=max_pages)
+        if not raw_trades:
+            continue
+        ids = {row['transactionHash'] for row in raw_trades}
+        if ids & trades_seen:
+            raise ValueError('trade IDs overlap across harvested markets')
+        trades_seen.update(ids)
+        normalized = parse_authentic_polymarket_tape(json.dumps(raw_trades))
+        category = market.get('category') or 'general'
+        prints = [MarketTradePrint(
+            trade_id=trade.trade_id, contract_id=trade.contract_id, category=category,
+            timestamp_ns=trade.timestamp_ns, price_cents=trade.price_cents,
+            volume=trade.volume, aggressor_side=trade.aggressor_side,
+        ) for trade in normalized]
+        path = data_dir / f'raw_trades_{cid}.json'
+        staged.append((path, raw_trades))
+        harvested.append({
+            'contract_id': cid, 'question': market.get('question', ''),
+            'category': category, 'yes_won': resolved_prices[yes_index] == 1,
+            'trade_prints': prints, 'tape_path': str(path),
+        })
+        if len(harvested) >= limit:
+            break
+    data_dir.mkdir(parents=True, exist_ok=True)
+    for path, rows in staged:
+        temporary = path.with_suffix('.json.tmp')
+        temporary.write_text(json.dumps(rows, indent=2) + '\n', encoding='utf-8')
+        temporary.replace(path)
+    print(f'[+] Harvested {len(harvested)} distinct settled markets; '
+          f'{len(trades_seen)} unique trades.')
+    return harvested
 
 def run_authentic_microstructure_replay(contracts: List[Dict[str, Any]]):
     initial_equity_cents = 1_000_000  # $10,000.00
@@ -267,9 +286,8 @@ def run_authentic_microstructure_replay(contracts: List[Dict[str, Any]]):
 
     # Generate Ledger Distribution
     net_profit_cents = engine.total_equity_cents - initial_equity_cents
-    scma_cents = int(net_profit_cents * 0.87) if net_profit_cents > 0 else 0
-    faep_cents = int(net_profit_cents * 0.03) if net_profit_cents > 0 else 0
-    cfcp_cents = net_profit_cents - (scma_cents + faep_cents) if net_profit_cents > 0 else 0
+    waterfall = SettlementEngine().calculate_waterfall_split(net_profit_cents)
+    scma_cents, faep_cents, cfcp_cents = (waterfall[name] for name in ('scma_cents', 'faep_cents', 'cfcp_cents'))
 
     s = engine.get_summary()
 
@@ -308,5 +326,15 @@ def run_authentic_microstructure_replay(contracts: List[Dict[str, Any]]):
     print("=" * 110)
 
 if __name__ == "__main__":
-    contracts_data = harvest_real_polymarket_archive(limit=20)
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--limit', type=int, default=30)
+    parser.add_argument('--manifest', type=Path)
+    parser.add_argument('--data-dir', type=Path, default=DATA_DIR)
+    parser.add_argument('--page-size', type=int, default=100)
+    parser.add_argument('--max-pages', type=int, default=100)
+    args = parser.parse_args()
+    contracts_data = harvest_real_polymarket_archive(
+        args.limit, manifest_path=args.manifest, data_dir=args.data_dir,
+        page_size=args.page_size, max_pages=args.max_pages)
     run_authentic_microstructure_replay(contracts_data)

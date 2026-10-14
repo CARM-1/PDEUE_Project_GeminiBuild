@@ -17,6 +17,7 @@ class MarketTradePrint:
     timestamp_ns: int
     aggressor_side: str
     contract_spec: str
+    asset_id: str | None = None
 
 
 def _text(record: dict, field: str) -> str:
@@ -77,6 +78,7 @@ def parse_authentic_polymarket_tape(content: bytes | str) -> list[MarketTradePri
             prints.append(MarketTradePrint(
                 trade_id, contract_id, int(round(price * 100)), volume,
                 int(record['timestamp']) * 1_000_000_000, side, spec,
+                _text(record, 'asset') if 'asset' in record else None,
             ))
         except (ValueError, TypeError, OverflowError) as exc:
             raise ValueError(f'raw trade {index}: {exc}') from exc
