@@ -7,6 +7,7 @@ One inside maker bid is decided before the first print; future prints only drive
 queue execution. The settlement spot is used only after replay ends.
 """
 from dataclasses import asdict, dataclass, field
+from collections import Counter
 from decimal import Decimal
 import hashlib
 import json
@@ -60,6 +61,38 @@ class ReplayScenario:
     initial_capital_cents: int = 10000
 
 
+def primary_contract_id(prints: list[MarketTradePrint]) -> str:
+    """Choose the highest-count contract, with a stable ID tie-break."""
+    counts = Counter(trade.contract_id for trade in prints)
+    if not counts:
+        raise ValueError('empty trade tape')
+    return min(counts, key=lambda contract_id: (-counts[contract_id], contract_id))
+
+
+def build_auto_scenario(prints: list[MarketTradePrint]) -> ReplayScenario:
+    """Build an explicitly assumed simulation, never a reconstructed L2 book.
+
+    Callers supply one chronological contract. Quotes use fixed binary payout
+    bounds, not observed print prices. Selection and expiry use capture metadata;
+    model and settlement inputs are assumptions, not venue observations.
+    """
+    if not prints or any(trade.contract_id != prints[0].contract_id for trade in prints):
+        raise ValueError('auto scenario requires one nonempty contract')
+    first_ns, last_ns = prints[0].timestamp_ns, prints[-1].timestamp_ns
+    if first_ns < 2_000_000_000 or first_ns > last_ns:
+        raise ValueError('invalid auto-scenario time bounds')
+    return ReplayScenario(
+        contract_id=prints[0].contract_id,
+        observed_at_ns=first_ns - 2_000_000_000,
+        decision_at_ns=first_ns - 1_000_000_000,
+        expiry_ns=last_ns + 300_000_000_000,
+        spot=100000.0, strike=100000.0, volatility=0.60, rate=0.0,
+        settlement_spot=101000.0,
+        best_bid_cents=1, best_ask_cents=99, bid_depth={1: 20},
+        quantity=10, fee_cents_per_contract=0, initial_capital_cents=10000,
+    )
+
+
 def load_trade_prints(path: Path = DEFAULT_FIXTURE, contract_id: str = CONTRACT_ID) -> tuple[dict, ...]:
     """Reject corrupt tapes rather than sort, coerce, or silently discard rows."""
     return _parse_trade_prints(Path(path).read_text(), contract_id)
@@ -105,11 +138,61 @@ class WalkForwardReplayHarness:
         return self._run_rows(rows, hashlib.sha256(tape_bytes).hexdigest(),
                               'synthetic static historical test vector')
 
-    def run_authentic(self, tape_path: Path = DEFAULT_TAPE) -> dict:
-        """Hash and parse the same captured bytes; never infer a book or outcome."""
+    def run_authentic(self, tape_path: Path = DEFAULT_TAPE, *,
+                      contract_id: str | None = None, auto_scenario: bool = False) -> dict:
+        """Validate the entire tape before selecting one contract for replay."""
         tape_bytes = Path(tape_path).read_bytes()
-        return self.run_prints(parse_authentic_polymarket_tape(tape_bytes),
-                               hashlib.sha256(tape_bytes).hexdigest())
+        digest = hashlib.sha256(tape_bytes).hexdigest()
+        prints = parse_authentic_polymarket_tape(tape_bytes)
+        parsed_count = len(prints)
+        if self.explicit_scenario:
+            if contract_id is not None and contract_id != self.scenario.contract_id:
+                raise ValueError('contract selection contradicts explicit scenario')
+            contract_id = self.scenario.contract_id
+        elif auto_scenario and contract_id is None:
+            contract_id = primary_contract_id(prints)
+        if contract_id is not None:
+            prints = [trade for trade in prints if trade.contract_id == contract_id]
+        harness = self
+        generated = auto_scenario and not self.explicit_scenario and bool(prints)
+        if not prints:
+            result = self._authentic_abstention(0, digest, 'NO_MATCHING_CONTRACT_PRINTS')
+        else:
+            if generated:
+                harness = WalkForwardReplayHarness(build_auto_scenario(prints))
+            result = harness.run_prints(prints, digest)
+        result.update({
+            'contract_id': contract_id,
+            'raw_trade_record_count': len(json.loads(tape_bytes)),
+            'parsed_trade_print_count': parsed_count,
+            'excluded_trade_print_count': parsed_count - len(prints),
+        })
+        if generated:
+            result.update({
+                'scenario_source': 'AUTO_SCENARIO_SIMULATION',
+                'scenario': asdict(harness.scenario),
+                'pricing_source': 'FIXED_BINARY_PAYOUT_BOUNDS',
+                'model_source': 'FIXED_SYNTHETIC_LOG_NORMAL_INPUTS',
+                'settlement_source': 'ASSUMED_WIN',
+                'pnl_basis': 'SIMULATED_SETTLEMENT',
+                'lookahead_disclosure': 'Contract selection and expiry bounds use full-capture '
+                                        'metadata; quotes do not use future trade prices.',
+            })
+        return result
+
+    def _authentic_abstention(self, count: int, digest: str, detail: str) -> dict:
+        return {
+            'status': 'ABSTAINED', 'reason': 'ABSTAINED', 'abstention_detail': detail,
+            'trade_print_count': count, 'p_fair': None, 'net_edge': None,
+            'limit_price_cents': None, 'posted_quantity': 0,
+            'initial_q_ahead': 0, 'remaining_q_ahead': 0,
+            'unfilled_quantity': 0, 'filled_quantity': 0, 'fills': [],
+            'deployed_cents': 0, 'fee_cents': 0, 'payout_cents': 0, 'net_pnl_cents': 0,
+            'waterfall': SettlementEngine().calculate_waterfall_split(0),
+            'initial_capital_cents': self.scenario.initial_capital_cents,
+            'final_capital_cents': self.scenario.initial_capital_cents,
+            'fixture_sha256': digest, 'data_provenance': 'captured Polymarket raw trade tape',
+        }
 
     def run_prints(self, prints: list[MarketTradePrint], fixture_sha256: str) -> dict:
         """Replay normalized prints with explicitly supplied independent inputs.
@@ -135,21 +218,8 @@ class WalkForwardReplayHarness:
             seen.add(trade.trade_id)
             previous = key
         if not self.explicit_scenario:
-            return {
-                'status': 'ABSTAINED', 'reason': 'ABSTAINED',
-                'abstention_detail': 'MISSING_INDEPENDENT_REPLAY_SCENARIO',
-                'trade_print_count': len(prints), 'p_fair': None, 'net_edge': None,
-                'limit_price_cents': None, 'posted_quantity': 0,
-                'initial_q_ahead': 0, 'remaining_q_ahead': 0,
-                'unfilled_quantity': 0, 'filled_quantity': 0, 'fills': [],
-                'deployed_cents': 0, 'fee_cents': 0, 'payout_cents': 0,
-                'net_pnl_cents': 0,
-                'waterfall': SettlementEngine().calculate_waterfall_split(0),
-                'initial_capital_cents': self.scenario.initial_capital_cents,
-                'final_capital_cents': self.scenario.initial_capital_cents,
-                'fixture_sha256': fixture_sha256,
-                'data_provenance': 'captured Polymarket raw trade tape',
-            }
+            return self._authentic_abstention(len(prints), fixture_sha256,
+                                              'MISSING_INDEPENDENT_REPLAY_SCENARIO')
         if any(trade.contract_id != self.scenario.contract_id for trade in prints):
             raise ValueError('unexpected contract in authentic replay')
         result = self._run_rows([asdict(trade) for trade in prints], fixture_sha256,
