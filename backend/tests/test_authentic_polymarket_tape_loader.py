@@ -15,6 +15,7 @@ from app.domain.walk_forward_replay_harness import (
     ReplayScenario, WalkForwardReplayHarness, build_auto_scenario, load_trade_prints,
     primary_contract_id,
 )
+from app.domain.microstructure_queue_tracker import MicrostructureQueueTracker
 
 
 def raw_trade(**changes):
@@ -208,7 +209,7 @@ def test_corrupt_foreign_records_are_rejected_before_filtering(tmp_path, foreign
         WalkForwardReplayHarness(ReplayScenario()).run_authentic(path)
 
 
-def test_auto_scenario_primary_selection_time_bounds_and_fixed_quotes(tmp_path):
+def test_auto_scenario_primary_selection_time_bounds_and_initial_quote(tmp_path):
     path = write_tape(tmp_path, [raw_trade(conditionId='z', transactionHash='z'),
                                  raw_trade(conditionId='a', transactionHash='a'),
                                  raw_trade(conditionId='z', transactionHash='z2', timestamp=1735689605)])
@@ -216,23 +217,25 @@ def test_auto_scenario_primary_selection_time_bounds_and_fixed_quotes(tmp_path):
     assert primary_contract_id(prints) == 'z'
     result = WalkForwardReplayHarness().run_authentic(path, auto_scenario=True)
     assert result['contract_id'] == 'z'
-    assert result['trade_print_count'] == 2
+    assert result['trade_print_count'] == 1
+    assert result['initialization_trade_print_count'] == 1
     assert result['excluded_trade_print_count'] == 1
     assert result['reason'] == 'ADMITTED'
     assert result['scenario_source'] == 'AUTO_SCENARIO_SIMULATION'
     assert result['pnl_basis'] == 'SIMULATED_SETTLEMENT'
     s = result['scenario']
-    assert s['observed_at_ns'] == 1735689600 * 1_000_000_000 - 2_000_000_000
-    assert s['decision_at_ns'] == 1735689600 * 1_000_000_000 - 1_000_000_000
+    assert s['observed_at_ns'] == 1735689600 * 1_000_000_000
+    assert s['decision_at_ns'] == 1735689600 * 1_000_000_000 + 1
     assert s['expiry_ns'] == 1735689605 * 1_000_000_000 + 300_000_000_000
-    assert (s['best_bid_cents'], s['best_ask_cents']) == (1, 99)
-    changed = [replace(trade, price_cents=99, volume=999) for trade in prints if trade.contract_id == 'z']
+    assert (s['best_bid_cents'], s['best_ask_cents']) == (46, 48)
+    selected = [trade for trade in prints if trade.contract_id == 'z']
+    changed = [selected[0], replace(selected[1], price_cents=99, volume=999)]
     assert asdict(build_auto_scenario(changed)) == s
     assert primary_contract_id(prints[:2]) == 'a'
 
 
 def test_auto_scenario_does_not_mutate_original_harness(tmp_path):
-    path = write_tape(tmp_path, [raw_trade()])
+    path = write_tape(tmp_path, [raw_trade(), raw_trade(transactionHash='b', timestamp=1735689601)])
     harness = WalkForwardReplayHarness()
     assert harness.run_authentic(path, auto_scenario=True)['reason'] == 'ADMITTED'
     assert harness.run_authentic(path)['abstention_detail'] == 'MISSING_INDEPENDENT_REPLAY_SCENARIO'
@@ -246,7 +249,9 @@ def test_auto_scenario_invalid_time_bounds_fail_closed(prints):
 
 def test_cli_auto_contract_override_missing_selection_and_explicit_precedence(tmp_path):
     path = write_tape(tmp_path, [raw_trade(), raw_trade(transactionHash='b', conditionId='OTHER'),
-                                 raw_trade(transactionHash='c', conditionId='OTHER')])
+                                 raw_trade(transactionHash='c', conditionId='OTHER', timestamp=1735689601),
+                                 raw_trade(transactionHash='d', conditionId='OTHER', timestamp=1735689602),
+                                 raw_trade(transactionHash='e', timestamp=1735689601)])
     backend = Path(__file__).resolve().parents[1]
     command = [sys.executable, str(backend / 'run_walk_forward_replay.py'),
                '--mode=authentic', f'--tape={path}', '--auto-scenario']
@@ -270,3 +275,62 @@ def test_cli_auto_contract_override_missing_selection_and_explicit_precedence(tm
     mismatch = run(f'--scenario={scenario}', '--contract-id=OTHER')
     assert mismatch.returncode != 0
     assert 'must match' in mismatch.stderr
+
+
+def test_strategy_d_queue_fills_after_initial_tick_and_prices_at_resting_limit(tmp_path):
+    path = write_tape(tmp_path, [
+        raw_trade(transactionHash='seed', price=.58, size=999),
+        raw_trade(transactionHash='same-tick', price=.51, size=999),
+        raw_trade(transactionHash='buy', price=.51, size=999, side='BUY', timestamp=1735689601),
+        raw_trade(transactionHash='queue', price=.51, size=3, timestamp=1735689602),
+        raw_trade(transactionHash='fill', price=.51, size=12, timestamp=1735689603),
+    ])
+    # Alphabetical tie order determines the initialization quote, so ensure its ID comes first.
+    rows = json.loads(path.read_text())
+    rows[0]['transactionHash'] = 'a-seed'
+    path.write_text(json.dumps(rows))
+    result = WalkForwardReplayHarness().run_authentic(path, auto_scenario=True)
+    assert result['initialization_trade_print_count'] == 2
+    assert result['initial_q_ahead'] == 5
+    assert result['remaining_q_ahead'] == 0
+    assert result['fills'] == [{'trade_id': 'fill', 'timestamp_ns': 1735689603 * 1_000_000_000,
+                                'quantity': 10, 'price_cents': 59}]
+    assert result['deployed_cents'] == 590
+    assert result['payout_cents'] == 1000
+    assert result['net_pnl_cents'] == 410
+    assert result['waterfall'] == {'scma_cents': 356, 'cfcp_cents': 42, 'faep_cents': 12}
+
+
+def test_strategy_d_does_not_mix_outcome_tokens(tmp_path):
+    path = write_tape(tmp_path, [
+        raw_trade(transactionHash='seed', asset='up', price=.58),
+        raw_trade(transactionHash='down', asset='down', price=.01, size=999, timestamp=1735689601),
+        raw_trade(transactionHash='up', asset='up', price=.51, size=15, timestamp=1735689602),
+    ])
+    result = WalkForwardReplayHarness().run_authentic(path, auto_scenario=True)
+    assert result['asset_id'] == 'up'
+    assert result['trade_print_count'] == 1
+    assert result['initialization_trade_print_count'] == 1
+    assert result['excluded_trade_print_count'] == 1
+    assert [fill['trade_id'] for fill in result['fills']] == ['up']
+
+
+def test_strategy_d_no_future_ticks_abstains(tmp_path):
+    path = write_tape(tmp_path, [raw_trade()])
+    result = WalkForwardReplayHarness().run_authentic(path, auto_scenario=True)
+    assert result['abstention_detail'] == 'NO_POST_DECISION_PRINTS'
+    assert result['fills'] == []
+
+
+def test_strategy_d_consumes_queue_before_partial_fills_and_ignores_buys():
+    queue = MicrostructureQueueTracker(59, 10, 5, allow_price_through=True)
+    assert queue.process_trade(price_cents=51, volume=999, aggressor_side='BUY') == 0
+    assert queue.process_trade(price_cents=60, volume=999, aggressor_side='SELL') == 0
+    assert queue.q_ahead == 5
+    assert queue.process_trade(price_cents=51, volume=3, aggressor_side='SELL') == 0
+    assert queue.q_ahead == 2
+    assert queue.process_trade(price_cents=59, volume=6, aggressor_side='SELL') == 4
+    assert queue.q_ahead == 0
+    assert queue.remaining_quantity == 6
+    assert queue.process_trade(price_cents=51, volume=99, aggressor_side='SELL') == 6
+    assert queue.remaining_quantity == 0

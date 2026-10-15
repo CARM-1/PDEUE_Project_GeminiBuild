@@ -1,35 +1,45 @@
-# PDEUE Work Package 8P: Calibrated Maker Replay Scorecard
+# PDEUE WP-8P Maker Fill Calibration Scorecard
 
-**Target Branch:** `ring1-alpha`  
-**Source Commit:** `1eb3a57` (PR #65 Merged)  
-**Execution Posture:** Authenticated Strategy D Maker Replay (Polymarket Level 2)  
-**Accounting Standard:** ADR-008 Exact-Cent Fiduciary Waterfall  
+Source: `backend/reports/authentic_batch_replay_scorecard.json`.
+Mode: captured trades with **simulated Strategy D maker execution and assumed settlement**.
+The spread, five-lot queue, fair-value inputs, and winning payout are assumptions;
+these are not observed Level 2 books or official realized venue profits.
 
----
+| Metric | Unique-capture result |
+| --- | ---: |
+| Total unique trades | 100 |
+| Post-decision token prints replayed | 9 |
+| Initialization prints excluded | 2 |
+| Maker fill events | 1 |
+| Filled volume (lots) | 10 |
+| Deployed capital (cents) | 590 |
+| Settlement payout (simulated cents) | 1000 |
+| Fees (cents) | 0 |
+| Net realized PnL (simulated cents) | 410 |
 
-## 1. Verified Microstructure Performance
+| ADR-008 allocation | Rule | Integer cents |
+| --- | --- | ---: |
+| SCMA | 87% floor on gains; all losses | 356 |
+| FAEP | 3% floor on gains | 12 |
+| CFCP | 10% plus residual on gains | 42 |
+| Total | Equals net PnL exactly | 410 |
 
-| Metric | Recorded Value | Microstructure Invariant Verification |
-| :--- | :--- | :--- |
-| **Unique Trades Replayed** | **100 prints** | Monotonic nanosecond ordering verified |
-| **Maker Limit Fills** | **1 fill (10 lots)** | Resting limit bid crossed inside spread |
-| **Capital Committed** | **$5.90 (590¢)** | Seed capital conserved without leakage |
-| **Settlement Payout** | **$10.00** | Binary maturity payout (.00/contract) |
-| **Simulated Net PnL** | **+$4.10 (+410¢)** | Realized profit generated via maker queue |
+Unique-capture cent conservation: **PASS**.
 
----
+The batch evaluated 30 files and parsed 3000
+records: 1 unique captures and 29 duplicate copies.
+File-level admissions/abstentions/rejections: 30/0/0.
+Financial headline metrics count each capture once. Repeated-file totals remain
+in the JSON for comparison and must not be treated as independent executions.
 
-## 2. ADR-008 Exact-Cent Distribution Waterfall
+The initial token print seeds the assumed best bid; ask is bid+2 cents and the
+resting inside bid is bid+1. Five lots ahead must clear before fills. Decisions
+follow the initial timestamp, and every print at that timestamp is excluded.
+Only subsequent SELL prints at or below the limit consume queue; fills are priced
+at the resting limit. Other outcome tokens and BUY prints cannot fill that bid.
 
-| Distribution Leg | Allocation Policy | Realized Amount | Ledger Invariant |
-| :--- | :--- | :--- | :--- |
-| **SCMA (Member Equity)** | 87% (Floored on profit) | **$3.56 (356¢)** | PASS (Zero fractional drift) |
-| **CFCP (Familial Reserve)** | 10% (+ Residual cent) | **$0.42 (42¢)** | PASS (Exact integer balance) |
-| **FAEP (Platform Ops)** | 3% | **$0.12 (12¢)** | PASS (Operating fee isolated) |
-| **Total Reconciled** | **100%** | **$4.10 (410¢)** | **EXACT-CENT BALANCE HOLDS** |
-
----
-
-## 3. Venue Boundary Findings
-- **Maker Queue Activation:** Placing maker limit orders inside the historical spread successfully depleted aggressive sell queue depth ({ahead}$) and filled 10 contracts under Strategy D rules.
-- **Egress Proxy Mitigation:** Cloud runner attempts to fetch fresh Polymarket prints encountered Cloudflare datacenter blocking (HTTP 403). Live data acquisition requires execution from non-datacenter IPs or authenticated headers.
+The corrected harvester uses market-filtered offset pagination, exact condition
+and YES-token verification, and cross-market hash uniqueness before writing files.
+Fresh harvesting has not been verified for this offline report. Existing duplicate
+captures remain preserved; their filename markets do not establish their contents'
+settled-market provenance. Official settlement is not available for this simulation.

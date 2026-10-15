@@ -72,8 +72,8 @@ def primary_contract_id(prints: list[MarketTradePrint]) -> str:
 def build_auto_scenario(prints: list[MarketTradePrint]) -> ReplayScenario:
     """Build an explicitly assumed simulation, never a reconstructed L2 book.
 
-    Callers supply one chronological contract. Quotes use fixed binary payout
-    bounds, not observed print prices. Selection and expiry use capture metadata;
+    Callers supply one chronological contract. The first print seeds an assumed
+    spread, and cannot execute our order. Selection and expiry use capture metadata;
     model and settlement inputs are assumptions, not venue observations.
     """
     if not prints or any(trade.contract_id != prints[0].contract_id for trade in prints):
@@ -81,14 +81,15 @@ def build_auto_scenario(prints: list[MarketTradePrint]) -> ReplayScenario:
     first_ns, last_ns = prints[0].timestamp_ns, prints[-1].timestamp_ns
     if first_ns < 2_000_000_000 or first_ns > last_ns:
         raise ValueError('invalid auto-scenario time bounds')
+    best_bid = max(1, min(97, prints[0].price_cents))
     return ReplayScenario(
         contract_id=prints[0].contract_id,
-        observed_at_ns=first_ns - 2_000_000_000,
-        decision_at_ns=first_ns - 1_000_000_000,
+        observed_at_ns=first_ns,
+        decision_at_ns=first_ns + 1,
         expiry_ns=last_ns + 300_000_000_000,
-        spot=100000.0, strike=100000.0, volatility=0.60, rate=0.0,
+        spot=102000.0, strike=100000.0, volatility=0.60, rate=0.0,
         settlement_spot=101000.0,
-        best_bid_cents=1, best_ask_cents=99, bid_depth={1: 20},
+        best_bid_cents=best_bid, best_ask_cents=best_bid + 2, bid_depth={best_bid: 5},
         quantity=10, fee_cents_per_contract=0, initial_capital_cents=10000,
     )
 
@@ -126,9 +127,14 @@ def _parse_trade_prints(content: str, contract_id: str) -> tuple[dict, ...]:
 
 
 class WalkForwardReplayHarness:
-    def __init__(self, scenario: ReplayScenario | None = None):
+    def __init__(self, scenario: ReplayScenario | None = None, *,
+                 strategy_d: bool = False, queue_ahead: int | None = None):
         self.explicit_scenario = scenario is not None
         self.scenario = scenario or ReplayScenario()
+        self.strategy_d = strategy_d
+        if queue_ahead is not None:
+            nonnegative_integer(queue_ahead, 'queue_ahead')
+        self.queue_ahead = queue_ahead
 
     def run(self, fixture_path: Path = DEFAULT_FIXTURE) -> dict:
         s = self.scenario
@@ -153,30 +159,48 @@ class WalkForwardReplayHarness:
             contract_id = primary_contract_id(prints)
         if contract_id is not None:
             prints = [trade for trade in prints if trade.contract_id == contract_id]
+        contract_selected_count = len(prints)
+        asset_id = None
+        if auto_scenario and not self.explicit_scenario and prints:
+            asset_id = prints[0].asset_id
+            prints = [trade for trade in prints if trade.asset_id == asset_id]
         harness = self
+        selected_count = len(prints)
+        initialization_count = 0
         generated = auto_scenario and not self.explicit_scenario and bool(prints)
         if not prints:
             result = self._authentic_abstention(0, digest, 'NO_MATCHING_CONTRACT_PRINTS')
         else:
             if generated:
-                harness = WalkForwardReplayHarness(build_auto_scenario(prints))
-            result = harness.run_prints(prints, digest)
+                harness = WalkForwardReplayHarness(build_auto_scenario(prints),
+                                                   strategy_d=True, queue_ahead=5)
+                prints = [trade for trade in prints if trade.timestamp_ns > harness.scenario.decision_at_ns]
+                initialization_count = selected_count - len(prints)
+            result = harness.run_prints(prints, digest) if prints else harness._authentic_abstention(
+                0, digest, 'NO_POST_DECISION_PRINTS')
         result.update({
             'contract_id': contract_id,
+            'asset_id': asset_id,
             'raw_trade_record_count': len(json.loads(tape_bytes)),
             'parsed_trade_print_count': parsed_count,
-            'excluded_trade_print_count': parsed_count - len(prints),
+            'selected_trade_print_count': selected_count,
+            'contract_selected_trade_print_count': contract_selected_count,
+            'initialization_trade_print_count': initialization_count,
+            'excluded_trade_print_count': parsed_count - selected_count,
         })
         if generated:
             result.update({
                 'scenario_source': 'AUTO_SCENARIO_SIMULATION',
                 'scenario': asdict(harness.scenario),
-                'pricing_source': 'FIXED_BINARY_PAYOUT_BOUNDS',
+                'pricing_source': 'INITIAL_PRINT_ASSUMED_SPREAD',
+                'execution_policy': 'STRATEGY_D_SELL_AT_OR_BELOW_LIMIT',
+                'queue_ahead_assumption': 5,
                 'model_source': 'FIXED_SYNTHETIC_LOG_NORMAL_INPUTS',
                 'settlement_source': 'ASSUMED_WIN',
                 'pnl_basis': 'SIMULATED_SETTLEMENT',
                 'lookahead_disclosure': 'Contract selection and expiry bounds use full-capture '
-                                        'metadata; quotes do not use future trade prices.',
+                                        'metadata. The first timestamp seeds the quote and is '
+                                        'excluded from execution; later prices do not change it.',
             })
         return result
 
@@ -254,7 +278,9 @@ class WalkForwardReplayHarness:
         admissible = limit < s.best_ask_cents and edge >= MIN_NET_EDGE
         affordable = s.initial_capital_cents // (limit + s.fee_cents_per_contract)
         quantity = min(s.quantity, affordable) if admissible else 0
-        tracker = MicrostructureQueueTracker(limit, quantity, s.bid_depth.get(limit, 0))
+        q_ahead = s.bid_depth.get(limit, 0) if self.queue_ahead is None else self.queue_ahead
+        tracker = MicrostructureQueueTracker(limit, quantity, q_ahead,
+                                              allow_price_through=self.strategy_d)
         fills = []
         for row in rows:
             filled = tracker.process_trade(price_cents=row['price_cents'], volume=row['volume'],
@@ -275,7 +301,7 @@ class WalkForwardReplayHarness:
                        ('NO_CAPACITY' if not quantity else 'ADMITTED')),
             'trade_print_count': len(rows), 'p_fair': p_fair, 'net_edge': str(edge),
             'limit_price_cents': limit, 'posted_quantity': quantity,
-            'initial_q_ahead': s.bid_depth.get(limit, 0), 'remaining_q_ahead': tracker.q_ahead,
+            'initial_q_ahead': q_ahead, 'remaining_q_ahead': tracker.q_ahead,
             'unfilled_quantity': tracker.remaining_quantity, 'filled_quantity': filled_quantity,
             'fills': fills, 'deployed_cents': deployed, 'fee_cents': fees,
             'payout_cents': payout, 'net_pnl_cents': pnl, 'waterfall': waterfall,

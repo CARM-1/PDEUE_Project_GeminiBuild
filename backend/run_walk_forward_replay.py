@@ -16,7 +16,7 @@ def main() -> None:
     parser.add_argument('--tape', type=Path, default=DEFAULT_TAPE)
     parser.add_argument('--contract-id', help='Select one contract from an authentic multi-contract tape')
     parser.add_argument('--auto-scenario', action='store_true',
-                        help='Build an explicitly assumed simulation for the selected or dominant contract')
+                        help='Seed an assumed spread from the initial print, then simulate Strategy D sells with 5 lots ahead')
     parser.add_argument('--scenario', type=Path,
                         help='JSON ReplayScenario with independent pre-tape inputs and settlement')
     args = parser.parse_args()

@@ -1,4 +1,4 @@
-# WP-8M / WP-8N authentic Polymarket replay
+# WP-8M / WP-8N / WP-8P authentic Polymarket replay
 
 From `backend`, run:
 
@@ -56,11 +56,14 @@ independent inputs. `--auto-scenario` applies only when a scenario file is absen
 an explicit scenario takes precedence. Without a requested ID, auto mode chooses
 the highest normalized trade count, breaking ties by contract ID ascending.
 
-Auto mode builds the requested observation/decision times at 2s/1s before the
-first selected print and expiry at 300s after the last selected print. It uses
-fixed bid/ask bounds of 1/99 cents, just inside the binary payout range, with a
-2-cent inside bid. It assumes spot=strike=100000, volatility=0.60, rate=0,
-20 lots of displayed depth at the best bid, 10 requested lots, zero fees,
+Auto mode isolates the initial outcome token, observes its first print, and
+decides one nanosecond later. All prints at the initial timestamp seed the
+scenario and are excluded from execution. Expiry is 300s after the last selected
+token print. The assumed best bid is the initial print level clipped to 1..97
+cents, the ask is bid+2, and the resting inside bid is bid+1. Five assumed lots
+ahead must clear before fills, independent of visible best-bid depth.
+It assumes spot=102000, strike=100000, volatility=0.60, rate=0,
+10 requested lots, zero fees,
 10000 cents of initial capital, and a winning settlement spot of 101000.
 These are disclosed simulation assumptions, not observed pre-trade market data.
 The scorecard includes the generated scenario and labels the PnL basis
@@ -75,6 +78,8 @@ edge and capacity gates; it does not guarantee a fill.
 
 The batch script discovers every `raw_trades_*.json` in the repository-relative
 data directory and writes `backend/reports/authentic_batch_replay_scorecard.json`.
+The default run also overwrites `reports/LATEST_REPLAY_SCORECARD.md`. Custom JSON
+outputs do not update that tracked report unless `--markdown-output` is provided.
 Paths work from any working directory. `--tape-dir` and `--output` support other
 locations; `--expected-tapes` and `--expected-trades` default to 30 and 3000.
 Missing files, count mismatches, or corrupt tapes produce `INCOMPLETE` and a
@@ -84,12 +89,34 @@ Batch totals distinguish raw records, normalized parsed trades, and selected
 replayed trades. File totals include duplicate captures; separate digest groups
 and unique-capture totals expose repetition. Waterfall totals sum each replay's
 allocations and conserve total PnL; they do not re-round the combined PnL.
-The executive scorecard prints admitted/abstained/rejected counts, fills, deployed
-lots and cents, simulated realized PnL, and SCMA/FAEP/CFCP conservation.
+The executive scorecard prints admitted/abstained/rejected counts, unique-capture
+fills, deployed lots and cents, simulated realized PnL, and SCMA/FAEP/CFCP
+conservation. Different capture digests with overlapping trade IDs are rejected;
+identical captures are disclosed and counted once in the financial headline.
 
 The current 30 files each contain the same 100-trade capture (one unique digest).
-The dominant contract has 21 normalized prints, giving 3000 parsed trades and
-630 selected prints across files. All 30 simulations admit, with no prints filling
-the fixed 2-cent bid and consequently zero deployed capital or PnL. The named
-capture's end-to-end test now runs without a skip. Synthetic qualification vectors
-separately exercise positive PnL, losses, fills, and nonzero residual cents.
+The dominant condition has 21 prints, split between 11 Up-token and 10 Down-token
+prints. The initial Up-token timestamp excludes two initialization prints; nine
+subsequent token prints replay. Strategy D consumes only SELL flow at or below
+the resting limit; fills execute at our bid, not the observed trade price. BUY
+flow and other tokens cannot consume queue or grant fills. Static replay retains
+its existing stricter exact-price-only execution policy.
+
+Deduplicated calibration produces one 10-lot fill at 59 cents, deploying 590
+cents. The assumed winning payout is 1000 cents, simulated PnL is 410 cents, and
+the waterfall is SCMA 356, FAEP 12, CFCP 42. The 30 existing copies remain intact;
+these are one independent capture, not 30 independently harvested markets.
+
+The harvester now reads the saved settled-market manifest, queries the supported
+`market` filter with increasing offsets and `takerOnly=false`, verifies the exact
+condition ID and YES token, and deduplicates page overlap by transaction hash.
+Repeated pages, foreign trades, conflicting duplicate records, overlapping
+market hashes, unresolved settlements, or incomplete pagination fail closed.
+All captures are staged before any files are written, and full condition IDs
+prevent filename prefix collisions.
+
+Run `PYTHONPATH=. python -m app.adapters.authentic_venue_harvester --limit=30`
+from `backend` after enabling `data-api.polymarket.com` in the runtime network
+policy. This session's fresh harvest attempt received proxy 403 Forbidden and
+left the original captures unchanged. Fresh nonoverlapping archive qualification
+remains pending; the regenerated scorecards explicitly report an offline simulation.
