@@ -19,6 +19,8 @@ from app.domain.settlement_engine import SettlementEngine
 from app.adapters.authentic_polymarket_tape_loader import (
     DEFAULT_TAPE, MarketTradePrint, parse_authentic_polymarket_tape,
 )
+from app.adapters.authentic_tape_router import DEFAULT_TAPES, parse_venue_tape, raw_record_count
+from app.adapters.authentic_weather_tape_loader import WeatherReplayScenario, WeatherTape
 
 DEFAULT_FIXTURE = Path(__file__).resolve().parents[2] / 'tests/fixtures/static_crypto_history.jsonl'
 YEAR_NS = 365 * 24 * 60 * 60 * 1_000_000_000
@@ -56,6 +58,23 @@ class ReplayScenario:
     best_ask_cents: int = 49
     # The inside price has zero visible queue; existing best bid has 20 units.
     bid_depth: dict[int, int] = field(default_factory=lambda: {45: 20})
+    quantity: int = 10
+    fee_cents_per_contract: int = 0
+    initial_capital_cents: int = 10000
+
+
+@dataclass(frozen=True)
+class IndependentReplayScenario:
+    """External fair value and binary settlement for non-crypto contracts."""
+    contract_id: str
+    observed_at_ns: int
+    decision_at_ns: int
+    expiry_ns: int
+    fair_probability: float
+    settlement_payout_cents: int
+    best_bid_cents: int = 45
+    best_ask_cents: int = 49
+    bid_depth: dict[int, int] = field(default_factory=lambda: {45: 5})
     quantity: int = 10
     fee_cents_per_contract: int = 0
     initial_capital_cents: int = 10000
@@ -127,10 +146,12 @@ def _parse_trade_prints(content: str, contract_id: str) -> tuple[dict, ...]:
 
 
 class WalkForwardReplayHarness:
-    def __init__(self, scenario: ReplayScenario | None = None, *,
+    def __init__(self, scenario: ReplayScenario | IndependentReplayScenario | WeatherReplayScenario | None = None, *,
                  strategy_d: bool = False, queue_ahead: int | None = None):
         self.explicit_scenario = scenario is not None
         self.scenario = scenario or ReplayScenario()
+        if type(strategy_d) is not bool:
+            raise ValueError('strategy_d must be a boolean')
         self.strategy_d = strategy_d
         if queue_ahead is not None:
             nonnegative_integer(queue_ahead, 'queue_ahead')
@@ -144,12 +165,19 @@ class WalkForwardReplayHarness:
         return self._run_rows(rows, hashlib.sha256(tape_bytes).hexdigest(),
                               'synthetic static historical test vector')
 
-    def run_authentic(self, tape_path: Path = DEFAULT_TAPE, *,
+    def run_authentic(self, tape_path: Path | None = None, *, venue: str = 'polymarket',
                       contract_id: str | None = None, auto_scenario: bool = False) -> dict:
         """Validate the entire tape before selecting one contract for replay."""
-        tape_bytes = Path(tape_path).read_bytes()
+        if venue not in DEFAULT_TAPES:
+            raise ValueError(f'unsupported replay venue: {venue}')
+        tape_bytes = Path(tape_path if tape_path is not None else DEFAULT_TAPES[venue]).read_bytes()
         digest = hashlib.sha256(tape_bytes).hexdigest()
-        prints = parse_authentic_polymarket_tape(tape_bytes)
+        prints = parse_venue_tape(tape_bytes, venue)
+        if isinstance(prints, WeatherTape):
+            return self._run_weather(prints, digest, contract_id)
+        if venue == 'kalshi' and self.explicit_scenario and not isinstance(self.scenario, IndependentReplayScenario):
+            raise ValueError('Kalshi requires an IndependentReplayScenario')
+        auto_scenario = auto_scenario and venue == 'polymarket'
         parsed_count = len(prints)
         if self.explicit_scenario:
             if contract_id is not None and contract_id != self.scenario.contract_id:
@@ -176,13 +204,18 @@ class WalkForwardReplayHarness:
                                                    strategy_d=True, queue_ahead=5)
                 prints = [trade for trade in prints if trade.timestamp_ns > harness.scenario.decision_at_ns]
                 initialization_count = selected_count - len(prints)
-            result = harness.run_prints(prints, digest) if prints else harness._authentic_abstention(
+            if venue == 'kalshi' and self.explicit_scenario:
+                harness = WalkForwardReplayHarness(self.scenario, strategy_d=True, queue_ahead=self.queue_ahead)
+            result = harness.run_prints(prints, digest, venue=venue) if prints else harness._authentic_abstention(
                 0, digest, 'NO_POST_DECISION_PRINTS')
         result.update({
             'contract_id': contract_id,
+            'venue': venue,
+            'data_provenance': f'captured {venue} raw trade tape',
             'asset_id': asset_id,
-            'raw_trade_record_count': len(json.loads(tape_bytes)),
+            'raw_trade_record_count': raw_record_count(tape_bytes, venue),
             'parsed_trade_print_count': parsed_count,
+            'replayed_trade_print_count': len(prints) if harness.explicit_scenario else 0,
             'selected_trade_print_count': selected_count,
             'contract_selected_trade_print_count': contract_selected_count,
             'initialization_trade_print_count': initialization_count,
@@ -204,6 +237,58 @@ class WalkForwardReplayHarness:
             })
         return result
 
+    def _run_weather(self, tape: WeatherTape, digest: str, contract_id: str | None) -> dict:
+        """Evaluate observations through expiry without synthesizing executions."""
+        result = self._authentic_abstention(0, digest, 'MISSING_INDEPENDENT_REPLAY_SCENARIO')
+        result.update({
+            'venue': 'weather', 'contract_id': contract_id,
+            'data_provenance': 'NOAA ASOS surface observations and strike ladder',
+            'raw_trade_record_count': 0, 'parsed_trade_print_count': 0,
+            'replayed_trade_print_count': 0,
+            'excluded_trade_print_count': 0, 'initialization_trade_print_count': 0,
+            'selected_trade_print_count': 0, 'parsed_observation_count': len(tape.observations),
+            'raw_observation_count': len(tape.observations),
+        })
+        if not self.explicit_scenario:
+            return result
+        s = self.scenario
+        if not isinstance(s, WeatherReplayScenario):
+            raise ValueError('weather requires a WeatherReplayScenario')
+        if contract_id is not None and contract_id != s.contract_id:
+            raise ValueError('contract selection contradicts weather scenario')
+        for name in ('observed_at_ns', 'decision_at_ns', 'expiry_ns', 'initial_capital_cents'):
+            nonnegative_integer(getattr(s, name), name)
+        if not s.observed_at_ns < s.decision_at_ns < s.expiry_ns:
+            raise ValueError('invalid weather scenario time bounds')
+        result['contract_id'] = s.contract_id
+        bracket = next((strike for strike in tape.strike_ladder if strike.contract_id == s.contract_id), None)
+        if bracket is None:
+            result['abstention_detail'] = 'NO_MATCHING_STRIKE_BRACKET'
+            return result
+        if bracket.station_id != s.station_id or bracket.expiry_ns != s.expiry_ns:
+            raise ValueError('weather scenario contradicts station or expiry barrier')
+        station = [tick for tick in tape.observations if tick.station_id == s.station_id]
+        if not station:
+            result['abstention_detail'] = 'NO_MATCHING_STATION_OBSERVATIONS'
+            return result
+        eligible = [tick for tick in station if tick.timestamp_ns <= s.expiry_ns and tick.available_at_ns <= s.expiry_ns]
+        latest = eligible[-1] if eligible else None
+        result['abstention_detail'] = 'NO_EXECUTION_TAPE'
+        result['weather_evaluation'] = {
+            'station_id': s.station_id, 'expiry_ns': s.expiry_ns,
+            'lower_f': str(bracket.lower_f) if bracket.lower_f is not None else None,
+            'upper_f': str(bracket.upper_f) if bracket.upper_f is not None else None,
+            'pre_decision_observation_count': sum(tick.available_at_ns <= s.decision_at_ns for tick in eligible),
+            'replay_observation_count': sum(tick.available_at_ns > s.decision_at_ns for tick in eligible),
+            'post_expiry_excluded_count': len(station) - len(eligible),
+            'other_station_excluded_count': len(tape.observations) - len(station),
+            'last_observation_ns': latest.timestamp_ns if latest else None,
+            'last_observed_temperature_f': str(latest.temperature_f) if latest else None,
+            'last_observation_in_bracket': bracket.contains(latest.temperature_f) if latest else None,
+            'settlement_verified': False,
+        }
+        return result
+
     def _authentic_abstention(self, count: int, digest: str, detail: str) -> dict:
         return {
             'status': 'ABSTAINED', 'reason': 'ABSTAINED', 'abstention_detail': detail,
@@ -218,7 +303,7 @@ class WalkForwardReplayHarness:
             'fixture_sha256': digest, 'data_provenance': 'captured Polymarket raw trade tape',
         }
 
-    def run_prints(self, prints: list[MarketTradePrint], fixture_sha256: str) -> dict:
+    def run_prints(self, prints: list[MarketTradePrint], fixture_sha256: str, *, venue: str = 'polymarket') -> dict:
         """Replay normalized prints with explicitly supplied independent inputs.
 
         Raw trade feeds alone cannot establish fair probability, visible queue,
@@ -247,7 +332,7 @@ class WalkForwardReplayHarness:
         if any(trade.contract_id != self.scenario.contract_id for trade in prints):
             raise ValueError('unexpected contract in authentic replay')
         result = self._run_rows([asdict(trade) for trade in prints], fixture_sha256,
-                                'captured Polymarket raw trade tape')
+                                f'captured {venue} raw trade tape')
         if result['reason'] != 'ADMITTED':
             result['abstention_detail'] = result['reason']
             result['reason'] = 'ABSTAINED'
@@ -260,7 +345,14 @@ class WalkForwardReplayHarness:
             nonnegative_integer(getattr(s, name), name)
         if not s.observed_at_ns < s.decision_at_ns < rows[0]['timestamp_ns'] <= rows[-1]['timestamp_ns'] < s.expiry_ns:
             raise ValueError('observations/decision/prints/settlement violate point-in-time ordering')
-        if not math.isfinite(s.settlement_spot) or s.settlement_spot <= 0:
+        if isinstance(s, IndependentReplayScenario):
+            nonnegative_integer(s.settlement_payout_cents, 'settlement_payout_cents')
+            if s.settlement_payout_cents not in (0, 100):
+                raise ValueError('binary settlement payout must be 0 or 100 cents')
+            if (type(s.fair_probability) not in (int, float) or not 0 <= s.fair_probability <= 1
+                    or not math.isfinite(s.fair_probability)):
+                raise ValueError('invalid independent fair probability')
+        elif not math.isfinite(s.settlement_spot) or s.settlement_spot <= 0:
             raise ValueError('invalid settlement spot')
         if not 0 < s.best_bid_cents < s.best_ask_cents < 100:
             raise ValueError('invalid initial book')
@@ -271,8 +363,8 @@ class WalkForwardReplayHarness:
                 raise ValueError('bid depth contradicts best bid')
         if s.bid_depth.get(s.best_bid_cents, 0) == 0:
             raise ValueError('missing displayed depth at best bid')
-        p_fair = black_scholes_probability(s.spot, s.strike, s.volatility,
-                                          (s.expiry_ns - s.decision_at_ns) / YEAR_NS, s.rate)
+        p_fair = s.fair_probability if isinstance(s, IndependentReplayScenario) else black_scholes_probability(
+            s.spot, s.strike, s.volatility, (s.expiry_ns - s.decision_at_ns) / YEAR_NS, s.rate)
         limit = s.best_bid_cents + 1
         edge = Decimal(str(p_fair)) - Decimal(limit + s.fee_cents_per_contract) / 100
         admissible = limit < s.best_ask_cents and edge >= MIN_NET_EDGE
@@ -291,7 +383,9 @@ class WalkForwardReplayHarness:
         filled_quantity = sum(fill['quantity'] for fill in fills)
         deployed = filled_quantity * limit
         fees = filled_quantity * s.fee_cents_per_contract
-        payout = filled_quantity * (100 if s.settlement_spot >= s.strike else 0)
+        payout_per_contract = s.settlement_payout_cents if isinstance(s, IndependentReplayScenario) else (
+            100 if s.settlement_spot >= s.strike else 0)
+        payout = filled_quantity * payout_per_contract
         pnl = payout - deployed - fees
         waterfall = SettlementEngine().calculate_waterfall_split(pnl)
         return {
