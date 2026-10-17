@@ -243,9 +243,10 @@ class WalkForwardReplayHarness:
         result.update({
             'venue': 'weather', 'contract_id': contract_id,
             'data_provenance': 'NOAA ASOS surface observations and strike ladder',
-            'raw_trade_record_count': 0, 'parsed_trade_print_count': 0,
+            'raw_trade_record_count': len(tape.execution_prints),
+            'parsed_trade_print_count': len(tape.execution_prints),
             'replayed_trade_print_count': 0,
-            'excluded_trade_print_count': 0, 'initialization_trade_print_count': 0,
+            'excluded_trade_print_count': len(tape.execution_prints), 'initialization_trade_print_count': 0,
             'selected_trade_print_count': 0, 'parsed_observation_count': len(tape.observations),
             'raw_observation_count': len(tape.observations),
         })

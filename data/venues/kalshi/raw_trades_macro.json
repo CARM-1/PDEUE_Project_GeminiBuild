@@ -1,0 +1,90 @@
+{
+  "provenance": {
+    "kind": "SYNTHETIC_REPRESENTATIVE",
+    "authentic_capture": false,
+    "description": "Deterministic schema qualification fixture. Not captured exchange activity or NOAA measurements.",
+    "source": "WP-8R offline fixture construction; upstream access blocked by environment network policy"
+  },
+  "initial_book": {
+    "contract_id": "KX-WP8R-MACRO-YES",
+    "timestamp_ns": 1735689600000000000,
+    "bids": [
+      [
+        45,
+        7
+      ],
+      [
+        44,
+        20
+      ]
+    ],
+    "asks": [
+      [
+        48,
+        9
+      ],
+      [
+        49,
+        30
+      ]
+    ]
+  },
+  "trades": [
+    {
+      "trade_id": "macro-00-seed",
+      "ticker": "KX-WP8R-MACRO-YES",
+      "yes_price": 45,
+      "count": 2,
+      "timestamp_ns": 1735689600000000000,
+      "taker_side": "no"
+    },
+    {
+      "trade_id": "macro-01-same-tick",
+      "ticker": "KX-WP8R-MACRO-YES",
+      "yes_price": 45,
+      "count": 500,
+      "timestamp_ns": 1735689600000000000,
+      "taker_side": "no"
+    },
+    {
+      "trade_id": "macro-02-buy",
+      "ticker": "KX-WP8R-MACRO-YES",
+      "yes_price": 45,
+      "count": 500,
+      "timestamp_ns": 1735689601000000000,
+      "taker_side": "yes"
+    },
+    {
+      "trade_id": "macro-03-queue",
+      "ticker": "KX-WP8R-MACRO-YES",
+      "yes_price": 45,
+      "count": 3,
+      "timestamp_ns": 1735689602000000000,
+      "taker_side": "no"
+    },
+    {
+      "trade_id": "macro-04-partial",
+      "ticker": "KX-WP8R-MACRO-YES",
+      "yes_price": 44,
+      "count": 8,
+      "timestamp_ns": 1735689603000000000,
+      "taker_side": "no"
+    },
+    {
+      "trade_id": "macro-05-fill",
+      "ticker": "KX-WP8R-MACRO-YES",
+      "yes_price": 45,
+      "count": 12,
+      "timestamp_ns": 1735689604000000000,
+      "taker_side": "no"
+    },
+    {
+      "trade_id": "macro-06-after-horizon",
+      "ticker": "KX-WP8R-MACRO-YES",
+      "yes_price": 45,
+      "count": 500,
+      "timestamp_ns": 1735689901000000000,
+      "taker_side": "no"
+    }
+  ]
+}

@@ -68,8 +68,10 @@ def test_batch_rejects_corruption_and_reports_actual_counts(tmp_path):
     assert summary['total_trades_parsed'] == 4
     assert summary['realized_net_pnl_cents'] == 970
     rejected = report['results'][1]
-    assert rejected['status'] == 'REJECTED'
-    assert rejected['reason'] == 'INVALID_TAPE'
+    assert rejected['status'] == rejected['reason'] == 'ABSTAINED'
+    assert rejected['abstention_detail'] == 'INVALID_TAPE'
+    assert rejected['validation_status'] == 'REJECTED'
+    assert rejected['fills'] == []
     assert 'error' in rejected
 
 
@@ -163,9 +165,9 @@ def test_multicategory_independent_scenarios_reconcile_one_cross_venue_waterfall
     assert sum(report['unique_summary']['waterfall'].values()) == report['unique_summary']['net_pnl_cents']
 
 
-def test_multicategory_batch_default_abstains_without_external_scenarios(tmp_path):
+def test_multicategory_batch_opt_out_abstains_without_external_scenarios(tmp_path):
     directories, _ = multicategory_captures(tmp_path)
-    report = run_batch(venue_dirs=directories)
+    report = run_batch(venue_dirs=directories, auto_scenario=False)
     assert report['summary']['admitted_executions'] == 0
     assert report['summary']['abstained_executions'] == 3
     assert report['summary']['total_trades_replayed'] == 0

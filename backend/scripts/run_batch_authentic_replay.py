@@ -14,6 +14,7 @@ if str(BACKEND) not in sys.path:
     sys.path.insert(0, str(BACKEND))
 
 from app.domain.walk_forward_replay_harness import WalkForwardReplayHarness
+from app.domain.authentic_replay_calibration import run_calibrated, run_weather_with_execution
 from app.adapters.authentic_tape_router import parse_venue_tape, record_ids, contract_ids
 from app.adapters.authentic_weather_tape_loader import WeatherTape
 from run_walk_forward_replay import scenario_from_mapping
@@ -52,10 +53,8 @@ def run_batch(tape_dir: Path = DEFAULT_TAPE_DIR, *, expected_tapes: int | None =
     File totals intentionally include repeated captures. Unique capture totals
     are reported separately using the full-file digest, not the filename.
     """
-    # Preserve the legacy single-directory calibration API; new multi-venue
-    # callers and the CLI require explicit opt-in to Polymarket calibration.
     if auto_scenario is None:
-        auto_scenario = venue_dirs is None
+        auto_scenario = True
     venue_dirs = venue_dirs if venue_dirs is not None else {'polymarket': tape_dir}
     scenario_manifest = {} if scenario_manifest is None else scenario_manifest
     if not isinstance(scenario_manifest, dict) or any(venue not in venue_dirs for venue in scenario_manifest):
@@ -72,16 +71,25 @@ def run_batch(tape_dir: Path = DEFAULT_TAPE_DIR, *, expected_tapes: int | None =
             if not isinstance(configs, dict):
                 raise ValueError('per-venue scenario configuration must be an object')
             config = configs.get(_display_path(path), configs.get(path.name))
-            scenario, queue_ahead, strategy_d = None, None, False
+            scenario, queue_ahead, execution = None, None, None
             if config is not None:
                 if not isinstance(config, dict):
                     raise ValueError('per-file scenario must be an object')
                 scenario = scenario_from_mapping(config.get('scenario', config), venue)
                 queue_ahead = config.get('queue_ahead') if 'scenario' in config else None
-                strategy_d = config.get('strategy_d', False) if 'scenario' in config else False
-            scorecard = WalkForwardReplayHarness(scenario, queue_ahead=queue_ahead,
-                                                 strategy_d=strategy_d).run_authentic(
-                path, venue=venue, auto_scenario=auto_scenario)
+                if 'strategy_d' in config and type(config['strategy_d']) is not bool:
+                    raise ValueError('strategy_d must be a boolean')
+                if 'execution_scenario' in config:
+                    if venue != 'weather':
+                        raise ValueError('execution_scenario is only supported for weather')
+                    execution = scenario_from_mapping(config['execution_scenario'], 'kalshi')
+            if scenario is None and auto_scenario:
+                scorecard = run_calibrated(path, venue)
+            elif execution is not None:
+                scorecard = run_weather_with_execution(path, scenario, execution, queue_ahead)
+            else:
+                scorecard = WalkForwardReplayHarness(scenario, queue_ahead=queue_ahead,
+                                                     strategy_d=True).run_authentic(path, venue=venue)
             scorecard['independent_scenario_supplied'] = scenario is not None
             split = scorecard['waterfall']
             if sum(split.values()) != scorecard['net_pnl_cents']:
@@ -92,6 +100,9 @@ def run_batch(tape_dir: Path = DEFAULT_TAPE_DIR, *, expected_tapes: int | None =
             tape_bytes = path.read_bytes()
             if hashlib.sha256(tape_bytes).hexdigest() != digest:
                 raise ValueError('capture changed during batch evaluation')
+            payload = json.loads(tape_bytes)
+            scorecard['fixture_provenance'] = (payload.get('provenance', {'kind': 'UNVERIFIED'})
+                                               if isinstance(payload, dict) else {'kind': 'UNVERIFIED'})
             parsed = parse_venue_tape(tape_bytes, venue)
             ids = {(venue, record_id) for record_id in record_ids(parsed)}
             capture_key = (venue, digest)
@@ -99,7 +110,8 @@ def run_batch(tape_dir: Path = DEFAULT_TAPE_DIR, *, expected_tapes: int | None =
                 raise ValueError('overlapping trade IDs across different captures')
             seen_record_ids.update(ids)
             if isinstance(parsed, WeatherTape):
-                seen_observation_ids.update(ids)
+                seen_observation_ids.update((venue, tick.observation_id) for tick in parsed.observations)
+                seen_trade_ids.update((venue, trade.trade_id) for trade in parsed.execution_prints)
             else:
                 seen_trade_ids.update(ids)
             seen_markets.update((venue, contract_id) for contract_id in contract_ids(parsed))
@@ -108,10 +120,12 @@ def run_batch(tape_dir: Path = DEFAULT_TAPE_DIR, *, expected_tapes: int | None =
             results.append(scorecard)
         except (OSError, ValueError) as exc:
             results.append({
-                'tape_path': _display_path(path), 'venue': venue, 'status': 'REJECTED',
-                'reason': 'INVALID_TAPE', 'error': str(exc),
+                'tape_path': _display_path(path), 'venue': venue, 'status': 'ABSTAINED',
+                'reason': 'ABSTAINED', 'abstention_detail': 'INVALID_TAPE',
+                'validation_status': 'REJECTED', 'error': str(exc),
+                'fills': [], 'deployed_cents': 0, 'net_pnl_cents': 0,
             })
-    evaluated = [result for result in results if result['status'] != 'REJECTED']
+    evaluated = [result for result in results if result.get('validation_status') != 'REJECTED']
     waterfall = {name: sum(result['waterfall'][name] for result in evaluated)
                  for name in ('scma_cents', 'faep_cents', 'cfcp_cents')}
     pnl = sum(result['net_pnl_cents'] for result in evaluated)
@@ -150,8 +164,9 @@ def run_batch(tape_dir: Path = DEFAULT_TAPE_DIR, *, expected_tapes: int | None =
         'unique_capture_net_pnl_cents': sum(result['net_pnl_cents']
                                            for result in unique_results.values()),
     }
+    summary['total_trades_outside_horizon'] = sum(result.get('outside_horizon_trade_print_count', 0) for result in evaluated)
     summary['total_prints_parsed'] = summary['total_trades_parsed'] + summary['total_observations_parsed']
-    summary['total_prints_filtered'] = summary['total_trades_excluded'] + sum(
+    summary['total_prints_filtered'] = summary['total_trades_excluded'] + summary['total_trades_outside_horizon'] + sum(
         result.get('weather_evaluation', {}).get('post_expiry_excluded_count', 0)
         + result.get('weather_evaluation', {}).get('other_station_excluded_count', 0) for result in evaluated)
     expected_counts_met = ((expected_tapes is None or len(results) == expected_tapes) and
@@ -184,6 +199,8 @@ def run_batch(tape_dir: Path = DEFAULT_TAPE_DIR, *, expected_tapes: int | None =
             'status': 'EVALUATED' if entries else 'NO_VALID_TAPES' if any(v == venue for v, _ in tapes) else 'NO_TAPES',
             'market_count': sum(v == venue for v, _ in seen_markets),
             'trade_print_count': sum(result['parsed_trade_print_count'] for result in entries),
+            'total_prints_parsed': sum(result['parsed_trade_print_count'] + result.get('parsed_observation_count', 0) for result in entries),
+            'rejected': sum(result['venue'] == venue and result.get('validation_status') == 'REJECTED' for result in results),
             'observation_count': sum(result.get('parsed_observation_count', 0) for result in entries),
             'admitted': sum(result['reason'] == 'ADMITTED' for result in entries),
             'abstained': sum(result['reason'] == 'ABSTAINED' for result in entries),
@@ -192,30 +209,25 @@ def run_batch(tape_dir: Path = DEFAULT_TAPE_DIR, *, expected_tapes: int | None =
             'net_pnl_cents': sum(result['net_pnl_cents'] for result in financial),
             'waterfall': {name: sum(result['waterfall'][name] for result in financial) for name in waterfall},
         }
+    calibrated = any(result.get('scenario_source', '').startswith('CALIBRATED') for result in evaluated)
     return {
-        'schema_version': 3,
+        'schema_version': 4,
         'status': 'COMPLETED' if qualified else 'INCOMPLETE',
-        'replay_mode': 'AUTO_SCENARIO_SIMULATION' if auto_scenario else 'INDEPENDENT_SCENARIO_REPLAY',
-        'pnl_basis': 'SIMULATED_SETTLEMENT' if auto_scenario else 'EXTERNAL_SCENARIO_SETTLEMENT_OR_ABSTENTION',
+        'replay_mode': 'AUTO_SCENARIO_SIMULATION' if calibrated else 'INDEPENDENT_SCENARIO_REPLAY',
+        'pnl_basis': 'SIMULATED_SETTLEMENT' if calibrated else 'EXTERNAL_SCENARIO_SETTLEMENT_OR_ABSTENTION',
         'assumptions': {
-            'pricing': 'External book and scenario inputs are required. Explicit Polymarket auto '
-                       'calibration may seed an assumed spread from the initial token print.',
-            'model': 'Kalshi uses external fair probability; weather uses observation/expiry bounds. '
-                     'Polymarket auto calibration assumes spot=102000, strike=100000, volatility=0.60.',
-            'settlement': 'Provided independent binary payout, or assumed win only in explicit '
-                          'Polymarket auto calibration. NOAA observations cannot create executions.',
-            'selection': 'External scenarios select contracts. Only explicit Polymarket calibration '
-                         'selects the primary contract by normalized count with an ID tie-break.',
-            'time_bounds': 'External scenario bounds are required. Only in Polymarket calibration: '
-                           'first token timestamp seeds the book. Decision is 1ns later; '
-                           'all prints at that first timestamp are excluded from execution. '
-                           'Expiry is 300s after the last selected token print.',
-            'lookahead': 'Selection and expiry use full-capture metadata. Quotes use only '
-                         'the initial print; spread, depth, model, and settlement remain assumptions.',
-            'execution': 'Strategy D SELL flow at or below our limit consumes queue before '
-                         'filling at the resting bid. BUY flow never fills a maker bid.',
-            'aggregation': 'File totals include duplicate captures. Waterfall sums per-tape '
-                           'allocations; it does not re-round aggregate PnL.',
+            'pricing': 'Calibrated scenarios use an initial L2 snapshot when supplied; otherwise '
+                       'the first print seeds an assumed two-cent spread. Neither reconstructs a historical book.',
+            'model': 'Calibration assumes fixed fair_probability=0.99 and ten lots; these are simulation inputs.',
+            'settlement': 'Calibration assumes a 100-cent payout. PnL is simulated, not verified venue profit.',
+            'selection': 'Select contract/token only among initial-timestamp prints, with stable ID tie-breaks.',
+            'time_bounds': 'Observed at initial timestamp; decision 1ns later; expiry initial + 300s '
+                           'or predeclared weather strike expiry. Initial and out-of-horizon prints cannot execute.',
+            'lookahead': 'Later records cannot change contract selection, pricing, queue, model, or time bounds.',
+            'execution': 'Strategy D SELL flow at or below our resting bid consumes queue first; BUY never fills. '
+                         'Calibration queue is max(5 lots, initial best-bid depth). NOAA observations never execute.',
+            'aggregation': 'File totals include duplicates. Financial headlines count each capture once. '
+                           'ADR-008 sums per-capture allocations, without re-rounding aggregate PnL.',
         },
         'expected_tape_count': expected_tapes, 'expected_trade_count': expected_trades,
         'expected_counts_met': expected_counts_met, 'summary': summary,
@@ -226,6 +238,10 @@ def run_batch(tape_dir: Path = DEFAULT_TAPE_DIR, *, expected_tapes: int | None =
             'fresh_harvest_verified': False,
             'nonoverlapping_captures': bool(unique) and not summary['duplicate_tape_count'] and not summary['rejected_tapes'],
             'official_settlement_verified': False,
+            'synthetic_representative_tapes': sum(
+                isinstance(result.get('fixture_provenance'), dict) and
+                result['fixture_provenance'].get('kind') == 'SYNTHETIC_REPRESENTATIVE' for result in evaluated),
+            'authentic_provenance_verified': False,
             'venue_coverage_complete': all(result['status'] == 'EVALUATED' for result in by_venue.values()),
             'scope': 'Offline replay of existing captures; neither a new harvest nor venue profit certification.',
         },
@@ -262,7 +278,7 @@ def print_scorecard(report: dict) -> None:
     ]
     print('=' * 76)
     print(' MULTI-VENUE AUTHENTIC REPLAY - ' + report['replay_mode'])
-    print(' Financial totals count each capture once; missing scenarios abstain.')
+    print(' Financial totals count each capture once; calibrated PnL is simulated.')
     print('-' * 76)
     for label, value in rows:
         print(f' {label:<39} {value}')
@@ -277,17 +293,20 @@ def render_markdown(report: dict) -> str:
     venue_rows = '\n'.join(
         f"| {venue} | {result['status']} | {result['tape_count']} | {result['market_count']} | "
         f"{result['trade_print_count']} | {result['observation_count']} | {result['admitted']} / {result['abstained']} |"
+        f" {result['maker_fill_count']} | {result['deployed_cents']} | {result['net_pnl_cents']} |"
         for venue, result in report['by_venue'].items())
-    return f"""# PDEUE WP-8Q Multi-Category Replay Scorecard
+    return f"""# PDEUE WP-8R Multi-Venue Calibrated Replay Scorecard
 
 Source: `backend/reports/authentic_batch_replay_scorecard.json`.
 Mode: **{report['replay_mode']}**.
-Financial results use provided scenarios, or explicitly opted-in Polymarket
-calibration assumptions. Missing external scenarios abstain. NOAA temperatures
-remain observations and never create trade prices, lots, or maker fills.
+Financial results use provided scenarios or default calibrated simulation assumptions.
+Calibrated fair probability (0.99), winning payout, and inferred spreads are assumptions.
+NOAA temperatures remain observations and never create trade prices, lots, or maker fills.
+Weather maker fills require a separate validated exchange execution tape.
+Representative fixtures are labeled SYNTHETIC_REPRESENTATIVE; authentic provenance remains unverified.
 
-| Venue | Coverage | Files | Markets identified | Trade prints | Observations | Admitted / abstained |
-| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Venue | Coverage | Files | Markets identified | Trade prints | Observations | Admitted / abstained | Maker fills | Capital (cents) | Net PnL (scenario cents) |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 {venue_rows}
 
 | Metric | Unique-capture result |
@@ -319,19 +338,24 @@ File-level admissions/abstentions/rejections: {s['admitted_executions']}/{s['abs
 Financial headline metrics count each capture once. Repeated-file totals remain
 in the JSON for comparison and must not be treated as independent executions.
 
-Kalshi uses explicit external fair probability, binary payout, book, capital, and
-point-in-time bounds. Strategy D SELL flow at or below the resting bid clears queue
-before filling at that bid; BUY flow cannot fill it. Independent settlement inputs
-do not alter prior fills. Kalshi does not accept synthetic auto-scenarios.
+Calibration chooses contract/token from the initial timestamp only. Observation time
+is that timestamp and decision is 1ns later. Expiry is initial + 300s, or a
+predeclared weather strike expiry. No future print affects these choices.
+A supplied initial L2 book must match the contract/token and be available by the
+initial timestamp. Otherwise the first print seeds an assumed two-cent spread.
+The resting bid sits one cent above best bid; queue ahead is at least five lots
+and at least the initial best-bid depth. Strategy D SELL prints clear queue before
+filling at our bid. BUY prints and initialization prints cannot fill.
 
-Weather bounds must match the selected strike's station and expiry. Brackets are
-half-open [lower, upper); post-expiry or late-published observations are excluded.
-Even qualified observation evaluation abstains with NO_EXECUTION_TAPE when no
-execution data exists. These are not official station settlement certifications.
+Weather bounds match the selected strike station and expiry. Brackets are
+half-open [lower, upper); late-published and post-expiry observations are excluded.
+Observation-only tapes abstain with NO_EXECUTION_TAPE. Execution-enabled weather
+fixtures include separate exchange trade records; temperatures never become flow.
+The modeled payout is not an official station settlement certification.
 
-Explicit Polymarket calibration can seed a spread from the first token timestamp,
-excluding that timestamp from execution. Its spread, five-lot queue, model, and
-winning payout remain assumptions. It is disabled by default in the batch CLI.
+External scenarios take precedence over calibration. Use `--no-calibrate` to
+require independent scenarios. Invalid tapes abstain, mark validation REJECTED,
+and make the batch INCOMPLETE with a nonzero CLI exit.
 
 The corrected harvester uses market-filtered offset pagination, exact condition
 and YES-token verification, and cross-market hash uniqueness before writing files.
@@ -350,8 +374,12 @@ def main() -> int:
     parser.add_argument('--weather-dir', type=Path, action='append')
     parser.add_argument('--scenario-manifest', type=Path,
                         help='JSON venue -> filename -> complete scenario (or scenario/queue_ahead/strategy_d object)')
-    parser.add_argument('--auto-scenario', action='store_true',
-                        help='Explicit Polymarket calibration only; Kalshi and weather still need external bounds')
+    calibration = parser.add_mutually_exclusive_group()
+    calibration.add_argument('--calibrate', '--auto-scenario', dest='calibrate', action='store_true',
+                             help='Construct initial-time simulation scenarios when no external scenario exists (default)')
+    calibration.add_argument('--no-calibrate', dest='calibrate', action='store_false',
+                             help='Require external scenarios; missing scenarios abstain')
+    parser.set_defaults(calibrate=True)
     parser.add_argument('--output', type=Path, default=DEFAULT_REPORT)
     parser.add_argument('--markdown-output', type=Path,
                         help='Markdown scorecard; defaults to reports/LATEST_REPLAY_SCORECARD.md for the default JSON output')
@@ -370,7 +398,7 @@ def main() -> int:
         venue_dirs['weather'] = args.weather_dir
     scenarios = json.loads(args.scenario_manifest.read_text()) if args.scenario_manifest else None
     report = run_batch(expected_tapes=args.expected_tapes, expected_trades=args.expected_trades,
-                       venue_dirs=venue_dirs, scenario_manifest=scenarios, auto_scenario=args.auto_scenario)
+                       venue_dirs=venue_dirs, scenario_manifest=scenarios, auto_scenario=args.calibrate)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + '\n', encoding='utf-8')
     markdown_output = args.markdown_output

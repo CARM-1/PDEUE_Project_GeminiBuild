@@ -3,6 +3,8 @@
 Temperatures are evidence, never trade prices or aggressive execution flow.
 Accepts a normalized observations array or NOAA GeoJSON features, with an
 optional strike_ladder array supplied alongside the observations.
+An optional execution_tape object carries distinct Kalshi-schema exchange prints;
+the observation stream never supplies execution prices, size, or aggressor side.
 """
 from dataclasses import dataclass
 from decimal import Decimal
@@ -10,6 +12,8 @@ import json
 from pathlib import Path
 
 from app.adapters.authentic_tape_utils import finite_decimal, required_text, timestamp_ns
+from app.adapters.authentic_kalshi_tape_loader import parse_authentic_kalshi_tape
+from app.adapters.authentic_polymarket_tape_loader import MarketTradePrint
 
 DEFAULT_TAPE = Path(__file__).resolve().parents[3] / 'data/venues/weather/raw_observations.json'
 
@@ -40,6 +44,7 @@ class WeatherStrikeBracket:
 class WeatherTape:
     observations: tuple[TemperatureObservation, ...]
     strike_ladder: tuple[WeatherStrikeBracket, ...]
+    execution_prints: tuple[MarketTradePrint, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -118,7 +123,13 @@ def parse_authentic_weather_tape(content: bytes | str) -> WeatherTape:
         if a.station_id == b.station_id and a.expiry_ns == b.expiry_ns and (
                 a.upper_f is None or b.lower_f is None or a.upper_f > b.lower_f):
             raise ValueError('overlapping strike ladder')
-    return WeatherTape(tuple(observations), tuple(strikes))
+    # Exchange executions are separate evidence; temperatures never become prices.
+    execution_prints = ()
+    if 'execution_tape' in payload:
+        execution_prints = tuple(parse_authentic_kalshi_tape(json.dumps(payload['execution_tape'], default=str)))
+        if any(trade.contract_id not in seen_contracts for trade in execution_prints):
+            raise ValueError('weather execution contract has no strike bracket')
+    return WeatherTape(tuple(observations), tuple(strikes), execution_prints)
 
 
 def load_authentic_weather_tape(path: str | Path = DEFAULT_TAPE) -> WeatherTape:

@@ -1,0 +1,92 @@
+{
+  "type": "FeatureCollection",
+  "provenance": {
+    "kind": "SYNTHETIC_REPRESENTATIVE",
+    "authentic_capture": false,
+    "description": "Deterministic schema qualification fixture. Not captured exchange activity or NOAA measurements.",
+    "source": "WP-8R offline fixture construction; upstream access blocked by environment network policy"
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "id": "WP8R-KORD-initial",
+      "properties": {
+        "station": "https://api.weather.gov/stations/KORD",
+        "timestamp": "2025-01-01T00:00:00Z",
+        "available_at": "2025-01-01T00:00:00Z",
+        "temperature": {
+          "value": 20,
+          "unitCode": "wmoUnit:degC"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "WP8R-KORD-during",
+      "properties": {
+        "station": "https://api.weather.gov/stations/KORD",
+        "timestamp": "2025-01-01T00:03:00Z",
+        "available_at": "2025-01-01T00:03:10Z",
+        "temperature": {
+          "value": 21,
+          "unitCode": "wmoUnit:degC"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "WP8R-KORD-late",
+      "properties": {
+        "station": "https://api.weather.gov/stations/KORD",
+        "timestamp": "2025-01-01T00:04:00Z",
+        "available_at": "2025-01-01T00:06:00Z",
+        "temperature": {
+          "value": 24,
+          "unitCode": "wmoUnit:degC"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "WP8R-KORD-expiry",
+      "properties": {
+        "station": "https://api.weather.gov/stations/KORD",
+        "timestamp": "2025-01-01T00:05:00Z",
+        "available_at": "2025-01-01T00:05:00Z",
+        "temperature": {
+          "value": 22,
+          "unitCode": "wmoUnit:degC"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "WP8R-KORD-after",
+      "properties": {
+        "station": "https://api.weather.gov/stations/KORD",
+        "timestamp": "2025-01-01T00:06:00Z",
+        "available_at": "2025-01-01T00:06:00Z",
+        "temperature": {
+          "value": 25,
+          "unitCode": "wmoUnit:degC"
+        }
+      }
+    }
+  ],
+  "strike_ladder": [
+    {
+      "contract_id": "WP8R-KORD-68-72",
+      "station_id": "KORD",
+      "expiry": "2025-01-01T00:05:00Z",
+      "lower_f": 68,
+      "upper_f": 72
+    },
+    {
+      "contract_id": "WP8R-KORD-68-72-UPPER",
+      "station_id": "KORD",
+      "expiry": "2025-01-01T00:05:00Z",
+      "lower_f": 72,
+      "upper_f": 76
+    }
+  ]
+}

@@ -25,7 +25,8 @@ def raw_record_count(content: bytes | str, venue: str) -> int:
 
 def record_ids(tape) -> set[str]:
     if isinstance(tape, WeatherTape):
-        return {observation.observation_id for observation in tape.observations}
+        return {'observation:' + observation.observation_id for observation in tape.observations} | {
+            'trade:' + trade.trade_id for trade in tape.execution_prints}
     return {trade.trade_id for trade in tape}
 
 
