@@ -5,7 +5,7 @@ import math
 from pathlib import Path
 
 
-DEFAULT_TAPE = Path(__file__).resolve().parents[3] / 'data/venues/polymarket/raw_trades_0x0c4cd2055d6ea8.json'
+DEFAULT_TAPE = Path(__file__).resolve().parents[3] / 'data/venues/polymarket/raw_trades_verified.json'
 
 
 @dataclass(frozen=True)

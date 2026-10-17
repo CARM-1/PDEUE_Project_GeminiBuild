@@ -59,7 +59,7 @@ def safe_parse_json(val: Any, default: Any = None) -> Any:
     return default if default is not None else []
 
 def fetch_market_trade_pages(condition_id: str, token_id: str, *, page_size: int = 100,
-                             max_pages: int = 100) -> list[dict]:
+                             max_pages: int = 100, fetch_page=None) -> list[dict]:
     """Paginate the supported market filter; never fall back to a global feed.
 
     Offset advances by raw page length, including overlap and other-outcome
@@ -74,7 +74,7 @@ def fetch_market_trade_pages(condition_id: str, token_id: str, *, page_size: int
     for _ in range(max_pages):
         query = urlencode({'market': condition_id, 'limit': page_size,
                            'offset': offset, 'takerOnly': 'false'})
-        page = fetch_json('https://data-api.polymarket.com/trades?' + query)
+        page = (fetch_page or fetch_json)('https://data-api.polymarket.com/trades?' + query)
         if not isinstance(page, list):
             raise RuntimeError(f'trade page failed for {condition_id} at offset {offset}')
         if not page:
@@ -110,7 +110,7 @@ def fetch_market_trade_pages(condition_id: str, token_id: str, *, page_size: int
 
 def harvest_real_polymarket_archive(limit: int = 30, *, manifest_path: Path | None = None,
                                     data_dir: Path = DATA_DIR, page_size: int = 100,
-                                    max_pages: int = 100) -> List[Dict[str, Any]]:
+                                    max_pages: int = 100, offline_dir: Path | None = None) -> List[Dict[str, Any]]:
     """Harvest distinct settled YES contracts from the saved market manifest.
 
     All requests and validations finish before any capture is overwritten.
@@ -123,8 +123,14 @@ def harvest_real_polymarket_archive(limit: int = 30, *, manifest_path: Path | No
     raw_markets = json.loads(manifest_path.read_text())
     if not isinstance(raw_markets, list):
         raise ValueError('settled market manifest must be a JSON array')
+    receipt_path = data_dir / 'provenance_manifest.json'
+    existing_receipts = json.loads(receipt_path.read_bytes()) if receipt_path.exists() else {}
+    if not isinstance(existing_receipts, dict):
+        raise ValueError('invalid existing provenance manifest')
     harvested = []
     staged = []
+    sources = []
+    receipts = {}
     markets_seen = set()
     trades_seen = set()
     for market in raw_markets:
@@ -154,7 +160,34 @@ def harvest_real_polymarket_archive(limit: int = 30, *, manifest_path: Path | No
         if any(price not in (Decimal(0), Decimal(1)) for price in resolved_prices) or sum(resolved_prices) != 1:
             raise ValueError('manifest settlement is unresolved')
         token_id = str(tokens[yes_index])
-        raw_trades = fetch_market_trade_pages(cid, token_id, page_size=page_size, max_pages=max_pages)
+        fetch_page = None
+        if offline_dir is not None:
+            capture = Path(offline_dir) / f'{cid}.json'
+            # Missing market captures are skipped; never substitute a global feed.
+            if not capture.is_file():
+                continue
+            from urllib.parse import parse_qs, urlparse
+            source_bytes = capture.read_bytes()
+            archived = json.loads(source_bytes)
+            if (not isinstance(archived, dict) or archived.get('condition_id') != cid
+                    or archived.get('page_size') != page_size
+                    or not isinstance(archived.get('pages'), list)
+                    or not isinstance(archived.get('source_url'), str)
+                    or not archived['source_url'].startswith('https://')
+                    or not isinstance(archived.get('retrieved_at'), str)):
+                raise ValueError('invalid offline market archive envelope')
+            source_query = parse_qs(urlparse(archived['source_url']).query)
+            if (urlparse(archived['source_url']).hostname != 'data-api.polymarket.com'
+                    or source_query.get('market') != [cid]):
+                raise ValueError('offline capture must identify the market-filtered source')
+            pages = archived['pages']
+            def fetch_page(url, pages=pages):
+                offset = int(parse_qs(urlparse(url).query)['offset'][0])
+                if offset % page_size or offset // page_size >= len(pages):
+                    raise RuntimeError('offline archive is missing a terminal page')
+                return pages[offset // page_size]
+        raw_trades = fetch_market_trade_pages(cid, token_id, page_size=page_size,
+                                             max_pages=max_pages, fetch_page=fetch_page)
         if not raw_trades:
             continue
         ids = {row['transactionHash'] for row in raw_trades}
@@ -170,6 +203,17 @@ def harvest_real_polymarket_archive(limit: int = 30, *, manifest_path: Path | No
         ) for trade in normalized]
         path = data_dir / f'raw_trades_{cid}.json'
         staged.append((path, raw_trades))
+        if offline_dir is not None:
+            sources.append((data_dir / 'sources' / f'{cid}.json', source_bytes))
+            tape_bytes = (json.dumps(raw_trades, indent=2) + '\n').encode('utf-8')
+            receipts[path.name] = {
+                'kind': 'ARCHIVED_TRADES', 'source_url': archived['source_url'],
+                'source_file': f'sources/{cid}.json', 'retrieved_at': archived['retrieved_at'],
+                'source_sha256': hashlib.sha256(source_bytes).hexdigest(),
+                'tape_sha256': hashlib.sha256(tape_bytes).hexdigest(),
+                'manifest_sha256': sha256_file(manifest_path),
+                'official_settlement_verified': False,
+            }
         harvested.append({
             'contract_id': cid, 'question': market.get('question', ''),
             'category': category, 'yes_won': resolved_prices[yes_index] == 1,
@@ -178,10 +222,16 @@ def harvest_real_polymarket_archive(limit: int = 30, *, manifest_path: Path | No
         if len(harvested) >= limit:
             break
     data_dir.mkdir(parents=True, exist_ok=True)
+    for source_path, source_bytes in sources:
+        source_path.parent.mkdir(exist_ok=True)
+        source_path.write_bytes(source_bytes)
     for path, rows in staged:
         temporary = path.with_suffix('.json.tmp')
         temporary.write_text(json.dumps(rows, indent=2) + '\n', encoding='utf-8')
         temporary.replace(path)
+    if receipts:
+        existing_receipts.update(receipts)
+        receipt_path.write_text(json.dumps(existing_receipts, indent=2) + '\n')
     print(f'[+] Harvested {len(harvested)} distinct settled markets; '
           f'{len(trades_seen)} unique trades.')
     return harvested
@@ -333,8 +383,10 @@ if __name__ == "__main__":
     parser.add_argument('--data-dir', type=Path, default=DATA_DIR)
     parser.add_argument('--page-size', type=int, default=100)
     parser.add_argument('--max-pages', type=int, default=100)
+    parser.add_argument('--offline-dir', type=Path,
+                        help='Archived market-filtered response pages named <condition_id>.json')
     args = parser.parse_args()
     contracts_data = harvest_real_polymarket_archive(
         args.limit, manifest_path=args.manifest, data_dir=args.data_dir,
-        page_size=args.page_size, max_pages=args.max_pages)
+        page_size=args.page_size, max_pages=args.max_pages, offline_dir=args.offline_dir)
     run_authentic_microstructure_replay(contracts_data)

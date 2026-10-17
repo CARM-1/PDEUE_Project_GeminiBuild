@@ -1,41 +1,48 @@
-# Weather replay fixtures
+# Archived METAR observations (WP-8S)
 
-Both station feeds are **SYNTHETIC_REPRESENTATIVE** qualification fixtures.
-The NOAA GeoJSON shape and KJFK/KORD station IDs are representative; temperatures,
-availability times, strike definitions, and executions are constructed test data.
-These are not observed NOAA measurements or official settlement records.
+Three historical station observations replace the former synthetic production
+fixtures. Synthetic execution and expiry vectors now live under
+`backend/tests/fixtures/representative_venues/weather/`.
 
-`features[]` uses station URLs, timestamps, publication times, and Celsius values
-accepted by `authentic_weather_tape_loader.py`. Half-open Fahrenheit brackets
-are declared in `strike_ladder`. Late publication and expiry barriers are covered.
+| Station | Observed UTC | ASOS temperature C | Exact converted F |
+| --- | --- | ---: | ---: |
+| KORD | 2019-07-01 11:51 | 21.1 | 69.98 |
+| KDEN | 2019-07-01 11:53 | 16.7 | 62.06 |
+| KJFK | 2019-07-01 11:51 | 21.7 | 71.06 |
 
-KJFK also includes `execution_tape.trades[]`, using the Kalshi trade schema, plus
-a normalized `initial_book`. These distinct records drive Strategy D maker
-execution. Temperatures never become trade prices, lots, or aggressor flow.
-KORD is deliberately observation-only and must abstain with `NO_EXECUTION_TAPE`.
+Source: [Unidata MetPy archived bulletin](https://github.com/Unidata/MetPy/blob/f4e4d2509a485b969efb8270401d7585f8bec68e/staticdata/metar_20190701_1200.txt).
+The complete 1,540,621-byte bulletin was retrieved through the GitHub connector
+and checked against Git blob `156ffa9ee255827566c35ed09b99976902b07998`
+before extraction. `sources/metar_20190701_1200_excerpt.txt` retains the exact
+three station messages. Each tape records excerpt and full bulletin SHA-256,
+upstream commit URL, blob ID, retrieval time, and parsing year/month.
+The signed ASOS `T` group supplies tenth-degree temperatures instead of the
+rounded whole-degree field. Bulletin retransmissions collapse to one observation.
 
-Direct NOAA/venue acquisition was unavailable under the environment's outbound
-policy. Replace fixtures with independently archived feeds before claiming
-authentic provenance. NOAA API reference: https://www.weather.gov/documentation/services-web-api
+These sparse observations are not complete daily tapes, official daily climate
+maxima, exchange executions, or settlement certificates. No verified strike
+terms exist in this archive. `strike_ladder` is empty: no 0/100-cent settlement
+brackets or trade prints are invented. Nanosecond times preserve the original
+minute resolution. Historical publication times are unknown; `available_at`
+conservatively uses retrieval time, preventing assumed historical availability.
 
-Reproduce all venue reports from the repository root:
+Reproduce the offline parse from the backend directory:
 
 ```sh
-cd backend
-PYTHONPATH=. python scripts/run_batch_authentic_replay.py --calibrate
-PYTHONPATH=. pytest --rootdir=. tests/ -v
+PYTHONPATH=. python -m app.adapters.noaa_asos_harvester \
+  --archive ../data/venues/weather/sources/metar_20190701_1200_excerpt.txt \
+  --year 2019 --month 7 \
+  --source-url https://github.com/Unidata/MetPy/blob/f4e4d2509a485b969efb8270401d7585f8bec68e/staticdata/metar_20190701_1200.txt \
+  --output-dir ../work/reparsed_weather
 ```
 
-Calibration assumes fair probability 0.99, a winning 100-cent payout, ten lots,
-and a queue floor of five lots (or initial best-bid depth, whichever is larger).
-Without L2, a two-cent spread is assumed from the initial print. Selection uses
-initial-time records only; expiry is initial + 300 seconds, or a predeclared
-weather strike expiry. All resulting PnL is simulated.
+Fetch a full IEM day when the environment permits the destination:
 
-An external scenario manifest can supply a weather wrapper containing `scenario`
-(complete WeatherReplayScenario fields), `execution_scenario` (complete
-IndependentReplayScenario fields), and optional `queue_ahead`. Contract, capital,
-and all time bounds must match between both scenarios; the station and expiry
-must match the declared bracket. Explicit execution inputs take precedence over
-calibration, including losing settlement payouts. Without separate execution
-inputs, an external observation scenario continues to abstain.
+```sh
+PYTHONPATH=. python -m app.adapters.noaa_asos_harvester \
+  --start 2019-07-01 --end 2019-07-02 --output-dir ../work/iem_weather
+```
+
+IEM/NOAA currently return proxy CONNECT 403: a destination-policy denial, not
+Cloudflare. Offline import needs no network. Supply independently archived
+venue strike definitions, rules, and execution prints before qualifying PnL.

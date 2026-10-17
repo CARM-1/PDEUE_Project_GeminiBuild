@@ -104,6 +104,11 @@ def run_calibrated(path, venue):
     observation_result = None
     expiry = None
     if weather:
+        if not parsed.strike_ladder and not prints:
+            result = WalkForwardReplayHarness().run_authentic(path, venue='weather')
+            result.update(abstention_detail='NO_VERIFIED_STRIKE_OR_EXECUTION_TAPE',
+                          scenario_source='OBSERVATIONS_ONLY_NO_CALIBRATION')
+            return result
         first = min(parsed.observations, key=lambda tick: (tick.available_at_ns, tick.observation_id))
         if prints:
             seed_contract = min(p.contract_id for p in prints if p.timestamp_ns == prints[0].timestamp_ns)

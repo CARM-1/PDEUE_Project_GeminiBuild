@@ -1,19 +1,29 @@
-# Kalshi replay fixtures
+# Kalshi archive coverage is missing
 
-`raw_trades_macro.json` and `raw_trades_rates.json` are deterministic,
-**SYNTHETIC_REPRESENTATIVE** qualification fixtures, not authentic exchange
-captures. Each file declares this in `provenance`. Direct venue access was denied
-by the managed environment's outbound policy; no venue credentials were available.
+No authentic settled-contract trade/L2 archive was available. The former
+`raw_trades_macro.json` and `raw_trades_rates.json` files are explicitly synthetic
+and moved to `backend/tests/fixtures/representative_venues/kalshi/`.
+They cannot qualify authentic venue coverage. The public Kalshi API returns
+proxy CONNECT 403 under the managed destination policy.
 
-The public trade response shape follows `authentic_kalshi_tape_loader.py`:
-`trades[]` contains trade ID, ticker, nanosecond timestamp, integer YES price,
-lot count, and taker side. `taker_side=no` normalizes to aggressive YES selling.
-`initial_book` is a separate normalized L2 snapshot with integer cent/lot levels
-and an explicit timestamp and contract. Its levels are representative assumptions.
+Import an independently acquired archive:
 
-Vectors cover same-timestamp initialization, BUY exclusion, queue depletion,
-partial maker fills, price-through SELL flow, and out-of-horizon exclusion.
-They are suitable for regression replay, not historical profit certification.
-Replace them with archived responses and verifiable acquisition metadata before
-claiming authentic coverage. Public API reference:
-https://docs.kalshi.com/api-reference/market/get-trades
+```sh
+cd backend
+PYTHONPATH=. python -m app.adapters.kalshi_archive_harvester \
+  ../work/settled_kalshi_capture.json --output-dir ../data/venues/kalshi
+```
+
+An archive must include `source_url`, `retrieved_at`, an original `market`
+response with matching `ticker`, `status="settled"`, and `result="yes"` or
+`"no"`, plus `trades` and a historical normalized `initial_book`. Trades
+must satisfy `authentic_kalshi_tape_loader.py`. The book identifies the same
+contract, has an integer nanosecond timestamp no later than the first trade,
+and contains nonempty integer-cent/lot `bids` and `asks` without a crossed spread.
+No order book is inferred from trades or a current settled-market book.
+
+The exact source envelope is retained under `sources/`, linked by SHA-256.
+Imports validate schema, attribution, contract consistency, settlement shape,
+and timing. Byte integrity alone cannot certify attribution or official outcome;
+`official_settlement_verified` stays false. Source envelopes are excluded from
+batch discovery to prevent counting the same capture twice.

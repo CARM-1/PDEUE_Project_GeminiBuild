@@ -45,7 +45,7 @@ def test_initial_book_uses_conservative_depth_and_inside_price():
 ])
 def test_invalid_initial_books_fail_closed(tmp_path, change):
     path = tmp_path / 'raw_trades.json'
-    payload = json.loads((ROOT / 'data/venues/kalshi/raw_trades_macro.json').read_text())
+    payload = json.loads((ROOT / 'backend/tests/fixtures/representative_venues/kalshi/raw_trades_macro.json').read_text())
     payload['initial_book']['contract_id'] = 'A'
     for row in payload['trades']:
         row['ticker'] = 'A'
@@ -61,7 +61,7 @@ def test_invalid_initial_books_fail_closed(tmp_path, change):
 
 
 def test_weather_execution_uses_only_separate_trade_flow_and_enforces_expiry(tmp_path):
-    source = ROOT / 'data/venues/weather/raw_observations_kjfk.json'
+    source = ROOT / 'backend/tests/fixtures/representative_venues/weather/raw_observations_kjfk.json'
     result = run_calibrated(source, 'weather')
     assert result['filled_quantity'] == 10
     assert result['initial_q_ahead'] == 7
@@ -81,7 +81,7 @@ def test_weather_execution_uses_only_separate_trade_flow_and_enforces_expiry(tmp
 
 
 def test_observation_only_weather_calibrates_bounds_but_never_executes():
-    result = run_calibrated(ROOT / 'data/venues/weather/raw_observations_kord.json', 'weather')
+    result = run_calibrated(ROOT / 'backend/tests/fixtures/representative_venues/weather/raw_observations_kord.json', 'weather')
     assert result['abstention_detail'] == 'NO_EXECUTION_TAPE'
     assert result['parsed_observation_count'] == 5
     assert result['fills'] == []
@@ -90,7 +90,7 @@ def test_observation_only_weather_calibrates_bounds_but_never_executes():
 
 @pytest.mark.parametrize('bad', ['corrupt', 'unknown_contract', 'duplicate'])
 def test_bad_embedded_execution_tape_rejects_entire_weather_feed(tmp_path, bad):
-    payload = json.loads((ROOT / 'data/venues/weather/raw_observations_kjfk.json').read_text())
+    payload = json.loads((ROOT / 'backend/tests/fixtures/representative_venues/weather/raw_observations_kjfk.json').read_text())
     rows = payload['execution_tape']['trades']
     if bad == 'corrupt':
         rows[-1]['count'] = 'NaN'
@@ -114,8 +114,8 @@ def test_all_venues_support_strategy_d_and_one_conserved_waterfall(tmp_path):
         for tid, size, seconds, side in [('seed', 999, 0, 'SELL'), ('buy', 999, 1, 'BUY'),
                                          ('queue', 3, 2, 'SELL'), ('fill', 12, 3, 'SELL')]
     ]))
-    report = run_batch(venue_dirs={'polymarket': poly, 'kalshi': ROOT / 'data/venues/kalshi',
-                                  'weather': ROOT / 'data/venues/weather'})
+    report = run_batch(venue_dirs={'polymarket': poly, 'kalshi': ROOT / 'backend/tests/fixtures/representative_venues/kalshi',
+                                  'weather': ROOT / 'backend/tests/fixtures/representative_venues/weather'})
     assert report['status'] == 'COMPLETED'
     assert all(entry['maker_fill_count'] > 0 for entry in report['by_venue'].values())
     assert report['unique_summary']['maker_fill_count'] == 7
@@ -125,7 +125,7 @@ def test_all_venues_support_strategy_d_and_one_conserved_waterfall(tmp_path):
 
 
 def test_external_scenario_overrides_calibration_even_when_enabled(tmp_path):
-    payload = (ROOT / 'data/venues/kalshi/raw_trades_macro.json').read_bytes()
+    payload = (ROOT / 'backend/tests/fixtures/representative_venues/kalshi/raw_trades_macro.json').read_bytes()
     path = tmp_path / 'trades.json'
     path.write_bytes(payload)
     prints = parse_venue_tape(payload, 'kalshi')
@@ -143,7 +143,7 @@ def test_external_scenario_overrides_calibration_even_when_enabled(tmp_path):
 
 
 def test_weather_accepts_independent_execution_and_settlement_inputs(tmp_path):
-    payload = json.loads((ROOT / 'data/venues/weather/raw_observations_kjfk.json').read_text())
+    payload = json.loads((ROOT / 'backend/tests/fixtures/representative_venues/weather/raw_observations_kjfk.json').read_text())
     payload['execution_tape']['trades'] = payload['execution_tape']['trades'][:-1]
     path = tmp_path / 'weather.json'
     path.write_text(json.dumps(payload))
@@ -164,7 +164,7 @@ def test_weather_accepts_independent_execution_and_settlement_inputs(tmp_path):
 
 def test_calibrate_cli_flag_and_opt_out(tmp_path):
     command = [sys.executable, str(ROOT / 'backend/scripts/run_batch_authentic_replay.py'),
-               '--venues-root', str(ROOT / 'data/venues'), '--output', str(tmp_path / 'report.json')]
+               '--venues-root', str(ROOT / 'backend/tests/fixtures/representative_venues'), '--output', str(tmp_path / 'report.json')]
     for flag in ('--calibrate', '--no-calibrate'):
         subprocess.run(command + [flag], capture_output=True, check=True, timeout=10)
         report = json.loads((tmp_path / 'report.json').read_text())

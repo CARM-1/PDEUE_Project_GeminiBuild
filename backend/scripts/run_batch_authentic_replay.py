@@ -17,6 +17,8 @@ from app.domain.walk_forward_replay_harness import WalkForwardReplayHarness
 from app.domain.authentic_replay_calibration import run_calibrated, run_weather_with_execution
 from app.adapters.authentic_tape_router import parse_venue_tape, record_ids, contract_ids
 from app.adapters.authentic_weather_tape_loader import WeatherTape
+from app.adapters.archive_provenance import source_integrity
+from app.domain.authentic_replay_stress import stress_capture
 from run_walk_forward_replay import scenario_from_mapping
 
 DEFAULT_TAPE_DIR = REPOSITORY / 'data/venues/polymarket'
@@ -40,6 +42,8 @@ def discover_tapes(venue_dirs: dict) -> list[tuple[str, Path]]:
         for directory in directories if isinstance(directories, (list, tuple)) else [directories]:
             pattern = 'raw_trades_*.json' if venue == 'polymarket' else '*.json'
             for path in Path(directory).rglob(pattern):
+                if any(part in ('sources', 'quarantine') for part in path.relative_to(directory).parts):
+                    continue
                 if path.is_file() and not any(word in path.name.lower() for word in ('manifest', 'scenario', 'ladder')):
                     discovered.add((venue, path.resolve()))
     return sorted(discovered)
@@ -47,7 +51,8 @@ def discover_tapes(venue_dirs: dict) -> list[tuple[str, Path]]:
 
 def run_batch(tape_dir: Path = DEFAULT_TAPE_DIR, *, expected_tapes: int | None = None,
               expected_trades: int | None = None, venue_dirs: dict | None = None,
-              scenario_manifest: dict | None = None, auto_scenario: bool | None = None) -> dict:
+              scenario_manifest: dict | None = None, auto_scenario: bool | None = None,
+              require_authentic: bool = False, stress: bool = False) -> dict:
     """Evaluate every matching file; record rejections without admitting bad data.
 
     File totals intentionally include repeated captures. Unique capture totals
@@ -103,6 +108,24 @@ def run_batch(tape_dir: Path = DEFAULT_TAPE_DIR, *, expected_tapes: int | None =
             payload = json.loads(tape_bytes)
             scorecard['fixture_provenance'] = (payload.get('provenance', {'kind': 'UNVERIFIED'})
                                                if isinstance(payload, dict) else {'kind': 'UNVERIFIED'})
+            receipt_path = path.parent / 'provenance_manifest.json'
+            if venue == 'polymarket' and receipt_path.is_file():
+                receipt_index = json.loads(receipt_path.read_bytes())
+                if not isinstance(receipt_index, dict):
+                    raise ValueError('provenance manifest must be an object')
+                receipt = receipt_index.get(path.name)
+                if receipt is not None:
+                    if not isinstance(receipt, dict) or receipt.get('tape_sha256') != digest:
+                        raise ValueError('capture receipt digest mismatch')
+                    scorecard['fixture_provenance'] = receipt
+            scorecard['source_integrity_verified'] = source_integrity(path, scorecard['fixture_provenance'])
+            if stress:
+                if scenario is None and not auto_scenario:
+                    scorecard['stress'] = {'status': 'NOT_APPLICABLE',
+                                          'reason': 'MISSING_INDEPENDENT_REPLAY_SCENARIO', 'cases': {}}
+                else:
+                    scorecard['stress'] = stress_capture(path, venue, scenario=execution or scenario,
+                                                         queue_ahead=queue_ahead)
             parsed = parse_venue_tape(tape_bytes, venue)
             ids = {(venue, record_id) for record_id in record_ids(parsed)}
             capture_key = (venue, digest)
@@ -190,6 +213,13 @@ def run_batch(tape_dir: Path = DEFAULT_TAPE_DIR, *, expected_tapes: int | None =
     }
     unique_summary['exact_cent_conservation'] = bool(unique) and (
         sum(unique_waterfall.values()) == unique_summary['net_pnl_cents'])
+    unique_summary['posted_quantity'] = sum(result['posted_quantity'] for result in unique)
+    unique_summary['fill_rate'] = (unique_summary['volume_deployed'] / unique_summary['posted_quantity']
+                                   if unique_summary['posted_quantity'] else 0)
+    unique_summary['initial_capital_cents'] = sum(result['initial_capital_cents'] for result in unique)
+    unique_summary['capital_deployment_rate'] = (
+        unique_summary['deployed_cents'] / unique_summary['initial_capital_cents']
+        if unique_summary['initial_capital_cents'] else 0)
     by_venue = {}
     for venue in venue_dirs:
         entries = [result for result in evaluated if result['venue'] == venue]
@@ -210,11 +240,52 @@ def run_batch(tape_dir: Path = DEFAULT_TAPE_DIR, *, expected_tapes: int | None =
             'waterfall': {name: sum(result['waterfall'][name] for result in financial) for name in waterfall},
         }
     calibrated = any(result.get('scenario_source', '').startswith('CALIBRATED') for result in evaluated)
+    coverage = all(by_venue.get(venue, {}).get('status') == 'EVALUATED'
+                   for venue in ('polymarket', 'kalshi', 'weather'))
+    integrity = bool(unique) and all(result.get('source_integrity_verified') for result in unique)
+    # Source byte integrity is necessary, but it does not establish official
+    # venue settlement or authentic historical L2. Never promote an attribution.
+    official_verified = bool(unique) and all(result.get('official_settlement_verified') is True
+                                            for result in unique)
+    authentic_qualified = (integrity and coverage and official_verified and not calibrated
+                           and not summary['duplicate_tape_count'] and not summary['rejected_tapes'])
+    stress_aggregates = {}
+    if stress:
+        case_names = sorted({name for result in unique for name in result.get('stress', {}).get('cases', {})})
+        for name in case_names:
+            cases = [result['stress']['cases'][name] for result in unique
+                     if name in result.get('stress', {}).get('cases', {})]
+            posted = sum(case['posted_quantity'] for case in cases)
+            filled = sum(case['filled_quantity'] for case in cases)
+            split = {key: sum(case['waterfall'][key] for case in cases) for key in waterfall}
+            stress_aggregates[name] = {
+                'tape_count': len(cases), 'posted_quantity': posted, 'filled_quantity': filled,
+                'fill_rate': filled / posted if posted else 0,
+                'deployed_cents': sum(case['deployed_cents'] for case in cases),
+                'net_pnl_cents': sum(case['net_pnl_cents'] for case in cases), 'waterfall': split,
+                'exact_cent_conservation': all(case['exact_cent_conservation'] for case in cases),
+            }
+    blockers = []
+    if not coverage:
+        blockers.append('MISSING_AUTHENTIC_VENUE_COVERAGE')
+    if not integrity:
+        blockers.append('UNVERIFIED_OR_MISSING_SOURCE_RECEIPTS')
+    if not official_verified:
+        blockers.append('OFFICIAL_SETTLEMENT_AND_HISTORICAL_L2_NOT_INDEPENDENTLY_VERIFIED')
+    if calibrated:
+        blockers.append('CALIBRATED_PNL_USES_ASSUMED_SETTLEMENT')
     return {
         'schema_version': 4,
-        'status': 'COMPLETED' if qualified else 'INCOMPLETE',
-        'replay_mode': 'AUTO_SCENARIO_SIMULATION' if calibrated else 'INDEPENDENT_SCENARIO_REPLAY',
-        'pnl_basis': 'SIMULATED_SETTLEMENT' if calibrated else 'EXTERNAL_SCENARIO_SETTLEMENT_OR_ABSTENTION',
+        'status': 'COMPLETED' if qualified and (not require_authentic or authentic_qualified) else 'INCOMPLETE',
+        'qualification_status': 'BLOCKED' if not authentic_qualified else 'QUALIFIED',
+        'qualification_blockers': blockers,
+        'require_authentic': require_authentic,
+        'stress': {'requested': stress, 'status': 'SIMULATED' if stress_aggregates else 'NO_EXECUTION_TAPES',
+                   'aggregates': stress_aggregates},
+        'replay_mode': ('OBSERVATIONS_ONLY' if not summary['total_trades_parsed'] else
+                        'AUTO_SCENARIO_SIMULATION' if calibrated else 'INDEPENDENT_SCENARIO_REPLAY'),
+        'pnl_basis': ('NO_EXECUTION' if not summary['total_trades_parsed'] else
+                      'SIMULATED_SETTLEMENT' if calibrated else 'EXTERNAL_SCENARIO_SETTLEMENT_OR_ABSTENTION'),
         'assumptions': {
             'pricing': 'Calibrated scenarios use an initial L2 snapshot when supplied; otherwise '
                        'the first print seeds an assumed two-cent spread. Neither reconstructs a historical book.',
@@ -237,11 +308,13 @@ def run_batch(tape_dir: Path = DEFAULT_TAPE_DIR, *, expected_tapes: int | None =
         'data_qualification': {
             'fresh_harvest_verified': False,
             'nonoverlapping_captures': bool(unique) and not summary['duplicate_tape_count'] and not summary['rejected_tapes'],
-            'official_settlement_verified': False,
+            'official_settlement_verified': official_verified,
             'synthetic_representative_tapes': sum(
                 isinstance(result.get('fixture_provenance'), dict) and
                 result['fixture_provenance'].get('kind') == 'SYNTHETIC_REPRESENTATIVE' for result in evaluated),
-            'authentic_provenance_verified': False,
+            'authentic_provenance_verified': authentic_qualified,
+            'archived_source_integrity_verified': integrity,
+            'archived_source_integrity_tape_count': sum(bool(result.get('source_integrity_verified')) for result in unique),
             'venue_coverage_complete': all(result['status'] == 'EVALUATED' for result in by_venue.values()),
             'scope': 'Offline replay of existing captures; neither a new harvest nor venue profit certification.',
         },
@@ -295,15 +368,22 @@ def render_markdown(report: dict) -> str:
         f"{result['trade_print_count']} | {result['observation_count']} | {result['admitted']} / {result['abstained']} |"
         f" {result['maker_fill_count']} | {result['deployed_cents']} | {result['net_pnl_cents']} |"
         for venue, result in report['by_venue'].items())
-    return f"""# PDEUE WP-8R Multi-Venue Calibrated Replay Scorecard
+    stress_rows = '\n'.join(
+        f"| {name} | {case['tape_count']} | {case['fill_rate']:.2%} | {case['deployed_cents']} | {case['net_pnl_cents']} |"
+        for name, case in report['stress']['aggregates'].items()) or '| No exchange execution tapes | 0 | 0% | 0 | 0 |'
+    return f"""# PDEUE WP-8S Data Provenance and Replay Scorecard
 
 Source: `backend/reports/authentic_batch_replay_scorecard.json`.
 Mode: **{report['replay_mode']}**.
+Batch status: **{report['status']}**. Authentic qualification: **{report['qualification_status']}**.
+Qualification blockers: {', '.join(report['qualification_blockers']) or 'none'}.
 Financial results use provided scenarios or default calibrated simulation assumptions.
 Calibrated fair probability (0.99), winning payout, and inferred spreads are assumptions.
 NOAA temperatures remain observations and never create trade prices, lots, or maker fills.
 Weather maker fills require a separate validated exchange execution tape.
-Representative fixtures are labeled SYNTHETIC_REPRESENTATIVE; authentic provenance remains unverified.
+Retained source integrity passes for {report['data_qualification']['archived_source_integrity_tape_count']} unique tapes.
+Source hashes verify retained bytes; official contract settlement remains independently unverified.
+Production data contains archived station observations; representative trade fixtures live under tests.
 
 | Venue | Coverage | Files | Markets identified | Trade prints | Observations | Admitted / abstained | Maker fills | Capital (cents) | Net PnL (scenario cents) |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -317,8 +397,10 @@ Representative fixtures are labeled SYNTHETIC_REPRESENTATIVE; authentic provenan
 | Post-decision token prints replayed | {u['replayed_trade_count']} |
 | Initialization prints excluded | {u['initialization_trade_count']} |
 | Maker fill events | {u['maker_fill_count']} |
+| Filled / posted lot rate | {u['fill_rate']:.2%} |
 | Filled volume (lots) | {u['volume_deployed']} |
 | Deployed capital (cents) | {u['deployed_cents']} |
+| Capital deployment rate | {u['capital_deployment_rate']:.2%} |
 | Settlement payout (scenario cents) | {u['payout_cents']} |
 | Fees (cents) | {u['fee_cents']} |
 | Net realized PnL (scenario cents) | {u['net_pnl_cents']} |
@@ -331,6 +413,17 @@ Representative fixtures are labeled SYNTHETIC_REPRESENTATIVE; authentic provenan
 | Total | Equals net PnL exactly | {sum(split.values())} |
 
 Unique-capture cent conservation: **{'PASS' if u['exact_cent_conservation'] else 'FAIL'}**.
+
+Adversarial stress status: **{report['stress']['status']}**.
+
+| Assumed stress case | Captures | Fill rate | Capital (cents) | Net PnL (scenario cents) |
+| --- | ---: | ---: | ---: | ---: |
+{stress_rows}
+
+Stress cases require exchange prints. Slippage requires SELL flow at least two cents
+through our bid; widened spreads above eight cents block new orders; queue exhaustion
+uses full-horizon seller volume plus one lot as an adversarial bound. Zero-payout
+resolution measures losses with unchanged fills. These are explicit simulations.
 
 The batch evaluated {s['total_tapes_evaluated']} files and parsed {s['total_trades_parsed']}
 records: {s['unique_tape_count']} unique captures and {s['duplicate_tape_count']} duplicate copies.
@@ -359,9 +452,14 @@ and make the batch INCOMPLETE with a nonzero CLI exit.
 
 The corrected harvester uses market-filtered offset pagination, exact condition
 and YES-token verification, and cross-market hash uniqueness before writing files.
-Fresh harvesting has not been verified for this offline report. Existing duplicate
-captures remain preserved; their filename markets do not establish their contents'
-settled-market provenance. Official settlement is not available for this simulation.
+The former 30 identical Polymarket captures have been removed from active replay.
+One byte-identical original remains in `data/quarantine/polymarket/global_capture.json`;
+`data/venues/polymarket/quarantine_manifest.json` records all purged names and hashes.
+Its 41 condition IDs do not match the settled-market manifest. No such prints qualify
+as distinct settled events. Authentic Kalshi archives are still missing.
+Weather observations have no verified strike terms, official daily climate settlement,
+or exchange executions. Their availability is conservatively set to archive retrieval
+because historical publication times are unknown. No station observation can produce PnL.
 Missing venue datasets: {', '.join(report['missing_venues']) or 'none'}.
 """
 
@@ -385,6 +483,9 @@ def main() -> int:
                         help='Markdown scorecard; defaults to reports/LATEST_REPLAY_SCORECARD.md for the default JSON output')
     parser.add_argument('--expected-tapes', type=int)
     parser.add_argument('--expected-trades', type=int)
+    parser.add_argument('--require-authentic', action='store_true',
+                        help='Fail qualification when authentic venue coverage or settlement evidence is missing')
+    parser.add_argument('--stress', action='store_true', help='Run adverse execution simulations per unique capture')
     args = parser.parse_args()
     if any(value is not None and value <= 0 for value in (args.expected_tapes, args.expected_trades)):
         parser.error('expected counts must be positive')
@@ -398,7 +499,8 @@ def main() -> int:
         venue_dirs['weather'] = args.weather_dir
     scenarios = json.loads(args.scenario_manifest.read_text()) if args.scenario_manifest else None
     report = run_batch(expected_tapes=args.expected_tapes, expected_trades=args.expected_trades,
-                       venue_dirs=venue_dirs, scenario_manifest=scenarios, auto_scenario=args.calibrate)
+                       venue_dirs=venue_dirs, scenario_manifest=scenarios, auto_scenario=args.calibrate,
+                       require_authentic=args.require_authentic, stress=args.stress)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + '\n', encoding='utf-8')
     markdown_output = args.markdown_output

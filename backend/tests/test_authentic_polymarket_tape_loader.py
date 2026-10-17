@@ -162,13 +162,12 @@ def test_authentic_cli_with_explicit_scenario(tmp_path):
     assert 'complete ReplayScenario' in incomplete.stderr
 
 
-def test_captured_default_tape_end_to_end():
-    if not DEFAULT_TAPE.is_file():
-        pytest.skip(f'captured tape not supplied: {DEFAULT_TAPE}')
-    prints = load_authentic_polymarket_tape(DEFAULT_TAPE)
-    result = WalkForwardReplayHarness().run_authentic(DEFAULT_TAPE)
+def test_quarantined_capture_parses_but_cannot_supply_an_independent_scenario():
+    path = Path(__file__).resolve().parents[2] / 'data/quarantine/polymarket/global_capture.json'
+    prints = load_authentic_polymarket_tape(path)
+    result = WalkForwardReplayHarness().run_authentic(path)
     assert result['trade_print_count'] == len(prints) > 0
-    assert result['fixture_sha256'] == hashlib.sha256(DEFAULT_TAPE.read_bytes()).hexdigest()
+    assert result['fixture_sha256'] == hashlib.sha256(path.read_bytes()).hexdigest()
     assert result['reason'] == 'ABSTAINED'
     split = result['waterfall']
     assert split['scma_cents'] + split['cfcp_cents'] + split['faep_cents'] == result['net_pnl_cents']

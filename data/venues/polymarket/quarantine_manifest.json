@@ -1,0 +1,130 @@
+{
+  "status": "QUARANTINED_UNVERIFIED_GLOBAL_CAPTURE",
+  "reason": "All 30 filenames contain identical bytes; 41 actual condition IDs do not match any settled-manifest entry. No verified settlement or acquisition receipt.",
+  "preserved_capture": "data/quarantine/polymarket/global_capture.json",
+  "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b",
+  "raw_trade_count": 100,
+  "distinct_conditions": 41,
+  "purged_files": [
+    {
+      "path": "data/venues/polymarket/raw_trades_0x0c4cd2055d6ea8.json",
+      "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b"
+    },
+    {
+      "path": "data/venues/polymarket/raw_trades_0x17815081230e3b.json",
+      "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b"
+    },
+    {
+      "path": "data/venues/polymarket/raw_trades_0x1d2787cb8aed97.json",
+      "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b"
+    },
+    {
+      "path": "data/venues/polymarket/raw_trades_0x230144e34a84df.json",
+      "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b"
+    },
+    {
+      "path": "data/venues/polymarket/raw_trades_0x25aa90b3cd9830.json",
+      "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b"
+    },
+    {
+      "path": "data/venues/polymarket/raw_trades_0x265366ede72d73.json",
+      "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b"
+    },
+    {
+      "path": "data/venues/polymarket/raw_trades_0x3733a1b647e736.json",
+      "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b"
+    },
+    {
+      "path": "data/venues/polymarket/raw_trades_0x37963e2b319445.json",
+      "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b"
+    },
+    {
+      "path": "data/venues/polymarket/raw_trades_0x37a6de1b21803e.json",
+      "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b"
+    },
+    {
+      "path": "data/venues/polymarket/raw_trades_0x43ec78527bd98a.json",
+      "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b"
+    },
+    {
+      "path": "data/venues/polymarket/raw_trades_0x4c5701bcde0b8f.json",
+      "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b"
+    },
+    {
+      "path": "data/venues/polymarket/raw_trades_0x55c551896c10a7.json",
+      "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b"
+    },
+    {
+      "path": "data/venues/polymarket/raw_trades_0x5ccfe1b69a582d.json",
+      "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b"
+    },
+    {
+      "path": "data/venues/polymarket/raw_trades_0x655e5ca101c466.json",
+      "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b"
+    },
+    {
+      "path": "data/venues/polymarket/raw_trades_0x6903b766f5fda3.json",
+      "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b"
+    },
+    {
+      "path": "data/venues/polymarket/raw_trades_0x6d0e09d0f04572.json",
+      "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b"
+    },
+    {
+      "path": "data/venues/polymarket/raw_trades_0x7412d284c8f637.json",
+      "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b"
+    },
+    {
+      "path": "data/venues/polymarket/raw_trades_0x763cc84a3cde36.json",
+      "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b"
+    },
+    {
+      "path": "data/venues/polymarket/raw_trades_0x7976b8dbacf907.json",
+      "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b"
+    },
+    {
+      "path": "data/venues/polymarket/raw_trades_0x7c6c69d91b21cb.json",
+      "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b"
+    },
+    {
+      "path": "data/venues/polymarket/raw_trades_0x7da35195ac3c7b.json",
+      "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b"
+    },
+    {
+      "path": "data/venues/polymarket/raw_trades_0x9872fe47fbf628.json",
+      "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b"
+    },
+    {
+      "path": "data/venues/polymarket/raw_trades_0xa93b28a6384aef.json",
+      "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b"
+    },
+    {
+      "path": "data/venues/polymarket/raw_trades_0xb018023b67a978.json",
+      "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b"
+    },
+    {
+      "path": "data/venues/polymarket/raw_trades_0xc3d41551486817.json",
+      "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b"
+    },
+    {
+      "path": "data/venues/polymarket/raw_trades_0xc6485bb7ea46d7.json",
+      "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b"
+    },
+    {
+      "path": "data/venues/polymarket/raw_trades_0xcdb1f040094923.json",
+      "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b"
+    },
+    {
+      "path": "data/venues/polymarket/raw_trades_0xd86a816093fcd0.json",
+      "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b"
+    },
+    {
+      "path": "data/venues/polymarket/raw_trades_0xdd22472e552920.json",
+      "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b"
+    },
+    {
+      "path": "data/venues/polymarket/raw_trades_0xebddfcf7b4401d.json",
+      "sha256": "9a63e4a2b29b33190c40246fd76448ea3173eb61ada45a46c7b59714495c516b"
+    }
+  ]
+}

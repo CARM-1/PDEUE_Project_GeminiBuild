@@ -1,176 +1,28 @@
 {
-  "type": "FeatureCollection",
+  "observations": [
+    {
+      "observation_id": "KJFK:1561981860000000000",
+      "station_id": "KJFK",
+      "timestamp_ns": 1561981860000000000,
+      "available_at": "2026-10-17T04:10:04.809132+00:00",
+      "temperature_c": "21.7",
+      "raw_metar": "KJFK 011151Z 01011G18KT 10SM CLR 22/15 A2993 RMK AO2 SLP134 70006 T02170150 10217 20183 53007 $="
+    }
+  ],
+  "strike_ladder": [],
   "provenance": {
-    "kind": "SYNTHETIC_REPRESENTATIVE",
-    "authentic_capture": false,
-    "description": "Deterministic schema qualification fixture. Not captured exchange activity or NOAA measurements.",
-    "source": "WP-8R offline fixture construction; upstream access blocked by environment network policy"
-  },
-  "features": [
-    {
-      "type": "Feature",
-      "id": "WP8R-KJFK-initial",
-      "properties": {
-        "station": "https://api.weather.gov/stations/KJFK",
-        "timestamp": "2025-01-01T00:00:00Z",
-        "available_at": "2025-01-01T00:00:00Z",
-        "temperature": {
-          "value": 20,
-          "unitCode": "wmoUnit:degC"
-        }
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "WP8R-KJFK-during",
-      "properties": {
-        "station": "https://api.weather.gov/stations/KJFK",
-        "timestamp": "2025-01-01T00:03:00Z",
-        "available_at": "2025-01-01T00:03:10Z",
-        "temperature": {
-          "value": 21,
-          "unitCode": "wmoUnit:degC"
-        }
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "WP8R-KJFK-late",
-      "properties": {
-        "station": "https://api.weather.gov/stations/KJFK",
-        "timestamp": "2025-01-01T00:04:00Z",
-        "available_at": "2025-01-01T00:06:00Z",
-        "temperature": {
-          "value": 24,
-          "unitCode": "wmoUnit:degC"
-        }
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "WP8R-KJFK-expiry",
-      "properties": {
-        "station": "https://api.weather.gov/stations/KJFK",
-        "timestamp": "2025-01-01T00:05:00Z",
-        "available_at": "2025-01-01T00:05:00Z",
-        "temperature": {
-          "value": 22,
-          "unitCode": "wmoUnit:degC"
-        }
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "WP8R-KJFK-after",
-      "properties": {
-        "station": "https://api.weather.gov/stations/KJFK",
-        "timestamp": "2025-01-01T00:06:00Z",
-        "available_at": "2025-01-01T00:06:00Z",
-        "temperature": {
-          "value": 25,
-          "unitCode": "wmoUnit:degC"
-        }
-      }
-    }
-  ],
-  "strike_ladder": [
-    {
-      "contract_id": "WP8R-KJFK-68-72",
-      "station_id": "KJFK",
-      "expiry": "2025-01-01T00:05:00Z",
-      "lower_f": 68,
-      "upper_f": 72
-    },
-    {
-      "contract_id": "WP8R-KJFK-68-72-UPPER",
-      "station_id": "KJFK",
-      "expiry": "2025-01-01T00:05:00Z",
-      "lower_f": 72,
-      "upper_f": 76
-    }
-  ],
-  "execution_tape": {
-    "trades": [
-      {
-        "trade_id": "weather-jfk-00-seed",
-        "ticker": "WP8R-KJFK-68-72",
-        "yes_price": 45,
-        "count": 2,
-        "timestamp_ns": 1735689600000000000,
-        "taker_side": "no"
-      },
-      {
-        "trade_id": "weather-jfk-01-same-tick",
-        "ticker": "WP8R-KJFK-68-72",
-        "yes_price": 45,
-        "count": 500,
-        "timestamp_ns": 1735689600000000000,
-        "taker_side": "no"
-      },
-      {
-        "trade_id": "weather-jfk-02-buy",
-        "ticker": "WP8R-KJFK-68-72",
-        "yes_price": 45,
-        "count": 500,
-        "timestamp_ns": 1735689601000000000,
-        "taker_side": "yes"
-      },
-      {
-        "trade_id": "weather-jfk-03-queue",
-        "ticker": "WP8R-KJFK-68-72",
-        "yes_price": 45,
-        "count": 3,
-        "timestamp_ns": 1735689602000000000,
-        "taker_side": "no"
-      },
-      {
-        "trade_id": "weather-jfk-04-partial",
-        "ticker": "WP8R-KJFK-68-72",
-        "yes_price": 44,
-        "count": 8,
-        "timestamp_ns": 1735689603000000000,
-        "taker_side": "no"
-      },
-      {
-        "trade_id": "weather-jfk-05-fill",
-        "ticker": "WP8R-KJFK-68-72",
-        "yes_price": 45,
-        "count": 12,
-        "timestamp_ns": 1735689604000000000,
-        "taker_side": "no"
-      },
-      {
-        "trade_id": "weather-jfk-06-after-horizon",
-        "ticker": "WP8R-KJFK-68-72",
-        "yes_price": 45,
-        "count": 500,
-        "timestamp_ns": 1735689901000000000,
-        "taker_side": "no"
-      }
-    ]
-  },
-  "initial_book": {
-    "contract_id": "WP8R-KJFK-68-72",
-    "timestamp_ns": 1735689600000000000,
-    "bids": [
-      [
-        45,
-        7
-      ],
-      [
-        44,
-        20
-      ]
-    ],
-    "asks": [
-      [
-        48,
-        9
-      ],
-      [
-        49,
-        30
-      ]
-    ]
+    "kind": "ARCHIVED_OBSERVATIONS",
+    "source_url": "https://github.com/Unidata/MetPy/blob/f4e4d2509a485b969efb8270401d7585f8bec68e/staticdata/metar_20190701_1200.txt",
+    "source_file": "sources/metar_20190701_1200_excerpt.txt",
+    "source_sha256": "cefa2a4c255b0a390d4e62f82d63116907328b7d01984115b0df0e5e91903448",
+    "upstream_git_blob_sha1": "156ffa9ee255827566c35ed09b99976902b07998",
+    "upstream_sha256": "740715c698718557871ce8c93b43771f0f1b643ab3f5e43cf7cf76678de35880",
+    "upstream_bytes": 1540621,
+    "archive_year": 2019,
+    "archive_month": 7,
+    "retrieved_at": "2026-10-17T04:10:04.809132+00:00",
+    "acquisition": "GitHub connector; complete bulletin Git blob verified before exact station-message extraction",
+    "availability": "Historical publication time unknown; conservative availability is retrieval time",
+    "official_settlement_verified": false
   }
 }
