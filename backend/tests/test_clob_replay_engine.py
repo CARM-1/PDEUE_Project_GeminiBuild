@@ -35,11 +35,17 @@ def test_clob_replay_maker_execution_and_spread_capture():
     )
     assert order is not None
     assert order.status == "RESTING_MAKER"
-    assert engine.spread_savings_cents > 0
-    assert engine.taker_fees_avoided_cents > 0
+    assert engine.spread_savings_cents == engine.taker_fees_avoided_cents == 0
+    assert engine.maker_rebates_earned_cents == 0
+    assert "KX-SPX-5820" not in engine.open_positions
 
-    engine.process_trade_tape_print("KX-SPX-5820", print_price_cents=21, print_qty=1000)
-    assert "KX-SPX-5820" in engine.open_positions
+    # Synthetic volume exercises match attribution and the reserved quantity cap.
+    engine.process_trade_tape_print(
+        "KX-SPX-5820", print_price_cents=21, filled_qty=order.quantity + 1,
+    )
+    assert engine.open_positions["KX-SPX-5820"]["quantity"] == order.quantity
+    assert engine.spread_savings_cents == (25 - 21) * order.quantity
+    assert engine.taker_fees_avoided_cents > 0
 
 def test_clob_replay_quote_pull_on_macro_news():
     engine = CLOBReplayEngine(initial_equity_cents=1_000_000)
@@ -113,7 +119,7 @@ def test_clob_replay_early_profit_harvest():
         should_pull_quotes=False,
         harvest_eligible=False
     )
-    engine.evaluate_and_stage_order(
+    order = engine.evaluate_and_stage_order(
         order_id="ORD-NFL",
         contract_id="KX-NFL-KC-3",
         category="sports_spreads",
@@ -123,10 +129,15 @@ def test_clob_replay_early_profit_harvest():
         best_ask_cents=55,
         timestamp_ns=1700000000000
     )
-    engine.process_trade_tape_print("KX-NFL-KC-3", print_price_cents=50, print_qty=500)
-    assert "KX-NFL-KC-3" in engine.open_positions
+    assert order is not None
+    engine.process_trade_tape_print("KX-NFL-KC-3", print_price_cents=50, filled_qty=order.quantity)
+    assert engine.open_positions["KX-NFL-KC-3"]["quantity"] == order.quantity
+    assert not engine.evaluate_early_harvest("KX-NFL-KC-3", current_market_bid_cents=79)
 
     harvested = engine.evaluate_early_harvest("KX-NFL-KC-3", current_market_bid_cents=82)
     assert harvested is True
     assert "KX-NFL-KC-3" not in engine.open_positions
     assert engine.positions_harvested_early == 1
+    assert engine.available_cash_cents == 1_000_000 + (82 - 50) * order.quantity
+    assert engine.total_equity_cents == engine.available_cash_cents
+    assert engine.factor_allocations["NFL_WEEK_4"] == 0

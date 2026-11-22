@@ -10,6 +10,7 @@ Governing Invariants:
 """
 
 from dataclasses import dataclass, field
+from fractions import Fraction
 from typing import Dict, Any, List, Optional, Tuple
 from app.domain.expansion_adapters import (
     LaborUnderwritingAdapter,
@@ -54,11 +55,11 @@ class CLOBReplayEngine:
         self.initial_equity_cents = initial_equity_cents
         self.total_equity_cents = initial_equity_cents
         self.available_cash_cents = initial_equity_cents
-        self.dry_powder_floor_cents = int(initial_equity_cents * dry_powder_floor_pct)
+        self.dry_powder_floor_cents = int(initial_equity_cents * Fraction(str(dry_powder_floor_pct)))
 
         # Factor group margin tracking (max 10% per group)
         self.factor_allocations: Dict[str, int] = {}
-        self.max_factor_cap_cents = int(initial_equity_cents * 0.10)
+        self.max_factor_cap_cents = initial_equity_cents // 10
 
         # Active state books
         self.resting_orders: Dict[str, ReplayOrder] = {}
@@ -112,7 +113,7 @@ class CLOBReplayEngine:
         # 2. Risk Sizing via Retained-Kelly (Quarter-Kelly <= 2.0%)
         adapter = self.adapters.get(category)
         kelly_fraction = adapter.calculate_retained_kelly(decision.fair_probability, decision.recommended_bid_cents) if adapter else 0.015
-        order_cost_cents = int(self.total_equity_cents * kelly_fraction)
+        order_cost_cents = int(self.total_equity_cents * Fraction(str(kelly_fraction)))
         quantity = max(1, order_cost_cents // decision.recommended_bid_cents)
         total_cost = quantity * decision.recommended_bid_cents
 
@@ -147,31 +148,37 @@ class CLOBReplayEngine:
         return order
 
     def process_trade_tape_print(self, contract_id: str, print_price_cents: int, filled_qty: int):
-        """Fills resting maker orders incrementally upon authentic tape print"""
+        """Apply replay fill volume to resting orders, up to reserved quantities."""
         for oid, order in list(self.resting_orders.items()):
-            if order.contract_id == contract_id and order.status == "RESTING_MAKER":
-                if print_price_cents <= order.price_cents and filled_qty > 0:
-                    order.filled_quantity += filled_qty
-                    
-                    # Credit savings ONLY on confirmed executed shares
-                    spread_saved = (order.best_ask_cents - order.price_cents) * filled_qty
-                    taker_avoided = int(round(order.best_ask_cents * 0.02 * filled_qty))
-                    maker_rebate = int(round(order.price_cents * 0.005 * filled_qty))
+            if filled_qty <= 0:
+                break
+            if (order.contract_id != contract_id or order.status != "RESTING_MAKER"
+                    or print_price_cents > order.price_cents):
+                continue
 
-                    self.spread_savings_cents += max(0, spread_saved)
-                    self.taker_fees_avoided_cents += taker_avoided
-                    self.maker_rebates_earned_cents += maker_rebate
+            executed_qty = min(filled_qty, order.quantity - order.filled_quantity)
+            order.filled_quantity += executed_qty
+            filled_qty -= executed_qty
 
-                    if order.filled_quantity >= order.quantity:
-                        order.status = "FILLED"
-                        self.open_positions[contract_id] = {
-                            "order_id": oid,
-                            "entry_price_cents": order.price_cents,
-                            "quantity": order.filled_quantity,
-                            "category": order.category,
-                            "factor_group": order.factor_group
-                        }
-                        del self.resting_orders[oid]
+            # Attribute integer cents only to simulated shares actually executed.
+            spread_saved = (order.best_ask_cents - order.price_cents) * executed_qty
+            taker_avoided = round(Fraction(order.best_ask_cents * executed_qty, 50))
+            maker_rebate = round(Fraction(order.price_cents * executed_qty, 200))
+
+            self.spread_savings_cents += max(0, spread_saved)
+            self.taker_fees_avoided_cents += taker_avoided
+            self.maker_rebates_earned_cents += maker_rebate
+
+            if order.filled_quantity == order.quantity:
+                order.status = "FILLED"
+                self.open_positions[contract_id] = {
+                    "order_id": oid,
+                    "entry_price_cents": order.price_cents,
+                    "quantity": order.filled_quantity,
+                    "category": order.category,
+                    "factor_group": order.factor_group
+                }
+                del self.resting_orders[oid]
 
     def expire_unfilled_order(self, order_id: str):
         """Releases locked capital if an order times out or expires without full fills"""
