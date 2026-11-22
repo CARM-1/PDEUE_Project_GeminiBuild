@@ -1,0 +1,190 @@
+{
+  "specification": "PDEUE Gate G2 Adversarial Rulebook (WP-8V)",
+  "version": "1.0.0-candidate",
+  "status": "READY_FOR_UMPIRE_AUDIT",
+  "gate_g1_status": "HOLD_OBSERVATIONS_ONLY",
+  "rules": [
+    {
+      "rule_id": "A01",
+      "title": "No Synthetic Historical L2 Depth",
+      "requirement": "Gate G1 remains fail-closed until continuous verified L2 order-book tapes exist.",
+      "enforcement": "FAIL_CLOSED",
+      "umpire_review_required": false
+    },
+    {
+      "rule_id": "A02",
+      "title": "No Fabricated Maker Fills",
+      "requirement": "Synthetic or predefined historical maker fills are permanently banned under WP-8S.",
+      "enforcement": "FAIL_CLOSED",
+      "umpire_review_required": false
+    },
+    {
+      "rule_id": "A03",
+      "title": "Point-in-Time Evidence Cutoff",
+      "requirement": "All underwriting inputs must precede the PIT cutoff timestamp; zero lookahead leakage.",
+      "enforcement": "FAIL_CLOSED",
+      "umpire_review_required": false
+    },
+    {
+      "rule_id": "A04",
+      "title": "Conditional EV Non-Double-Counting",
+      "requirement": "EV_fill = E[Payoff | Fill] - Price - Effective_Fees; adverse selection enters via fill-conditioned win rate only.",
+      "enforcement": "FAIL_CLOSED",
+      "umpire_review_required": false
+    },
+    {
+      "rule_id": "A05",
+      "title": "Positive Net Edge Hurdle",
+      "requirement": "Candidates with non-positive conditional EV after fees are rejected fail-closed.",
+      "enforcement": "FAIL_CLOSED",
+      "umpire_review_required": false
+    },
+    {
+      "rule_id": "A06",
+      "title": "Finite Order Lifecycle",
+      "requirement": "Orders may only occupy states in Candidate -> Prepared -> Resting -> Filled/Cancelled/Raced -> Settled -> Ledger.",
+      "enforcement": "FAIL_CLOSED",
+      "umpire_review_required": false
+    },
+    {
+      "rule_id": "A07",
+      "title": "No Skipped or Backward Transitions",
+      "requirement": "Lifecycle transitions must follow the directed acyclic transition table without backward hops.",
+      "enforcement": "FAIL_CLOSED",
+      "umpire_review_required": false
+    },
+    {
+      "rule_id": "A08",
+      "title": "Terminal State Immutability",
+      "requirement": "Ledger and terminal Cancelled/Raced states are immutable once recorded.",
+      "enforcement": "FAIL_CLOSED",
+      "umpire_review_required": false
+    },
+    {
+      "rule_id": "A09",
+      "title": "Overfill Cap Enforcement",
+      "requirement": "Cumulative filled_qty must never exceed reserved_qty.",
+      "enforcement": "FAIL_CLOSED",
+      "umpire_review_required": false
+    },
+    {
+      "rule_id": "A10",
+      "title": "Pre-Event Calendar Blackouts",
+      "requirement": "Calendar-driven quote cancellations replace sub-millisecond HFT race simulations.",
+      "enforcement": "FAIL_CLOSED",
+      "umpire_review_required": false
+    },
+    {
+      "rule_id": "A11",
+      "title": "Strategy D Passive Maker Posture",
+      "requirement": "Maker limit orders serve strictly as fee-avoidance tactics, never speculative latency chasing.",
+      "enforcement": "FAIL_CLOSED",
+      "umpire_review_required": false
+    },
+    {
+      "rule_id": "A12",
+      "title": "ADR-008 Integer-Cent Conservation",
+      "requirement": "All monetary amounts are 64-bit integer cents; floating-point currency is prohibited.",
+      "enforcement": "FAIL_CLOSED",
+      "umpire_review_required": false
+    },
+    {
+      "rule_id": "A13",
+      "title": "87/10/3 Waterfall Truncation & Residual",
+      "requirement": "Positive Net PnL floor-truncates 87% SCMA and 3% FAEP; CFCP receives 10% plus every residual cent.",
+      "enforcement": "FAIL_CLOSED",
+      "umpire_review_required": false
+    },
+    {
+      "rule_id": "A14",
+      "title": "Loss Isolation Boundary Reconciliation",
+      "requirement": "Reconcile 100% SCMA loss isolation covenant vs. Oct 20 docket note referencing CFCP loss absorption.",
+      "enforcement": "FAIL_CLOSED",
+      "umpire_review_required": true
+    },
+    {
+      "rule_id": "A15",
+      "title": "40% Dry-Powder Cash Floor",
+      "requirement": "Unreserved liquid cash must remain at or above max(4000 cents, 40% of equity).",
+      "enforcement": "FAIL_CLOSED",
+      "umpire_review_required": false
+    },
+    {
+      "rule_id": "A16",
+      "title": "Quarter-Kelly Ceiling",
+      "requirement": "Single-trade risk sizing is hard-capped at 200 bps (2.00%) Quarter-Kelly ceiling.",
+      "enforcement": "FAIL_CLOSED",
+      "umpire_review_required": false
+    },
+    {
+      "rule_id": "A17",
+      "title": "Downward-Only Member Risk Dial",
+      "requirement": "Members may lower risk autonomously; upward restoration requires F2-H custodian approval.",
+      "enforcement": "FAIL_CLOSED",
+      "umpire_review_required": false
+    },
+    {
+      "rule_id": "A18",
+      "title": "N=12 Concurrency & Priority Eviction",
+      "requirement": "Active admitted slots are capped at N=12 with deterministic rank-based eviction.",
+      "enforcement": "FAIL_CLOSED",
+      "umpire_review_required": false
+    },
+    {
+      "rule_id": "A19",
+      "title": "Cross-Account Contract Mutex",
+      "requirement": "ContractMutexRegistry enforces anti-collusion domain/contract locks per CFTC Rule 150.4.",
+      "enforcement": "FAIL_CLOSED",
+      "umpire_review_required": false
+    },
+    {
+      "rule_id": "A20",
+      "title": "$25k Active Float Ceiling Sweep",
+      "requirement": "Custodial balances above 2,500,000 cents stage signed IF-038 outbox sweeps.",
+      "enforcement": "FAIL_CLOSED",
+      "umpire_review_required": false
+    },
+    {
+      "rule_id": "A21",
+      "title": "ADR-011 Air-Gapped Banking Boundary",
+      "requirement": "Zero bank account numbers, routing numbers, or plaintext venue secrets stored on disk.",
+      "enforcement": "FAIL_CLOSED",
+      "umpire_review_required": false
+    },
+    {
+      "rule_id": "A22",
+      "title": "Signed Monotonic Outbox Sequencing",
+      "requirement": "Every outbox envelope carries a monotonic sequence ID and HMAC-SHA256 signature.",
+      "enforcement": "FAIL_CLOSED",
+      "umpire_review_required": false
+    },
+    {
+      "rule_id": "A23",
+      "title": "Directive R-06 Active-Hat Siloing",
+      "requirement": "Role tokens are strictly siloed; cross-role endpoint access fails closed with HTTP 403.",
+      "enforcement": "FAIL_CLOSED",
+      "umpire_review_required": false
+    },
+    {
+      "rule_id": "A24",
+      "title": "Directive R-12 Telemetry Redaction",
+      "requirement": "Technical console masks financial fields by default until an expiring CA grant is active.",
+      "enforcement": "FAIL_CLOSED",
+      "umpire_review_required": false
+    },
+    {
+      "rule_id": "A25",
+      "title": "Directive R-15 Distribution Gateway",
+      "requirement": "Green is autonomous, Yellow adds friction, Red enforces 24-hour lock and dual F2-H co-signing.",
+      "enforcement": "FAIL_CLOSED",
+      "umpire_review_required": false
+    },
+    {
+      "rule_id": "A26",
+      "title": "Directive R-04 Fail-Closed Emergency Halt",
+      "requirement": "Emergency kill-switch halts new commitments immediately; AI never executes unilaterally.",
+      "enforcement": "FAIL_CLOSED",
+      "umpire_review_required": false
+    }
+  ]
+}

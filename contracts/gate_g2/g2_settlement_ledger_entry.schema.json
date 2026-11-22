@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pdeue.local/contracts/gate_g2/g2_settlement_ledger_entry.schema.json",
+  "title": "Gate G2 ADR-008 Exact-Cent Settlement Ledger Entry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "settlement_id",
+    "order_id",
+    "scma_id",
+    "net_pnl_cents",
+    "scma_allocation_cents",
+    "cfcp_allocation_cents",
+    "faep_allocation_cents",
+    "residual_cents",
+    "outbox_sequence_id"
+  ],
+  "properties": {
+    "settlement_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "order_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scma_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "net_pnl_cents": {
+      "type": "integer"
+    },
+    "scma_allocation_cents": {
+      "type": "integer"
+    },
+    "cfcp_allocation_cents": {
+      "type": "integer"
+    },
+    "faep_allocation_cents": {
+      "type": "integer"
+    },
+    "residual_cents": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "outbox_sequence_id": {
+      "type": "integer",
+      "minimum": 1
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pdeue.local/contracts/gate_g2/g2_order_lifecycle_transition.schema.json",
+  "title": "Gate G2 Finite Order Lifecycle Transition",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "order_id",
+    "scma_id",
+    "from_state",
+    "to_state",
+    "reserved_qty",
+    "filled_qty",
+    "timestamp_utc",
+    "reason_code"
+  ],
+  "properties": {
+    "order_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scma_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "from_state": {
+      "type": "string",
+      "enum": [
+        "Candidate",
+        "Prepared",
+        "Resting",
+        "Filled",
+        "Cancelled",
+        "Raced",
+        "Settled"
+      ]
+    },
+    "to_state": {
+      "type": "string",
+      "enum": [
+        "Prepared",
+        "Resting",
+        "Filled",
+        "Cancelled",
+        "Raced",
+        "Settled",
+        "Ledger"
+      ]
+    },
+    "reserved_qty": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "filled_qty": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "timestamp_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reason_code": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

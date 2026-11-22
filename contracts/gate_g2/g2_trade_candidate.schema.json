@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pdeue.local/contracts/gate_g2/g2_trade_candidate.schema.json",
+  "title": "Gate G2 Trade Candidate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "candidate_id",
+    "category",
+    "venue",
+    "contract_ticker",
+    "pit_cutoff_utc",
+    "event_blackout_utc",
+    "model_prob_bps",
+    "limit_price_cents",
+    "effective_fee_cents",
+    "expected_payoff_if_filled_cents",
+    "conditional_ev_cents",
+    "data_provenance"
+  ],
+  "properties": {
+    "candidate_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "category": {
+      "type": "string",
+      "minLength": 1
+    },
+    "venue": {
+      "type": "string",
+      "enum": [
+        "KALSHI",
+        "POLYMARKET",
+        "FORECASTEX"
+      ]
+    },
+    "contract_ticker": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pit_cutoff_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "event_blackout_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "model_prob_bps": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10000
+    },
+    "limit_price_cents": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 99
+    },
+    "effective_fee_cents": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "expected_payoff_if_filled_cents": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "conditional_ev_cents": {
+      "type": "integer"
+    },
+    "data_provenance": {
+      "type": "string",
+      "enum": [
+        "OBSERVED_L2",
+        "OBSERVATIONS_ONLY"
+      ]
+    }
+  }
+}
