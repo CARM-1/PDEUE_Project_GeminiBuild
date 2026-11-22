@@ -19,6 +19,11 @@ from app.domain.daemon_loop import AutonomousExecutionLoop
 from app.clients.kalshi_client import KalshiClient
 from app.clients.polymarket_client import PolymarketClient
 from app.services.credential_broker import CredentialBroker
+from app.domain.fleet_bridge import (
+    ContractCollisionError,
+    FleetMutexCoordinator,
+    HouseholdAffinityCollisionError,
+)
 
 
 class AutonomousScanWorker:
@@ -42,6 +47,9 @@ class AutonomousScanWorker:
         self.accounting_gateway = kwargs.get("accounting_gateway") or AccountingGateway()
         self.float_sweep_monitor = kwargs.get("float_sweep_monitor") or FloatSweepMonitor()
         self.credential_broker = kwargs.get("credential_broker") or CredentialBroker()
+        self.fleet_coordinator = kwargs.get("fleet_coordinator") or FleetMutexCoordinator()
+        self.gate_g1_status = "HOLD_OBSERVATIONS_ONLY"
+        self.last_mutex_blocked = []
         if self.execution_mode == "TESTNET_SANDBOX":
             tenant_id = kwargs.get("tenant_id", "DEFAULT")
             self.kalshi_client = kwargs.get("kalshi_client") or KalshiClient(
@@ -200,16 +208,37 @@ class AutonomousScanWorker:
 
         contracts_count = len(self.latest_opportunities)
         self.stats["total_contracts_scanned"] += contracts_count
+        self.fleet_coordinator.reap_expired()
         canonical_feed = []
+        mutex_blocked = []
         for index, item in enumerate(self.latest_opportunities):
+            if str(item.get("data_provenance", "")).upper() == "OBSERVATIONS_ONLY":
+                mutex_blocked.append({"contract_id": item["contract_ticker"], "reason": "GATE_G1_OBSERVATIONS_ONLY_HOLD"})
+                continue
+            scma_id = str(item.get("scma_id", "SCMA-FOUNDER"))
+            series_ticker = item.get("series_ticker")
+            try:
+                cat_meta = self.fleet_coordinator.acquire_contract_lock(
+                    contract_id=item["contract_ticker"],
+                    venue=item["venue"],
+                    scma_id=scma_id,
+                    category=item["category"],
+                    series_ticker=series_ticker,
+                )
+            except (ContractCollisionError, HouseholdAffinityCollisionError, ValueError) as exc:
+                mutex_blocked.append({"contract_id": item["contract_ticker"], "scma_id": scma_id, "reason": str(exc)})
+                continue
             bid_cents = 2 + index
             canonical_feed.append({
                 "ticker": item["contract_ticker"],
                 "contract_id": item["contract_ticker"],
                 "venue": item["venue"], "category": item["category"],
+                "fleet_category_id": cat_meta["category_id"],
+                "scma_id": scma_id,
                 "bid_cents": bid_cents, "ask_cents": bid_cents + 2,
                 "quantity": 1, "net_edge": item["net_edge"], "expiry_hours": 2,
             })
+        self.last_mutex_blocked = mutex_blocked
         daemon_result = self.execution_loop.run_cycle(canonical_feed)
         dispatched_orders = daemon_result["dispatched_orders"]
         venue_results = []
@@ -263,6 +292,10 @@ class AutonomousScanWorker:
             "orders_filled": self.execution_loop.orders_filled,
             "evictions_executed": self.execution_loop.evictions_executed,
             "settlements": daemon_result["settlements"],
+            "fleet_categories_registered": len(self.fleet_coordinator.list_categories()),
+            "active_mutex_locks": self.fleet_coordinator.active_lock_count(),
+            "mutex_blocked": mutex_blocked,
+            "gate_g1_status": self.gate_g1_status,
             **self.last_cycle_telemetry,
         }
 
@@ -277,6 +310,10 @@ class AutonomousScanWorker:
             "is_running": self.is_running,
             "latest_opportunities": self.latest_opportunities,
             "stats": self.stats,
+            "fleet_categories_registered": len(self.fleet_coordinator.list_categories()),
+            "active_mutex_locks": self.fleet_coordinator.active_lock_count(),
+            "mutex_blocked_count": len(self.last_mutex_blocked),
+            "gate_g1_status": self.gate_g1_status,
             **self.last_cycle_telemetry,
             **self.execution_loop.telemetry(),
         }
