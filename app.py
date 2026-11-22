@@ -4,7 +4,9 @@ import treasury_adapter
 from venue_adapters import UnifiedVenueRouter
 from fleet_engine import VenueCredentialBroker, FleetDomainRouter, VirtualLineageVault, DomainCollusionError, MinorProtectionError
 #!/usr/bin/env python3
+import os
 import sqlite3
+from contextlib import closing
 import json
 import hashlib
 import hmac
@@ -14,7 +16,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel
 
-DB_PATH = "pdeue.db"
+DB_PATH = os.environ.get("PDEUE_DB_PATH", "pdeue.db")
 HMAC_SECRET = b"PDEUE_AIRGAP_SHARED_KEY_2026_RING1"
 
 app = FastAPI(title="PDEUE Production Node")
@@ -249,6 +251,16 @@ async def startup_event():
 @app.get("/")
 def root_redirect():
     return RedirectResponse(url="/dashboard")
+
+@app.get("/healthz")
+def readiness_check():
+    try:
+        with closing(get_db()) as conn:
+            conn.execute("SELECT 1 FROM accounts LIMIT 1").fetchone()
+    except sqlite3.Error as exc:
+        raise HTTPException(status_code=503, detail="Ledger unavailable") from exc
+    return {"status": "HEALTHY", "healthy": True}
+
 
 @app.get("/api/v1/system/status")
 def get_system_status():
