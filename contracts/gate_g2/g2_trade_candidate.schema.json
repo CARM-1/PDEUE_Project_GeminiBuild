@@ -1,17 +1,23 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://pdeue.local/contracts/gate_g2/g2_trade_candidate.schema.json",
-  "title": "Gate G2 Trade Candidate",
+  "title": "Gate G2 Trade Candidate (B1/B6/B7 Hardened)",
   "type": "object",
   "additionalProperties": false,
   "required": [
+    "schema_version",
     "candidate_id",
+    "scma_id",
     "category",
     "venue",
     "contract_ticker",
+    "side",
+    "quantity",
+    "evidence_max_ts_utc",
     "pit_cutoff_utc",
     "event_blackout_utc",
     "model_prob_bps",
+    "fill_conditioned_win_bps",
     "limit_price_cents",
     "effective_fee_cents",
     "expected_payoff_if_filled_cents",
@@ -19,13 +25,34 @@
     "data_provenance"
   ],
   "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.1.0-certified-candidate"
+    },
     "candidate_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scma_id": {
       "type": "string",
       "minLength": 1
     },
     "category": {
       "type": "string",
-      "minLength": 1
+      "enum": [
+        "WEATHER_TEMPERATURE",
+        "WEATHER_PRECIPITATION",
+        "MACRO_INFLATION_CPI",
+        "MACRO_FED_RATES",
+        "MACRO_EMPLOYMENT",
+        "TREASURY_AUCTIONS",
+        "EQUITY_INDEX_BRACKETS",
+        "ENERGY_EIA_INVENTORIES",
+        "FX_DAILY_FIXINGS",
+        "TRANSPORTATION_TSA_FAA",
+        "SPORTS_DISCRETE_MARGINS",
+        "CRYPTO_VOLATILITY_BRACKETS"
+      ]
     },
     "venue": {
       "type": "string",
@@ -39,15 +66,39 @@
       "type": "string",
       "minLength": 1
     },
+    "side": {
+      "type": "string",
+      "enum": [
+        "YES",
+        "NO"
+      ]
+    },
+    "quantity": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000000
+    },
+    "evidence_max_ts_utc": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,6})?Z$"
+    },
     "pit_cutoff_utc": {
       "type": "string",
-      "format": "date-time"
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,6})?Z$"
     },
     "event_blackout_utc": {
       "type": "string",
-      "format": "date-time"
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,6})?Z$"
     },
     "model_prob_bps": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10000
+    },
+    "fill_conditioned_win_bps": {
       "type": "integer",
       "minimum": 0,
       "maximum": 10000
@@ -59,7 +110,8 @@
     },
     "effective_fee_cents": {
       "type": "integer",
-      "minimum": 0
+      "minimum": 0,
+      "maximum": 99
     },
     "expected_payoff_if_filled_cents": {
       "type": "integer",
@@ -67,7 +119,9 @@
       "maximum": 100
     },
     "conditional_ev_cents": {
-      "type": "integer"
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
     },
     "data_provenance": {
       "type": "string",
@@ -75,6 +129,26 @@
         "OBSERVED_L2",
         "OBSERVATIONS_ONLY"
       ]
+    },
+    "tape_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "data_provenance": {
+            "const": "OBSERVED_L2"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "tape_manifest_sha256"
+        ]
+      }
+    }
+  ]
 }

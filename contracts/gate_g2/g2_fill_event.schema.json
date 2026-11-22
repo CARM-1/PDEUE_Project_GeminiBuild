@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pdeue.local/contracts/gate_g2/g2_fill_event.schema.json",
+  "title": "Gate G2 Idempotent Order Fill Event (B3)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "fill_id",
+    "order_id",
+    "scma_id",
+    "qty",
+    "price_cents",
+    "fee_cents",
+    "timestamp_utc"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.1.0-certified-candidate"
+    },
+    "fill_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "order_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scma_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "qty": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000000
+    },
+    "price_cents": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 99
+    },
+    "fee_cents": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "timestamp_utc": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,6})?Z$"
+    }
+  }
+}

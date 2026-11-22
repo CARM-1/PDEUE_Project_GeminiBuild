@@ -1,21 +1,35 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://pdeue.local/contracts/gate_g2/g2_settlement_ledger_entry.schema.json",
-  "title": "Gate G2 ADR-008 Exact-Cent Settlement Ledger Entry",
+  "title": "Gate G2 ADR-008/ADR-012 Exact-Cent Settlement Ledger Entry (B1/B4/B8/B9)",
   "type": "object",
   "additionalProperties": false,
   "required": [
+    "schema_version",
     "settlement_id",
     "order_id",
     "scma_id",
+    "outcome",
+    "payout_cents",
+    "cost_cents",
+    "fees_cents",
     "net_pnl_cents",
+    "high_water_mark_before_cents",
+    "high_water_mark_after_cents",
+    "hwm_eligible_profit_cents",
     "scma_allocation_cents",
     "cfcp_allocation_cents",
     "faep_allocation_cents",
     "residual_cents",
-    "outbox_sequence_id"
+    "outbox_sequence_id",
+    "key_id",
+    "hmac_sha256"
   ],
   "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.1.0-certified-candidate"
+    },
     "settlement_id": {
       "type": "string",
       "minLength": 1
@@ -28,25 +42,164 @@
       "type": "string",
       "minLength": 1
     },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "YES",
+        "NO",
+        "VOID"
+      ]
+    },
+    "payout_cents": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "cost_cents": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "fees_cents": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
     "net_pnl_cents": {
-      "type": "integer"
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991
+    },
+    "high_water_mark_before_cents": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "high_water_mark_after_cents": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "hwm_eligible_profit_cents": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
     },
     "scma_allocation_cents": {
-      "type": "integer"
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991
     },
     "cfcp_allocation_cents": {
-      "type": "integer"
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
     },
     "faep_allocation_cents": {
-      "type": "integer"
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
     },
     "residual_cents": {
       "type": "integer",
-      "minimum": 0
+      "minimum": 0,
+      "maximum": 2
     },
     "outbox_sequence_id": {
       "type": "integer",
-      "minimum": 1
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "key_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "hmac_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "net_pnl_cents": {
+            "maximum": -1
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "hwm_eligible_profit_cents": {
+            "const": 0
+          },
+          "scma_allocation_cents": {
+            "maximum": -1
+          },
+          "cfcp_allocation_cents": {
+            "const": 0
+          },
+          "faep_allocation_cents": {
+            "const": 0
+          },
+          "residual_cents": {
+            "const": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "net_pnl_cents": {
+            "const": 0
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "hwm_eligible_profit_cents": {
+            "const": 0
+          },
+          "scma_allocation_cents": {
+            "const": 0
+          },
+          "cfcp_allocation_cents": {
+            "const": 0
+          },
+          "faep_allocation_cents": {
+            "const": 0
+          },
+          "residual_cents": {
+            "const": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "net_pnl_cents": {
+            "minimum": 1
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "scma_allocation_cents": {
+            "minimum": 0
+          },
+          "cfcp_allocation_cents": {
+            "minimum": 0
+          },
+          "faep_allocation_cents": {
+            "minimum": 0
+          },
+          "residual_cents": {
+            "maximum": 2
+          }
+        }
+      }
+    }
+  ]
 }

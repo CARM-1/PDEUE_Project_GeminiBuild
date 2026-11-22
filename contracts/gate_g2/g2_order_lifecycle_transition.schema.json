@@ -1,12 +1,16 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://pdeue.local/contracts/gate_g2/g2_order_lifecycle_transition.schema.json",
-  "title": "Gate G2 Finite Order Lifecycle Transition",
+  "title": "Gate G2 Finite Order Lifecycle Transition (B1/B2/B7/B8 Hardened)",
   "type": "object",
   "additionalProperties": false,
   "required": [
+    "schema_version",
     "order_id",
+    "candidate_id",
     "scma_id",
+    "transition_seq",
+    "idempotency_key",
     "from_state",
     "to_state",
     "reserved_qty",
@@ -15,7 +19,15 @@
     "reason_code"
   ],
   "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.1.0-certified-candidate"
+    },
     "order_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "candidate_id": {
       "type": "string",
       "minLength": 1
     },
@@ -23,21 +35,33 @@
       "type": "string",
       "minLength": 1
     },
-    "from_state": {
+    "transition_seq": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "idempotency_key": {
       "type": "string",
+      "minLength": 8
+    },
+    "from_state": {
+      "type": [
+        "string",
+        "null"
+      ],
       "enum": [
+        null,
         "Candidate",
         "Prepared",
         "Resting",
         "Filled",
-        "Cancelled",
-        "Raced",
         "Settled"
       ]
     },
     "to_state": {
       "type": "string",
       "enum": [
+        "Candidate",
         "Prepared",
         "Resting",
         "Filled",
@@ -49,19 +73,173 @@
     },
     "reserved_qty": {
       "type": "integer",
-      "minimum": 1
+      "minimum": 1,
+      "maximum": 1000000
     },
     "filled_qty": {
       "type": "integer",
-      "minimum": 0
+      "minimum": 0,
+      "maximum": 1000000
     },
     "timestamp_utc": {
       "type": "string",
-      "format": "date-time"
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,6})?Z$"
     },
     "reason_code": {
       "type": "string",
-      "minLength": 1
+      "enum": [
+        "CANDIDATE_ADMITTED",
+        "CAPITAL_RESERVED",
+        "POSTED_PASSIVE_MAKER",
+        "CLOSED_WITH_FILLS",
+        "PARTIAL_FILL_REMAINDER_CANCELLED",
+        "PRE_EVENT_BLACKOUT_CANCEL",
+        "RISK_OR_MUTEX_REJECT",
+        "EMERGENCY_HALT_CANCEL",
+        "RACED_BEFORE_FILL",
+        "VENUE_SETTLED",
+        "LEDGER_POSTED"
+      ]
     }
-  }
+  },
+  "allOf": [
+    {
+      "oneOf": [
+        {
+          "properties": {
+            "from_state": {
+              "type": "null"
+            },
+            "to_state": {
+              "const": "Candidate"
+            },
+            "transition_seq": {
+              "const": 1
+            },
+            "filled_qty": {
+              "const": 0
+            }
+          }
+        },
+        {
+          "properties": {
+            "from_state": {
+              "const": "Candidate"
+            },
+            "to_state": {
+              "const": "Prepared"
+            },
+            "filled_qty": {
+              "const": 0
+            }
+          }
+        },
+        {
+          "properties": {
+            "from_state": {
+              "const": "Candidate"
+            },
+            "to_state": {
+              "const": "Cancelled"
+            },
+            "filled_qty": {
+              "const": 0
+            }
+          }
+        },
+        {
+          "properties": {
+            "from_state": {
+              "const": "Prepared"
+            },
+            "to_state": {
+              "const": "Resting"
+            },
+            "filled_qty": {
+              "const": 0
+            }
+          }
+        },
+        {
+          "properties": {
+            "from_state": {
+              "const": "Prepared"
+            },
+            "to_state": {
+              "const": "Cancelled"
+            },
+            "filled_qty": {
+              "const": 0
+            }
+          }
+        },
+        {
+          "properties": {
+            "from_state": {
+              "const": "Resting"
+            },
+            "to_state": {
+              "const": "Filled"
+            },
+            "filled_qty": {
+              "minimum": 1
+            }
+          }
+        },
+        {
+          "properties": {
+            "from_state": {
+              "const": "Resting"
+            },
+            "to_state": {
+              "const": "Cancelled"
+            },
+            "filled_qty": {
+              "const": 0
+            }
+          }
+        },
+        {
+          "properties": {
+            "from_state": {
+              "const": "Resting"
+            },
+            "to_state": {
+              "const": "Raced"
+            },
+            "filled_qty": {
+              "const": 0
+            }
+          }
+        },
+        {
+          "properties": {
+            "from_state": {
+              "const": "Filled"
+            },
+            "to_state": {
+              "const": "Settled"
+            },
+            "filled_qty": {
+              "minimum": 1
+            }
+          }
+        },
+        {
+          "properties": {
+            "from_state": {
+              "const": "Settled"
+            },
+            "to_state": {
+              "const": "Ledger"
+            },
+            "filled_qty": {
+              "minimum": 1
+            }
+          }
+        }
+      ]
+    }
+  ]
 }

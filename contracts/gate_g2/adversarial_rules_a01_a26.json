@@ -1,76 +1,77 @@
 {
   "specification": "PDEUE Gate G2 Adversarial Rulebook (WP-8V)",
-  "version": "1.0.0-candidate",
-  "status": "READY_FOR_UMPIRE_AUDIT",
+  "version": "1.1.0-certified-candidate",
+  "status": "UMPIRE_REMEDIATIONS_B1_B9_APPLIED",
   "gate_g1_status": "HOLD_OBSERVATIONS_ONLY",
+  "waterfall_policy_adr": "ADR-012 (High-Water Mark per SCMA)",
   "rules": [
     {
       "rule_id": "A01",
       "title": "No Synthetic Historical L2 Depth",
-      "requirement": "Gate G1 remains fail-closed until continuous verified L2 order-book tapes exist.",
+      "requirement": "Gate G1 remains fail-closed until continuous verified L2 order-book tapes with tape_manifest_sha256 exist.",
       "enforcement": "FAIL_CLOSED",
       "umpire_review_required": false
     },
     {
       "rule_id": "A02",
       "title": "No Fabricated Maker Fills",
-      "requirement": "Synthetic or predefined historical maker fills are permanently banned under WP-8S.",
+      "requirement": "Synthetic or predefined historical maker fills are permanently banned under WP-8S; OBSERVATIONS_ONLY candidates cannot enter Resting.",
       "enforcement": "FAIL_CLOSED",
       "umpire_review_required": false
     },
     {
       "rule_id": "A03",
       "title": "Point-in-Time Evidence Cutoff",
-      "requirement": "All underwriting inputs must precede the PIT cutoff timestamp; zero lookahead leakage.",
+      "requirement": "evidence_max_ts_utc <= pit_cutoff_utc < event_blackout_utc enforced fail-closed; zero lookahead leakage.",
       "enforcement": "FAIL_CLOSED",
       "umpire_review_required": false
     },
     {
       "rule_id": "A04",
       "title": "Conditional EV Non-Double-Counting",
-      "requirement": "EV_fill = E[Payoff | Fill] - Price - Effective_Fees; adverse selection enters via fill-conditioned win rate only.",
+      "requirement": "Exact 1/10,000-cent check: fill_conditioned_win_bps * 100 - (price + fee) * 10000 > 0 with fill_conditioned_win_bps <= model_prob_bps; maker rebates excluded conservatively.",
       "enforcement": "FAIL_CLOSED",
       "umpire_review_required": false
     },
     {
       "rule_id": "A05",
       "title": "Positive Net Edge Hurdle",
-      "requirement": "Candidates with non-positive conditional EV after fees are rejected fail-closed.",
+      "requirement": "Candidates with conditional_ev_cents < 1 or non-positive exact EV are rejected fail-closed.",
       "enforcement": "FAIL_CLOSED",
       "umpire_review_required": false
     },
     {
       "rule_id": "A06",
       "title": "Finite Order Lifecycle",
-      "requirement": "Orders may only occupy states in Candidate -> Prepared -> Resting -> Filled/Cancelled/Raced -> Settled -> Ledger.",
+      "requirement": "States restricted to Candidate -> Prepared -> Resting -> Filled/Cancelled/Raced -> Settled -> Ledger; Filled covers any closed order with >= 1 fill (full or partial); multi-fills log via g2_fill_event.",
       "enforcement": "FAIL_CLOSED",
       "umpire_review_required": false
     },
     {
       "rule_id": "A07",
       "title": "No Skipped or Backward Transitions",
-      "requirement": "Lifecycle transitions must follow the directed acyclic transition table without backward hops.",
+      "requirement": "Only oneOf-enumerated directed acyclic transitions (including Candidate/Prepared -> Cancelled) with gapless transition_seq are legal.",
       "enforcement": "FAIL_CLOSED",
       "umpire_review_required": false
     },
     {
       "rule_id": "A08",
       "title": "Terminal State Immutability",
-      "requirement": "Ledger and terminal Cancelled/Raced states are immutable once recorded.",
+      "requirement": "Ledger, Cancelled (filled_qty == 0), and Raced (filled_qty == 0) are immutable terminal states.",
       "enforcement": "FAIL_CLOSED",
       "umpire_review_required": false
     },
     {
       "rule_id": "A09",
       "title": "Overfill Cap Enforcement",
-      "requirement": "Cumulative filled_qty must never exceed reserved_qty.",
+      "requirement": "Sum of idempotent g2_fill_event quantities must never exceed immutable reserved_qty; duplicate fill_id rejected.",
       "enforcement": "FAIL_CLOSED",
       "umpire_review_required": false
     },
     {
       "rule_id": "A10",
       "title": "Pre-Event Calendar Blackouts",
-      "requirement": "Calendar-driven quote cancellations replace sub-millisecond HFT race simulations.",
+      "requirement": "Calendar-driven quote cancellations replace sub-millisecond HFT race simulations; partially filled orders close to Filled -> Settled -> Ledger.",
       "enforcement": "FAIL_CLOSED",
       "umpire_review_required": false
     },
@@ -84,35 +85,35 @@
     {
       "rule_id": "A12",
       "title": "ADR-008 Integer-Cent Conservation",
-      "requirement": "All monetary amounts are 64-bit integer cents; floating-point currency is prohibited.",
+      "requirement": "All monetary amounts are JS-safe 64-bit integer cents; floats rejected at JSON parse time.",
       "enforcement": "FAIL_CLOSED",
       "umpire_review_required": false
     },
     {
       "rule_id": "A13",
-      "title": "87/10/3 Waterfall Truncation & Residual",
-      "requirement": "Positive Net PnL floor-truncates 87% SCMA and 3% FAEP; CFCP receives 10% plus every residual cent.",
+      "title": "ADR-012 High-Water Mark 87/10/3 Waterfall",
+      "requirement": "87% SCMA / 3% FAEP floor-truncated and 10% + residual (0..2 cents, informational inside cfcp_allocation_cents) apply strictly to positive HWM-eligible profit above each SCMA's prior High-Water Mark.",
       "enforcement": "FAIL_CLOSED",
       "umpire_review_required": false
     },
     {
       "rule_id": "A14",
-      "title": "Loss Isolation Boundary Reconciliation",
-      "requirement": "Reconcile 100% SCMA loss isolation covenant vs. Oct 20 docket note referencing CFCP loss absorption.",
+      "title": "100% SCMA Loss Isolation (Ratified via Erratum)",
+      "requirement": "100% of trading losses remain isolated in the executing SCMA; CFCP and FAEP never absorb losses; waterfall raises ValueError if invoked on P <= 0.",
       "enforcement": "FAIL_CLOSED",
-      "umpire_review_required": true
+      "umpire_review_required": false
     },
     {
       "rule_id": "A15",
       "title": "40% Dry-Powder Cash Floor",
-      "requirement": "Unreserved liquid cash must remain at or above max(4000 cents, 40% of equity).",
+      "requirement": "Unreserved liquid cash must remain >= max(4000, ceil(0.40 * equity)) in integer arithmetic, checked post-reservation.",
       "enforcement": "FAIL_CLOSED",
       "umpire_review_required": false
     },
     {
       "rule_id": "A16",
       "title": "Quarter-Kelly Ceiling",
-      "requirement": "Single-trade risk sizing is hard-capped at 200 bps (2.00%) Quarter-Kelly ceiling.",
+      "requirement": "Single-trade max loss qty * (price + fee) <= min(0.25*Kelly(fill_conditioned_win_bps), floor(0.02 * equity)).",
       "enforcement": "FAIL_CLOSED",
       "umpire_review_required": false
     },
@@ -154,7 +155,7 @@
     {
       "rule_id": "A22",
       "title": "Signed Monotonic Outbox Sequencing",
-      "requirement": "Every outbox envelope carries a monotonic sequence ID and HMAC-SHA256 signature.",
+      "requirement": "Every settlement ledger entry carries gapless monotonic outbox_sequence_id, key_id, and 64-hex hmac_sha256.",
       "enforcement": "FAIL_CLOSED",
       "umpire_review_required": false
     },
