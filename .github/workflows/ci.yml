@@ -2,9 +2,9 @@ name: PDEUE Pipeline & Qualification Gate
 
 on:
   push:
-    branches: [ main, 'feat/**' ]
+    branches: [ main, ring1-alpha, 'feat/**' ]
   pull_request:
-    branches: [ main, 'feat/**' ]
+    branches: [ main, ring1-alpha, 'feat/**' ]
 
 jobs:
   validate-and-test:
