@@ -55,5 +55,5 @@ def test_milestone3_yield_and_risk_envelope_coordination():
     )
     assert yield_res["gross_yield_cents"] > 0
     assert yield_res["scma_net_cents"] == (yield_res["gross_yield_cents"] * 87) // 100
-    assert yield_res["cfcp_cents"] == (yield_res["gross_yield_cents"] * 10) // 100
-    assert yield_res["faep_cents"] == yield_res["gross_yield_cents"] - yield_res["scma_net_cents"] - yield_res["cfcp_cents"]
+    assert yield_res["faep_cents"] == (yield_res["gross_yield_cents"] * 3) // 100
+    assert yield_res["cfcp_cents"] == yield_res["gross_yield_cents"] - yield_res["scma_net_cents"] - yield_res["faep_cents"]

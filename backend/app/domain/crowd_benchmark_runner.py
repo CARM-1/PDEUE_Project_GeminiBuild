@@ -102,8 +102,8 @@ class CrowdBenchmarkRunner:
     def generate_audit_report(self) -> Dict[str, Any]:
         summary = self.engine.get_summary()
         net_profit_cents = max(0, self.engine.total_equity_cents - self.initial_equity_cents)
-        scma_cents = int(net_profit_cents * 0.87)
-        faep_cents = int(net_profit_cents * 0.03)
+        scma_cents = (net_profit_cents * 87) // 100
+        faep_cents = (net_profit_cents * 3) // 100
         cfcp_cents = net_profit_cents - (scma_cents + faep_cents)
 
         return {

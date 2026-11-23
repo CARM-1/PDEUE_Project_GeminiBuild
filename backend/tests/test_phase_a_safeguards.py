@@ -80,4 +80,7 @@ def test_maker_rebate_conservation_odd_cents():
     )
     split = event['waterfall_split']
     assert split['founder_pool_cents'] + split['central_family_pool_cents'] + split['member_rebate_cents'] == 33
-    assert ledger.members['MEM_BOB']['balance_cents'] == 5029
+    assert split['member_rebate_cents'] == (33 * 87) // 100
+    assert split['founder_pool_cents'] == (33 * 3) // 100
+    assert split['central_family_pool_cents'] == 33 - split['member_rebate_cents'] - split['founder_pool_cents']
+    assert ledger.members['MEM_BOB']['balance_cents'] == 5028

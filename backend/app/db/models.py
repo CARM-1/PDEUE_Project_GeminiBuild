@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Integer, Float, ForeignKey, Text
+from sqlalchemy import BigInteger, Column, String, Integer, Float, ForeignKey, Text, event, inspect, text
 from sqlalchemy.orm import relationship
 from app.db.session import Base
 
@@ -27,16 +27,35 @@ class AccountModel(Base):
     user_id = Column(String, ForeignKey('users.user_id'), nullable=False, index=True)
     tenant_id = Column(String, nullable=False, index=True, default='default_tenant')
     account_name = Column(String, nullable=True, default='Primary')
-    balance_cents = Column(Integer, default=0)
+    balance_cents = Column(BigInteger, default=0)
+    high_water_mark_cents = Column(BigInteger, nullable=False, default=0)
     currency = Column(String, default='USD')
     status = Column(String, default='ACTIVE')
     created_at = Column(String, default=_now)
     user = relationship('UserModel', back_populates='accounts')
     def __init__(self, **kw):
         if 'id' in kw and 'account_id' not in kw: kw['account_id'] = kw.pop('id')
+        if 'high_water_mark_cents' not in kw:
+            kw['high_water_mark_cents'] = max(0, int(kw.get('balance_cents', 0) or 0))
         super().__init__(**kw)
     @property
     def id(self): return self.account_id
+
+
+@event.listens_for(Base.metadata, 'after_create')
+def _ensure_accounts_high_water_mark_column(target, connection, **kw):
+    """Idempotently backfill accounts.high_water_mark_cents on pre-ADR-012 SQLite DBs."""
+    inspector = inspect(connection)
+    if 'accounts' in inspector.get_table_names():
+        columns = {col['name'] for col in inspector.get_columns('accounts')}
+        if 'high_water_mark_cents' not in columns:
+            connection.execute(text(
+                'ALTER TABLE accounts ADD COLUMN high_water_mark_cents BIGINT NOT NULL DEFAULT 0'
+            ))
+            connection.execute(text(
+                'UPDATE accounts SET high_water_mark_cents = COALESCE(balance_cents, 0)'
+            ))
+
 
 class PaperSessionModel(Base):
     __tablename__ = 'paper_sessions'

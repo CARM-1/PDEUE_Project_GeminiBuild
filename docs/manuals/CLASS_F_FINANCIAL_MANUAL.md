@@ -105,11 +105,11 @@ Three workflows are deliberately separate:
 
 No role may combine these simply because one person holds multiple appointments. Select the active hat, complete its step, end that context, and obtain genuinely independent review where required. F3's broad metrics do not grant domestic consent. F2-H's domestic consent does not grant platform risk authority. F2-A's expertise does not make its own proposal approved.
 
-## 11. Waterfall, pools, and custodial boundaries
+## 11. Waterfall, pools, and custodial boundaries (ADR-012 & Rule A14)
 
-Eligible realized proceeds follow the deterministic 87/10/3 waterfall: 87% to private SCMA compounding, 10% to the CFCP safety shield, and 3% to FAEP endowment. Apply the split only to eligible settled net proceeds. Open profit, an estimate, or a pending venue result is not distributable.
+Under **ADR-012 (Per-SCMA High-Water Mark)**, the deterministic 87/10/3 waterfall executes strictly on **net new realized profit above each SCMA's prior High-Water Mark (HWM)**: 87% to private SCMA compounding (advancing HWM to the new post-waterfall SCMA peak), 10% plus any indivisible integer-cent remainder to the CFCP safety shield (ADR-008), and 3% to the FAEP endowment. During drawdown recovery below HWM, 100% of realized recovery profit remains inside the executing SCMA (`0¢` to CFCP and FAEP), eliminating the volatility tax. Capital deposits raise HWM dollar-for-dollar (principal is not profit), and authorized withdrawals reduce HWM proportionally so post-withdrawal accounts are not artificially trapped below HWM. Open profit, an estimate, or a pending venue result is not distributable.
 
-CFCP is a protected resilience pool, not ordinary household liquidity. FAEP is long-horizon lineal capital, not discretionary spending. Visibility in `/advisor` creates no withdrawal right. The FBO custodial architecture also limits on-venue float to $25,000; excess is handled through an ADR-011 signed sweep workflow.
+Under **Rule A14 (100% SCMA Loss Isolation)**, any realized trading loss remains 100% contained inside the executing member's SCMA; CFCP and FAEP balances never decrease to absorb individual member trading losses. CFCP is a protected resilience pool, not ordinary household liquidity. FAEP is long-horizon lineal capital, not discretionary spending. Visibility in `/advisor` creates no withdrawal right. The FBO custodial architecture also limits on-venue float to $25,000; excess is handled through an ADR-011 signed sweep workflow.
 
 If a split does not conserve exact cents, stop and reconcile under ADR-008. If an outbox event is duplicated or unsigned, quarantine it and replay by idempotency identity after technical correction. Never “fix” either problem with an informal transfer.
 

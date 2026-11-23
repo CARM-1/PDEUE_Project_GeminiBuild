@@ -22,9 +22,9 @@ The lineage tree exposes member state and governed actions. The Sovereign Settlo
 
 ### Tab 2 — Family Lineal Pools and Sub-Ledgers
 
-Use Tab 2 to reconcile private SCMAs, CFCP safety reserves, FAEP endowment allocations, distributions, and the deterministic 87/10/3 realized waterfall. Separate realized settlement from open exposure. Confirm that 87% retained SCMA, 10% CFCP, and 3% FAEP destinations reconcile to the eligible net proceeds.
+Use Tab 2 to reconcile private SCMAs, CFCP safety reserves, FAEP endowment allocations, distributions, and the deterministic 87/10/3 realized waterfall governed by **ADR-012 (Per-SCMA High-Water Mark)** and **Rule A14 (100% SCMA Loss Isolation)**. Separate realized settlement from open exposure. Confirm that realized trading losses stay 100% contained inside the executing SCMA (CFCP and FAEP never decrease to absorb member trading losses), that drawdown recovery gains strictly below each SCMA's prior High-Water Mark remain 100% inside the SCMA (`0¢` CFCP/FAEP skim, eliminating the volatility tax), and that ONLY net new profit above HWM splits 87% SCMA / 10% CFCP (+ residual cents) / 3% FAEP while advancing HWM to the new post-waterfall SCMA peak. Verify that external deposits raise HWM dollar-for-dollar and authorized withdrawals adjust HWM proportionally.
 
-**ADR-008, Exact-Cent Conservation**, requires authoritative monetary state to use integer cents and every split to sum exactly to its source. Remainders are handled deterministically. Never authorize a manual spreadsheet rounding adjustment. If child amounts do not equal the parent amount, quarantine the event and open an accounting incident.
+**ADR-008, Exact-Cent Conservation**, requires authoritative monetary state to use 64-bit integer cents and every split to sum exactly to its source. Remainders are routed deterministically to CFCP. Never authorize a manual spreadsheet rounding adjustment. If child amounts do not equal the parent amount, quarantine the event and open an accounting incident.
 
 ### Tab 3 — Velocity Radar and Scanner
 

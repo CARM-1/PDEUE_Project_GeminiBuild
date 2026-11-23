@@ -708,7 +708,7 @@ def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str
             "scma_compounding_pct": 87.0,
             "cfcp_lineage_shield_pct": 10.0,
             "faep_endowment_pct": 3.0,
-            "rule": "Option A: 10% CFCP priority deduction executed before FAEP derivation"
+            "rule": "Option A (ADR-012 HWM / Rule A14): 87/10/3 split applies strictly to net new profit above each SCMA High-Water Mark; residual cents route to CFCP; 100% SCMA loss isolation."
         }
     }
 

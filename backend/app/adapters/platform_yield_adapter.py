@@ -48,17 +48,14 @@ class PlatformYieldAdapter:
         if gross_yield_cents <= 0:
             return {"status": "BELOW_CENT_THRESHOLD", "gross_yield_cents": 0}
 
-        # Canonical 87% SCMA / 10% CFCP / 3% FAEP waterfall with exact-cent conservation
-        scma_net_cents = (gross_yield_cents * 87) // 100
-        cfcp_cents = (gross_yield_cents * 10) // 100
-        faep_cents = gross_yield_cents - scma_net_cents - cfcp_cents
+        # Canonical ADR-008 & ADR-012 HWM 87/10/3 waterfall (remainder cents to CFCP;
+        # 0% CFCP/FAEP skim during drawdown recovery below each SCMA's High-Water Mark).
+        wf = self.ledger.settle_member_trade(scma_id, gross_yield_cents)
+        scma_net_cents = wf["scma_cents"]
+        cfcp_cents = wf["cfcp_cents"]
+        faep_cents = wf["faep_cents"]
 
         assert scma_net_cents + cfcp_cents + faep_cents == gross_yield_cents, "Cent conservation violation"
-
-        # Apply credit to ledger
-        self.ledger.credit_member_balance(scma_id, scma_net_cents)
-        self.ledger.credit_central_family_pool(cfcp_cents)
-        self.ledger.credit_founder_pool(faep_cents)
 
         # Emit signed ADR-011 event
         event_payload = {

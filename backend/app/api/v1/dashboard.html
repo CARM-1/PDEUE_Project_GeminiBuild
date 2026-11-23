@@ -582,21 +582,22 @@
       if (outcome === "YES") {
         const gross = qty * 100;
         const net = gross - cost;
-        const scma = Math.floor(net * 0.87);
-        const cfcp = Math.floor(net * 0.10);
-        const faep = net - scma - cfcp;
+        const scma = Math.floor((net * 87) / 100);
+        const faep = Math.floor((net * 3) / 100);
+        const cfcp = net - scma - faep;
 
         document.getElementById("waterfall-preview-text").innerHTML = `
           • Gross Proceeds: <strong style="color: #4ade80;">$${(gross / 100.0).toFixed(2)}</strong> | Net Profit: <strong style="color: #4ade80;">+$${(net / 100.0).toFixed(2)}</strong><br>
-          • SCMA Compounding (87%): <strong style="color: #f8fafc;">+$${(scma / 100.0).toFixed(2)}</strong><br>
-          • CFCP Principal Shield (10%): <strong style="color: #38bdf8;">+$${(cfcp / 100.0).toFixed(2)}</strong><br>
-          • FAEP Endowment (3%): <strong style="color: #fbbf24;">+$${(faep / 100.0).toFixed(2)}</strong>
+          • SCMA Compounding (87% above HWM): <strong style="color: #f8fafc;">+$${(scma / 100.0).toFixed(2)}</strong><br>
+          • CFCP Principal Shield (10% + residual): <strong style="color: #38bdf8;">+$${(cfcp / 100.0).toFixed(2)}</strong><br>
+          • FAEP Endowment (3%): <strong style="color: #fbbf24;">+$${(faep / 100.0).toFixed(2)}</strong><br>
+          <span style="color:#94a3b8;">ADR-012: Profit strictly below prior SCMA High-Water Mark stays 100% in SCMA ($0.00 CFCP/FAEP skim).</span>
         `;
       } else {
         document.getElementById("waterfall-preview-text").innerHTML = `
           • Gross Proceeds: <strong style="color: #f87171;">$0.00</strong> | Realized Loss: <strong style="color: #ef4444;">-$${(cost / 100.0).toFixed(2)}</strong><br>
-          • Loss absorbed exclusively by executing SCMA sub-ledger.<br>
-          • CFCP & FAEP Principal Shields are <b>100% insulated</b> ($0.00 impact).
+          • Rule A14 (100% Loss Isolation): Loss absorbed exclusively by executing SCMA sub-ledger.<br>
+          • CFCP &amp; FAEP Principal Shields are <b>100% insulated</b> ($0.00 impact).
         `;
       }
     }

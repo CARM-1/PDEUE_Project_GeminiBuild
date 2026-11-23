@@ -37,7 +37,8 @@ def test_milestone5_master_convergence_lifecycle():
     gross = y_res["gross_yield_cents"]
     assert y_res["scma_net_cents"] + y_res["cfcp_cents"] + y_res["faep_cents"] == gross
     assert y_res["scma_net_cents"] == (gross * 87) // 100
-    assert y_res["cfcp_cents"] == (gross * 10) // 100
+    assert y_res["faep_cents"] == (gross * 3) // 100
+    assert y_res["cfcp_cents"] == gross - y_res["scma_net_cents"] - y_res["faep_cents"]
     assert y_res["outbox_event"]["status"] in ["EMITTED", "PENDING"]
 
     # 3. Dynamic Secrets Leasing Broker
