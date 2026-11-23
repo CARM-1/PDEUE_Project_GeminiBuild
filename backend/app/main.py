@@ -1,3 +1,4 @@
+import os
 import pathlib
 try:
     from app.api.v1.portal_router import portal_router
@@ -26,14 +27,46 @@ class PaperTradeRequest(BaseModel):
     price: float
     quantity: int
 
+
+def _paper_mode_health_metadata() -> Dict[str, Any]:
+    """Return fail-closed paper/observation runtime metadata for health probes."""
+    venue_mode = os.getenv("PDEUE_VENUE_MODE", "paper").strip().lower() or "paper"
+    live_trading_enabled = os.getenv("PDEUE_LIVE_TRADING_ENABLED", "false").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+    governance_mode = (
+        os.getenv("PDEUE_GOVERNANCE_MODE", "EXECUTIVE_COMMAND").strip().upper()
+        or "EXECUTIVE_COMMAND"
+    )
+    gate_g1_status = (
+        os.getenv("PDEUE_GATE_G1_STATUS", "HOLD_OBSERVATIONS_ONLY").strip().upper()
+        or "HOLD_OBSERVATIONS_ONLY"
+    )
+    return {
+        "venue_mode": venue_mode,
+        "paper_mode": venue_mode in {"paper", "observation"} and not live_trading_enabled,
+        "live_trading_enabled": live_trading_enabled,
+        "governance_mode": governance_mode,
+        "gate_g1_status": gate_g1_status,
+        "synthetic_fills_present": False,
+    }
+
+
 @app.get("/health")
 def health_check():
-    return {"status": "HEALTHY", "healthy": True}
+    return {"status": "HEALTHY", "healthy": True, **_paper_mode_health_metadata()}
 
 @app.get("/healthz")
 def readiness_check():
     """Lightweight, dependency-free health probe for orchestrators."""
-    return {"status": "HEALTHY", "healthy": True, "circuit_breaker_tripped": False}
+    return {
+        "status": "HEALTHY",
+        "healthy": True,
+        "circuit_breaker_tripped": False,
+        **_paper_mode_health_metadata(),
+    }
 
 @app.post("/api/v1/paper/sessions")
 def create_paper_session(req: CreateSessionRequest):
