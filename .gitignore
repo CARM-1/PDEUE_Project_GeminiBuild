@@ -4,3 +4,4 @@ __pycache__/
 .pytest_cache/
 stage_*.py
 *health_summary.json
+data/observed_l2/
