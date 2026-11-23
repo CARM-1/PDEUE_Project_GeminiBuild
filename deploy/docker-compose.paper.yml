@@ -84,6 +84,12 @@ services:
     mem_limit: 128m
     memswap_limit: 512m
     mem_reservation: 48m
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import datetime as dt, json, sys; d = json.load(open('/var/lib/pdeue/tapes/collector_heartbeat.json')); age = (dt.datetime.now(dt.timezone.utc) - dt.datetime.fromisoformat(d['timestamp_utc'].replace('Z', '+00:00'))).total_seconds(); errs = d.get('consecutive_errors'); sys.exit(0 if isinstance(errs, int) and not isinstance(errs, bool) and errs < 5 and -30 <= age <= 180 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
     logging:
       driver: json-file
       options:

@@ -146,27 +146,196 @@ def discover_liquid_kalshi_tickers(
             client.close()
 
 
+def extract_polymarket_clob_token_ids(raw: Any) -> List[str]:
+    """Extract full-precision Polymarket CLOB token ID strings without truncation."""
+    if raw is None:
+        return []
+    parsed: Any = raw
+    if isinstance(raw, str):
+        stripped = raw.strip()
+        if not stripped:
+            return []
+        if stripped.startswith("["):
+            try:
+                parsed = json.loads(stripped)
+            except (ValueError, json.JSONDecodeError):
+                return []
+        elif stripped.startswith("{"):
+            return []
+        else:
+            parsed = [part.strip() for part in stripped.split(",") if part.strip()]
+    if not isinstance(parsed, (list, tuple)):
+        return []
+
+    tokens: List[str] = []
+    seen: set[str] = set()
+    for item in parsed:
+        if item is None or isinstance(item, (bool, float, dict, list)):
+            continue
+        tok = str(item).strip()
+        if tok and tok not in seen:
+            seen.add(tok)
+            tokens.append(tok)
+    return tokens
+
+
+def _verify_polymarket_orderbook(
+    client: httpx.Client,
+    token_id: str,
+    *,
+    require_non_empty_book: bool = True,
+) -> bool:
+    """Verify a Polymarket CLOB token returns HTTP 200 with a valid ADR-008 integer-cent book."""
+    url = f"{POLYMARKET_PUBLIC_BASE}/book"
+    try:
+        resp = client.get(url, params={"token_id": token_id})
+    except (httpx.TimeoutException, httpx.RequestError):
+        return False
+    if resp.status_code == 429:
+        resp.raise_for_status()
+    if resp.status_code != 200:
+        return False
+    try:
+        payload = resp.json()
+    except ValueError:
+        return False
+    if not isinstance(payload, dict):
+        return False
+    try:
+        snap = normalize_polymarket_l2(token_id, payload, source_url=f"{url}?token_id={token_id}")
+    except (ValueError, KeyError, TypeError):
+        return False
+    if require_non_empty_book and not snap["bids"] and not snap["asks"]:
+        return False
+    return True
+
+
+def _extract_sampling_market_token_groups(payload: Any) -> List[List[str]]:
+    """Extract active order-book-enabled token ID groups from CLOB /sampling-markets payload."""
+    rows = payload.get("data", []) if isinstance(payload, dict) else (payload if isinstance(payload, list) else [])
+    groups: List[List[str]] = []
+    for market in rows:
+        if not isinstance(market, dict):
+            continue
+        if (
+            market.get("closed") is True
+            or market.get("archived") is True
+            or market.get("active") is False
+            or market.get("enable_order_book") is False
+            or market.get("accepting_orders") is False
+        ):
+            continue
+        raw_tokens = market.get("tokens") or []
+        if not isinstance(raw_tokens, list):
+            continue
+        group: List[str] = []
+        seen: set[str] = set()
+        for entry in raw_tokens:
+            if not isinstance(entry, dict):
+                continue
+            raw_id = entry.get("token_id")
+            if raw_id is None or isinstance(raw_id, (bool, float, dict, list)):
+                continue
+            tok = str(raw_id).strip()
+            if tok and tok not in seen:
+                seen.add(tok)
+                group.append(tok)
+        if group:
+            groups.append(group)
+    return groups
+
+
 def discover_liquid_polymarket_tokens(
     http_client: Optional[httpx.Client] = None,
     limit: int = 5,
+    *,
+    verify_orderbook: bool = True,
+    require_non_empty_book: bool = True,
+    exclude_tokens: Optional[set[str]] = None,
 ) -> List[str]:
-    """Discover active Polymarket CLOB token IDs ranked by 24h volume."""
+    """Discover active, order-book-enabled Polymarket CLOB token IDs verified against /book."""
+    target_limit = max(0, int(limit))
+    if target_limit == 0:
+        return []
+
+    excluded = {str(t).strip() for t in (exclude_tokens or set()) if str(t).strip()}
     owns = http_client is None
     client = http_client or httpx.Client(timeout=15.0)
     try:
-        resp = client.get(
-            f"{POLYMARKET_GAMMA_BASE}/markets",
-            params={"active": "true", "closed": "false", "limit": max(limit * 2, 10), "order": "volume24hr", "ascending": "false"},
-        )
-        resp.raise_for_status()
         tokens: List[str] = []
-        for m in resp.json():
-            raw = m.get("clobTokenIds")
-            parsed = json.loads(raw) if isinstance(raw, str) else (raw or [])
-            if parsed:
-                tokens.append(str(parsed[0]))
-            if len(tokens) >= limit:
-                break
+        checked: set[str] = set()
+        gamma_error: Optional[Exception] = None
+
+        def _collect_from_groups(groups: List[List[str]]) -> None:
+            for candidate_group in groups:
+                for tok in candidate_group:
+                    if tok in excluded or tok in checked or tok in tokens:
+                        continue
+                    checked.add(tok)
+                    if not verify_orderbook or _verify_polymarket_orderbook(
+                        client,
+                        tok,
+                        require_non_empty_book=require_non_empty_book,
+                    ):
+                        tokens.append(tok)
+                        break  # At most one verified outcome token per market for diversity
+                if len(tokens) >= target_limit:
+                    break
+
+        try:
+            resp = client.get(
+                f"{POLYMARKET_GAMMA_BASE}/markets",
+                params={
+                    "active": "true",
+                    "closed": "false",
+                    "archived": "false",
+                    "enableOrderBook": "true",
+                    "limit": max(target_limit * 10, 25),
+                    "order": "volume24hr",
+                    "ascending": "false",
+                },
+            )
+            resp.raise_for_status()
+            markets = resp.json()
+            gamma_groups: List[List[str]] = []
+            if isinstance(markets, list):
+                for m in markets:
+                    if not isinstance(m, dict):
+                        continue
+                    if (
+                        m.get("closed") is True
+                        or m.get("archived") is True
+                        or m.get("active") is False
+                        or m.get("enableOrderBook") is False
+                        or m.get("acceptingOrders") is False
+                    ):
+                        continue
+                    group = extract_polymarket_clob_token_ids(m.get("clobTokenIds"))
+                    if group:
+                        gamma_groups.append(group)
+            _collect_from_groups(gamma_groups)
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code == 429:
+                raise
+            gamma_error = exc
+        except (httpx.TimeoutException, httpx.RequestError, ValueError) as exc:
+            gamma_error = exc
+
+        if len(tokens) < target_limit:
+            try:
+                sampling_resp = client.get(f"{POLYMARKET_PUBLIC_BASE}/sampling-markets")
+                if sampling_resp.status_code == 429:
+                    sampling_resp.raise_for_status()
+                if sampling_resp.status_code == 200:
+                    _collect_from_groups(_extract_sampling_market_token_groups(sampling_resp.json()))
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code == 429:
+                    raise
+            except (httpx.TimeoutException, httpx.RequestError, ValueError):
+                pass
+
+        if not tokens and gamma_error is not None:
+            raise gamma_error
         return tokens
     finally:
         if owns:

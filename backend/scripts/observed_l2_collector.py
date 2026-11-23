@@ -111,6 +111,9 @@ class ObservedL2Collector:
         self.consecutive_errors = 0
         self.last_error: Optional[str] = None
         self._stop_requested = False
+        self._force_rediscover_kalshi = False
+        self._force_rediscover_poly = False
+        self._dead_poly_tokens: set[str] = set()
 
     def request_stop(self) -> None:
         self._stop_requested = True
@@ -119,17 +122,30 @@ class ObservedL2Collector:
         if self._owns_client:
             self.client.close()
 
-    def _refresh_targets_if_needed(self, errors: List[str]) -> None:
-        should_refresh = (
-            self.cycles == 1
-            or (self.cycles % self.rediscover_every_cycles == 0)
-            or (self._pinned_kalshi is None and self.kalshi_count > 0 and not self.kalshi_tickers)
-            or (self._pinned_poly is None and self.poly_count > 0 and not self.poly_tokens)
-        )
-        if not should_refresh:
-            return
+    def _refresh_targets_if_needed(self, errors: List[str]) -> bool:
+        rate_limited = False
+        periodic_refresh = self.cycles == 1 or (self.cycles % self.rediscover_every_cycles == 0)
 
-        if self._pinned_kalshi is None and self.kalshi_count > 0:
+        refresh_kalshi = (
+            self._pinned_kalshi is None
+            and self.kalshi_count > 0
+            and (
+                periodic_refresh
+                or self._force_rediscover_kalshi
+                or len(self.kalshi_tickers) < self.kalshi_count
+            )
+        )
+        refresh_poly = (
+            self._pinned_poly is None
+            and self.poly_count > 0
+            and (
+                periodic_refresh
+                or self._force_rediscover_poly
+                or len(self.poly_tokens) < self.poly_count
+            )
+        )
+
+        if refresh_kalshi:
             try:
                 discovered = discover_liquid_kalshi_tickers(
                     http_client=self.client,
@@ -137,19 +153,36 @@ class ObservedL2Collector:
                 )
                 if discovered:
                     self.kalshi_tickers = discovered
+                    self._force_rediscover_kalshi = False
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code == 429:
+                    rate_limited = True
+                errors.append(f"DISCOVER:KALSHI:HTTP_{exc.response.status_code}")
             except Exception as exc:
                 errors.append(f"DISCOVER:KALSHI:{type(exc).__name__}:{exc}")
 
-        if self._pinned_poly is None and self.poly_count > 0:
+        if refresh_poly:
+            if periodic_refresh and len(self._dead_poly_tokens) > 100:
+                self._dead_poly_tokens.clear()
             try:
                 discovered = discover_liquid_polymarket_tokens(
                     http_client=self.client,
                     limit=self.poly_count,
+                    verify_orderbook=True,
+                    require_non_empty_book=True,
+                    exclude_tokens=self._dead_poly_tokens,
                 )
                 if discovered:
                     self.poly_tokens = discovered
+                    self._force_rediscover_poly = False
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code == 429:
+                    rate_limited = True
+                errors.append(f"DISCOVER:POLYMARKET:HTTP_{exc.response.status_code}")
             except Exception as exc:
                 errors.append(f"DISCOVER:POLYMARKET:{type(exc).__name__}:{exc}")
+
+        return rate_limited
 
     def _write_heartbeat(self, heartbeat: Dict[str, Any]) -> None:
         payload = json.dumps(heartbeat, sort_keys=True)
@@ -163,30 +196,35 @@ class ObservedL2Collector:
         self.cycles += 1
         cycle_errors: List[str] = []
         cycle_snapshots = 0
-        rate_limited = False
+        rate_limited = self._refresh_targets_if_needed(cycle_errors)
 
-        self._refresh_targets_if_needed(cycle_errors)
-
-        for ticker in self.kalshi_tickers:
+        for ticker in list(self.kalshi_tickers):
             try:
                 self.recorder.capture_kalshi_snapshot(ticker)
                 cycle_snapshots += 1
             except httpx.HTTPStatusError as exc:
                 if exc.response.status_code == 429:
                     rate_limited = True
+                elif exc.response.status_code == 404 and self._pinned_kalshi is None:
+                    self.kalshi_tickers = [t for t in self.kalshi_tickers if t != ticker]
+                    self._force_rediscover_kalshi = True
                 cycle_errors.append(f"KALSHI:{ticker}:HTTP_{exc.response.status_code}")
             except (httpx.TimeoutException, httpx.RequestError) as exc:
                 cycle_errors.append(f"KALSHI:{ticker}:{type(exc).__name__}")
             except Exception as exc:
                 cycle_errors.append(f"KALSHI:{ticker}:{type(exc).__name__}:{exc}")
 
-        for token_id in self.poly_tokens:
+        for token_id in list(self.poly_tokens):
             try:
                 self.recorder.capture_polymarket_snapshot(token_id)
                 cycle_snapshots += 1
             except httpx.HTTPStatusError as exc:
                 if exc.response.status_code == 429:
                     rate_limited = True
+                elif exc.response.status_code == 404 and self._pinned_poly is None:
+                    self._dead_poly_tokens.add(token_id)
+                    self.poly_tokens = [t for t in self.poly_tokens if t != token_id]
+                    self._force_rediscover_poly = True
                 cycle_errors.append(f"POLYMARKET:{token_id[:16]}:HTTP_{exc.response.status_code}")
             except (httpx.TimeoutException, httpx.RequestError) as exc:
                 cycle_errors.append(f"POLYMARKET:{token_id[:16]}:{type(exc).__name__}")
