@@ -42,7 +42,7 @@
 
 ## Domain E — Frontend UX, Visual Polish, Glossary/Thesaurus & System Crawl
 - [x] **E1** | `DESIGN_TOKENS.md` locked in repository | *Now (Milestone 1)* | Gate: Committed to `ring1-alpha`
-- [ ] **E2** | **Playwright Full-System & Link Crawler** (every portal, tab, button, chart, 0 console errors, 0 dead links, 0 CDN tags) | *Now (Milestone 1)* | Gate: GitHub Actions CI + scheduled crawl green with screenshots
+- [x] **E2** | **Playwright Full-System & Link Crawler** (every portal, tab, button, chart, 0 console errors, 0 dead links, 0 CDN tags) | *Now (Milestone 1)* | Gate: GitHub Actions CI + scheduled crawl green with screenshots
 - [ ] **E3** | **Member Desktop (`/member`) & Admin Cockpit (`/dashboard`) Polish** (real charts, Concentric Asset Rings, zero overlapping tables) | *Ring 1 Alpha* | Gate: Playwright desktop/mobile screenshot visual sign-off
 - [ ] **E4** | **Interactive Glossary/Thesaurus & Pure-CSS Hover Tooltips** (`<abbr data-tooltip>`, `ⓘ` icons, consolidated `Lexicon v0.5` in `ring1-alpha`) | *Ring 1 Alpha* | Gate: Playwright hover-tooltip & glossary search tests
 - [ ] **E5** | **Fail-Closed `ReadModelEnvelope[T]` UX** (`NOT AVAILABLE - QUALIFICATION PENDING`, `TRADING HALTED: DIRECTIVE R-04 ENGAGED`) | *Ring 1 Alpha* | Gate: Playwright offline/fault-injection UI tests

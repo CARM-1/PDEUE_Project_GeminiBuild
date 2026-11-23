@@ -1,0 +1,86 @@
+name: Playwright Full-System & Role Crawl
+
+on:
+  pull_request:
+    branches: [ ring1-alpha ]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  playwright-crawl:
+    name: Full-System Portal & Role Crawl (Paper Mode)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install backend and Playwright dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt playwright
+
+      - name: Install Playwright Chromium browser
+        run: |
+          python -m playwright install --with-deps chromium
+
+      - name: Run Playwright Full-System & Role Crawl
+        env:
+          PDEUE_VENUE_MODE: paper
+        run: |
+          cd backend
+          timeout 300 python -m pytest tests/e2e/test_system_crawl.py -v
+
+      - name: Publish Crawl Inventory Summary
+        if: always()
+        shell: python
+        run: |
+          import json
+          import os
+          from pathlib import Path
+
+          report_path = Path("artifacts/playwright_crawl_report.json")
+          summary_file = os.environ.get("GITHUB_STEP_SUMMARY")
+          if not report_path.exists() or not summary_file:
+              raise SystemExit(0)
+
+          report = json.loads(report_path.read_text(encoding="utf-8"))
+          summary = report["summary"]
+          lines = [
+              "## Playwright Full-System & Role Crawl Summary",
+              "",
+              f"- **Venue Mode:** `{report['venue_mode']}`",
+              f"- **Routes Audited:** {summary['routes_audited']}",
+              f"- **Screenshots Captured:** {summary['screenshots_captured']}",
+              f"- **Interactive Controls Inventoried:** {summary['interactive_controls_inventoried']}",
+              f"- **Dead / Stubbed Elements:** {summary['dead_or_stubbed_elements']}",
+              f"- **Console Errors:** {summary['console_errors']}",
+              f"- **Uncaught Page Errors:** {summary['page_errors']}",
+              f"- **Broken Internal Links/Assets:** {summary['broken_internal_links_or_assets']}",
+              f"- **External CDN Violations:** {summary['external_cdn_violations']}",
+              f"- **Unauthorized HTTP 403 Checks:** {summary['unauthorized_403_passed']}/{summary['unauthorized_403_checks']} passed",
+              "",
+          ]
+          with open(summary_file, "a", encoding="utf-8") as fh:
+              fh.write("\n".join(lines))
+
+      - name: Upload Playwright Screenshots & Crawl Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-crawl-artifacts
+          path: |
+            artifacts/playwright_screenshots/
+            artifacts/playwright_crawl_report.json
+          retention-days: 14
+          if-no-files-found: warn
