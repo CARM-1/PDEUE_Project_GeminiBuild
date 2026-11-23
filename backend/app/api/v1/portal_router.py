@@ -579,17 +579,35 @@ def _member_concurrency_slots() -> List[Dict[str, Any]]:
 
 @router.get("/api/v1/portal/member/state")
 def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str] = Query(None)) -> Dict[str, Any]:
+    from app.domain.member_onboarding import IFAS_PORTAL_HOST, STATUS_PENDING_CERT, get_onboarding_service
+
     target = None
     lineage_member = None
+    onboarded = None
 
     # A SCMA link is authoritative: resolve it against the shared lineage
-    # registry first, so this endpoint also works for dynamically seeded House
-    # members that do not have a legacy portal profile.
+    # registry first, falling back to the persistent onboarding store so
+    # dynamically provisioned members resolve across restarts as well.
     if scma_id:
+        onboarded = get_onboarding_service().get_member_by_scma(scma_id)
         try:
             lineage_member = _lineage_service.get_member_state(scma_id)
         except ValueError as err:
-            raise HTTPException(status_code=404, detail=str(err)) from err
+            if onboarded is None:
+                raise HTTPException(status_code=404, detail=str(err)) from err
+            lineage_member = _lineage_service.register_onboarded_member(
+                house_id=onboarded["house_id"],
+                scma_id=onboarded["scma_id"],
+                member_id=onboarded["member_id"],
+                name=onboarded["full_name"],
+                role_tier=onboarded["role_tier"],
+                seed_cents=onboarded["seed_cents"],
+                risk_dial_bps=onboarded["risk_dial_bps"],
+                is_custodial=onboarded["is_custodial"],
+                bank_ref_token=onboarded["bank_ref_token"],
+                status=onboarded["status"],
+            )
+            lineage_member = _lineage_service.get_member_state(scma_id)
 
     for house in LINEAGE_DATA.values():
         for acct in house["accounts"]:
@@ -601,14 +619,14 @@ def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str
     if not target:
         if lineage_member:
             target = {
-                "user_id": f"USR-{lineage_member['scma_id']}",
+                "user_id": lineage_member.get("member_id") or f"USR-{lineage_member['scma_id']}",
                 "name": lineage_member["name"],
                 "role": "MEMBER_USER",
                 "scma_id": lineage_member["scma_id"],
                 "balance": lineage_member["cash_cents"] / 100.0,
                 "reserved": 0.0,
                 "risk_dial": lineage_member["risk_dial"] * 100,
-                "is_custodial": False,
+                "is_custodial": bool(lineage_member.get("is_custodial", False)),
                 "custodian_id": None,
                 "status": lineage_member["status"],
             }
@@ -622,16 +640,29 @@ def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str
             lineage_member = _lineage_service.get_member_state(target["scma_id"])
         except ValueError:
             lineage_member = None
+    if onboarded is None:
+        onboarded = get_onboarding_service().get_member_by_scma(target["scma_id"])
+
     risk_dial_pct = (
         lineage_member["risk_dial"] * 100 if lineage_member else target["risk_dial"]
     )
 
     cash_cents = int(lineage_member["cash_cents"] if lineage_member else round(target["balance"] * 100))
+    high_water_mark_cents = int(
+        (onboarded["high_water_mark_cents"] if onboarded else None)
+        or (lineage_member.get("high_water_mark_cents") if lineage_member else None)
+        or cash_cents
+    )
+    member_status = (
+        onboarded["status"]
+        if onboarded and lineage_member and lineage_member["status"] in {"PENDING_TUTOR_CERTIFICATION", "ACTIVE"}
+        else (lineage_member["status"] if lineage_member else target["status"])
+    )
     active_float_cents = min(cash_cents, 2_500_000)
     swept_cash_cents = max(cash_cents - active_float_cents, 0)
     passive_yield_cents = cash_cents * 450 // 10_000
-    quarantined = (lineage_member["status"] if lineage_member else target["status"]) in {
-        "QUARANTINED", "FROZEN_BY_HOUSE_LEADER"
+    quarantined = member_status in {
+        "QUARANTINED", "FROZEN_BY_HOUSE_LEADER", "FROZEN_BY_HOUSE_QUARANTINE"
     }
     parent_house_quarantined = (
         (lineage_member["parent_house_status"] if lineage_member else "ACTIVE") == "QUARANTINED"
@@ -657,20 +688,58 @@ def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str
         {"contract_id": "KX-CPI-PRINT", "title": "CPI Inflation Print", "settled_at": "2026-09-16", "outcome": "SETTLED / WON", "gross_win_cents": 12_000, "scma_cents": 10_440, "family_shield_cents": 1_200, "platform_ops_cents": 360},
     ]
 
+    bank_ref_token = (
+        (onboarded["bank_ref_token"] if onboarded else None)
+        or (lineage_member.get("bank_ref_token") if lineage_member else None)
+        or "EXT-REF-IFAS-****0000"
+    )
+    certification_level = (
+        (onboarded["certification_level"] if onboarded else None)
+        or (lineage_member.get("certification_level") if lineage_member else None)
+    )
+    certified_at = (
+        (onboarded["certified_at"] if onboarded else None)
+        or (lineage_member.get("certified_at") if lineage_member else None)
+    )
+    invite_activated_at = (
+        (onboarded["invite_activated_at"] if onboarded else None)
+        or (lineage_member.get("invite_activated_at") if lineage_member else None)
+    )
+    role_tier = (
+        (onboarded["role_tier"] if onboarded else None)
+        or (lineage_member.get("role_tier") if lineage_member else None)
+        or "MEMBER_USER"
+    )
+    is_custodial = bool(
+        onboarded["is_custodial"]
+        if onboarded is not None
+        else (lineage_member.get("is_custodial", target["is_custodial"]) if lineage_member else target["is_custodial"])
+    )
+
     return {
         "user_id": target["user_id"],
         "cash_cents": cash_cents,
+        "high_water_mark_cents": high_water_mark_cents,
         "reserved_cents": int(round(target["reserved"] * 100)),
         "lifetime_profit_cents": 34_000,
         "concurrency_slots": _member_concurrency_slots(),
         "name": target["name"],
         "role": "MEMBER_USER",  # Directive R-06: Member desk always enforces personal member role
+        "role_tier": role_tier,
         "scma_id": target["scma_id"],
-        "cash_balance": lineage_member["cash_cents"] / 100.0 if lineage_member else target["balance"],
+        "lineage_code": lineage_member["lineage_code"] if lineage_member else "HOUSE-01",
+        "cash_balance": cash_cents / 100.0,
         "reserved_capital": target["reserved"],
         "lifetime_yield": 340.00,
         "risk_dial_pct": risk_dial_pct,
-        "status": lineage_member["status"] if lineage_member else target["status"],
+        "status": member_status,
+        "onboarding_status": member_status,
+        "certification_level": certification_level,
+        "certified_at": certified_at,
+        "invite_activated_at": invite_activated_at,
+        "requires_orientation": member_status == STATUS_PENDING_CERT,
+        "bank_ref_token": bank_ref_token,
+        "ifas_portal_host": IFAS_PORTAL_HOST,
         "open_orders": lineage_member["open_orders"] if lineage_member else [],
         "parent_house_status": lineage_member["parent_house_status"] if lineage_member else "ACTIVE",
         "risk_ceiling_pct": 2.00,
@@ -692,7 +761,7 @@ def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str
         },
         "trajectory_points": trajectory_points,
         "recent_settled_contracts": settled_contracts,
-        "is_custodial": target["is_custodial"],
+        "is_custodial": is_custodial,
         "custodian_id": target["custodian_id"],
         "positions": [
             {
@@ -736,6 +805,11 @@ def update_current_member_risk_dial(req: RiskUpdateRequest):
         member = _lineage_service.get_member_state(scma_id)
     except ValueError as err:
         raise HTTPException(status_code=404, detail=str(err)) from err
+    if member.get("is_custodial"):
+        raise HTTPException(
+            status_code=403,
+            detail="Custodial accounts require F2-H Head of Household authorization",
+        )
     requested = req.requested_risk_pct
     if requested is None:
         requested = req.risk_dial_pct if req.risk_dial_pct is not None else req.new_risk_dial

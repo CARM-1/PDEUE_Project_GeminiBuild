@@ -235,6 +235,80 @@ class LineageHierarchyService:
                     }
         raise ValueError(f"SCMA member {scma_id} not found.")
 
+    def register_onboarded_member(
+        self,
+        *,
+        house_id: int,
+        scma_id: str,
+        member_id: str,
+        name: str,
+        role_tier: str,
+        seed_cents: int,
+        risk_dial_bps: int,
+        is_custodial: bool,
+        bank_ref_token: str,
+        status: str = "PENDING_TUTOR_CERTIFICATION",
+    ) -> Dict[str, Any]:
+        """Register a newly provisioned member into their assigned Lineage House."""
+        house = self._get_house(house_id)
+        existing = next((m for m in house["members"] if m["scma_id"] == scma_id), None)
+        risk_dial = round(risk_dial_bps / 10_000.0, 6)
+        record = {
+            "member_id": member_id,
+            "scma_id": scma_id,
+            "name": name,
+            "role_tag": role_tier,
+            "role_tier": role_tier,
+            "cash_cents": int(seed_cents),
+            "high_water_mark_cents": int(seed_cents),
+            "risk_dial": risk_dial,
+            "baseline_risk_dial": risk_dial,
+            "is_custodial": bool(is_custodial),
+            "bank_ref_token": bank_ref_token,
+            "status": status,
+            "certification_level": None,
+            "certified_at": None,
+            "invite_activated_at": None,
+            "open_orders": [],
+        }
+        if existing is not None:
+            existing.update(record)
+            return existing
+        house["members"].append(record)
+        return record
+
+    def mark_member_activated(self, scma_id: str, activated_at: str) -> Optional[Dict[str, Any]]:
+        """Record single-use invite activation timestamp on the member's lineage record."""
+        for house in self.CANONICAL_HOUSES.values():
+            for member in house["members"]:
+                if member["scma_id"] == scma_id:
+                    member["invite_activated_at"] = activated_at
+                    return member
+        return None
+
+    def certify_member(
+        self,
+        scma_id: str,
+        *,
+        certification_level: str = "STEWARDSHIP_L1_CERTIFIED",
+        certified_at: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Upgrade a member to ACTIVE upon completing PDEUE University certification."""
+        ts = certified_at or datetime.now(timezone.utc).isoformat()
+        for house in self.CANONICAL_HOUSES.values():
+            for member in house["members"]:
+                if member["scma_id"] == scma_id:
+                    member["status"] = "ACTIVE"
+                    member["certification_level"] = certification_level
+                    member["certified_at"] = ts
+                    return {
+                        **member,
+                        "house_id": house["house_id"],
+                        "lineage_code": house["lineage_code"],
+                        "parent_house_status": house["status"],
+                    }
+        raise ValueError(f"SCMA member {scma_id} not found.")
+
     def restore_house(self, house_id: int) -> Dict[str, Any]:
         """Lift a branch quarantine and restore each active member's baseline."""
         house = self._get_house(house_id)

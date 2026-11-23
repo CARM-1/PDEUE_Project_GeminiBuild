@@ -169,3 +169,36 @@ class AuditLogRecordModel(Base):
     entry_hash = Column(String, nullable=False)
     payload = Column(Text, nullable=False)
     recorded_at = Column(String, default=_now)
+
+
+class OnboardingMemberModel(Base):
+    __tablename__ = 'onboarding_members'
+    member_id = Column(String, primary_key=True, index=True)
+    scma_id = Column(String, unique=True, nullable=False, index=True)
+    full_name = Column(String, nullable=False)
+    house_id = Column(Integer, nullable=False, index=True)
+    lineage_code = Column(String, nullable=False, index=True)
+    role_tier = Column(String, nullable=False, default='MEMBER_USER')
+    seed_cents = Column(BigInteger, nullable=False)
+    high_water_mark_cents = Column(BigInteger, nullable=False)
+    risk_dial_bps = Column(Integer, nullable=False, default=150)
+    is_custodial = Column(Integer, nullable=False, default=0)
+    bank_ref_token = Column(String, nullable=False)
+    status = Column(String, nullable=False, default='PENDING_TUTOR_CERTIFICATION')
+    certification_level = Column(String, nullable=True)
+    certified_at = Column(String, nullable=True)
+    invite_activated_at = Column(String, nullable=True)
+    created_by = Column(String, nullable=False, default='CHIEF_ADMINISTRATOR')
+    created_at = Column(String, default=_now)
+
+
+class OnboardingInviteTokenModel(Base):
+    __tablename__ = 'onboarding_invite_tokens'
+    token_hash = Column(String, primary_key=True, index=True)
+    token_prefix = Column(String, nullable=False)
+    member_id = Column(String, ForeignKey('onboarding_members.member_id'), nullable=False, index=True)
+    scma_id = Column(String, nullable=False, index=True)
+    expires_at = Column(String, nullable=False)
+    consumed_at = Column(String, nullable=True)
+    created_at = Column(String, default=_now)
+

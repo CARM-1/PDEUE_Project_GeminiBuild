@@ -25,7 +25,7 @@
 - [ ] **B7** | Production Cloud Scale (ECS Fargate, RDS Postgres Multi-AZ, S3 Object Lock WORM) | *Scale Phase* | Gate: IaC deploy + WORM immutability verification
 
 ## Domain C — Member Onboarding & Role / Authority Tier Matrix
-- [ ] **C1** | **5-Stage Member Onboarding Pipeline** (`[+ Onboard Member]` modal & batch ingest on `/dashboard`, 48h invite tokens, first-run Platform Orientation & Pay-It-Forward view on `/member`, `/companion` certification gate, `EXT-REF-...` funding instructions) | *Ring 1 Alpha* | Gate: Playwright E2E onboarding walk (Admin -> Member)
+- [x] **C1** | **5-Stage Member Onboarding Pipeline** (`[+ Onboard Member]` modal & batch ingest on `/dashboard`, 48h invite tokens, first-run Platform Orientation & Pay-It-Forward view on `/member`, `/companion` certification gate, `EXT-REF-...` funding instructions) | *Ring 1 Alpha* | Gate: Playwright E2E onboarding walk (Admin -> Member) (`test_c1_member_onboarding.py` + `tests/e2e/test_c1_onboarding_e2e.py`, 806 backend + 18 Playwright E2E green)
 - [ ] **C2** | **Directive R-06 Active-Hat Context Switching** & strict non-admin navigation siloing | *Ring 1 Alpha* | Gate: Playwright HTTP 403 isolation + JWT hat-switch tests
 - [ ] **C3** | **Founder Quarantine Immunity** & **Supervisory Audit Lens** amber banner | *Ring 1 Alpha* | Gate: Unit + Playwright test (Founder root SCMA cannot be clamped)
 - [ ] **C4** | **Class T Sub-Tier Decomposition** (`T1` Monitor, `T2` Engineer, `T2-Household`, `T3` CTO + Directive R-12 `$****.**` masking) | *Full Prod* | Gate: Playwright DOM-strip + redaction assertions per tier
