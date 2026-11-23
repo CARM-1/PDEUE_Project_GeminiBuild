@@ -12,6 +12,7 @@ from app.domain.position_book import PositionBook
 from app.domain.priority_eviction import PriorityEvictionManager
 from app.domain.settlement_reconciler import SettlementReconciler
 from app.domain.venue_router import VenueOrderDispatcher
+from app.domain.fleet_bridge import is_approved_provenance
 
 
 class AutonomousExecutionLoop:
@@ -29,7 +30,10 @@ class AutonomousExecutionLoop:
                  position_book: Optional[PositionBook] = None,
                  eviction_manager: Optional[PriorityEvictionManager] = None,
                  dispatcher: Optional[VenueOrderDispatcher] = None,
-                 accounting_gateway: Optional[AccountingGateway] = None):
+                 accounting_gateway: Optional[AccountingGateway] = None,
+                 gate_g1_status: str = 'RELEASED',
+                 enforce_provenance: bool = False,
+                 on_order_release: Any = None):
         self.ledger = ledger or CapitalLedger(initial_balance_cents=10_000)
         self.position_book = position_book or PositionBook()
         self.eviction_manager = eviction_manager or PriorityEvictionManager(
@@ -49,6 +53,9 @@ class AutonomousExecutionLoop:
         self.sweeps_emitted = 0
         self.total_distributed_cents = 0
         self.last_status = "IDLE"
+        self.gate_g1_status = str(gate_g1_status).strip().upper()
+        self.enforce_provenance = bool(enforce_provenance)
+        self.on_order_release = on_order_release
 
     @staticmethod
     def canonical_feed(cycle: int = 0) -> List[Dict[str, Any]]:
@@ -123,10 +130,16 @@ class AutonomousExecutionLoop:
             self.eviction_manager.filled_orders.pop(order_id, None)
             self.dispatcher.routed_orders.pop(order_id, None)
             self.pending_orders.pop(order_id, None)
+            if self.on_order_release and order.get('scma_id'):
+                self.on_order_release(order.get('venue'), order['contract_id'], order['scma_id'])
         self.dispatcher.available_capital_cents = self.ledger.balance_cents
         return settlements
 
     def dispatch_candidate(self, candidate: Dict[str, Any]) -> Dict[str, Any]:
+        if self.gate_g1_status != 'RELEASED':
+            return {'status': 'REJECTED', 'reason': 'GATE_G1_HOLD'}
+        if self.enforce_provenance and not is_approved_provenance(candidate.get('data_provenance')):
+            return {'status': 'REJECTED', 'reason': 'PROVENANCE_NOT_APPROVED'}
         bid = candidate.get("bid_cents")
         quantity = candidate.get("quantity", 1)
         if not isinstance(bid, int) or isinstance(bid, bool) or not isinstance(quantity, int):
@@ -146,6 +159,8 @@ class AutonomousExecutionLoop:
             self.dispatcher.routed_orders.pop(evicted_id, None)
             if evicted:
                 self.ledger.release_reservation(evicted["reservation_id"])
+                if self.on_order_release and evicted.get('scma_id'):
+                    self.on_order_release(evicted.get('venue'), evicted['contract_id'], evicted['scma_id'])
             self.evictions_executed += 1
             self.dispatcher.available_capital_cents = self.ledger.balance_cents
         reservation_id = f"DAEMON-RES-{self.cycles_completed:06d}-{self.orders_posted:08d}"
@@ -158,7 +173,8 @@ class AutonomousExecutionLoop:
             return routed
         order_id = routed["response"].get("order_id", routed["client_order_id"])
         routed.update({"reservation_id": reservation_id,
-                       "category": candidate["category"], "net_edge": candidate["net_edge"]})
+                       "category": candidate["category"], "net_edge": candidate["net_edge"],
+                       "scma_id": candidate.get("scma_id")})
         self.pending_orders[order_id] = routed
         self.eviction_manager.register_resting_order(
             order_id=order_id, ticker=routed["contract_id"], domain=candidate["category"],
@@ -167,6 +183,12 @@ class AutonomousExecutionLoop:
         return routed
 
     def run_cycle(self, feed: Optional[Iterable[Dict[str, Any]]] = None) -> Dict[str, Any]:
+        if self.gate_g1_status != 'RELEASED':
+            self.cycles_completed += 1
+            self.last_status = 'HOLD_OBSERVATIONS_ONLY'
+            return {'dispatched_count': 0, 'dispatched_orders': [], 'settlements': [], 'sweeps_emitted': 0,
+                    'cash_balance_cents': self.ledger.balance_cents, 'dry_powder_floor_cents': self.dry_powder_floor_cents(),
+                    'active_slots': len(self.eviction_manager.resting_orders) + len(self.eviction_manager.filled_orders)}
         settlements = self._settle_pending()
         candidates = list(feed) if feed is not None else self.canonical_feed(self.cycles_completed + 1)
         orders = [self.dispatch_candidate(candidate) for candidate in candidates]

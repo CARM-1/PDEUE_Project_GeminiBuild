@@ -5,6 +5,7 @@ and fail-closed execution gating.
 """
 import asyncio
 import os
+import sqlite3
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
 import httpx
@@ -21,8 +22,12 @@ from app.clients.polymarket_client import PolymarketClient
 from app.services.credential_broker import CredentialBroker
 from app.domain.fleet_bridge import (
     ContractCollisionError,
+    DomainCollusionError,
     FleetMutexCoordinator,
     HouseholdAffinityCollisionError,
+    get_shared_fleet_coordinator,
+    is_approved_provenance,
+    normalize_provenance,
 )
 
 
@@ -47,8 +52,10 @@ class AutonomousScanWorker:
         self.accounting_gateway = kwargs.get("accounting_gateway") or AccountingGateway()
         self.float_sweep_monitor = kwargs.get("float_sweep_monitor") or FloatSweepMonitor()
         self.credential_broker = kwargs.get("credential_broker") or CredentialBroker()
-        self.fleet_coordinator = kwargs.get("fleet_coordinator") or FleetMutexCoordinator()
-        self.gate_g1_status = "HOLD_OBSERVATIONS_ONLY"
+        self.fleet_coordinator = kwargs.get("fleet_coordinator") or get_shared_fleet_coordinator()
+        self.gate_g1_status = str(kwargs.get("gate_g1_status", os.getenv("PDEUE_GATE_G1_STATUS", "HOLD_OBSERVATIONS_ONLY"))).strip().upper()
+        self.enforce_domain_router = bool(kwargs.get("enforce_domain_router", False))
+        self.require_series_ticker = bool(kwargs.get("require_series_ticker", False))
         self.last_mutex_blocked = []
         if self.execution_mode == "TESTNET_SANDBOX":
             tenant_id = kwargs.get("tenant_id", "DEFAULT")
@@ -79,6 +86,9 @@ class AutonomousScanWorker:
             # than the VenueOrderDispatcher's single-candidate coroutine.
             dispatcher=self.dispatcher if hasattr(self.dispatcher, "dispatch") else None,
             accounting_gateway=self.accounting_gateway,
+            gate_g1_status=self.gate_g1_status,
+            enforce_provenance=True,
+            on_order_release=lambda v, c, s: self.fleet_coordinator.release_contract_lock(c, s, venue=v),
         )
         self.last_cycle_telemetry = self._cycle_telemetry(0, 0)
         self.stats = {
@@ -206,40 +216,75 @@ class AutonomousScanWorker:
                 **self.last_cycle_telemetry,
             }
 
+        self.execution_loop.gate_g1_status = self.gate_g1_status
         contracts_count = len(self.latest_opportunities)
         self.stats["total_contracts_scanned"] += contracts_count
-        self.fleet_coordinator.reap_expired()
+        try:
+            self.fleet_coordinator.reap_expired()
+        except sqlite3.Error:
+            pass
         canonical_feed = []
         mutex_blocked = []
-        for index, item in enumerate(self.latest_opportunities):
-            if str(item.get("data_provenance", "")).upper() == "OBSERVATIONS_ONLY":
-                mutex_blocked.append({"contract_id": item["contract_ticker"], "reason": "GATE_G1_OBSERVATIONS_ONLY_HOLD"})
-                continue
-            scma_id = str(item.get("scma_id", "SCMA-FOUNDER"))
-            series_ticker = item.get("series_ticker")
-            try:
-                cat_meta = self.fleet_coordinator.acquire_contract_lock(
-                    contract_id=item["contract_ticker"],
-                    venue=item["venue"],
-                    scma_id=scma_id,
-                    category=item["category"],
-                    series_ticker=series_ticker,
-                )
-            except (ContractCollisionError, HouseholdAffinityCollisionError, ValueError) as exc:
-                mutex_blocked.append({"contract_id": item["contract_ticker"], "scma_id": scma_id, "reason": str(exc)})
-                continue
-            bid_cents = 2 + index
-            canonical_feed.append({
-                "ticker": item["contract_ticker"],
-                "contract_id": item["contract_ticker"],
-                "venue": item["venue"], "category": item["category"],
-                "fleet_category_id": cat_meta["category_id"],
-                "scma_id": scma_id,
-                "bid_cents": bid_cents, "ask_cents": bid_cents + 2,
-                "quantity": 1, "net_edge": item["net_edge"], "expiry_hours": 2,
-            })
-        self.last_mutex_blocked = mutex_blocked
-        daemon_result = self.execution_loop.run_cycle(canonical_feed)
+        acquired_this_cycle = []
+
+        if self.gate_g1_status != "RELEASED":
+            for item in self.latest_opportunities:
+                mutex_blocked.append({
+                    "contract_id": item["contract_ticker"],
+                    "reason": f"GATE_G1_HOLD:{self.gate_g1_status}",
+                })
+            self.last_mutex_blocked = mutex_blocked
+            daemon_result = self.execution_loop.run_cycle([])
+        else:
+            for index, item in enumerate(self.latest_opportunities):
+                if not is_approved_provenance(item.get("data_provenance")):
+                    norm_p = normalize_provenance(item.get("data_provenance")) or "MISSING"
+                    mutex_blocked.append({
+                        "contract_id": item["contract_ticker"],
+                        "reason": f"PROVENANCE_NOT_APPROVED:{norm_p}",
+                    })
+                    continue
+                scma_id = str(item.get("scma_id") or "").strip().upper()
+                if not scma_id:
+                    mutex_blocked.append({"contract_id": item["contract_ticker"], "reason": "MISSING_SCMA_ID"})
+                    continue
+                expiry_hours = int(item.get("expiry_hours", 2))
+                ttl_seconds = max(300, expiry_hours * 3600)
+                try:
+                    cat_meta = self.fleet_coordinator.acquire_contract_lock(
+                        contract_id=item["contract_ticker"],
+                        venue=item["venue"],
+                        scma_id=scma_id,
+                        category=item["category"],
+                        series_ticker=item.get("series_ticker"),
+                        ttl_seconds=ttl_seconds,
+                        enforce_domain_router=self.enforce_domain_router,
+                        require_series_for_series_categories=self.require_series_ticker,
+                    )
+                except (ContractCollisionError, HouseholdAffinityCollisionError, DomainCollusionError, ValueError, sqlite3.Error) as exc:
+                    mutex_blocked.append({"contract_id": item["contract_ticker"], "scma_id": scma_id, "reason": str(exc)})
+                    continue
+                acquired_this_cycle.append((item["venue"], item["contract_ticker"], scma_id))
+                bid_cents = 2 + index
+                canonical_feed.append({
+                    "ticker": item["contract_ticker"],
+                    "contract_id": item["contract_ticker"],
+                    "venue": item["venue"], "category": item["category"],
+                    "fleet_category_id": cat_meta["category_id"],
+                    "scma_id": scma_id,
+                    "data_provenance": item.get("data_provenance"),
+                    "bid_cents": bid_cents, "ask_cents": bid_cents + 2,
+                    "quantity": 1, "net_edge": item["net_edge"], "expiry_hours": expiry_hours,
+                })
+            self.last_mutex_blocked = mutex_blocked
+            daemon_result = self.execution_loop.run_cycle(canonical_feed)
+            live_keys = {
+                (str(o.get("venue", "")).upper(), str(o.get("contract_id", "")).upper())
+                for o in self.execution_loop.pending_orders.values()
+            }
+            for v, c, s in acquired_this_cycle:
+                if (str(v).upper(), str(c).upper()) not in live_keys:
+                    self.fleet_coordinator.release_contract_lock(c, s, venue=v)
         dispatched_orders = daemon_result["dispatched_orders"]
         venue_results = []
         if self.execution_mode == "TESTNET_SANDBOX":

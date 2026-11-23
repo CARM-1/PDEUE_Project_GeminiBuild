@@ -15,6 +15,7 @@ import html
 import pathlib
 from app.domain.lineage_hierarchy import get_lineage_service
 from app.domain.scan_worker import AutonomousScanWorker
+from app.domain.fleet_bridge import get_shared_fleet_coordinator
 from app.domain.ai_copilot import AICopilotEngine
 
 router = APIRouter(tags=['Portals'])
@@ -149,7 +150,7 @@ class CommunityTutorRequest(BaseModel):
 
 # Process-local demo state is deliberate: these portal endpoints operate the same
 # long-lived worker and approval ledger for every request made to an app process.
-_TECH_WORKER = AutonomousScanWorker()
+_TECH_WORKER = AutonomousScanWorker(fleet_coordinator=get_shared_fleet_coordinator())
 _TECH_LATENCY_MS = {"Kalshi": 14, "Polymarket": 22}
 _TECH_TOKEN_BUCKETS = {
     "Kalshi": {"available": 10, "capacity": 10, "unit": "req/s"},

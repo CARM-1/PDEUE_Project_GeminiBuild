@@ -12,6 +12,7 @@ import pathlib
 from app.domain.operator_workspace import OperatorWorkspaceService
 from app.domain.lineage_hierarchy import get_lineage_service
 from app.domain.scan_worker import AutonomousScanWorker
+from app.domain.fleet_bridge import get_shared_fleet_coordinator
 from app.domain.settlement_engine import SettlementEngine
 from app.domain.quarter_kelly_dispatcher import QuarterKellyDispatcher
 from app.api.v1.dashboard_template import DASHBOARD_HTML_TEMPLATE
@@ -28,7 +29,7 @@ from pydantic import BaseModel
 workspace_router = APIRouter()
 _service = OperatorWorkspaceService()
 _lineage_service = get_lineage_service()
-_worker = AutonomousScanWorker()
+_worker = AutonomousScanWorker(fleet_coordinator=get_shared_fleet_coordinator())
 _dispatcher = QuarterKellyDispatcher()
 _settlement_engine = SettlementEngine()
 _copilot = AICopilotEngine()

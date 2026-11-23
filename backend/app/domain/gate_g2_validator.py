@@ -88,7 +88,7 @@ def validate_transition_sequence(transitions: List[Dict[str, Any]], candidate_pr
             raise ValueError(f"B8 violation: expected transition_seq {seq}, got {tr['transition_seq']}")
         if tr["from_state"] != prev_state:
             raise ValueError(f"A07 violation: chain break from {prev_state} to {tr['from_state']}")
-        if tr["to_state"] == "Resting" and candidate_provenance == "OBSERVATIONS_ONLY":
+        if tr["to_state"] == "Resting" and str(candidate_provenance or "").strip().upper().replace("-", "_").replace(" ", "_") != "OBSERVED_L2":
             raise ValueError("A02/B6 violation: OBSERVATIONS_ONLY candidates cannot enter Resting")
         if tr["filled_qty"] < prev_filled or tr["filled_qty"] > tr["reserved_qty"]:
             raise ValueError("A09/B2 violation: filled_qty must be non-decreasing and <= reserved_qty")

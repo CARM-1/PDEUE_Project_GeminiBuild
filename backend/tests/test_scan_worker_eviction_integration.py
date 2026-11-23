@@ -1,4 +1,5 @@
 import pytest
+from app.domain.fleet_bridge import FleetMutexCoordinator
 from app.domain.scan_worker import AutonomousScanWorker
 from app.domain.capital_ledger import CapitalLedger
 from app.domain.priority_eviction import PriorityEvictionManager
@@ -57,7 +58,14 @@ def test_scan_worker_preemption_wiring():
 
 
 def test_daemon_cycle_reports_n12_envelope_and_all_categories():
-    worker = AutonomousScanWorker(ledger=CapitalLedger(initial_balance_cents=10_000))
+    worker = AutonomousScanWorker(
+        ledger=CapitalLedger(initial_balance_cents=10_000),
+        fleet_coordinator=FleetMutexCoordinator(),
+        gate_g1_status="RELEASED",
+    )
+    for idx, opp in enumerate(worker.latest_opportunities):
+        opp["data_provenance"] = "OBSERVED_L2"
+        opp["scma_id"] = f"SCMA-TEST-{idx}"
     result = worker.run_single_cycle()
 
     assert result["slot_capacity"] == 12
@@ -84,7 +92,15 @@ def test_daemon_cycle_recycles_complete_sets_before_dispatch():
 def test_daemon_cycle_stages_signed_if038_for_float_surplus():
     ledger = CapitalLedger(initial_balance_cents=2_575_125)
     gateway = AccountingGateway(secret_key="scan-worker-test-key")
-    worker = AutonomousScanWorker(ledger=ledger, accounting_gateway=gateway)
+    worker = AutonomousScanWorker(
+        ledger=ledger,
+        accounting_gateway=gateway,
+        fleet_coordinator=FleetMutexCoordinator(),
+        gate_g1_status="RELEASED",
+    )
+    for idx, opp in enumerate(worker.latest_opportunities):
+        opp["data_provenance"] = "OBSERVED_L2"
+        opp["scma_id"] = f"SCMA-TEST-{idx}"
 
     result = worker.run_single_cycle()
 

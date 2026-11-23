@@ -10,6 +10,7 @@ import pytest
 from app.adapters.rate_limiter import VenueRateLimiter
 from app.clients.kalshi_client import KalshiClient
 from app.clients.polymarket_client import PolymarketClient
+from app.domain.fleet_bridge import FleetMutexCoordinator
 from app.domain.scan_worker import AutonomousScanWorker
 from app.services.credential_broker import CredentialBroker
 from scripts.paper_soak_runner import PaperSoakRunner
@@ -42,7 +43,12 @@ def test_autonomous_worker_uses_ephemeral_leases_and_integer_cent_orders():
                                    rate_limiter=limiter),
         polymarket_client=PolymarketClient(broker, "T-1", http_client=async_client,
                                            rate_limiter=limiter),
+        fleet_coordinator=FleetMutexCoordinator(),
+        gate_g1_status="RELEASED",
     )
+    for idx, opp in enumerate(worker.latest_opportunities):
+        opp["data_provenance"] = "OBSERVED_L2"
+        opp["scma_id"] = f"SCMA-TEST-{idx}"
     result = worker.run_single_cycle()
     asyncio.run(async_client.aclose())
 
