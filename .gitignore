@@ -5,3 +5,6 @@ __pycache__/
 stage_*.py
 *health_summary.json
 data/observed_l2/
+artifacts/playwright_screenshots/
+artifacts/playwright_crawl_report.json
+
