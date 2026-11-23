@@ -31,6 +31,7 @@ from app.domain.authority_tiers import (
 from app.schemas.rca_workspace import (
     ExecutiveCapitalEnvelope, PersonalScmaEnvelope, ScannerSummaryEnvelope,
 )
+from app.schemas.read_model import build_read_model_envelope
 from pydantic import BaseModel
 
 workspace_router = APIRouter()
@@ -245,7 +246,52 @@ def get_workspace_state():
             
     state["positions"] = _GLOBAL_POSITIONS
     state["committed_margin_cents"] = _COMMITTED_MARGIN_CENTS
-    state["houses"] = _lineage_service.list_all_houses()
+    houses = _lineage_service.list_all_houses()
+    state["houses"] = houses
+
+    lineage_total_equity_cents = sum(int(h.get("aggregated_equity_cents", 0)) for h in houses)
+    if lineage_total_equity_cents <= 0:
+        lineage_total_equity_cents = 425_000
+    # 40% Dry-Powder Floor rounded conservatively upward in integer cents (ADR-008 / Lexicon v0.5 §2)
+    dry_powder_floor_cents = (lineage_total_equity_cents * 40 + 99) // 100
+    active_working_margin_cents = sum(int(p.get("cost_basis_cents", 0)) for p in _GLOBAL_POSITIONS)
+    uncommitted_reserve_cents = max(0, lineage_total_equity_cents - active_working_margin_cents)
+    cfcp_balance_cents = int(state.get("cfcp_balance_cents", 50_000))
+    faep_balance_cents = int(state.get("faep_balance_cents", 15_000))
+    state["lineage_total_equity_cents"] = lineage_total_equity_cents
+    state["active_working_margin_cents"] = active_working_margin_cents
+    state["dry_powder_floor_cents"] = dry_powder_floor_cents
+    state["uncommitted_reserve_cents"] = uncommitted_reserve_cents
+    state["cfcp_balance_cents"] = cfcp_balance_cents
+    state["faep_balance_cents"] = faep_balance_cents
+    state["asset_rings"] = {
+        "total_equity_cents": lineage_total_equity_cents,
+        "active_working_margin_cents": active_working_margin_cents,
+        "dry_powder_floor_cents": dry_powder_floor_cents,
+        "uncommitted_reserve_cents": uncommitted_reserve_cents,
+        "dry_powder_floor_bps": 4_000,
+        "cfcp_balance_cents": cfcp_balance_cents,
+        "faep_balance_cents": faep_balance_cents,
+        "waterfall_split_bps": {"scma": 8_700, "cfcp": 1_000, "faep": 300},
+    }
+
+    r04_snapshot = get_directive_r04_controller().snapshot()
+    state["directive_r04"] = r04_snapshot
+    envelope = build_read_model_envelope(
+        {
+            "lineage_total_equity_cents": lineage_total_equity_cents,
+            "active_working_margin_cents": active_working_margin_cents,
+            "dry_powder_floor_cents": dry_powder_floor_cents,
+            "cfcp_balance_cents": cfcp_balance_cents,
+            "faep_balance_cents": faep_balance_cents,
+            "open_positions_count": len(_GLOBAL_POSITIONS),
+        },
+        surface="dashboard",
+        directive_r04_snapshot=r04_snapshot,
+        circuit_breaker_tripped=bool(_service.circuit_breaker.is_tripped),
+        circuit_breaker_reason=_service.circuit_breaker.trip_reason,
+    )
+    state["read_model_envelope"] = envelope.model_dump()
     return state
 
 @workspace_router.post("/api/v1/operator/stage-order")

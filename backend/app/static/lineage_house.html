@@ -169,7 +169,107 @@
       margin-bottom: 16px;
     }
     progress { display: block; width: 100%; margin: 6px 0 14px; accent-color: var(--accent-sky); }
+    abbr.pdeue-term {
+      position: relative;
+      display: inline-flex;
+      align-items: baseline;
+      gap: 3px;
+      text-decoration: underline dotted var(--accent-sky);
+      text-underline-offset: 3px;
+      cursor: help;
+      color: inherit;
+    }
+    abbr.pdeue-term .pdeue-term-info {
+      font-size: 0.78em;
+      color: var(--accent-sky);
+      font-style: normal;
+      line-height: 1;
+      text-transform: none;
+      user-select: none;
+    }
+    abbr.pdeue-term::after {
+      content: attr(data-tooltip);
+      display: none;
+      position: absolute;
+      z-index: 6000;
+      left: 50%;
+      bottom: calc(100% + 8px);
+      transform: translateX(-50%);
+      width: max-content;
+      max-width: min(280px, 78vw);
+      padding: 9px 12px;
+      border: 1px solid var(--accent-sky);
+      border-radius: 6px;
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      font-size: 0.78rem;
+      font-weight: 500;
+      line-height: 1.4;
+      text-align: left;
+      text-transform: none;
+      letter-spacing: normal;
+      white-space: normal;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55);
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+    }
+    abbr.pdeue-term:hover::after,
+    abbr.pdeue-term:focus::after,
+    abbr.pdeue-term:focus-visible::after {
+      display: block;
+      opacity: 1;
+      visibility: visible;
+    }
+    .rm-banner {
+      border-radius: 10px;
+      padding: 13px 16px;
+      margin-bottom: 18px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .rm-banner[hidden] { display: none !important; }
+    .rm-banner.rm-qualification_pending {
+      border-color: var(--status-amber);
+      border-left: 5px solid var(--status-amber);
+      background: rgba(217, 119, 6, 0.14);
+    }
+    .rm-banner.rm-trading_halted {
+      border-color: var(--status-red);
+      border-left: 5px solid var(--status-red);
+      background: rgba(220, 38, 38, 0.18);
+    }
+    .rm-banner.rm-degraded_retrying {
+      border-color: var(--status-red);
+      border-left: 5px solid var(--status-amber);
+      background: rgba(220, 38, 38, 0.14);
+    }
+    .rm-pill {
+      display: inline-block;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.74rem;
+      font-weight: 800;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+    }
+    .rm-headline { font-weight: 800; color: var(--text-primary); font-size: 0.94rem; margin-top: 4px; }
+    .rm-reason { color: var(--text-secondary); font-size: 0.84rem; margin-top: 2px; }
+    .rm-meta { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.74rem; color: var(--text-muted); }
     footer { padding: 15px 5vw; color: var(--text-muted); font-size: 0.85rem; border-top: 1px solid var(--border-subtle); }
+    @media (max-width: 640px) {
+      header { padding: 16px; }
+      .wrap { padding: 16px; }
+      .metrics, .secretarial { grid-template-columns: 1fr; }
+      section, article { min-width: 0; }
+    }
   </style>
 </head>
 <body>
@@ -177,16 +277,26 @@
     <div>
       <h1>CLASS H SOVEREIGN DESK — HOUSE __HOUSE_ID__: __HOUSE_NAME__</h1>
       <div class="hat-row">
-        <span class="hat">Active Hat: __ACTIVE_HAT__</span>
+        <span class="hat"><abbr class="pdeue-term" tabindex="0" data-term="active-hat-r06" data-tooltip="Directive R-06 Split-Hat Role Mapping: multi-role operators explicitly switch between isolated role contexts. Privileges never blend across workspaces.">Active Hat: __ACTIVE_HAT__<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></span>
         <span class="house-pill">__HOUSE_CODE__ · __HOUSE_STATUS__</span>
       </div>
     </div>
     <span class="house-pill">MODE: __GOVERNANCE_MODE__</span>
   </header>
-  <main class="wrap">__ROLE_DESK__</main>
+  <main class="wrap">
+    <section id="readModelStatusBanner" class="__RM_BANNER_CLASS__" __RM_BANNER_HIDDEN__ role="status" aria-live="assertive" data-rm-status="__RM_STATUS__">
+      <div>
+        <span id="readModelStatusCode" class="rm-pill">__RM_STATUS__</span>
+        <div id="readModelBannerHeadline" class="rm-headline">__RM_HEADLINE__</div>
+        <div id="readModelBannerReason" class="rm-reason">__RM_REASON__</div>
+      </div>
+      <div id="readModelBannerTimestamp" class="rm-meta">Updated UTC: __RM_UPDATED_UTC__</div>
+    </section>
+    __ROLE_DESK__
+  </main>
   <!-- DISCOVERY_CONTROLS_START --><div hidden><button id="lineage-freeze" onclick="openFreezeModal('SCMA')">Freeze Dial</button><button id="lineage-vote" onclick="castVote('AYE')">Aye</button></div><!-- DISCOVERY_CONTROLS_END -->
   <div style="display:none" id="legacyPortalHub">PDEUE PORTAL HUB</div>
-  <footer>__HOUSE_CODE__ · branch-confined sovereign operations · ADR-008 exact-cent accounting · Directive R-12 compliant</footer>
+  <footer>__HOUSE_CODE__ · branch-confined sovereign operations · <abbr class="pdeue-term" tabindex="0" data-term="adr-008-exact-cents" data-tooltip="Exact-Cent Integer Accounting (ADR-008): all balances, order sizes, reservations, and waterfall splits use 64-bit integer cents. Floating-point currency math is strictly prohibited.">ADR-008<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> exact-cent accounting · <abbr class="pdeue-term" tabindex="0" data-term="directive-r12-masking" data-tooltip="Least-Privilege Financial Masking (R-12): Class T and H1 desks redact balances ($****.**) and SCMA IDs (SCMA-MEM-****) server-side.">Directive R-12<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> compliant</footer>
   <script>
     const houseId = __HOUSE_ID__;
     const activeRole = '__ACTIVE_ROLE__';

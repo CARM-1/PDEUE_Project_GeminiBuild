@@ -37,6 +37,8 @@ from app.domain.authority_tiers import (
     normalize_role_token,
     normalize_tech_tier,
 )
+from app.domain.lexicon_v05 import get_lexicon_payload, render_term_abbr
+from app.schemas.read_model import ReadModelEnvelope, build_read_model_envelope
 
 router = APIRouter(tags=['Portals'])
 portal_router = router
@@ -458,6 +460,19 @@ def get_lineage_house_portal(
     mode_state = _enclave_gov.get_governance_mode()
     petitions = _enclave_gov.list_petitions()
     page = _load_html("lineage_house.html").body.decode("utf-8")
+    r04_snapshot = get_directive_r04_controller().snapshot()
+    envelope = build_read_model_envelope(
+        {
+            "house_id": house_id,
+            "house_code": house["lineage_code"],
+            "aggregated_house_capital_cents": int(house["total_cash_cents"]),
+            "governance_mode": mode_state["governance_mode"],
+        },
+        surface="lineage",
+        directive_r04_snapshot=r04_snapshot,
+    )
+    banner_hidden_attr = "hidden" if envelope.status.value == "OK" else ""
+    banner_class = f"rm-banner rm-{envelope.status.value.lower()}"
     replacements = {
         "__HOUSE_ID__": str(house_id),
         "__HOUSE_CODE__": house["lineage_code"],
@@ -467,6 +482,12 @@ def get_lineage_house_portal(
         "__ACTIVE_HAT__": "HOUSE_LEADER (H2_SOVEREIGN)" if role == "H2" else "HOUSE_ASSISTANT (H1_SECRETARIAL)",
         "__GOVERNANCE_MODE__": mode_state["governance_mode"],
         "__GOVERNANCE_BADGE__": mode_state["badge_text"],
+        "__RM_BANNER_CLASS__": banner_class,
+        "__RM_BANNER_HIDDEN__": banner_hidden_attr,
+        "__RM_STATUS__": envelope.status.value,
+        "__RM_HEADLINE__": html.escape(envelope.banner_headline),
+        "__RM_REASON__": html.escape(envelope.banner_detail),
+        "__RM_UPDATED_UTC__": html.escape(envelope.updated_at_utc),
     }
     for marker, value in replacements.items():
         page = page.replace(marker, str(value))
@@ -510,6 +531,17 @@ def get_lineage_house_state(
         member["cash_display"] = "$****.**" if role == "H1" else format_cents(int(source["cash_cents"]))
         members.append(member)
     proposals = _enclave_gov.list_petitions()
+    r04_snapshot = get_directive_r04_controller().snapshot()
+    envelope = build_read_model_envelope(
+        {
+            "house_id": house_id,
+            "house_code": house["lineage_code"],
+            "aggregated_house_capital_cents": int(house["total_cash_cents"]),
+            "member_count": len(members),
+        },
+        surface="lineage",
+        directive_r04_snapshot=r04_snapshot,
+    )
     return {
         "house_id": house_id, "house_code": house["lineage_code"], "house_name": house["name"],
         "house_status": house["status"],
@@ -523,6 +555,7 @@ def get_lineage_house_state(
         "aggregated_house_capital_formatted": format_cents(int(house["total_cash_cents"])),
         "average_risk_dial_bps": int(round(house["average_risk_dial_pct"] * 100)),
         "members": members, "roll_call_logs": list(_LINEAGE_ROLL_CALL), "bicameral_proposals": proposals,
+        "read_model_envelope": envelope.model_dump(),
     }
 
 
@@ -756,16 +789,20 @@ def _render_lineage_h2_desk(
             f'</article></section>'
         )
 
+    scma_tip = render_term_abbr("scma", "SCMA")
+    cfcp_tip = render_term_abbr("cfcp", "CFCP")
+    adr008_tip = render_term_abbr("adr-008-exact-cents", "ADR-008")
+    exec_tip = render_term_abbr("executive-command-mode", "Executive Command Mode")
     return f'''<section class="metrics">
 <article><h2>Aggregated House Capital</h2><strong class="num">{format_cents(int(house["total_cash_cents"]))}</strong></article>
 <article><h2>Average Risk Dial</h2><strong class="num">{house["average_risk_dial_pct"]}%</strong></article>
-<article><h2>Governance Stage</h2><strong id="desk-governance-mode">{html.escape(active_mode)}</strong></article>
+<article><h2>Governance Stage ({exec_tip})</h2><strong id="desk-governance-mode">{html.escape(active_mode)}</strong></article>
 </section>
-<section><h2>Subordinate Accounts &amp; Lineal Circuit Breakers</h2>
-<div class="table-card"><table><thead><tr><th>Member</th><th>SCMA ID</th><th>Balance (ADR-008)</th><th>Status</th><th>Lineal Controls</th></tr></thead><tbody>{rows}</tbody></table></div>
+<section><h2>Subordinate {scma_tip} Accounts &amp; Lineal Circuit Breakers</h2>
+<div class="table-card"><table><thead><tr><th>Member</th><th>{scma_tip} ID</th><th>Balance ({adr008_tip})</th><th>Status</th><th>Lineal Controls</th></tr></thead><tbody>{rows}</tbody></table></div>
 <div id="breaker-feedback" class="status-feedback" role="status" aria-live="polite"></div>
 </section>
-{chamber_html}
+{chamber_html.replace("Bicameral CFCP Ratification Chamber", f"Bicameral CFCP Ratification Chamber ({cfcp_tip})")}
 <div id="cancel-modal" class="modal" hidden>Resting Purge confirmation recorded in lineage audit ledger.</div>
 <div id="freeze-modal" class="modal" hidden>Governor Clamp (0.0%) confirmation recorded in lineage audit ledger.</div>'''
 
@@ -781,13 +818,17 @@ def _render_lineage_h1_desk(house: Dict[str, Any], mode_state: Dict[str, Any]) -
         for m in house["members"]
     )
     mode_badge = html.escape(mode_state["badge_text"])
+    r12_tip = render_term_abbr("directive-r12-masking", "Directive R-12")
+    scma_tip = render_term_abbr("scma", "SCMA")
+    cfcp_tip = render_term_abbr("cfcp", "CFCP")
+    exec_tip = render_term_abbr("executive-command-mode", "Executive Command Mode")
     return f'''<section class="metrics">
 <article><h2>Aggregated House Capital</h2><strong class="num">{format_cents(int(house["total_cash_cents"]))}</strong></article>
-<article><h2>Governance Mode</h2><strong id="desk-governance-mode">{html.escape(mode_state["governance_mode"])}</strong><div class="muted-note">{mode_badge}</div></article>
+<article><h2>Governance Mode ({exec_tip})</h2><strong id="desk-governance-mode">{html.escape(mode_state["governance_mode"])}</strong><div class="muted-note">{mode_badge}</div></article>
 </section>
-<section><h2>Member Accounts — Directive R-12</h2>
-<div class="table-card"><table><thead><tr><th>Member</th><th>SCMA ID</th><th>Balance (Directive R-12)</th><th>Status</th></tr></thead><tbody>{rows}</tbody></table></div></section>
-<section class="audit"><h2>Bicameral CFCP Ratification Chamber — NON-VOTING AUDIT</h2>
+<section><h2>Member Accounts — {r12_tip}</h2>
+<div class="table-card"><table><thead><tr><th>Member</th><th>{scma_tip} ID</th><th>Balance ({r12_tip})</th><th>Status</th></tr></thead><tbody>{rows}</tbody></table></div></section>
+<section class="audit"><h2>Bicameral CFCP Ratification Chamber ({cfcp_tip}) — NON-VOTING AUDIT</h2>
 <div id="governance-dormant-badge" class="mode-badge mode-dormant">{mode_badge}</div>
 <p>Secretarial observation only; legislative submission, voting, veto, and circuit-breaker authorities are stripped from H1 desks and blocked server-side (HTTP 403).</p></section>
 <section class="secretarial"><article><h2>Meeting Scheduler Log</h2><p>Next Senate session: 2026-10-05 18:00 UTC</p></article><article><h2>Lineage Roll-Call Registry</h2><p>RC-2026-09 — QUORUM MET</p></article><article><h2>AI Tutor / Literacy Completion</h2>{literacy}</article></section>'''
@@ -1087,11 +1128,27 @@ def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str
         else (lineage_member.get("is_custodial", target["is_custodial"]) if lineage_member else target["is_custodial"])
     )
 
+    r04_snapshot = get_directive_r04_controller().snapshot()
+    reserved_cents = int(round(target["reserved"] * 100))
+    working_margin_cents = reserved_cents if reserved_cents > 0 else min(active_float_cents, max(active_float_cents * 25 // 100, 0))
+    member_envelope = build_read_model_envelope(
+        {
+            "scma_id": target["scma_id"],
+            "cash_cents": cash_cents,
+            "active_float_cents": active_float_cents,
+            "reserve_floor_cents": reserve_floor_cents,
+            "swept_cash_cents": swept_cash_cents,
+            "passive_yield_cents": passive_yield_cents,
+        },
+        surface="member",
+        directive_r04_snapshot=r04_snapshot,
+    )
+
     return {
         "user_id": target["user_id"],
         "cash_cents": cash_cents,
         "high_water_mark_cents": high_water_mark_cents,
-        "reserved_cents": int(round(target["reserved"] * 100)),
+        "reserved_cents": reserved_cents,
         "lifetime_profit_cents": 34_000,
         "concurrency_slots": _member_concurrency_slots(),
         "name": target["name"],
@@ -1124,12 +1181,14 @@ def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str
         "allocation": {
             "cap_cents": 2_500_000,
             "active_float_cents": active_float_cents,
+            "working_margin_cents": working_margin_cents,
             "active_utilization_bps": min(active_float_cents * 10_000 // 2_500_000, 10_000),
             "reserve_floor_cents": reserve_floor_cents,
             "reserve_floor_bps": 4_000,
             "swept_reserve_cents": swept_cash_cents,
             "earned_yield_cents": passive_yield_cents,
             "apy_bps": 450,
+            "waterfall_split_bps": {"scma": 8_700, "cfcp": 1_000, "faep": 300},
         },
         "trajectory_points": trajectory_points,
         "recent_settled_contracts": settled_contracts,
@@ -1150,7 +1209,9 @@ def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str
             "cfcp_lineage_shield_pct": 10.0,
             "faep_endowment_pct": 3.0,
             "rule": "Option A (ADR-012 HWM / Rule A14): 87/10/3 split applies strictly to net new profit above each SCMA High-Water Mark; residual cents route to CFCP; 100% SCMA loss isolation."
-        }
+        },
+        "directive_r04": r04_snapshot,
+        "read_model_envelope": member_envelope.model_dump(),
     }
 
 @router.get("/api/v1/portal/member/{scma_id}")
@@ -1495,6 +1556,13 @@ def get_advisor_household_tree(
             "cross_house_exposure_cents": 1850000,
             "concentration_status": "WITHIN_POLICY",
         }
+    r04_snapshot = get_directive_r04_controller().snapshot()
+    response["directive_r04"] = r04_snapshot
+    response["read_model_envelope"] = build_read_model_envelope(
+        {"household_id": house["household_id"], "role": role, "member_count": response["member_count"]},
+        surface="advisor",
+        directive_r04_snapshot=r04_snapshot,
+    ).model_dump()
     return response
 
 
@@ -1519,14 +1587,25 @@ def get_advisor_macro_risk(
     if role.upper() not in {"F3", "CHIEF_ADMIN", "CHIEF_ADMINISTRATOR"}:
         raise HTTPException(status_code=403, detail="F3 CRO or Chief Admin authority required")
     r04_controller = get_directive_r04_controller()
+    r04_snapshot = r04_controller.snapshot()
+    envelope = build_read_model_envelope(
+        {
+            "platform_var_99_24h_cents": 42_000,
+            "cross_house_gross_margin_cents": 1_850_000,
+            "margin_utilization_pct": 74,
+        },
+        surface="advisor",
+        directive_r04_snapshot=r04_snapshot,
+    )
     return {
         "platform_var_99_24h_cents": 42_000,
         "cross_house_gross_margin_cents": 1_850_000,
         "margin_utilization_pct": 74,
         "venue_distribution_pct": {"Kalshi": 58, "Polymarket": 42},
-        "directive_r04": r04_controller.snapshot(),
+        "directive_r04": r04_snapshot,
         "dual_signature_overrides": r04_controller.list_overrides(),
         "house_exposures": _MACRO_HOUSE_EXPOSURES,
+        "read_model_envelope": envelope.model_dump(),
     }
 
 
@@ -1967,6 +2046,17 @@ def get_tech_telemetry(
             {"worker": "RateLimiter-Polymarket", "bucket_tokens": 92, "max_tokens": 100, "status": "OPTIMAL"},
         ]
 
+    r04_snapshot = get_directive_r04_controller().snapshot()
+    tech_envelope = build_read_model_envelope(
+        {
+            "tier": tier_norm,
+            "cycle_count": _TECH_WORKER.cycle_count,
+            "settled_count": _TECH_SETTLED_COUNT,
+            "redaction_active": not is_unredacted,
+        },
+        surface="tech",
+        directive_r04_snapshot=r04_snapshot,
+    )
     return {
         "tier": tier_norm,
         "telemetry_scope": "CLASS_T_HOUSEHOLD_SCOPED" if tier_norm == "T2-HOUSEHOLD" else "CLASS_T_OPERATIONAL",
@@ -1998,6 +2088,8 @@ def get_tech_telemetry(
             "active_websockets": 2,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         },
+        "directive_r04": r04_snapshot,
+        "read_model_envelope": tech_envelope.model_dump(),
     }
 
 
@@ -2375,3 +2467,39 @@ def request_member_distribution(scma_id: str, payload: Dict[str, Any]):
 def update_member_risk_dial(scma_id: str, payload: Dict[str, Any]):
     dial = payload.get("requested_risk_pct") or payload.get("new_risk_dial", 0.02)
     return {"status": "UPDATED", "scma_id": scma_id, "new_risk_dial": dial}
+
+
+@portal_router.get("/api/v1/portal/glossary")
+def get_portal_glossary(
+    q: Optional[str] = Query(None, description="Optional client or server substring search filter"),
+    category: Optional[str] = Query(None, description="Optional Lexicon v0.5 category filter"),
+) -> Dict[str, Any]:
+    """Return canonical Lexicon v0.5 glossary terms, tooltips, and thesaurus aliases."""
+    return get_lexicon_payload(q=q, category=category)
+
+
+@portal_router.get("/api/v1/portal/read-model/{surface}", response_model=ReadModelEnvelope[Dict[str, Any]])
+def get_portal_read_model_envelope(
+    surface: str,
+    degraded: bool = Query(False, description="Fault-injection flag to verify DEGRADED_RETRYING fail-closed UX"),
+) -> ReadModelEnvelope[Dict[str, Any]]:
+    """Return the standardized fail-closed ReadModelEnvelope[T] for a portal surface."""
+    norm_surface = surface.strip().lower()
+    if norm_surface not in {"dashboard", "member", "advisor", "tech", "lineage"}:
+        raise HTTPException(
+            status_code=404,
+            detail="Unknown portal surface. Expected one of: dashboard, member, advisor, tech, lineage.",
+        )
+    r04_snapshot = get_directive_r04_controller().snapshot()
+    sample_data: Dict[str, Any] = {
+        "surface": norm_surface,
+        "exact_cent_accounting": "ADR-008",
+        "high_water_mark_rule": "ADR-012",
+        "zero_banking_credentials": "ADR-011",
+    }
+    return build_read_model_envelope(
+        sample_data,
+        surface=norm_surface,
+        directive_r04_snapshot=r04_snapshot,
+        degraded=degraded,
+    )

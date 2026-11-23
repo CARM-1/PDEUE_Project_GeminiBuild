@@ -45,9 +45,21 @@ button.busy{animation:flash .35s 2}
 .btn-clear:hover,.btn-clear:focus-visible{border-color:#38BDF8;background:var(--bg-surface)}
 .analysis{border-left:3px solid #38BDF8;padding:12px;margin-top:12px;background:var(--bg-canvas);border-radius:6px}
 .campus-link{color:#f7c967 !important;font-weight:800;white-space:nowrap}
+abbr.pdeue-term{position:relative;display:inline-flex;align-items:baseline;gap:3px;text-decoration:underline dotted var(--accent-sky);text-underline-offset:3px;cursor:help;color:inherit}
+abbr.pdeue-term .pdeue-term-info{font-size:.78em;color:var(--accent-sky);font-style:normal;line-height:1;text-transform:none;user-select:none}
+abbr.pdeue-term::after{content:attr(data-tooltip);display:none;position:absolute;z-index:6000;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);width:max-content;max-width:min(280px,78vw);padding:9px 12px;border:1px solid var(--accent-sky);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:.78rem;font-weight:500;line-height:1.4;text-align:left;text-transform:none;letter-spacing:normal;white-space:normal;box-shadow:0 10px 24px rgba(0,0,0,.55);pointer-events:none;opacity:0;visibility:hidden}
+abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-visible::after{display:block;opacity:1;visibility:visible}
+.rm-banner{border-radius:10px;padding:12px 15px;margin:12px 0 14px;border:1px solid var(--border-subtle);background:var(--bg-card);display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px}
+.rm-banner.rm-qualification_pending{border-color:var(--status-amber);border-left:5px solid var(--status-amber);background:rgba(217,119,6,.14)}
+.rm-banner.rm-trading_halted{border-color:var(--status-red);border-left:5px solid var(--status-red);background:rgba(220,38,38,.18)}
+.rm-banner.rm-degraded_retrying{border-color:var(--status-red);border-left:5px solid var(--status-amber);background:rgba(220,38,38,.14)}
+.rm-pill{display:inline-block;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.74rem;font-weight:800;padding:3px 9px;border-radius:999px;background:var(--bg-surface);border:1px solid var(--border-subtle);color:var(--text-primary)}
+.rm-headline{font-weight:800;color:var(--text-primary);font-size:.92rem;margin-top:4px}
+.rm-reason{color:var(--text-secondary);font-size:.82rem;margin-top:2px}
+.rm-meta{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.74rem;color:var(--text-muted)}
 @keyframes flash{50%{background:#4ade80;color:#052e1d}}
-@media(max-width:850px){.grid{grid-template-columns:1fr 1fr}}
-@media(max-width:520px){.grid{grid-template-columns:1fr}.shell{padding:16px}}
+@media(max-width:850px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.grid{grid-template-columns:minmax(0,1fr)}.shell{padding:14px}}
 </style></head><body>
 <div id="supervisoryAuditLensBanner" class="supervisory-lens-banner" hidden role="region" aria-label="Supervisory Audit Lens">
   <div class="supervisory-lens-inner">
@@ -60,9 +72,9 @@ button.busy{animation:flash .35s 2}
 <nav class="nav"><strong>Technical Console (Class T)</strong><span><a href="/companion" class="nav-link campus-link" id="navCompanionLink">🎓 PDEUE University</a></span></nav>
 <header class="hero">
   <div>
-    <p class="eyebrow">Directive R-12 protected plane</p>
+    <p class="eyebrow"><abbr class="pdeue-term" tabindex="0" data-term="directive-r12-masking" data-tooltip="Least-Privilege Financial Masking (R-12): Class T and H1 desks redact balances ($****.**) and SCMA IDs (SCMA-MEM-****) server-side. Only a time-bounded, audited T3 Chief Admin override may temporarily unmask.">Directive R-12<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> protected plane</p>
     <h1>Technical Infrastructure Console</h1>
-    <p class="muted">Live diagnostics. Financial fields remain masked (<code>$****.**</code> / <code>SCMA-MEM-****</code>) until an explicit, time-bounded, audited CA grant is active.</p>
+    <p class="muted">Live diagnostics. Financial fields remain masked (<code>$****.**</code> / <code>SCMA-MEM-****</code>) under <abbr class="pdeue-term" tabindex="0" data-term="active-hat-r06" data-tooltip="Directive R-06 Split-Hat Role Mapping: multi-role operators explicitly switch between isolated role contexts. Privileges never blend across workspaces.">Active-Hat / R-06<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> until an explicit, time-bounded, audited CA grant is active.</p>
   </div>
   <div class="header-controls">
     <span class="badge" id="active-hat">Active Hat: TECHNICAL_OPERATOR (T3_CTO)</span>
@@ -72,6 +84,14 @@ button.busy{animation:flash .35s 2}
     <button type="button" id="revoke" hidden>Revoke &amp; Remask</button>
   </div>
 </header>
+<section id="readModelStatusBanner" class="rm-banner rm-qualification_pending" hidden role="status" aria-live="assertive" data-rm-status="OK">
+  <div>
+    <span id="readModelStatusCode" class="rm-pill">QUALIFICATION_PENDING</span>
+    <div id="readModelBannerHeadline" class="rm-headline">NOT AVAILABLE — QUALIFICATION PENDING</div>
+    <div id="readModelBannerReason" class="rm-reason">Gate G1 is in HOLD_OBSERVATIONS_ONLY (paper observation mode).</div>
+  </div>
+  <div id="readModelBannerTimestamp" class="rm-meta"></div>
+</section>
 <div class="row" id="tier-switcher" style="justify-content:flex-end;margin:16px 0">
   <button type="button" data-tier="T1">T1 (Monitor)</button>
   <button type="button" data-tier="T2">T2 (Engineer)</button>
@@ -86,14 +106,14 @@ button.busy{animation:flash .35s 2}
 </section>
 <section class="grid">
   <article class="card"><div class="label">AutonomousScanWorker</div><div class="value" id="daemon">Cycle 0 · ACTIVE</div><button type="button" id="trigger-daemon">Trigger Scan Cycle</button></article>
-  <article class="card"><div class="label">SettlementReconciler</div><div class="value" id="settlement">Settled 0 · Waterfall: 87/10/3</div><button type="button" id="trigger-settlement">Trigger Settlement</button></article>
+  <article class="card"><div class="label">SettlementReconciler (<abbr class="pdeue-term" tabindex="0" data-term="tpw-waterfall" data-tooltip="Transaction Profit Waterfall: eligible realized net new profit above HWM splits 87% SCMA, 10% CFCP (+ floor remainder cents), and 3% FAEP with exact-cent conservation.">87/10/3<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>)</div><div class="value" id="settlement">Settled 0 · Waterfall: 87/10/3</div><button type="button" id="trigger-settlement">Trigger Settlement</button></article>
   <article class="card"><div class="label">WebSocket Latency</div><div class="value" id="latency">Kalshi: 14ms<br>Polymarket: 22ms</div></article>
   <article class="card"><div class="label">Token Buckets</div><div class="value" id="buckets">Kalshi: 10/10<br>Polymarket: 10/10</div></article>
-  <article class="card"><div class="label">Dry Powder Floor</div><div class="value" id="dry-powder-status">4,000 cents</div><div class="status">COMPLIANT</div></article>
+  <article class="card"><div class="label"><abbr class="pdeue-term" tabindex="0" data-term="dry-powder-floor-40" data-tooltip="Uncommitted cash shield: every dispatch batch must leave at least 40% of pre-dispatch total equity uncommitted (integer-cent ceiling).">40% Dry-Powder Floor<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></div><div class="value" id="dry-powder-status">4,000 cents</div><div class="status">COMPLIANT</div></article>
 </section>
 <section class="card">
-  <div class="row"><div><div class="label">Recent Dispatches</div><h2>Directive R-12 protected ledger</h2></div><span id="grant-expiry-meta" class="muted"></span></div>
-  <div class="table-wrap table-card"><table><thead><tr><th>Candidate</th><th>Venue</th><th>SCMA</th><th>Probability</th><th>Exposure</th></tr></thead><tbody id="resting-orders-body"></tbody></table></div>
+  <div class="row"><div><div class="label">Recent Dispatches</div><h2><abbr class="pdeue-term" tabindex="0" data-term="directive-r12-masking" data-tooltip="Least-Privilege Financial Masking (R-12): Class T and H1 desks redact balances ($****.**) and SCMA IDs (SCMA-MEM-****) server-side.">Directive R-12<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> protected ledger</h2></div><span id="grant-expiry-meta" class="muted"></span></div>
+  <div class="table-wrap table-card"><table><thead><tr><th>Candidate</th><th>Venue</th><th><abbr class="pdeue-term" tabindex="0" data-term="scma" data-tooltip="Self-Contained Member Account: tenant-partitioned member sub-ledger in exact integer cents. Losses remain 100% isolated inside the executing SCMA.">SCMA<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></th><th>Probability</th><th>Exposure</th></tr></thead><tbody id="resting-orders-body"></tbody></table></div>
 </section>
 <section class="card copilot">
   <div class="label">DevOps Copilot</div>
@@ -155,18 +175,47 @@ function applyTier(){
     $('grant').disabled=true;
   }
 }
+function renderReadModelBanner(env){
+  const banner=$('readModelStatusBanner');
+  if(!banner)return;
+  const st=(env&&env.status)?String(env.status).toUpperCase():'OK';
+  banner.dataset.rmStatus=st;
+  if(st==='OK'){banner.hidden=true;return}
+  banner.hidden=false;
+  banner.className='rm-banner rm-'+st.toLowerCase();
+  $('readModelStatusCode').textContent=st;
+  $('readModelBannerHeadline').textContent=env.banner_headline||(st==='TRADING_HALTED'?'TRADING HALTED — EXECUTIVE OVERRIDE':(st==='DEGRADED_RETRYING'?'UNAVAILABLE — ENGINE UNREACHABLE':'NOT AVAILABLE — QUALIFICATION PENDING'));
+  $('readModelBannerReason').textContent=env.banner_detail||env.reason||'Fail-closed telemetry envelope active.';
+  $('readModelBannerTimestamp').textContent=env.updated_at_utc?`Updated UTC: ${env.updated_at_utc}`:'';
+}
 async function refresh(){
   const headers=activeTier==='T2-HOUSEHOLD'?{'X-Household-ID':assignedHousehold}:{};
   const url=`/api/v1/portal/tech/telemetry?tier=${encodeURIComponent(activeTier)}&household_id=${encodeURIComponent(assignedHousehold)}${grantData&&grantData.grant_token?`&unredact_token=${encodeURIComponent(grantData.grant_token)}`:''}`;
-  const r=await fetch(url,{headers});
-  if(!r.ok)return;
-  const d=await r.json();
-  $('daemon').textContent=`Cycle ${d.cycle_count} · ACTIVE`;
-  $('settlement').textContent=`Settled ${d.settled_count} · Waterfall: ${d.settlement_waterfall}`;
-  $('latency').innerHTML=`Kalshi: ${d.ws_latency_ms.Kalshi}ms<br>Polymarket: ${d.ws_latency_ms.Polymarket}ms`;
-  $('buckets').innerHTML=Object.entries(d.token_buckets).map(([k,v])=>`${k}: ${v.available}/${v.capacity}`).join('<br>');
-  renderOrder(d.active_order_ladder[0]);
-  if(d.redaction_active&&grantData){grantData=null;$('grant').hidden=activeTier!=='T3';$('grant-badge').hidden=true;$('revoke').hidden=true;$('grant-expiry-meta').textContent=''}
+  try{
+    const r=await fetch(url,{headers});
+    if(!r.ok){
+      renderReadModelBanner({status:'DEGRADED_RETRYING',banner_headline:'UNAVAILABLE — ENGINE UNREACHABLE',banner_detail:`Telemetry endpoint returned HTTP ${r.status}. Retrying fail-closed without placeholder metrics.`,updated_at_utc:new Date().toISOString()});
+      $('daemon').textContent='UNAVAILABLE';$('settlement').textContent='UNAVAILABLE';$('latency').textContent='UNAVAILABLE';$('buckets').textContent='UNAVAILABLE';$('resting-orders-body').innerHTML='<tr><td colspan="5">UNAVAILABLE — ENGINE UNREACHABLE</td></tr>';
+      return;
+    }
+    const d=await r.json();
+    renderReadModelBanner(d.read_model_envelope);
+    if(d.read_model_envelope&&d.read_model_envelope.status==='TRADING_HALTED'){
+      $('daemon').textContent='HALTED · DIRECTIVE R-04';
+      $('settlement').textContent='HALTED · DIRECTIVE R-04';
+      $('resting-orders-body').innerHTML='<tr><td colspan="5">TRADING HALTED — EXECUTIVE OVERRIDE</td></tr>';
+      return;
+    }
+    $('daemon').textContent=`Cycle ${d.cycle_count} · ACTIVE`;
+    $('settlement').textContent=`Settled ${d.settled_count} · Waterfall: ${d.settlement_waterfall}`;
+    $('latency').innerHTML=`Kalshi: ${d.ws_latency_ms.Kalshi}ms<br>Polymarket: ${d.ws_latency_ms.Polymarket}ms`;
+    $('buckets').innerHTML=Object.entries(d.token_buckets).map(([k,v])=>`${k}: ${v.available}/${v.capacity}`).join('<br>');
+    renderOrder(d.active_order_ladder[0]);
+    if(d.redaction_active&&grantData){grantData=null;$('grant').hidden=activeTier!=='T3';$('grant-badge').hidden=true;$('revoke').hidden=true;$('grant-expiry-meta').textContent=''}
+  }catch(_err){
+    renderReadModelBanner({status:'DEGRADED_RETRYING',banner_headline:'UNAVAILABLE — ENGINE UNREACHABLE',banner_detail:'Engine telemetry request failed; retrying fail-closed with zero placeholder figures.',updated_at_utc:new Date().toISOString()});
+    $('daemon').textContent='UNAVAILABLE';$('settlement').textContent='UNAVAILABLE';$('latency').textContent='UNAVAILABLE';$('buckets').textContent='UNAVAILABLE';$('resting-orders-body').innerHTML='<tr><td colspan="5">UNAVAILABLE — ENGINE UNREACHABLE</td></tr>';
+  }
 }
 document.querySelectorAll('[data-tier]').forEach(b=>b.addEventListener('click',()=>{activeTier=b.dataset.tier;history.replaceState(null,'',`?tier=${encodeURIComponent(activeTier)}`);grantData=null;applyTier();refresh()}));
 $('trigger-daemon').addEventListener('click',async e=>{if(isSupervisoryLens)return;e.currentTarget.classList.add('busy');const r=await fetch(`/api/v1/portal/tech/trigger-daemon?tier=${encodeURIComponent(activeTier)}`,{method:'POST'});e.currentTarget.classList.remove('busy');if(!r.ok)return toast('Evaluation cycle blocked (HTTP '+r.status+')');const d=await r.json();$('daemon').textContent=`Cycle ${d.cycle_count} · ACTIVE`;$('latency').innerHTML=`Kalshi: ${d.ws_latency_ms.Kalshi}ms<br>Polymarket: ${d.ws_latency_ms.Polymarket}ms`;$('buckets').innerHTML=Object.entries(d.token_buckets).map(([k,v])=>`${k}: ${v.available}/${v.capacity}`).join('<br>');toast(`Worker cycle ${d.cycle_count} completed`)});
