@@ -295,27 +295,46 @@
 
   <!-- TAB 4: SOVEREIGN GOVERNANCE & DUAL CONTROL -->
   <div id="tab-panel-4" style="display: none;">
-    <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
+    <div style="background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
         <div>
           <span style="background: #0284c7; color: #fff; font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 4px;">SOVEREIGN SETTLOR JURISDICTION</span>
           <h2 style="font-size: 18px; margin-top: 6px;">Chief Administrator Sovereign Adjudication Chamber</h2>
           <p style="color: #94a3b8; font-size: 13px; margin-top: 2px;">
-            House quorums (75% threshold) function strictly as non-binding petition filters. All capital distributions and policy approvals require your explicit affirmative digital signature.
+            Three-Stage Governance Lifecycle: defaults fail-closed to Stage 1 Executive Command. Stage 2 unlocks advisory House quorums (75% threshold); Stage 3 unlocks binding Bicameral Veto on eligible policy &amp; CFCP grant proposals while preserving Immutable Core Invariants and 1-click SHTF Snap-Back.
           </p>
         </div>
-        <span style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid #10b981; font-weight: bold; font-size: 12px; padding: 6px 12px; border-radius: 6px;">FOUNDER VETO: ACTIVE</span>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+          <span id="gov-mode-badge" style="background: rgba(56, 189, 248, 0.14); color: #38bdf8; border: 1px solid #38bdf8; font-weight: bold; font-size: 12px; padding: 6px 12px; border-radius: 6px;">MODE: EXECUTIVE_COMMAND</span>
+          <span style="background: rgba(5, 150, 105, 0.18); color: #34d399; border: 1px solid #059669; font-weight: bold; font-size: 12px; padding: 6px 12px; border-radius: 6px;">FOUNDER VETO: ACTIVE</span>
+        </div>
       </div>
+    </div>
+
+    <!-- 3-STAGE GOVERNANCE MODE & SHTF SNAP-BACK PANEL -->
+    <div class="card" style="margin-bottom: 20px; border-color: #334155;">
+      <div class="card-title" style="color: #38bdf8; margin-bottom: 8px;">3-STAGE GOVERNANCE ENGINE &amp; 1-CLICK SHTF SNAP-BACK</div>
+      <p id="gov-mode-summary" style="color: #cbd5e1; font-size: 13px; margin-bottom: 12px;">
+        Stage 1 Executive Command active — voting and veto controls are dormant across House desks and fail closed (HTTP 403).
+      </p>
+      <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px;">
+        <input id="gov-mode-reason" type="text" aria-label="Governance mode transition reason" placeholder="Audit reason for governance stage change..." style="flex: 1; min-width: 220px; padding: 8px 10px; border-radius: 6px; border: 1px solid #334155; background: #0b132b; color: #f8fafc; font-size: 13px;">
+        <button id="btn-mode-executive" type="button" onclick="setGovernanceMode('EXECUTIVE_COMMAND')" style="background: #1e293b; color: #38bdf8; border: 1px solid #38bdf8; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 12px;">Stage 1: Executive Command</button>
+        <button id="btn-mode-advisory" type="button" onclick="setGovernanceMode('ADVISORY_PETITION_FILTER')" style="background: #d97706; color: #0b132b; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 12px;">Stage 2: Advisory Filter</button>
+        <button id="btn-mode-bicameral" type="button" onclick="setGovernanceMode('BICAMERAL_VETO_ACTIVE')" style="background: #059669; color: #f8fafc; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 12px;">Stage 3: Bicameral Veto</button>
+        <button id="btn-shtf-snapback" type="button" onclick="triggerShtfSnapback()" style="background: #dc2626; color: #f8fafc; border: 1px solid #f87171; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 800; font-size: 12px;">SHTF Snap-Back (Executive Command)</button>
+      </div>
+      <div id="gov-mode-status" role="status" aria-live="polite" style="font-size: 12px; color: #38bdf8; min-height: 18px;"></div>
     </div>
 
     <!-- IMMUTABLE INVARIANTS PANEL -->
     <div class="card" style="margin-bottom: 20px; border-color: #334155;">
-      <div class="card-title" style="color: #38bdf8; margin-bottom: 10px;">IMMUTABLE ARCHITECTURAL INVARIANTS (NON-AMENDABLE)</div>
+      <div class="card-title" style="color: #38bdf8; margin-bottom: 10px;">IMMUTABLE ARCHITECTURAL INVARIANTS (NON-AMENDABLE IN ALL STAGES)</div>
       <div class="grid-4" style="margin-bottom: 0;">
         <div style="background: #0b132b; padding: 12px; border-radius: 6px; border: 1px solid #1e293b;">
           <div style="font-size: 11px; color: #94a3b8;">Profit Distribution</div>
           <div style="font-size: 16px; font-weight: bold; color: #4ade80; margin-top: 2px;">87 / 10 / 3 Waterfall</div>
-          <div style="font-size: 11px; color: #64748b;">Hard-Locked in Ledger</div>
+          <div style="font-size: 11px; color: #64748b;">ADR-012 HWM &amp; Rule A14 Locked</div>
         </div>
         <div style="background: #0b132b; padding: 12px; border-radius: 6px; border: 1px solid #1e293b;">
           <div style="font-size: 11px; color: #94a3b8;">Founder Endowment Pool</div>
@@ -323,24 +342,94 @@
           <div style="font-size: 11px; color: #64748b;">Exclusive Settlor Property</div>
         </div>
         <div style="background: #0b132b; padding: 12px; border-radius: 6px; border: 1px solid #1e293b;">
-          <div style="font-size: 11px; color: #94a3b8;">Risk Ceilings</div>
-          <div style="font-size: 16px; font-weight: bold; color: #fbbf24; margin-top: 2px;">5% System Ceiling</div>
-          <div style="font-size: 11px; color: #64748b;">Quarter-Kelly Sizing Bound</div>
+          <div style="font-size: 11px; color: #94a3b8;">Risk &amp; Custody Air-Gap</div>
+          <div style="font-size: 16px; font-weight: bold; color: #fbbf24; margin-top: 2px;">Quarter-Kelly + ADR-011</div>
+          <div style="font-size: 11px; color: #64748b;">5% Ceiling &amp; Zero Bank Creds</div>
         </div>
         <div style="background: #0b132b; padding: 12px; border-radius: 6px; border: 1px solid #1e293b;">
-          <div style="font-size: 11px; color: #94a3b8;">Emergency Stop</div>
+          <div style="font-size: 11px; color: #94a3b8;">Emergency Stop &amp; SHTF</div>
           <div style="font-size: 16px; font-weight: bold; color: #ef4444; margin-top: 2px;">Founder Unilateral</div>
-          <div style="font-size: 11px; color: #64748b;">Zero-Committee Override</div>
+          <div style="font-size: 11px; color: #64748b;">Directive R-04 Zero-Committee Override</div>
         </div>
+      </div>
+    </div>
+
+    <!-- FUTURE ENCLAVE CONFIGURABLE COMMUNAL BODIES & NAMED VOTER SEATS -->
+    <div class="card" style="margin-bottom: 20px; border-color: #334155;">
+      <div class="card-title" style="color: #38bdf8; margin-bottom: 10px;">FUTURE ENCLAVE REGISTRY — COMMUNAL BODIES &amp; VOTER SEATS</div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-bottom: 16px;">
+        <div style="background: #0b132b; border: 1px solid #334155; border-radius: 8px; padding: 14px;">
+          <div style="font-size: 12px; font-weight: 700; color: #f8fafc; margin-bottom: 8px;">Create New Communal Enclave Body</div>
+          <div style="display: grid; gap: 8px;">
+            <input id="new-body-name" type="text" aria-label="New communal body name" placeholder="Body Name (e.g., Council of Elders)" style="padding: 8px; border-radius: 6px; border: 1px solid #334155; background: #1c2541; color: #f8fafc; font-size: 13px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+              <input id="new-body-quorum-num" type="number" min="1" value="2" aria-label="Quorum numerator" placeholder="Quorum" style="padding: 8px; border-radius: 6px; border: 1px solid #334155; background: #1c2541; color: #f8fafc; font-size: 13px;">
+              <input id="new-body-quorum-den" type="number" min="1" value="3" aria-label="Quorum denominator" placeholder="Total Seats" style="padding: 8px; border-radius: 6px; border: 1px solid #334155; background: #1c2541; color: #f8fafc; font-size: 13px;">
+              <input id="new-body-veto-threshold" type="number" min="1" value="2" aria-label="Stage 3 veto threshold" placeholder="Veto Count" style="padding: 8px; border-radius: 6px; border: 1px solid #334155; background: #1c2541; color: #f8fafc; font-size: 13px;">
+            </div>
+            <button id="btn-create-body" type="button" onclick="createEnclaveBody()" style="background: #0284c7; color: #f8fafc; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 12px;">Create Communal Body</button>
+            <div id="enclave-body-status" role="status" aria-live="polite" style="font-size: 12px; color: #38bdf8; min-height: 16px;"></div>
+          </div>
+        </div>
+
+        <div style="background: #0b132b; border: 1px solid #334155; border-radius: 8px; padding: 14px;">
+          <div style="font-size: 12px; font-weight: 700; color: #f8fafc; margin-bottom: 8px;">Grant Voter / Veto Seat (Office or Named Individual)</div>
+          <div style="display: grid; gap: 8px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+              <select id="seat-body-select" aria-label="Target communal body" style="padding: 8px; border-radius: 6px; border: 1px solid #334155; background: #1c2541; color: #f8fafc; font-size: 13px;">
+                <option value="COUNCIL_OF_12_HOUSES">Council of 12 Houses</option>
+              </select>
+              <select id="seat-type-select" aria-label="Voter seat type" style="padding: 8px; border-radius: 6px; border: 1px solid #334155; background: #1c2541; color: #f8fafc; font-size: 13px;">
+                <option value="NAMED_INDIVIDUAL">Named Individual</option>
+                <option value="HOUSE_OFFICE">House Office (H2)</option>
+              </select>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+              <input id="seat-user-id" type="text" aria-label="Named individual user ID" placeholder="User ID (e.g. USR-ELDER-01)" style="padding: 8px; border-radius: 6px; border: 1px solid #334155; background: #1c2541; color: #f8fafc; font-size: 13px;">
+              <input id="seat-display-name" type="text" aria-label="Voter display name" placeholder="Display Name (e.g. Elder Margaret)" style="padding: 8px; border-radius: 6px; border: 1px solid #334155; background: #1c2541; color: #f8fafc; font-size: 13px;">
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <input id="seat-house-id" type="number" min="1" max="12" aria-label="Optional House ID" placeholder="House # (1-12, optional)" style="width: 170px; padding: 6px 8px; border-radius: 6px; border: 1px solid #334155; background: #1c2541; color: #f8fafc; font-size: 12px;">
+              <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #cbd5e1; cursor: pointer;">
+                <input id="seat-can-veto" type="checkbox" checked aria-label="Grant Stage 3 veto right"> Grant Stage 3 Veto Right
+              </label>
+              <button id="btn-grant-seat" type="button" onclick="grantVoterSeat()" style="background: #059669; color: #f8fafc; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 12px;">Grant Voter Seat</button>
+            </div>
+            <div id="enclave-seat-status" role="status" aria-live="polite" style="font-size: 12px; color: #38bdf8; min-height: 16px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <table style="width: 100%; border-collapse: collapse; display: table;">
+          <thead>
+            <tr><th>BODY ID</th><th>COMMUNAL BODY NAME</th><th>QUORUM</th><th>STAGE 3 VETO THRESHOLD</th><th>ACTIVE SEATS</th><th>STATUS</th></tr>
+          </thead>
+          <tbody id="enclave-bodies-tbody">
+            <tr><td colspan="6" style="text-align: center; color: #94a3b8; padding: 12px;">Loading enclave bodies...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-card">
+        <table style="width: 100%; border-collapse: collapse; display: table;">
+          <thead>
+            <tr><th>SEAT ID</th><th>COMMUNAL BODY</th><th>TYPE</th><th>HOLDER</th><th>RIGHTS</th><th>STATUS</th><th>ACTION</th></tr>
+          </thead>
+          <tbody id="enclave-seats-tbody">
+            <tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 12px;">Loading voter seats...</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
     <!-- PETITION INTAKE & RATIFICATION QUEUE -->
     <div class="card">
-      <div class="card-title" style="color: #38bdf8; margin-bottom: 12px;">ACTIVE HOUSE PETITIONS AWAITING SOVEREIGN DETERMINATION</div>
+      <div class="card-title" style="color: #38bdf8; margin-bottom: 12px;">ACTIVE HOUSE &amp; ENCLAVE PETITIONS AWAITING DETERMINATION</div>
+      <div id="gov-petition-status" role="status" aria-live="polite" style="font-size: 12px; color: #38bdf8; margin-bottom: 8px; min-height: 16px;"></div>
       <div class="table-card"><table style="width: 100%; margin-bottom: 32px; border-collapse: collapse; display: table;">
         <thead>
-          <tr><th>PETITION ID</th><th>PROPOSAL TITLE</th><th>TARGET LINEAGE</th><th>REQUESTED SUM</th><th>HOUSE QUORUM</th><th>PETITION STATUS</th><th>SOVEREIGN ACTIONS</th></tr>
+          <tr><th>PETITION ID</th><th>PROPOSAL TITLE &amp; BODY</th><th>TARGET LINEAGE</th><th>REQUESTED SUM</th><th>TALLY (AYE / NAY / VETO)</th><th>PETITION STATUS</th><th>SOVEREIGN ACTIONS</th></tr>
         </thead>
         <tbody id="governance-tbody">
           <tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 15px;">Loading governance petitions...</td></tr>
@@ -1124,49 +1213,271 @@
       }
     }
 
-    async function loadGovernanceProposals() {
-      try {
-        const res = await fetch("/api/v1/lineage/governance/proposals");
-        if (!res.ok) return;
-        const data = await res.json();
-        const proposals = data.proposals || [];
-        const tbody = document.getElementById("governance-tbody");
-        if (!tbody) return;
+    const CHIEF_ADMIN_HEADERS = {
+      "Content-Type": "application/json",
+      "X-Actor-Role": "CHIEF_ADMINISTRATOR",
+      "X-Actor-ID": "USR-founder_ch-C8575D7E"
+    };
 
-        if (proposals.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 15px;">No active petitions</td></tr>';
-          return;
+    function _escGov(v) {
+      const s = document.createElement("span");
+      s.textContent = String(v ?? "");
+      return s.innerHTML;
+    }
+
+    function _formatCentsInt(cents) {
+      const n = Math.trunc(Number(cents) || 0);
+      const sign = n < 0 ? "-" : "";
+      const abs = Math.abs(n);
+      return `${sign}$${Math.floor(abs / 100).toLocaleString("en-US")}.${String(abs % 100).padStart(2, "0")}`;
+    }
+
+    async function loadGovernanceState() {
+      try {
+        const res = await fetch("/api/v1/governance/state");
+        if (!res.ok) return;
+        const state = await res.json();
+        const mode = state.mode || {};
+        const badge = document.getElementById("gov-mode-badge");
+        const summary = document.getElementById("gov-mode-summary");
+        if (badge) {
+          badge.textContent = `MODE: ${mode.governance_mode || "EXECUTIVE_COMMAND"}`;
+        }
+        if (summary) {
+          summary.textContent = `${mode.label || "Stage 1"} — ${mode.summary || ""}`;
         }
 
-        tbody.innerHTML = proposals.map(p => `
+        const bodies = state.bodies || [];
+        const bodiesTbody = document.getElementById("enclave-bodies-tbody");
+        const seatsTbody = document.getElementById("enclave-seats-tbody");
+        const bodySelect = document.getElementById("seat-body-select");
+
+        if (bodySelect && bodies.length) {
+          const prevVal = bodySelect.value;
+          bodySelect.innerHTML = bodies.map(b => `<option value="${_escGov(b.body_id)}">${_escGov(b.name)} (${_escGov(b.body_id)})</option>`).join("");
+          if (bodies.some(b => b.body_id === prevVal)) {
+            bodySelect.value = prevVal;
+          }
+        }
+
+        if (bodiesTbody) {
+          bodiesTbody.innerHTML = bodies.length ? bodies.map(b => `
+            <tr>
+              <td style="font-family: monospace; color: #38bdf8;">${_escGov(b.body_id)}</td>
+              <td><b>${_escGov(b.name)}</b><br><span style="font-size:11px;color:#94a3b8;">${_escGov(b.description || "")}</span></td>
+              <td style="font-variant-numeric: tabular-nums;">${b.quorum_numerator} / ${b.quorum_denominator} (${b.quorum_pct}%)</td>
+              <td style="font-variant-numeric: tabular-nums;">${b.veto_threshold_count} vetoes (${b.veto_threshold_pct}%)</td>
+              <td style="font-variant-numeric: tabular-nums;">${b.active_seat_count} active (${b.active_veto_seat_count} veto)</td>
+              <td><span style="color:${b.active ? "#34d399" : "#f87171"};font-weight:700;">${b.active ? "ACTIVE" : "INACTIVE"}</span></td>
+            </tr>
+          `).join("") : '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:12px;">No communal bodies registered.</td></tr>';
+        }
+
+        const allSeats = [];
+        bodies.forEach(b => (b.seats || []).forEach(s => allSeats.push({ ...s, body_name: b.name })));
+        if (seatsTbody) {
+          seatsTbody.innerHTML = allSeats.length ? allSeats.map(s => `
+            <tr>
+              <td style="font-family: monospace; color: #38bdf8; font-size: 11px;">${_escGov(s.seat_id)}</td>
+              <td>${_escGov(s.body_name)}</td>
+              <td><span style="background:#1e293b;color:#cbd5e1;padding:2px 6px;border-radius:4px;font-size:11px;">${_escGov(s.seat_type)}</span></td>
+              <td><b>${_escGov(s.display_name)}</b>${s.user_id ? `<br><span style="font-family:monospace;font-size:11px;color:#94a3b8;">${_escGov(s.user_id)}</span>` : (s.house_code ? ` <span style="color:#a855f7;">(${_escGov(s.house_code)})</span>` : "")}</td>
+              <td>${s.can_vote ? "VOTE" : "NONE"}${s.can_veto ? " + <b style='color:#fca5a5;'>VETO</b>" : ""}</td>
+              <td><span style="color:${s.active ? "#34d399" : "#94a3b8"};font-weight:700;">${s.active ? "ACTIVE" : "REVOKED"}</span></td>
+              <td>${s.active ? `<button type="button" onclick="revokeVoterSeat('${_escGov(s.seat_id)}')" style="background:#dc2626;color:#f8fafc;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:700;">Revoke Seat</button>` : '<span style="font-size:11px;color:#64748b;">Revoked</span>'}</td>
+            </tr>
+          `).join("") : '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:12px;">No voter seats registered.</td></tr>';
+        }
+
+        const petitions = state.petitions || [];
+        renderGovernancePetitions(petitions);
+      } catch (err) {
+        console.error("Governance state poll error:", err);
+      }
+    }
+
+    function renderGovernancePetitions(proposals) {
+      const tbody = document.getElementById("governance-tbody");
+      if (!tbody) return;
+      if (!proposals.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 15px;">No active petitions</td></tr>';
+        return;
+      }
+      tbody.innerHTML = proposals.map(p => {
+        const statusColor = p.status === "SOVEREIGN_EXECUTED" ? "#34d399"
+          : (String(p.status || "").includes("VETO") ? "#f87171" : "#fbbf24");
+        const canAdjudicate = p.status === "PENDING_CHIEF_ADMIN_AUTHORIZATION" || p.status === "RATIFIED_PENDING_SETTLOR";
+        return `
           <tr>
-            <td><b>${p.proposal_id}</b></td>
-            <td><b>${p.title}</b><br><span style="font-size: 11px; color: #94a3b8;">${p.description}</span></td>
-            <td><span style="background: #1e293b; color: #a855f7; padding: 2px 6px; border-radius: 4px; font-weight: bold;">HOUSE-${String(p.target_house_id).padStart(2, '0')}</span></td>
-            <td style="color: #38bdf8; font-weight: bold;">$${(p.amount_cents / 100.0).toFixed(2)}</td>
-            <td><b style="color: #4ade80;">${p.affirmative_house_ids ? p.affirmative_house_ids.length : 0} / 12 Houses</b> (${p.house_ratified ? 'Ratified' : 'Rejected'})</td>
-            <td><span style="color: ${p.status === 'SOVEREIGN_EXECUTED' ? '#10b981' : (p.status === 'SOVEREIGN_VETOED' ? '#ef4444' : '#fbbf24')}; font-weight: bold;">${p.status.replace(/_/g, ' ')}</span></td>
+            <td style="font-family: monospace;"><b>${_escGov(p.proposal_id)}</b></td>
+            <td><b>${_escGov(p.title)}</b><br><span style="font-size: 11px; color: #94a3b8;">${_escGov(p.body_name || p.body_id || "Council of 12 Houses")} · ${_escGov(p.description || "")}</span></td>
+            <td><span style="background: #1e293b; color: #a855f7; padding: 2px 6px; border-radius: 4px; font-weight: bold;">HOUSE-${String(p.target_house_id || 1).padStart(2, '0')}</span></td>
+            <td style="color: #38bdf8; font-weight: bold; font-variant-numeric: tabular-nums;">${_formatCentsInt(p.amount_cents || 0)}</td>
+            <td style="font-variant-numeric: tabular-nums;"><b style="color: #4ade80;">${p.aye_count ?? (p.affirmative_house_ids ? p.affirmative_house_ids.length : 0)} Aye</b> / ${p.nay_count ?? 0} Nay / <b style="color:#f87171;">${p.veto_count ?? 0} Veto</b></td>
+            <td><span style="color: ${statusColor}; font-weight: bold;">${_escGov(String(p.status || "").replace(/_/g, " "))}</span></td>
             <td>
-              ${p.status === 'PENDING_CHIEF_ADMIN_AUTHORIZATION' ? `
-                <div style="display: flex; gap: 6px;">
-                  <button onclick="adjudicatePetition('${p.proposal_id}', 'APPROVE_AND_EXECUTE')" style="background: #10b981; color: #020617; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">Authorize Sweep</button>
-                  <button onclick="adjudicatePetition('${p.proposal_id}', 'SOVEREIGN_VETO')" style="background: #ef4444; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">Sovereign Veto</button>
+              ${canAdjudicate ? `
+                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                  <button type="button" onclick="adjudicatePetition('${_escGov(p.proposal_id)}', 'APPROVE_AND_EXECUTE')" style="background: #059669; color: #f8fafc; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">Authorize Sweep</button>
+                  <button type="button" onclick="adjudicatePetition('${_escGov(p.proposal_id)}', 'FOUNDER_VETO')" style="background: #dc2626; color: #f8fafc; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">Founder Veto</button>
                 </div>
-              ` : `<span style="font-size: 11px; color: #64748b;">Closed (${p.settled_by || 'Settlor'})</span>`}
+              ` : `<span style="font-size: 11px; color: #94a3b8;">${_escGov(p.settled_by || p.status)}</span>`}
             </td>
           </tr>
-        `).join('');
+        `;
+      }).join("");
+    }
+
+    async function loadGovernanceProposals() {
+      await loadGovernanceState();
+    }
+
+    async function setGovernanceMode(targetMode) {
+      const statusEl = document.getElementById("gov-mode-status");
+      const reasonInput = document.getElementById("gov-mode-reason");
+      const reason = reasonInput ? reasonInput.value.trim() : "";
+      try {
+        const res = await fetch("/api/v1/governance/mode", {
+          method: "POST",
+          headers: CHIEF_ADMIN_HEADERS,
+          body: JSON.stringify({ governance_mode: targetMode, reason: reason || `Chief Admin selected ${targetMode}` })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          if (statusEl) statusEl.textContent = `Governance mode switched: ${data.previous_mode} -> ${data.governance_mode} (Audit ${data.audit_event_id})`;
+          await loadGovernanceState();
+        } else if (statusEl) {
+          statusEl.textContent = `Mode switch rejected (HTTP ${res.status}): ${data.detail || "Forbidden"}`;
+        }
       } catch (err) {
-        console.error("Proposals poll error:", err);
+        if (statusEl) statusEl.textContent = `Mode switch failed: ${err.message}`;
+      }
+    }
+
+    async function triggerShtfSnapback() {
+      const statusEl = document.getElementById("gov-mode-status");
+      const reasonInput = document.getElementById("gov-mode-reason");
+      const reason = reasonInput && reasonInput.value.trim() ? reasonInput.value.trim() : "1-Click SHTF Emergency Snap-Back";
+      try {
+        const res = await fetch("/api/v1/governance/shtf-snapback", {
+          method: "POST",
+          headers: CHIEF_ADMIN_HEADERS,
+          body: JSON.stringify({ reason })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          if (statusEl) statusEl.textContent = `SHTF SNAP-BACK EXECUTED: ${data.previous_mode} -> EXECUTIVE_COMMAND (Audit ${data.audit_event_id})`;
+          await loadGovernanceState();
+        } else if (statusEl) {
+          statusEl.textContent = `SHTF Snap-Back rejected (HTTP ${res.status}): ${data.detail || "Forbidden"}`;
+        }
+      } catch (err) {
+        if (statusEl) statusEl.textContent = `SHTF Snap-Back failed: ${err.message}`;
+      }
+    }
+
+    async function createEnclaveBody() {
+      const statusEl = document.getElementById("enclave-body-status");
+      const name = (document.getElementById("new-body-name")?.value || "").trim();
+      const qNum = Number(document.getElementById("new-body-quorum-num")?.value || 2);
+      const qDen = Number(document.getElementById("new-body-quorum-den")?.value || 3);
+      const vThr = Number(document.getElementById("new-body-veto-threshold")?.value || 2);
+      if (!name) {
+        if (statusEl) statusEl.textContent = "Enter a communal body name first.";
+        return;
+      }
+      try {
+        const res = await fetch("/api/v1/governance/bodies", {
+          method: "POST",
+          headers: CHIEF_ADMIN_HEADERS,
+          body: JSON.stringify({
+            name,
+            quorum_numerator: qNum,
+            quorum_denominator: qDen,
+            veto_threshold_count: vThr,
+            can_exercise_stage3_veto: true
+          })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById("new-body-name").value = "";
+          if (statusEl) statusEl.textContent = `Created communal body '${data.name}' (${data.body_id}) — Audit ${data.audit_event_id}`;
+          await loadGovernanceState();
+        } else if (statusEl) {
+          statusEl.textContent = `Create body failed (HTTP ${res.status}): ${data.detail || "Error"}`;
+        }
+      } catch (err) {
+        if (statusEl) statusEl.textContent = `Create body error: ${err.message}`;
+      }
+    }
+
+    async function grantVoterSeat() {
+      const statusEl = document.getElementById("enclave-seat-status");
+      const bodyId = document.getElementById("seat-body-select")?.value || "COUNCIL_OF_12_HOUSES";
+      const seatType = document.getElementById("seat-type-select")?.value || "NAMED_INDIVIDUAL";
+      const userId = (document.getElementById("seat-user-id")?.value || "").trim() || null;
+      const displayName = (document.getElementById("seat-display-name")?.value || "").trim();
+      const rawHouse = (document.getElementById("seat-house-id")?.value || "").trim();
+      const houseId = rawHouse ? Number(rawHouse) : null;
+      const canVeto = Boolean(document.getElementById("seat-can-veto")?.checked);
+      if (!displayName) {
+        if (statusEl) statusEl.textContent = "Enter a voter display name.";
+        return;
+      }
+      try {
+        const res = await fetch(`/api/v1/governance/bodies/${encodeURIComponent(bodyId)}/seats`, {
+          method: "POST",
+          headers: CHIEF_ADMIN_HEADERS,
+          body: JSON.stringify({
+            seat_type: seatType,
+            user_id: userId,
+            display_name: displayName,
+            house_id: houseId,
+            office_role: seatType === "HOUSE_OFFICE" ? "H2" : null,
+            can_vote: true,
+            can_veto: canVeto
+          })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById("seat-user-id").value = "";
+          document.getElementById("seat-display-name").value = "";
+          if (statusEl) statusEl.textContent = `Granted ${data.seat_type} seat '${data.display_name}' (${data.seat_id}) — Audit ${data.audit_event_id}`;
+          await loadGovernanceState();
+        } else if (statusEl) {
+          statusEl.textContent = `Grant seat failed (HTTP ${res.status}): ${data.detail || "Error"}`;
+        }
+      } catch (err) {
+        if (statusEl) statusEl.textContent = `Grant seat error: ${err.message}`;
+      }
+    }
+
+    async function revokeVoterSeat(seatId) {
+      const statusEl = document.getElementById("enclave-seat-status");
+      try {
+        const res = await fetch(`/api/v1/governance/seats/${encodeURIComponent(seatId)}/revoke`, {
+          method: "POST",
+          headers: CHIEF_ADMIN_HEADERS,
+          body: JSON.stringify({ reason: "Revoked via Chief Admin Dashboard Tab 4" })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          if (statusEl) statusEl.textContent = `Revoked voter seat ${data.seat_id} (${data.display_name}) — Audit ${data.audit_event_id}`;
+          await loadGovernanceState();
+        } else if (statusEl) {
+          statusEl.textContent = `Revoke failed (HTTP ${res.status}): ${data.detail || "Error"}`;
+        }
+      } catch (err) {
+        if (statusEl) statusEl.textContent = `Revoke error: ${err.message}`;
       }
     }
 
     async function adjudicatePetition(proposalId, action) {
-      if (!confirm(`Confirm decision to ${action === 'APPROVE_AND_EXECUTE' ? 'authorize' : 'veto'} petition ${proposalId}?`)) return;
+      const statusEl = document.getElementById("gov-petition-status");
       try {
         const res = await fetch("/api/v1/lineage/governance/adjudicate", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: CHIEF_ADMIN_HEADERS,
           body: JSON.stringify({
             proposal_id: proposalId,
             action: action,
@@ -1175,10 +1486,10 @@
         });
         const data = await res.json();
         if (res.ok) {
-          alert(`[SOVEREIGN RECORDED] Status: ${data.status}`);
-          loadGovernanceProposals();
-        } else {
-          alert(`Rejected: ${data.detail || 'Invariant failure'}`);
+          if (statusEl) statusEl.textContent = `[SOVEREIGN RECORDED] ${proposalId} -> ${data.status}`;
+          await loadGovernanceState();
+        } else if (statusEl) {
+          statusEl.textContent = `Adjudication rejected (HTTP ${res.status}): ${data.detail || "Invariant failure"}`;
         }
       } catch (err) {
         console.error("Adjudicate failure:", err);
@@ -1189,7 +1500,7 @@
       setCurrencyMode(currencyMode);
       renderChart();
       loadWorkspaceState();
-      loadGovernanceProposals();
+      loadGovernanceState();
       setInterval(loadWorkspaceState, 4000);
     });
   </script>

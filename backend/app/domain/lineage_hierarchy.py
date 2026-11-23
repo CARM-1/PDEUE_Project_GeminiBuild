@@ -115,12 +115,31 @@ class LineageHierarchyService:
             for member in house["members"]:
                 member.setdefault("baseline_risk_dial", member["risk_dial"])
 
+    @staticmethod
+    def _format_cents(cents: int) -> str:
+        val = int(cents)
+        sign = "-" if val < 0 else ""
+        abs_val = abs(val)
+        return f"{sign}${abs_val // 100:,}.{abs_val % 100:02d}"
+
+    def _sync_db_house(self, house_id: int) -> None:
+        try:
+            from app.domain.enclave_governance import get_enclave_governance_service
+            house = self.CANONICAL_HOUSES.get(house_id)
+            if house is not None:
+                get_enclave_governance_service().sync_house_state(
+                    house_id, house.get("status", "ACTIVE"), house.get("members", [])
+                )
+        except Exception:
+            # Never break unit-level in-memory calls if DB is intentionally isolated
+            pass
+
     def get_house_summary(self, house_id: int) -> Dict[str, Any]:
         if house_id < 1 or house_id > 12:
             raise ValueError(f"Invalid House ID: {house_id}. Must be between 1 and 12.")
 
         house = self.CANONICAL_HOUSES[house_id]
-        total_cash_cents = sum(m["cash_cents"] for m in house["members"])
+        total_cash_cents = sum(int(m["cash_cents"]) for m in house["members"])
         active_members = [m for m in house["members"] if m["status"] == "ACTIVE"]
         avg_risk_dial = sum(m["risk_dial"] for m in active_members) / len(active_members) if active_members else 0.0
 
@@ -132,9 +151,9 @@ class LineageHierarchyService:
             "leader_role": house["leader_role"],
             "status": house["status"],
             "member_count": len(house["members"]),
-            "total_cash_cents": total_cash_cents,
-            "total_cash_formatted": f"${total_cash_cents / 100.0:,.2f}",
-            "aggregated_equity_cents": total_cash_cents,
+            "total_cash_cents": int(total_cash_cents),
+            "total_cash_formatted": self._format_cents(total_cash_cents),
+            "aggregated_equity_cents": int(total_cash_cents),
             "active_margin_cents": sum(11875 * len(m["open_orders"]) for m in house["members"]),
             "drawdown_pct": round(-0.15 * house_id, 2),
             "average_risk_dial_pct": round(avg_risk_dial * 100, 2),
@@ -164,6 +183,7 @@ class LineageHierarchyService:
 
         cancelled = list(target["open_orders"])
         target["open_orders"] = []
+        self._sync_db_house(house_id)
 
         return {
             "status": "SUBORDINATE_ORDERS_CANCELLED",
@@ -197,6 +217,7 @@ class LineageHierarchyService:
 
         target["risk_dial"] = 0.0
         target["status"] = "FROZEN_BY_HOUSE_LEADER"
+        self._sync_db_house(house_id)
 
         return {
             "status": "SUBORDINATE_RISK_FROZEN",
@@ -220,6 +241,7 @@ class LineageHierarchyService:
             member["risk_dial"] = 0.0
             member["status"] = "FROZEN_BY_HOUSE_QUARANTINE"
         house["status"] = "QUARANTINED"
+        self._sync_db_house(house_id)
         return self._house_action_receipt(house, "HOUSE_QUARANTINED", revoked_orders)
 
     def get_member_state(self, scma_id: str) -> Dict[str, Any]:
@@ -273,8 +295,10 @@ class LineageHierarchyService:
         }
         if existing is not None:
             existing.update(record)
+            self._sync_db_house(house_id)
             return existing
         house["members"].append(record)
+        self._sync_db_house(house_id)
         return record
 
     def mark_member_activated(self, scma_id: str, activated_at: str) -> Optional[Dict[str, Any]]:
@@ -301,6 +325,7 @@ class LineageHierarchyService:
                     member["status"] = "ACTIVE"
                     member["certification_level"] = certification_level
                     member["certified_at"] = ts
+                    self._sync_db_house(house["house_id"])
                     return {
                         **member,
                         "house_id": house["house_id"],
@@ -316,6 +341,7 @@ class LineageHierarchyService:
         for member in house["members"]:
             member["risk_dial"] = member["baseline_risk_dial"]
             member["status"] = "ACTIVE"
+        self._sync_db_house(house_id)
         return self._house_action_receipt(house, "HOUSE_RESTORED")
 
     def restore_subordinate_risk(
@@ -331,6 +357,7 @@ class LineageHierarchyService:
         target["risk_dial"] = target_risk_dial
         target["baseline_risk_dial"] = target_risk_dial
         target["status"] = "ACTIVE"
+        self._sync_db_house(house_id)
         return {
             "status": "SUBORDINATE_RISK_RESTORED",
             "house_id": house_id,

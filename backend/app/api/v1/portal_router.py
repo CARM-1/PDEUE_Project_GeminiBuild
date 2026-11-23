@@ -14,6 +14,13 @@ from datetime import datetime, timezone
 import html
 import pathlib
 from app.domain.lineage_hierarchy import get_lineage_service
+from app.domain.enclave_governance import (
+    MODE_ADVISORY_PETITION_FILTER,
+    MODE_BICAMERAL_VETO_ACTIVE,
+    MODE_EXECUTIVE_COMMAND,
+    format_cents,
+    get_enclave_governance_service,
+)
 from app.domain.scan_worker import AutonomousScanWorker
 from app.domain.fleet_bridge import get_shared_fleet_coordinator
 from app.domain.ai_copilot import AICopilotEngine
@@ -34,6 +41,7 @@ from app.domain.authority_tiers import (
 router = APIRouter(tags=['Portals'])
 portal_router = router
 _lineage_service = get_lineage_service()
+_enclave_gov = get_enclave_governance_service()
 _advisor_copilot_engine = AICopilotEngine()
 
 LINEAGE_DATA: Dict[str, Any] = {
@@ -440,17 +448,25 @@ def get_lineage_house_portal(
     role: str = Query("H2"),
     x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
     actor_house_id: Optional[int] = Query(None),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
 ):
+    if x_actor_role and is_class_t_role(x_actor_role):
+        raise HTTPException(status_code=403, detail="Class T technical roles have zero House governance authority.")
     role = _lineage_role(role)
     _lineage_claim(house_id, x_house_id, actor_house_id)
     house = _lineage_service.get_house_summary(house_id)
+    mode_state = _enclave_gov.get_governance_mode()
+    petitions = _enclave_gov.list_petitions()
     page = _load_html("lineage_house.html").body.decode("utf-8")
     replacements = {
         "__HOUSE_ID__": str(house_id),
         "__HOUSE_CODE__": house["lineage_code"],
         "__HOUSE_NAME__": house["name"],
+        "__HOUSE_STATUS__": house["status"],
         "__ACTIVE_ROLE__": role,
         "__ACTIVE_HAT__": "HOUSE_LEADER (H2_SOVEREIGN)" if role == "H2" else "HOUSE_ASSISTANT (H1_SECRETARIAL)",
+        "__GOVERNANCE_MODE__": mode_state["governance_mode"],
+        "__GOVERNANCE_BADGE__": mode_state["badge_text"],
     }
     for marker, value in replacements.items():
         page = page.replace(marker, str(value))
@@ -458,7 +474,12 @@ def get_lineage_house_portal(
     discovery_end = page.find("<!-- DISCOVERY_CONTROLS_END -->")
     if discovery_start >= 0 and discovery_end >= 0:
         page = page[:discovery_start] + page[discovery_end + len("<!-- DISCOVERY_CONTROLS_END -->"):]
-    page = page.replace("__ROLE_DESK__", _render_lineage_h2_desk(house) if role == "H2" else _render_lineage_h1_desk(house))
+    page = page.replace(
+        "__ROLE_DESK__",
+        _render_lineage_h2_desk(house, mode_state, petitions)
+        if role == "H2"
+        else _render_lineage_h1_desk(house, mode_state),
+    )
     return HTMLResponse(page)
 
 
@@ -468,10 +489,14 @@ def get_lineage_house_state(
     role: str = Query("H2"),
     x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
     actor_house_id: Optional[int] = Query(None),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
 ):
+    if x_actor_role and is_class_t_role(x_actor_role):
+        raise HTTPException(status_code=403, detail="Class T technical roles have zero House governance authority.")
     role = _lineage_role(role)
     _lineage_claim(house_id, x_house_id, actor_house_id)
     house = _lineage_service.get_house_summary(house_id)
+    mode_state = _enclave_gov.get_governance_mode()
     members = []
     for source in house["members"]:
         member = {
@@ -479,15 +504,23 @@ def get_lineage_house_state(
             "role_tag": source["role_tag"], "risk_dial_bps": int(round(source["risk_dial"] * 10_000)),
             "status": source["status"], "open_orders": list(source["open_orders"]),
             "literacy_completion_pct": 85 if "Apprentice" in source["role_tag"] else 100,
+            "is_sovereign_immune": _lineage_service._is_sovereign_settlor(source),
         }
         member["notional_cents"] = "$****.**" if role == "H1" else int(source["cash_cents"])
+        member["cash_display"] = "$****.**" if role == "H1" else format_cents(int(source["cash_cents"]))
         members.append(member)
-    proposals = []
-    for item in _LINEAGE_PROPOSALS.values():
-        proposals.append({**item, "aye_count": len(item["aye_house_ids"]), "nay_count": len(item["nay_house_ids"]), "threshold": 9})
+    proposals = _enclave_gov.list_petitions()
     return {
         "house_id": house_id, "house_code": house["lineage_code"], "house_name": house["name"],
-        "active_role": role, "aggregated_house_capital_cents": int(house["total_cash_cents"]),
+        "house_status": house["status"],
+        "active_role": role, "r12_masked": role == "H1",
+        "governance_mode": mode_state["governance_mode"],
+        "governance_stage": mode_state["stage"],
+        "voting_enabled": mode_state["voting_enabled"] and role == "H2",
+        "bicameral_veto_enabled": mode_state["bicameral_veto_enabled"] and role == "H2",
+        "mode_badge_text": mode_state["badge_text"],
+        "aggregated_house_capital_cents": int(house["total_cash_cents"]),
+        "aggregated_house_capital_formatted": format_cents(int(house["total_cash_cents"])),
         "average_risk_dial_bps": int(round(house["average_risk_dial_pct"] * 100)),
         "members": members, "roll_call_logs": list(_LINEAGE_ROLL_CALL), "bicameral_proposals": proposals,
     }
@@ -570,20 +603,32 @@ def vote_on_lineage_proposal(
     _lineage_claim(house_id, x_house_id, actor_house_id)
     if role != "H2":
         raise HTTPException(status_code=403, detail="H1 secretarial role has no voting authority")
-    vote = request.vote.upper()
-    if vote not in {"AYE", "NAY"}:
-        raise HTTPException(status_code=422, detail="vote must be AYE or NAY")
-    proposal = _LINEAGE_PROPOSALS.get(request.proposal_id)
-    if proposal is None:
-        raise HTTPException(status_code=404, detail="Proposal not found")
-    proposal["aye_house_ids"] = [x for x in proposal["aye_house_ids"] if x != house_id]
-    proposal["nay_house_ids"] = [x for x in proposal["nay_house_ids"] if x != house_id]
-    proposal[f"{vote.lower()}_house_ids"].append(house_id)
-    if len(proposal["aye_house_ids"]) >= 9:
-        proposal["status"] = "RATIFIED_PENDING_SETTLOR"
-    return {"proposal_id": request.proposal_id, "house_vote": vote, "aye_count": len(proposal["aye_house_ids"]),
-            "nay_count": len(proposal["nay_house_ids"]), "threshold": 9, "status": proposal["status"],
-            "effect": "ADVISORY_PETITION_ONLY"}
+
+    result = _enclave_gov.cast_vote(
+        proposal_id=request.proposal_id,
+        vote_choice=request.vote,
+        actor_role=x_actor_role or role,
+        actor_id=f"HOUSE-{house_id:02d}:{role}",
+        house_id=house_id,
+    )
+    if request.proposal_id in _LINEAGE_PROPOSALS:
+        _LINEAGE_PROPOSALS[request.proposal_id].update(
+            aye_house_ids=result["aye_house_ids"],
+            nay_house_ids=result["nay_house_ids"],
+            status=result["status"],
+        )
+    return {
+        "proposal_id": result["proposal_id"],
+        "house_vote": result["vote_choice"],
+        "aye_count": result["aye_count"],
+        "nay_count": result["nay_count"],
+        "veto_count": result["veto_count"],
+        "threshold": result["threshold"],
+        "veto_threshold_count": result["veto_threshold_count"],
+        "status": result["status"],
+        "governance_mode": result["governance_mode"],
+        "effect": result["effect"],
+    }
 
 
 @router.post("/api/v1/portal/lineage/house/{house_id}/circuit-breaker")
@@ -630,27 +675,121 @@ def execute_lineage_circuit_breaker(
     raise HTTPException(status_code=422, detail="action must be FREEZE_DIAL or CANCEL_ORDERS")
 
 
-def _render_lineage_h2_desk(house: Dict[str, Any]) -> str:
+def _render_lineage_h2_desk(
+    house: Dict[str, Any],
+    mode_state: Dict[str, Any],
+    petitions: List[Dict[str, Any]],
+) -> str:
+    row_parts: List[str] = []
+    for m in house["members"]:
+        safe_name = html.escape(str(m["name"]))
+        safe_scma = html.escape(str(m["scma_id"]))
+        cash_fmt = format_cents(int(m["cash_cents"]))
+        status_txt = html.escape(str(m.get("status", "ACTIVE")))
+        if _lineage_service._is_sovereign_settlor(m):
+            action_cell = '<span class="immune-badge">🛡️ Sovereign Immune</span>'
+        else:
+            action_cell = (
+                f'<button class="freeze" type="button" onclick="openFreezeModal(\'{safe_scma}\')">Freeze Dial (0%)</button> '
+                f'<button class="cancel" type="button" onclick="openCancelModal(\'{safe_scma}\')">Cancel Orders</button>'
+            )
+        row_parts.append(
+            f'<tr><td>{safe_name}</td><td class="mono">{safe_scma}</td>'
+            f'<td class="num">{cash_fmt}</td><td>{status_txt}</td><td>{action_cell}</td></tr>'
+        )
+    rows = "".join(row_parts)
+
+    active_mode = mode_state["governance_mode"]
+    active_prop = next((p for p in petitions if p["proposal_id"] == "CFCP-2026-02"), None)
+    if active_prop is None and petitions:
+        active_prop = petitions[0]
+    prop_id = html.escape(active_prop["proposal_id"]) if active_prop else "CFCP-2026-02"
+    prop_title = html.escape(active_prop["title"]) if active_prop else "Apprentice Literacy Grant Petition"
+    aye_count = int(active_prop["aye_count"]) if active_prop else 0
+    veto_count = int(active_prop["veto_count"]) if active_prop else 0
+    threshold = int(active_prop["threshold"]) if active_prop else 9
+    veto_threshold = int(active_prop["veto_threshold_count"]) if active_prop else 9
+    prop_status = html.escape(active_prop["status"]) if active_prop else "HOUSE_VOTE_OPEN"
+
+    if active_mode == MODE_EXECUTIVE_COMMAND:
+        chamber_html = (
+            '<section id="bicameral" class="chamber-dormant">'
+            '<h2>Bicameral CFCP Ratification Chamber</h2>'
+            '<div id="governance-dormant-badge" class="mode-badge mode-dormant">'
+            'Executive Command Mode Active — Voting Dormant'
+            '</div>'
+            '<p class="muted-note">Stage 1 Executive Command is active. Voting and bicameral veto controls are intentionally stripped while fledgling stewardship or SHTF protection is engaged. All voting endpoints fail closed (HTTP 403).</p>'
+            '</section>'
+        )
+    elif active_mode == MODE_ADVISORY_PETITION_FILTER:
+        chamber_html = (
+            f'<section id="bicameral" class="chamber-advisory">'
+            f'<h2>Bicameral CFCP Ratification Chamber</h2>'
+            f'<div id="governance-active-badge" class="mode-badge mode-stage2">Stage 2: Advisory Petition Filter Active (Founder Veto Preserved)</div>'
+            f'<p>75% ({threshold} of 12) stages an advisory petition (RATIFIED_PENDING_SETTLOR) for Chief Administrator review. No capital sweep executes unilaterally.</p>'
+            f'<article><strong>{prop_title}</strong> '
+            f'<span class="mono muted-note">({prop_id})</span>'
+            f'<div id="consensus-tally" class="tally">{aye_count} / 12 Aye — {prop_status}</div>'
+            f'<div class="vote-actions">'
+            f'<button id="vote-aye" type="button" onclick="castVote(\'AYE\', \'{prop_id}\')">Aye</button>'
+            f'<button id="vote-nay" type="button" onclick="castVote(\'NAY\', \'{prop_id}\')">Nay</button>'
+            f'</div>'
+            f'<div id="vote-feedback" class="status-feedback" role="status" aria-live="polite"></div>'
+            f'</article></section>'
+        )
+    else:
+        chamber_html = (
+            f'<section id="bicameral" class="chamber-veto">'
+            f'<h2>Bicameral CFCP Ratification Chamber</h2>'
+            f'<div id="governance-active-badge" class="mode-badge mode-stage3">Stage 3: Bicameral Veto Active (Binding Chamber Veto Enabled)</div>'
+            f'<p>Authorized House seats may ratify eligible policy/CFCP proposals ({threshold} of 12) or enact a binding Bicameral Veto ({veto_threshold} vetoes -> VETOED_BY_BICAMERAL_CHAMBER). Immutable core invariants remain permanently non-amendable.</p>'
+            f'<article><strong>{prop_title}</strong> '
+            f'<span class="mono muted-note">({prop_id})</span>'
+            f'<div id="consensus-tally" class="tally">{aye_count} / 12 Aye — {prop_status}</div>'
+            f'<div id="veto-tally" class="tally-veto">Bicameral Vetoes: {veto_count} / {veto_threshold}</div>'
+            f'<div class="vote-actions">'
+            f'<button id="vote-aye" type="button" onclick="castVote(\'AYE\', \'{prop_id}\')">Aye</button>'
+            f'<button id="vote-nay" type="button" onclick="castVote(\'NAY\', \'{prop_id}\')">Nay</button>'
+            f'<button id="vote-veto" class="veto" type="button" onclick="castVote(\'VETO\', \'{prop_id}\')">Cast Bicameral Veto</button>'
+            f'</div>'
+            f'<div id="vote-feedback" class="status-feedback" role="status" aria-live="polite"></div>'
+            f'</article></section>'
+        )
+
+    return f'''<section class="metrics">
+<article><h2>Aggregated House Capital</h2><strong class="num">{format_cents(int(house["total_cash_cents"]))}</strong></article>
+<article><h2>Average Risk Dial</h2><strong class="num">{house["average_risk_dial_pct"]}%</strong></article>
+<article><h2>Governance Stage</h2><strong id="desk-governance-mode">{html.escape(active_mode)}</strong></article>
+</section>
+<section><h2>Subordinate Accounts &amp; Lineal Circuit Breakers</h2>
+<div class="table-card"><table><thead><tr><th>Member</th><th>SCMA ID</th><th>Balance (ADR-008)</th><th>Status</th><th>Lineal Controls</th></tr></thead><tbody>{rows}</tbody></table></div>
+<div id="breaker-feedback" class="status-feedback" role="status" aria-live="polite"></div>
+</section>
+{chamber_html}
+<div id="cancel-modal" class="modal" hidden>Resting Purge confirmation recorded in lineage audit ledger.</div>
+<div id="freeze-modal" class="modal" hidden>Governor Clamp (0.0%) confirmation recorded in lineage audit ledger.</div>'''
+
+
+def _render_lineage_h1_desk(house: Dict[str, Any], mode_state: Dict[str, Any]) -> str:
     rows = "".join(
-        f'<tr><td>{m["name"]}</td><td>{m["scma_id"]}</td><td>${m["cash_cents"] / 100:,.2f}</td>'
-        f'<td><button class="freeze" onclick="openFreezeModal(\'{m["scma_id"]}\')">Freeze Dial (0%)</button> '
-        f'<button class="cancel" onclick="openCancelModal(\'{m["scma_id"]}\')">Cancel Orders</button></td></tr>'
-        for m in house["members"] if not _lineage_service._is_sovereign_settlor(m)
+        f'<tr><td>{html.escape(str(m["name"]))}</td><td class="mono">{html.escape(str(m["scma_id"]))}</td>'
+        f'<td class="num masked-val">$****.**</td><td>{html.escape(str(m["status"]))}</td></tr>'
+        for m in house["members"]
     )
-    return f'''<section class="metrics"><article><h2>Aggregated House Capital</h2><strong>${house["total_cash_cents"] / 100:,.2f}</strong></article>
-<article><h2>Average Risk Dial</h2><strong>{house["average_risk_dial_pct"]}%</strong></article></section>
-<section><h2>Subordinate Accounts &amp; Lineal Circuit Breakers</h2><table><tbody>{rows}</tbody></table></section>
-<section id="bicameral"><h2>Bicameral CFCP Ratification Chamber</h2><p>75% (9 of 12) stages an advisory petition for Chief Administrator review. No capital sweep is executed.</p>
-<article><strong>Apprentice Literacy Grant Petition</strong><div id="consensus-tally">0 / 12 Aye</div><button id="vote-aye" onclick="castVote('AYE')">Aye</button><button id="vote-nay" onclick="castVote('NAY')">Nay</button></article></section>
-<div id="cancel-modal" class="modal" hidden>Resting Purge confirmation</div><div id="freeze-modal" class="modal" hidden>Governor Clamp confirmation</div>'''
-
-
-def _render_lineage_h1_desk(house: Dict[str, Any]) -> str:
-    rows = "".join(f'<tr><td>{m["name"]}</td><td>{m["scma_id"]}</td><td>$****.**</td><td>{m["status"]}</td></tr>' for m in house["members"])
-    literacy = "".join(f'<label>{m["name"]}<progress max="100" value="{85 if "Apprentice" in m["role_tag"] else 100}"></progress></label>' for m in house["members"])
-    return f'''<section class="metrics"><article><h2>Aggregated House Capital</h2><strong>${house["total_cash_cents"] / 100:,.2f}</strong></article></section>
-<section><h2>Member Accounts — Directive R-12</h2><table><tbody>{rows}</tbody></table></section>
-<section class="audit"><h2>Bicameral CFCP Ratification Chamber — NON-VOTING AUDIT</h2><p>Secretarial observation only; legislative submission authority is disabled.</p></section>
+    literacy = "".join(
+        f'<label>{html.escape(str(m["name"]))}<progress max="100" value="{85 if "Apprentice" in m["role_tag"] else 100}"></progress></label>'
+        for m in house["members"]
+    )
+    mode_badge = html.escape(mode_state["badge_text"])
+    return f'''<section class="metrics">
+<article><h2>Aggregated House Capital</h2><strong class="num">{format_cents(int(house["total_cash_cents"]))}</strong></article>
+<article><h2>Governance Mode</h2><strong id="desk-governance-mode">{html.escape(mode_state["governance_mode"])}</strong><div class="muted-note">{mode_badge}</div></article>
+</section>
+<section><h2>Member Accounts — Directive R-12</h2>
+<div class="table-card"><table><thead><tr><th>Member</th><th>SCMA ID</th><th>Balance (Directive R-12)</th><th>Status</th></tr></thead><tbody>{rows}</tbody></table></div></section>
+<section class="audit"><h2>Bicameral CFCP Ratification Chamber — NON-VOTING AUDIT</h2>
+<div id="governance-dormant-badge" class="mode-badge mode-dormant">{mode_badge}</div>
+<p>Secretarial observation only; legislative submission, voting, veto, and circuit-breaker authorities are stripped from H1 desks and blocked server-side (HTTP 403).</p></section>
 <section class="secretarial"><article><h2>Meeting Scheduler Log</h2><p>Next Senate session: 2026-10-05 18:00 UTC</p></article><article><h2>Lineage Roll-Call Registry</h2><p>RC-2026-09 — QUORUM MET</p></article><article><h2>AI Tutor / Literacy Completion</h2>{literacy}</article></section>'''
 
 @router.get("/member", response_class=HTMLResponse)

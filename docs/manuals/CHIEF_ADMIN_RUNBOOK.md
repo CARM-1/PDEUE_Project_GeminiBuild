@@ -116,3 +116,38 @@ The Apex Authority is strongest when it remains constrained and reproducible. Th
 This runbook is the field guide for the **Apex School of Sovereign Governance (Executive Chancellor Cockpit)**. The `/companion` campus rehearses the six canonical controls without changing production state. Use it for onboarding and recurrent qualification, never as approval evidence by itself.
 
 Emergency authority remains deliberately split. **Directive R-04** is the financial kill-switch: fail closed, prevent new commitments, preserve evidence, reconcile, and require governed dual-control recovery. A **T3 override** is a narrow, expiring, CA-authorized visibility grant under R-12; it may unmask only the approved diagnostic scope and can neither move funds nor clear R-04. For **mass onboarding**, validate the signed roster, House and role mappings, duplicate identities, SCMA segregation, custodial F2-H assignments, default downward-only ceilings, and exact-cent opening totals in a dry run. Require an independent count-and-digest review, stage bounded batches, reconcile each batch, quarantine exceptions, and retain rollback and audit evidence before activating identities.
+
+## 11. Three-Stage Governance Lifecycle & FUTURE Enclave Charter (Executive Command -> Advisory Filter -> Configurable Bicameral Veto & SHTF Protocol)
+
+PDEUE is built to mature peacefully across generations without exposing the family treasury to premature committee politics during its fledgling years or freezing decision-making during a crisis. Governance therefore operates through **three explicit, Chief-Administrator-controlled stages** backed by relational persistence (`governance_config`, `governance_bodies`, `governance_voter_seats`, `governance_petitions`, `governance_votes`) and an append-only `GovernanceAuditLog`:
+
+### Stage 1 — `EXECUTIVE_COMMAND` (Default Fledgling & SHTF Mode)
+* **Why it is the default:** Every fresh deployment starts fail-closed in `EXECUTIVE_COMMAND` while the family establishes operational discipline, completes PDEUE University literacy certification, and proves out custody and underwriting rails.
+* **Operational effect:** Voting and veto controls are completely stripped from all 12 House desks (`/lineage/house/{id}` displays a calm **"Executive Command Mode Active — Voting Dormant"** status badge), and all voting or petition mutation endpoints reject requests fail-closed (`HTTP 403`, `EXECUTIVE_COMMAND_MODE_ACTIVE`).
+* **Open study remains open:** Family members and future successors can still openly study the entire constitutional progression in `/companion` and these canonical manuals without seeing premature voting buttons, secrets, or live balances.
+
+### Stage 2 — `ADVISORY_PETITION_FILTER` (Dormant Advisory Senate)
+* **How it activates:** Only the Founder or certified Chief Administrator successor may transition to Stage 2 via `/dashboard` Tab 4 (`POST /api/v1/governance/mode`). Subordinate roles (`H1`, `H2`, Class T, Class F, Class M) fail closed (`HTTP 403`).
+* **Operational effect:** Unlocks advisory `AYE` / `NAY` voting for authorized `H2` House Leaders (and any active voter seats configured on a communal body). Reaching the configured quorum (default **9 of 12 Houses / 75%**) transitions a proposal to `RATIFIED_PENDING_SETTLOR`. Ratification never moves funds unilaterally; the Chief Administrator retains **Absolute Founder Veto (`VETOED_BY_FOUNDER`)** over every advisory petition.
+
+### Stage 3 — `BICAMERAL_VETO_ACTIVE` (Mature Binding Bicameral Veto)
+* **How it activates:** Activated solely by the Chief Administrator once the lineage and enclave institutions reach constitutional maturity.
+* **Operational effect:** Unlocks binding `VETO` ballots for authorized communal bodies (`can_exercise_stage3_veto = True`) and voter seats granted `can_veto = True` on eligible policy and CFCP grant proposals. Reaching the body's configured veto threshold transitions the proposal to `VETOED_BY_BICAMERAL_CHAMBER` and permanently blocks execution (`HTTP 403`, `PROPOSAL_VETOED_BY_BICAMERAL_CHAMBER`).
+
+### Configurable FUTURE Enclave Registry (Zero Code Changes Required)
+* **Data-driven communal bodies:** While the `COUNCIL_OF_12_HOUSES` (9-of-12 / 75% quorum and veto threshold) is seeded by default, the Chief Administrator can create, rename, or configure additional communal bodies at any time from `/dashboard` Tab 4 (for example, `Council of Elders` or `Enclave Stewardship Assembly`) with custom quorum and Stage 3 veto thresholds.
+* **Office seats OR specific named individuals:** Voting and veto rights can be granted either to a House office (`HOUSE_OFFICE`, e.g., House `H2` Head) OR to a specific named individual (`NAMED_INDIVIDUAL` bound to `user_id` and `display_name`), and revoked with one click. Every grant, revocation, and rename is recorded in `GovernanceAuditLog`.
+
+### Immutable Core Guardrail (Protected in ALL Modes)
+No House, communal body, or named voter seat may EVER propose or amend the platform's mathematical and custodial bedrock. Proposals targeting any of the following fail closed permanently (`HTTP 403`, `IMMUTABLE_CORE_INVARIANT`) across Stages 1, 2, and 3:
+1. **87/10/3 Transaction Profit Waterfall** (ADR-008 exact integer-cent conservation)
+2. **ADR-012 Per-SCMA High-Water Mark** (0% CFCP/FAEP skim during drawdown recovery)
+3. **Rule A14 100% SCMA Loss Isolation** (zero communal loss bleed)
+4. **Quarter-Kelly Risk Bounds & 5% System Risk Ceiling**
+5. **3% FAEP Founder Endowment Allocation**
+6. **ADR-011 Banking Air-Gap & Signed Outbox Boundary** (zero stored banking credentials)
+7. **Directive R-04 Emergency Kill Switch & Sovereign Founder Immunity**
+
+### 1-Click SHTF Snap-Back Protocol
+During an acute crisis, legal threat, venue failure, or compromised committee process, the Chief Administrator may execute the **1-Click SHTF Snap-Back** (`POST /api/v1/governance/shtf-snapback`) from `/dashboard` Tab 4. Execution instantaneously returns `governance_mode` to `EXECUTIVE_COMMAND`, immediately strips voting/veto buttons from House desks, blocks voting mutations (`HTTP 403`), and records an immutable `GOVERNANCE_SHTF_SNAPBACK` entry in `GovernanceAuditLog`.
+

@@ -3,12 +3,19 @@ PDEUE Lineage & House Leader Desk Router (Class H)
 Enforces strict Lineal branch confinement, subordinate roster controls,
 institutional intervention modals with zero native alerts, and bicameral consensus.
 """
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header, HTTPException, Query
 from fastapi.responses import HTMLResponse
 from typing import Dict, Any, List, Optional
 from app.domain.lineage_hierarchy import get_lineage_service
+from app.domain.enclave_governance import (
+    DEFAULT_BODY_ID,
+    MODE_EXECUTIVE_COMMAND,
+    format_cents,
+    get_enclave_governance_service,
+)
 from app.domain.authority_tiers import (
     enforce_founder_immunity,
+    get_active_hat_gateway,
     get_governance_audit_log,
     is_chief_admin_role,
     is_class_t_role,
@@ -18,6 +25,94 @@ from app.domain.authority_tiers import (
 
 lineage_router = APIRouter()
 _lineage_service = get_lineage_service()
+_enclave_gov = get_enclave_governance_service()
+
+
+def _resolve_actor_context(
+    *,
+    x_actor_role: Optional[str] = None,
+    x_actor_id: Optional[str] = None,
+    authorization: Optional[str] = None,
+    payload: Optional[Dict[str, Any]] = None,
+) -> tuple[str, str]:
+    """Resolve authenticated actor_role and actor_id, enforcing Directive R-06 if Bearer JWT is sent."""
+    role = x_actor_role or (str(payload.get("actor_role") or "") if isinstance(payload, dict) else "")
+    actor_id = x_actor_id or (str(payload.get("actor_id") or "") if isinstance(payload, dict) else "")
+    if authorization and authorization.lower().startswith("bearer "):
+        from app.core.security import decode_access_token
+        token = authorization.split(" ", 1)[1].strip()
+        claims = decode_access_token(token)
+        if not claims:
+            raise HTTPException(status_code=403, detail="INVALID_OR_EXPIRED_ACTIVE_HAT_TOKEN")
+        hat = normalize_role_token(claims.get("active_hat") or claims.get("role"))
+        if claims.get("session_id"):
+            get_active_hat_gateway().verify_token(
+                token,
+                required_hats={hat},
+                action="GOVERNANCE_API",
+            )
+        role = hat
+        actor_id = str(claims.get("sub") or claims.get("user_id") or actor_id or "jwt_principal")
+    return normalize_role_token(role), actor_id or normalize_role_token(role) or "anonymous"
+
+
+def _enforce_cross_house_boundary(
+    house_id: int,
+    *,
+    x_house_id: Optional[str] = None,
+    actor_house_id: Optional[int] = None,
+    actor_role: Optional[str] = None,
+    action: str = "HOUSE_ACCESS",
+) -> None:
+    if is_chief_admin_role(actor_role):
+        return
+    raw = actor_house_id if actor_house_id is not None else x_house_id
+    if raw is None:
+        return
+    try:
+        claimed = int(str(raw).strip().upper().replace("HOUSE-", ""))
+    except ValueError as err:
+        raise HTTPException(status_code=403, detail="Invalid House identity claim") from err
+    if claimed != house_id:
+        get_governance_audit_log().record(
+            event_type="CROSS_HOUSE_ACCESS_DENIED",
+            actor_id=f"HOUSE-{claimed:02d}",
+            actor_role=normalize_role_token(actor_role) or "CLASS_H",
+            target_id=f"HOUSE-{house_id:02d}",
+            action=action,
+            outcome="DENIED_CROSS_HOUSE",
+            http_status=403,
+            detail=f"Blocked cross-house access from HOUSE-{claimed:02d} to HOUSE-{house_id:02d}.",
+        )
+        raise HTTPException(status_code=403, detail="Cross-House access forbidden")
+
+
+def _enforce_non_h1_non_t(actor_role: Optional[str], *, actor_id: str, target_id: str, action: str) -> None:
+    if actor_role and is_class_t_role(actor_role):
+        get_governance_audit_log().record(
+            event_type="ROLE_BOUNDARY_DENIED",
+            actor_id=actor_id,
+            actor_role=normalize_role_token(actor_role),
+            target_id=target_id,
+            action=action,
+            outcome="DENIED_CLASS_T_ZERO_HOUSE_AUTHORITY",
+            http_status=403,
+            detail="Class T technical operators inherit zero House or household authority.",
+        )
+        raise HTTPException(status_code=403, detail="Class T technical roles have zero House or household authority.")
+    if actor_role and normalize_role_token(actor_role) == "H1":
+        get_governance_audit_log().record(
+            event_type="ROLE_BOUNDARY_DENIED",
+            actor_id=actor_id,
+            actor_role="H1",
+            target_id=target_id,
+            action=action,
+            outcome="DENIED_H1_SECRETARIAL_ONLY",
+            http_status=403,
+            detail="H1 House Secretary has secretarial registry visibility only and cannot operate circuit breakers.",
+        )
+        raise HTTPException(status_code=403, detail="H1 secretarial role cannot operate House circuit breakers.")
+
 
 def _build_member_table_rows(members: List[Dict[str, Any]], house_id: int) -> str:
     rows = []
@@ -26,7 +121,7 @@ def _build_member_table_rows(members: List[Dict[str, Any]], house_id: int) -> st
         orders_str = ", ".join(orders) if orders else "None"
         status = m.get("status", "ACTIVE")
         status_color = "#10b981" if status == "ACTIVE" else "#ef4444"
-        cash = f"${m.get('cash_cents', 0) / 100.0:,.2f}"
+        cash = format_cents(int(m.get('cash_cents', 0)))
         dial = f"{m.get('risk_dial', 0.0) * 100:.1f}%"
         scma = m.get("scma_id", "")
         name = m.get("name", "")
@@ -47,7 +142,7 @@ def _build_member_table_rows(members: List[Dict[str, Any]], house_id: int) -> st
             f"<tr>"
             f"<td><b><a href='/member?scma={scma}' style='color:#38bdf8;text-decoration:underline;'>{name}</a></b></td>"
             f"<td style='font-family: monospace; color: #38bdf8;'>{scma}</td>"
-            f"<td>{cash}</td>"
+            f"<td style='font-variant-numeric: tabular-nums;'>{cash}</td>"
             f"<td><b>{dial}</b></td>"
             f"<td>{order_count} resting ({orders_str})</td>"
             f"<td><span style='color: {status_color}; font-weight: bold;'>{status}</span></td>"
@@ -62,33 +157,59 @@ def get_all_houses():
     return {"houses": _lineage_service.list_all_houses()}
 
 @lineage_router.get("/api/v1/lineage/house/{house_id}")
-def get_house_detail(house_id: int):
+def get_house_detail(
+    house_id: int,
+    role: Optional[str] = Query(None),
+    actor_house_id: Optional[int] = Query(None),
+    x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+):
     if house_id < 1 or house_id > 12:
         raise HTTPException(status_code=400, detail="House ID must be between 1 and 12.")
-    return _lineage_service.get_house_summary(house_id)
+    eff_role = normalize_role_token(role or x_actor_role)
+    _enforce_cross_house_boundary(
+        house_id,
+        x_house_id=x_house_id,
+        actor_house_id=actor_house_id,
+        actor_role=eff_role,
+        action="GET_HOUSE_DETAIL",
+    )
+    summary = _lineage_service.get_house_summary(house_id)
+    if eff_role == "H1":
+        masked_members = []
+        for m in summary["members"]:
+            masked = dict(m)
+            masked["cash_cents"] = "$****.**"
+            masked["cash_display"] = "$****.**"
+            masked_members.append(masked)
+        return {**summary, "members": masked_members, "r12_masked": True, "active_role": "H1"}
+    return summary
 
 @lineage_router.post("/api/v1/lineage/house/{house_id}/subordinate/cancel-orders")
 def cancel_subordinate_orders(
     house_id: int,
     payload: Dict[str, Any],
+    actor_house_id: Optional[int] = Query(None),
+    x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
     x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
 ):
     scma_id = payload.get("scma_id")
     if not scma_id:
         raise HTTPException(status_code=400, detail="Missing scma_id in payload.")
     actor_role = x_actor_role or payload.get("actor_role")
-    if actor_role and is_class_t_role(actor_role):
-        get_governance_audit_log().record(
-            event_type="ROLE_BOUNDARY_DENIED",
-            actor_id=str(payload.get("actor_id") or actor_role),
-            actor_role=normalize_role_token(actor_role),
-            target_id=str(scma_id),
-            action="CANCEL_SUBORDINATE_ORDERS",
-            outcome="DENIED_CLASS_T_ZERO_HOUSE_AUTHORITY",
-            http_status=403,
-            detail="Class T technical operators inherit zero House or household authority.",
-        )
-        raise HTTPException(status_code=403, detail="Class T technical roles have zero House or household authority.")
+    _enforce_cross_house_boundary(
+        house_id,
+        x_house_id=x_house_id,
+        actor_house_id=actor_house_id,
+        actor_role=actor_role,
+        action="CANCEL_SUBORDINATE_ORDERS",
+    )
+    _enforce_non_h1_non_t(
+        actor_role,
+        actor_id=str(payload.get("actor_id") or actor_role or "unknown"),
+        target_id=str(scma_id),
+        action="CANCEL_SUBORDINATE_ORDERS",
+    )
     if actor_role and is_founder_target(scma_id):
         enforce_founder_immunity(
             target_id=scma_id,
@@ -117,24 +238,27 @@ def cancel_subordinate_orders(
 def freeze_subordinate_risk(
     house_id: int,
     payload: Dict[str, Any],
+    actor_house_id: Optional[int] = Query(None),
+    x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
     x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
 ):
     scma_id = payload.get("scma_id")
     if not scma_id:
         raise HTTPException(status_code=400, detail="Missing scma_id in payload.")
     actor_role = x_actor_role or payload.get("actor_role")
-    if actor_role and is_class_t_role(actor_role):
-        get_governance_audit_log().record(
-            event_type="ROLE_BOUNDARY_DENIED",
-            actor_id=str(payload.get("actor_id") or actor_role),
-            actor_role=normalize_role_token(actor_role),
-            target_id=str(scma_id),
-            action="FREEZE_SUBORDINATE_RISK",
-            outcome="DENIED_CLASS_T_ZERO_HOUSE_AUTHORITY",
-            http_status=403,
-            detail="Class T technical operators inherit zero House or household authority.",
-        )
-        raise HTTPException(status_code=403, detail="Class T technical roles have zero House or household authority.")
+    _enforce_cross_house_boundary(
+        house_id,
+        x_house_id=x_house_id,
+        actor_house_id=actor_house_id,
+        actor_role=actor_role,
+        action="FREEZE_SUBORDINATE_RISK",
+    )
+    _enforce_non_h1_non_t(
+        actor_role,
+        actor_id=str(payload.get("actor_id") or actor_role or "unknown"),
+        target_id=str(scma_id),
+        action="FREEZE_SUBORDINATE_RISK",
+    )
     if actor_role and is_founder_target(scma_id):
         enforce_founder_immunity(
             target_id=scma_id,
@@ -162,10 +286,23 @@ def freeze_subordinate_risk(
 @lineage_router.post("/api/v1/lineage/house/{house_id}/freeze")
 def freeze_house(
     house_id: int,
+    actor_house_id: Optional[int] = Query(None),
+    x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
     x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
 ):
-    if x_actor_role and is_class_t_role(x_actor_role):
-        raise HTTPException(status_code=403, detail="Class T technical roles have zero House or household authority.")
+    _enforce_cross_house_boundary(
+        house_id,
+        x_house_id=x_house_id,
+        actor_house_id=actor_house_id,
+        actor_role=x_actor_role,
+        action="FREEZE_HOUSE",
+    )
+    _enforce_non_h1_non_t(
+        x_actor_role,
+        actor_id=str(x_actor_role or "unknown"),
+        target_id=f"HOUSE-{house_id:02d}",
+        action="FREEZE_HOUSE",
+    )
     try:
         return _lineage_service.freeze_house(house_id)
     except ValueError as err:
@@ -174,10 +311,23 @@ def freeze_house(
 @lineage_router.post("/api/v1/lineage/house/{house_id}/restore")
 def restore_house(
     house_id: int,
+    actor_house_id: Optional[int] = Query(None),
+    x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
     x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
 ):
-    if x_actor_role and is_class_t_role(x_actor_role):
-        raise HTTPException(status_code=403, detail="Class T technical roles have zero House or household authority.")
+    _enforce_cross_house_boundary(
+        house_id,
+        x_house_id=x_house_id,
+        actor_house_id=actor_house_id,
+        actor_role=x_actor_role,
+        action="RESTORE_HOUSE",
+    )
+    _enforce_non_h1_non_t(
+        x_actor_role,
+        actor_id=str(x_actor_role or "unknown"),
+        target_id=f"HOUSE-{house_id:02d}",
+        action="RESTORE_HOUSE",
+    )
     try:
         return _lineage_service.restore_house(house_id)
     except ValueError as err:
@@ -187,10 +337,24 @@ def restore_house(
 def restore_subordinate_risk(
     house_id: int,
     payload: Dict[str, Any],
+    actor_house_id: Optional[int] = Query(None),
+    x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
     x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
 ):
-    if x_actor_role and is_class_t_role(x_actor_role):
-        raise HTTPException(status_code=403, detail="Class T technical roles have zero House or household authority.")
+    actor_role = x_actor_role or payload.get("actor_role")
+    _enforce_cross_house_boundary(
+        house_id,
+        x_house_id=x_house_id,
+        actor_house_id=actor_house_id,
+        actor_role=actor_role,
+        action="RESTORE_SUBORDINATE_RISK",
+    )
+    _enforce_non_h1_non_t(
+        actor_role,
+        actor_id=str(payload.get("actor_id") or actor_role or "unknown"),
+        target_id=str(payload.get("scma_id") or ""),
+        action="RESTORE_SUBORDINATE_RISK",
+    )
     scma_id = payload.get("scma_id")
     target_risk_dial = payload.get("target_risk_dial")
     if not scma_id or target_risk_dial is None:
@@ -265,7 +429,30 @@ def get_governance_audit_events(event_type: Optional[str] = None, limit: int = 1
     }
 
 @lineage_router.post("/api/v1/lineage/governance/propose")
-def evaluate_proposal(payload: Dict[str, Any]):
+def evaluate_proposal(
+    payload: Dict[str, Any],
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+):
+    actor_role = x_actor_role or payload.get("actor_role")
+    _enforce_non_h1_non_t(
+        actor_role,
+        actor_id=str(payload.get("actor_id") or actor_role or "HOUSE_DELEGATE"),
+        target_id="GOVERNANCE_PROPOSE",
+        action="PROPOSE_GOVERNANCE_PETITION",
+    )
+    if payload.get("title") or payload.get("description") or payload.get("proposal_category"):
+        _enclave_gov.enforce_immutable_core_guardrail(
+            title=str(payload.get("title") or ""),
+            description=str(payload.get("description") or ""),
+            proposal_category=str(payload.get("proposal_category") or "CFCP_GRANT"),
+            actor_id=str(payload.get("actor_id") or "HOUSE_DELEGATE"),
+            actor_role=actor_role or "H2",
+        )
+    if _enclave_gov.get_governance_mode()["governance_mode"] == MODE_EXECUTIVE_COMMAND:
+        raise HTTPException(
+            status_code=403,
+            detail="EXECUTIVE_COMMAND_MODE_ACTIVE: Proposals and voting are dormant in Stage 1 Executive Command mode.",
+        )
     votes = payload.get("affirmative_house_ids", [])
     return _lineage_service.evaluate_bicameral_proposal(votes)
 
@@ -537,32 +724,78 @@ def get_house_leader_portal(house_id: int = 1):
 
 @lineage_router.get("/api/v1/lineage/governance/proposals")
 def get_governance_proposals():
-    return {"proposals": _lineage_service.list_proposals()}
+    persisted = {p["proposal_id"]: p for p in _enclave_gov.list_petitions()}
+    for legacy in _lineage_service.list_proposals():
+        persisted.setdefault(legacy["proposal_id"], legacy)
+    return {"proposals": list(persisted.values())}
+
 
 @lineage_router.post("/api/v1/lineage/governance/petition")
-def submit_petition(payload: Dict[str, Any]):
-    return _lineage_service.submit_house_petition(
-        title=payload.get("title", "Untitled Petition"),
-        description=payload.get("description", ""),
-        target_house_id=payload.get("target_house_id", 1),
-        amount_cents=payload.get("amount_cents", 0),
-        affirmative_house_ids=payload.get("affirmative_house_ids", [])
+def submit_petition(
+    payload: Dict[str, Any],
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+):
+    actor_role, actor_id = _resolve_actor_context(
+        x_actor_role=x_actor_role,
+        x_actor_id=x_actor_id,
+        authorization=authorization,
+        payload=payload,
     )
+    title = str(payload.get("title", "Untitled Petition"))
+    description = str(payload.get("description", ""))
+    proposal_category = str(payload.get("proposal_category", "CFCP_GRANT"))
+    body_id = str(payload.get("body_id") or DEFAULT_BODY_ID)
+    target_house_id = int(payload.get("target_house_id", 1))
+    amount_cents = payload.get("amount_cents", 0)
+
+    created = _enclave_gov.create_petition(
+        title=title,
+        description=description,
+        body_id=body_id,
+        proposal_category=proposal_category,
+        target_house_id=target_house_id,
+        amount_cents=amount_cents,
+        actor_role=actor_role or "H2",
+        actor_id=actor_id,
+    )
+    affirmative_house_ids = payload.get("affirmative_house_ids") or []
+    latest = created
+    for hid in affirmative_house_ids:
+        if isinstance(hid, int) and 1 <= hid <= 12:
+            latest = _enclave_gov.cast_vote(
+                proposal_id=created["proposal_id"],
+                vote_choice="AYE",
+                actor_role="H2",
+                actor_id=f"HOUSE-{hid:02d}:H2",
+                house_id=hid,
+            )
+    return latest
+
 
 @lineage_router.post("/api/v1/lineage/governance/adjudicate")
 def adjudicate_governance_proposal(
     payload: Dict[str, Any],
     x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
 ):
     proposal_id = payload.get("proposal_id")
     action = payload.get("action")
     caller_scma = payload.get("caller_scma", "SCMA-FOUNDER_-C8575D7E")
-    actor_role = x_actor_role or payload.get("actor_role")
-    if actor_role and not is_chief_admin_role(actor_role):
+    actor_role, actor_id = _resolve_actor_context(
+        x_actor_role=x_actor_role,
+        x_actor_id=x_actor_id,
+        authorization=authorization,
+        payload=payload,
+    )
+    effective_role = actor_role or ("CHIEF_ADMINISTRATOR" if str(caller_scma).startswith("SCMA-FOUNDER") else "")
+    if not is_chief_admin_role(effective_role):
         get_governance_audit_log().record(
             event_type="ROLE_BOUNDARY_DENIED",
             actor_id=str(caller_scma),
-            actor_role=normalize_role_token(actor_role),
+            actor_role=effective_role or "UNSPECIFIED",
             target_id=str(proposal_id or ""),
             action="ADJUDICATE_SOVEREIGN_PROPOSAL",
             outcome="DENIED_NON_SOVEREIGN",
@@ -575,9 +808,306 @@ def adjudicate_governance_proposal(
         )
     if not proposal_id or not action:
         raise HTTPException(status_code=400, detail="Missing proposal_id or action.")
+
+    persisted = _enclave_gov.get_petition(str(proposal_id))
+    if persisted is not None:
+        result = _enclave_gov.adjudicate_petition(
+            proposal_id=str(proposal_id),
+            action=str(action),
+            actor_role="CHIEF_ADMINISTRATOR",
+            actor_id=str(caller_scma or actor_id),
+            reason=str(payload.get("reason") or ""),
+        )
+        if str(proposal_id) in _lineage_service.PROPOSALS:
+            _lineage_service.PROPOSALS[str(proposal_id)]["status"] = result["status"]
+            _lineage_service.PROPOSALS[str(proposal_id)]["settled_by"] = result.get("settled_by")
+        return result
+
     try:
         return _lineage_service.adjudicate_proposal(proposal_id=proposal_id, action=action, caller_scma=caller_scma)
     except PermissionError as pe:
         raise HTTPException(status_code=403, detail=str(pe))
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
+
+
+# =============================================================================
+# MILESTONE C6 — 3-STAGE GOVERNANCE ENGINE & CONFIGURABLE ENCLAVE REGISTRY API
+# =============================================================================
+
+
+@lineage_router.get("/api/v1/governance/houses")
+def get_relational_houses():
+    """Return all 12 Houses with exact 64-bit integer-cent rollups from SQLAlchemy."""
+    return {"houses": _enclave_gov.list_houses_from_db()}
+
+
+@lineage_router.get("/api/v1/governance/state")
+def get_governance_dashboard_state():
+    """Consolidated read model for /dashboard Tab 4."""
+    return _enclave_gov.get_full_governance_state()
+
+
+@lineage_router.get("/api/v1/governance/mode")
+def get_governance_mode():
+    """Return active 3-stage governance mode (defaults fail-closed EXECUTIVE_COMMAND)."""
+    return _enclave_gov.get_governance_mode()
+
+
+@lineage_router.post("/api/v1/governance/mode")
+def update_governance_mode(
+    payload: Dict[str, Any],
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+):
+    """Chief Administrator / Founder-only 3-stage governance mode switch."""
+    actor_role, actor_id = _resolve_actor_context(
+        x_actor_role=x_actor_role,
+        x_actor_id=x_actor_id,
+        authorization=authorization,
+        payload=payload,
+    )
+    return _enclave_gov.set_governance_mode(
+        governance_mode=str(payload.get("governance_mode") or ""),
+        actor_role=actor_role,
+        actor_id=actor_id,
+        reason=str(payload.get("reason") or ""),
+        is_shtf_snapback=bool(payload.get("is_shtf_snapback", False)),
+    )
+
+
+@lineage_router.post("/api/v1/governance/shtf-snapback")
+def execute_shtf_snapback(
+    payload: Optional[Dict[str, Any]] = None,
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+):
+    """Chief Administrator 1-click SHTF snap-back to Stage 1 EXECUTIVE_COMMAND."""
+    body = payload or {}
+    actor_role, actor_id = _resolve_actor_context(
+        x_actor_role=x_actor_role,
+        x_actor_id=x_actor_id,
+        authorization=authorization,
+        payload=body,
+    )
+    return _enclave_gov.set_governance_mode(
+        governance_mode=MODE_EXECUTIVE_COMMAND,
+        actor_role=actor_role,
+        actor_id=actor_id,
+        reason=str(body.get("reason") or "1-Click SHTF Snap-Back to Executive Command"),
+        is_shtf_snapback=True,
+    )
+
+
+@lineage_router.get("/api/v1/governance/bodies")
+def list_governance_bodies():
+    return {"bodies": _enclave_gov.list_bodies()}
+
+
+@lineage_router.post("/api/v1/governance/bodies", status_code=201)
+def create_governance_body(
+    payload: Dict[str, Any],
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+):
+    actor_role, actor_id = _resolve_actor_context(
+        x_actor_role=x_actor_role,
+        x_actor_id=x_actor_id,
+        authorization=authorization,
+        payload=payload,
+    )
+    return _enclave_gov.create_body(
+        name=str(payload.get("name") or ""),
+        description=str(payload.get("description") or ""),
+        quorum_numerator=int(payload.get("quorum_numerator", 2)),
+        quorum_denominator=int(payload.get("quorum_denominator", 3)),
+        quorum_pct=payload.get("quorum_pct"),
+        veto_threshold_count=int(payload.get("veto_threshold_count", 2)),
+        veto_threshold_pct=payload.get("veto_threshold_pct"),
+        can_exercise_stage3_veto=bool(payload.get("can_exercise_stage3_veto", True)),
+        body_id=payload.get("body_id"),
+        actor_role=actor_role,
+        actor_id=actor_id,
+    )
+
+
+@lineage_router.patch("/api/v1/governance/bodies/{body_id}")
+def update_governance_body(
+    body_id: str,
+    payload: Dict[str, Any],
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+):
+    actor_role, actor_id = _resolve_actor_context(
+        x_actor_role=x_actor_role,
+        x_actor_id=x_actor_id,
+        authorization=authorization,
+        payload=payload,
+    )
+    return _enclave_gov.update_body(
+        body_id,
+        name=payload.get("name"),
+        description=payload.get("description"),
+        quorum_numerator=payload.get("quorum_numerator"),
+        quorum_denominator=payload.get("quorum_denominator"),
+        quorum_pct=payload.get("quorum_pct"),
+        veto_threshold_count=payload.get("veto_threshold_count"),
+        veto_threshold_pct=payload.get("veto_threshold_pct"),
+        can_exercise_stage3_veto=payload.get("can_exercise_stage3_veto"),
+        active=payload.get("active"),
+        actor_role=actor_role,
+        actor_id=actor_id,
+    )
+
+
+@lineage_router.get("/api/v1/governance/bodies/{body_id}/seats")
+def list_governance_body_seats(body_id: str):
+    return {"body_id": body_id, "seats": _enclave_gov.list_voter_seats(body_id)}
+
+
+@lineage_router.post("/api/v1/governance/bodies/{body_id}/seats", status_code=201)
+def grant_governance_voter_seat(
+    body_id: str,
+    payload: Dict[str, Any],
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+):
+    actor_role, actor_id = _resolve_actor_context(
+        x_actor_role=x_actor_role,
+        x_actor_id=x_actor_id,
+        authorization=authorization,
+        payload=payload,
+    )
+    return _enclave_gov.grant_voter_seat(
+        body_id,
+        seat_type=str(payload.get("seat_type") or "NAMED_INDIVIDUAL"),
+        display_name=str(payload.get("display_name") or ""),
+        user_id=payload.get("user_id"),
+        house_id=payload.get("house_id"),
+        office_role=payload.get("office_role"),
+        can_vote=bool(payload.get("can_vote", True)),
+        can_veto=bool(payload.get("can_veto", False)),
+        actor_role=actor_role,
+        actor_id=actor_id,
+    )
+
+
+@lineage_router.post("/api/v1/governance/seats/{seat_id}/revoke")
+def revoke_governance_voter_seat(
+    seat_id: str,
+    payload: Optional[Dict[str, Any]] = None,
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+):
+    body = payload or {}
+    actor_role, actor_id = _resolve_actor_context(
+        x_actor_role=x_actor_role,
+        x_actor_id=x_actor_id,
+        authorization=authorization,
+        payload=body,
+    )
+    return _enclave_gov.revoke_voter_seat(
+        seat_id,
+        reason=str(body.get("reason") or ""),
+        actor_role=actor_role,
+        actor_id=actor_id,
+    )
+
+
+@lineage_router.get("/api/v1/governance/petitions")
+def list_governance_petitions(body_id: Optional[str] = Query(None)):
+    return {
+        "governance_mode": _enclave_gov.get_governance_mode()["governance_mode"],
+        "petitions": _enclave_gov.list_petitions(body_id=body_id),
+    }
+
+
+@lineage_router.post("/api/v1/governance/petitions", status_code=201)
+def create_governance_petition(
+    payload: Dict[str, Any],
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+):
+    actor_role, actor_id = _resolve_actor_context(
+        x_actor_role=x_actor_role,
+        x_actor_id=x_actor_id,
+        authorization=authorization,
+        payload=payload,
+    )
+    return _enclave_gov.create_petition(
+        title=str(payload.get("title") or ""),
+        description=str(payload.get("description") or ""),
+        body_id=str(payload.get("body_id") or DEFAULT_BODY_ID),
+        proposal_category=str(payload.get("proposal_category") or "CFCP_GRANT"),
+        target_house_id=int(payload.get("target_house_id", 1)),
+        amount_cents=payload.get("amount_cents", 0),
+        actor_role=actor_role or "H2",
+        actor_id=actor_id,
+        proposal_id=payload.get("proposal_id"),
+    )
+
+
+@lineage_router.post("/api/v1/governance/petitions/{proposal_id}/vote")
+def cast_governance_petition_vote(
+    proposal_id: str,
+    payload: Dict[str, Any],
+    x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+):
+    actor_role, actor_id = _resolve_actor_context(
+        x_actor_role=x_actor_role,
+        x_actor_id=x_actor_id,
+        authorization=authorization,
+        payload=payload,
+    )
+    house_id = payload.get("house_id")
+    if house_id is not None:
+        _enforce_cross_house_boundary(
+            int(house_id),
+            x_house_id=x_house_id,
+            actor_role=actor_role,
+            action="CAST_GOVERNANCE_VOTE",
+        )
+    return _enclave_gov.cast_vote(
+        proposal_id=proposal_id,
+        vote_choice=str(payload.get("vote") or payload.get("vote_choice") or ""),
+        actor_role=actor_role or "H2",
+        actor_id=actor_id,
+        house_id=int(house_id) if house_id is not None else None,
+        user_id=payload.get("user_id"),
+        seat_id=payload.get("seat_id"),
+        rationale=str(payload.get("rationale") or ""),
+    )
+
+
+@lineage_router.post("/api/v1/governance/petitions/{proposal_id}/adjudicate")
+def adjudicate_governance_petition(
+    proposal_id: str,
+    payload: Dict[str, Any],
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+):
+    actor_role, actor_id = _resolve_actor_context(
+        x_actor_role=x_actor_role,
+        x_actor_id=x_actor_id,
+        authorization=authorization,
+        payload=payload,
+    )
+    return _enclave_gov.adjudicate_petition(
+        proposal_id=proposal_id,
+        action=str(payload.get("action") or ""),
+        actor_role=actor_role,
+        actor_id=actor_id,
+        reason=str(payload.get("reason") or ""),
+    )
+
