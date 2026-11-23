@@ -8,13 +8,18 @@ import re
 import sqlite3
 import subprocess
 import sys
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 
 import httpx
 import pytest
 from fastapi.testclient import TestClient
 
-from app.adapters.live_l2_tape_recorder import verify_tape_manifest
+from app.adapters.live_l2_tape_recorder import (
+    discover_liquid_polymarket_tokens,
+    extract_polymarket_clob_token_ids,
+    verify_tape_manifest,
+)
 from app.main import app
 from scripts.observed_l2_collector import ObservedL2Collector, assert_fail_closed_paper_mode
 
@@ -290,3 +295,225 @@ def test_b2_observed_l2_collector_writes_verified_jsonl_and_survives_timeouts_an
     for snap in tape_lines:
         assert snap["data_provenance"] == "OBSERVED_L2"
         assert snap["bids"] and snap["asks"]
+
+
+def test_b2_collector_compose_healthcheck_verifies_heartbeat_not_port_8000(tmp_path: pathlib.Path):
+    compose = COMPOSE_PAPER_PATH.read_text(encoding="utf-8")
+    api_block, sep, collector_block = compose.partition("\n  pdeue-l2-collector:\n")
+    assert sep, "deploy/docker-compose.paper.yml must define pdeue-l2-collector service"
+
+    # pdeue-api keeps its HTTP /health check
+    assert "http://127.0.0.1:8000/health" in api_block
+
+    # pdeue-l2-collector overrides inherited Dockerfile healthcheck with heartbeat check (not port 8000)
+    assert "\n    healthcheck:\n" in collector_block
+    hc_section = collector_block.split("\n    healthcheck:\n", 1)[1].split("\n    logging:\n", 1)[0]
+    assert "8000" not in hc_section, "Collector healthcheck must not probe HTTP port 8000"
+    assert "/health" not in hc_section, "Collector healthcheck must not probe HTTP /health"
+    assert "python3" in hc_section
+    assert "/var/lib/pdeue/tapes/collector_heartbeat.json" in hc_section
+    assert "timestamp_utc" in hc_section
+    assert "180" in hc_section
+    assert "consecutive_errors" in hc_section
+
+    match = re.search(r'test:\s*\["CMD",\s*"python3",\s*"-c",\s*"([^"]+)"\]', hc_section)
+    assert match, "Collector healthcheck must use a concise python3 -c one-liner"
+    one_liner = match.group(1)
+
+    hb_file = tmp_path / "collector_heartbeat.json"
+    probe_code = one_liner.replace("/var/lib/pdeue/tapes/collector_heartbeat.json", str(hb_file))
+
+    def _run_probe() -> int:
+        return subprocess.run(
+            [sys.executable, "-c", probe_code],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        ).returncode
+
+    # 1. Missing heartbeat file -> unhealthy
+    assert _run_probe() != 0
+
+    # 2. Invalid JSON -> unhealthy
+    hb_file.write_text("{not valid json", encoding="utf-8")
+    assert _run_probe() != 0
+
+    # 3. Fresh valid heartbeat with consecutive_errors < 5 -> healthy
+    now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+    hb_file.write_text(
+        json.dumps({"timestamp_utc": now_iso, "consecutive_errors": 0, "status": "HEALTHY"}),
+        encoding="utf-8",
+    )
+    assert _run_probe() == 0
+
+    # 4. Stale heartbeat (> 180s old) -> unhealthy
+    stale_iso = (datetime.now(timezone.utc) - timedelta(seconds=240)).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+    hb_file.write_text(
+        json.dumps({"timestamp_utc": stale_iso, "consecutive_errors": 0, "status": "HEALTHY"}),
+        encoding="utf-8",
+    )
+    assert _run_probe() != 0
+
+    # 5. Fresh heartbeat with consecutive_errors >= 5 -> unhealthy
+    hb_file.write_text(
+        json.dumps({"timestamp_utc": now_iso, "consecutive_errors": 5, "status": "WAITING_ON_VENUE"}),
+        encoding="utf-8",
+    )
+    assert _run_probe() != 0
+
+
+def test_b2_polymarket_discovery_preserves_uint256_and_recovers_from_404(
+    tmp_path: pathlib.Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setenv("PDEUE_VENUE_MODE", "observation")
+    monkeypatch.setenv("PDEUE_LIVE_TRADING_ENABLED", "false")
+
+    dead_404_tok = "10639244265485390123456789012345678901234567890123456789012345678901234567890"
+    resolved_midrun_tok = "20987654321098765432109876543210987654321098765432109876543210987654321098765"
+    live_tok_a = "31111111111111111111111111111111111111111111111111111111111111111111111111111"
+    live_tok_b = "42222222222222222222222222222222222222222222222222222222222222222222222222222"
+    disabled_book_tok = "53333333333333333333333333333333333333333333333333333333333333333333333333333"
+
+    # Full uint256 string parsing without truncation
+    assert extract_polymarket_clob_token_ids(json.dumps([dead_404_tok, live_tok_a])) == [dead_404_tok, live_tok_a]
+    assert len(extract_polymarket_clob_token_ids([live_tok_a])[0]) == 77
+
+    state = {"resolved_midrun": False}
+    gamma_queries: List[Dict[str, str]] = []
+    queried_poly_book_tokens: List[str] = []
+    seen_auth_headers: List[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        for hdr in ("authorization", "x-api-key", "kalshi-access-key", "poly-api-key"):
+            if hdr in request.headers:
+                seen_auth_headers.append(hdr)
+        url = str(request.url)
+        if "kalshi.com" in url and "/events" in url:
+            return httpx.Response(
+                200,
+                json={"events": [{"markets": [{"ticker": "KX-B2-LIVE", "volume_24h_fp": "2500.00"}]}]},
+            )
+        if "kalshi.com" in url:
+            return httpx.Response(
+                200,
+                json={"orderbook_fp": {"yes_dollars": [["0.4600", "250.00"]], "no_dollars": [["0.5100", "180.00"]]}},
+            )
+        if "gamma-api.polymarket.com" in url:
+            gamma_queries.append(dict(request.url.params))
+            return httpx.Response(
+                200,
+                json=[
+                    {"active": True, "closed": False, "enableOrderBook": False, "clobTokenIds": json.dumps([disabled_book_tok])},
+                    {"active": True, "closed": False, "enableOrderBook": True, "clobTokenIds": json.dumps([dead_404_tok])},
+                    {"active": True, "closed": False, "enableOrderBook": True, "clobTokenIds": json.dumps([resolved_midrun_tok])},
+                    {"active": True, "closed": False, "enableOrderBook": True, "clobTokenIds": json.dumps([live_tok_a])},
+                    {"active": True, "closed": False, "enableOrderBook": True, "clobTokenIds": json.dumps([live_tok_b])},
+                ],
+            )
+        if "clob.polymarket.com" in url and "/book" in url:
+            tok = request.url.params.get("token_id", "")
+            queried_poly_book_tokens.append(tok)
+            if tok == dead_404_tok or (tok == resolved_midrun_tok and state["resolved_midrun"]):
+                return httpx.Response(404, json={"error": "No orderbook exists for the requested token id"}, request=request)
+            if tok in {resolved_midrun_tok, live_tok_a, live_tok_b}:
+                return httpx.Response(
+                    200,
+                    json={"bids": [{"price": "0.42", "size": "500"}], "asks": [{"price": "0.45", "size": "450"}]},
+                    request=request,
+                )
+            return httpx.Response(404, request=request)
+        return httpx.Response(404, request=request)
+
+    collector = ObservedL2Collector(
+        tmp_path / "tapes",
+        kalshi_count=1,
+        poly_count=2,
+        interval_seconds=0.0,
+        rediscover_every_cycles=30,
+        http_client=httpx.Client(transport=httpx.MockTransport(handler)),
+        log_fn=lambda _msg: None,
+        session_id="session_b2_poly_404_recovery",
+    )
+
+    try:
+        # Cycle 1: Discovery filters out disabled book & initial HTTP 404 token, locks in full uint256 tokens
+        hb1 = collector.collect_once()
+        assert hb1["status"] == "HEALTHY"
+        assert hb1["cycle_errors_count"] == 0
+        assert hb1["cycle_snapshots"] == 3
+        assert collector.poly_tokens == [resolved_midrun_tok, live_tok_a]
+        assert gamma_queries[0]["active"] == "true"
+        assert gamma_queries[0]["closed"] == "false"
+        assert gamma_queries[0]["enableOrderBook"] == "true"
+        assert disabled_book_tok not in queried_poly_book_tokens
+        assert all(len(tok) == 77 for tok in queried_poly_book_tokens)
+
+        # Cycle 2: Market resolves -> resolved_midrun_tok starts returning HTTP 404
+        state["resolved_midrun"] = True
+        hb2 = collector.collect_once()
+        assert hb2["status"] == "DEGRADED"
+        assert hb2["cycle_errors_count"] == 1
+        assert hb2["cycle_snapshots"] == 2
+        assert hb2["consecutive_errors"] == 0
+        assert resolved_midrun_tok not in collector.poly_tokens
+
+        # Cycle 3: Collector automatically refreshes discovery on next cycle (does NOT wait 30 cycles)
+        hb3 = collector.collect_once()
+        assert hb3["status"] == "HEALTHY"
+        assert hb3["cycle_errors_count"] == 0
+        assert hb3["cycle_snapshots"] == 3
+        assert collector.poly_tokens == [live_tok_a, live_tok_b]
+
+        # Cycle 4: Remains HEALTHY and never re-polls resolved 404 token
+        before_c4 = len(queried_poly_book_tokens)
+        hb4 = collector.collect_once()
+        assert hb4["status"] == "HEALTHY"
+        assert hb4["cycle_errors_count"] == 0
+        assert resolved_midrun_tok not in queried_poly_book_tokens[before_c4:]
+    finally:
+        collector.close()
+
+    assert seen_auth_headers == []
+    manifest = verify_tape_manifest(collector.session_dir / "tape_manifest.json", require_non_empty_book=True)
+    assert manifest["synthetic_fills_present"] is False
+    assert manifest["venues"] == ["KALSHI", "POLYMARKET"]
+    assert live_tok_a in manifest["tickers"]
+    assert live_tok_b in manifest["tickers"]
+
+
+def test_b2_polymarket_discovery_falls_back_to_clob_sampling_markets():
+    sampling_tok = "98765432109876543210987654321098765432109876543210987654321098765432109876543"
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        url = str(request.url)
+        if "gamma-api.polymarket.com" in url:
+            return httpx.Response(200, json=[{"active": True, "closed": False, "enableOrderBook": True, "clobTokenIds": '["STALE-404"]'}])
+        if "clob.polymarket.com/sampling-markets" in url:
+            return httpx.Response(
+                200,
+                json={
+                    "data": [
+                        {
+                            "active": True,
+                            "closed": False,
+                            "enable_order_book": True,
+                            "accepting_orders": True,
+                            "tokens": [{"token_id": sampling_tok, "outcome": "Yes"}],
+                        }
+                    ]
+                },
+            )
+        if "clob.polymarket.com/book" in url:
+            if request.url.params.get("token_id") == sampling_tok:
+                return httpx.Response(
+                    200,
+                    json={"bids": [{"price": "0.51", "size": "120"}], "asks": [{"price": "0.54", "size": "140"}]},
+                )
+            return httpx.Response(404, request=request)
+        return httpx.Response(404, request=request)
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        discovered = discover_liquid_polymarket_tokens(http_client=client, limit=1)
+    assert discovered == [sampling_tok]
+

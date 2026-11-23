@@ -17,7 +17,7 @@
 
 ## Domain B — Operational Hosting, Security & Bot-Defense
 - [x] **B1** | Fail-closed Docker container (`paper` mode, `read_only`, `fleet_engine.py`, persistent `soak-state` volume) | *Now (Play #17)* | Gate: `/health` 200 OK + `health_summary.json` persistence (`f4c54c6`)
-- [ ] **B2** | Isolated AWS Lightsail host deployed in paper/observation mode | *Now (Play #17)* | Gate: Remote `/health`, container restart survival, live `OBSERVED_L2` tape write
+- [x] **B2** | Isolated AWS Lightsail host (`pdeue-ring1-paper`) deployed in fail-closed paper/observation mode | *Now (Play #17)* | Gate: Live deployment on `pdeue-ring1-paper` (fail-closed `paper`/`observation` mode), heartbeat-based `pdeue-l2-collector` healthcheck, verified dual-venue `OBSERVED_L2` discovery & tape write (`test_b2_paper_deployment.py` + `docker compose config` green)
 - [x] **B3** | Zero-CDN & zero-banking-credential hygiene gate (`Play #16B`) | *Pre-Pilot* | Gate: `backend/tests/test_play16_security_hygiene.py` green in CI
 - [ ] **B4** | Dark-by-default zero-trust access (Tailscale/WireGuard or Cloudflare Access) | *Pre-Pilot* | Gate: External port scan confirms 0 open public admin ports
 - [ ] **B5** | Hardware MFA (FIDO2/YubiKey), canary/honeypot endpoints, pinned dependencies | *Pre-Pilot* | Gate: Negative auth test + canary alert trigger test
