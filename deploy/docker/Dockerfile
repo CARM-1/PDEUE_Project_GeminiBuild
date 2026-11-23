@@ -2,7 +2,7 @@ FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/opt/pdeue/backend \
+    PYTHONPATH=/opt/pdeue/backend:/opt/pdeue \
     DATABASE_URL=sqlite:////var/lib/pdeue-paper-soak/pdeue.db \
     PDEUE_CREDENTIAL_BROKER=ephemeral-memory \
     PDEUE_CREDENTIAL_LEASE_TTL_SECONDS=300
@@ -14,12 +14,13 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt \
     && useradd --system --gid pdeue --home-dir /var/lib/pdeue-paper-soak pdeue \
     && mkdir -p /var/lib/pdeue-paper-soak \
     && chown pdeue:pdeue /var/lib/pdeue-paper-soak
+COPY fleet_engine.py /opt/pdeue/fleet_engine.py
 COPY backend/app /opt/pdeue/backend/app
 COPY backend/scripts /opt/pdeue/backend/scripts
 COPY backend/tests/fixtures/static_crypto_history.jsonl /opt/pdeue/backend/tests/fixtures/static_crypto_history.jsonl
 COPY contracts/schemas /opt/pdeue/contracts/schemas
 COPY docs/manuals /opt/pdeue/docs/manuals
-RUN chmod -R a+rX /opt/pdeue/backend /opt/pdeue/contracts /opt/pdeue/docs
+RUN chmod -R a+rX /opt/pdeue/fleet_engine.py /opt/pdeue/backend /opt/pdeue/contracts /opt/pdeue/docs
 COPY --chmod=0755 deploy/docker/entrypoint.sh /opt/pdeue/entrypoint.sh
 
 USER pdeue
