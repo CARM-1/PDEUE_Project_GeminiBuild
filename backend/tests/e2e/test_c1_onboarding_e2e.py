@@ -285,6 +285,27 @@ def test_c1_full_5_stage_member_onboarding_walkthrough(
         ):
             assert expected_phrase in orientation_text, f"Missing orientation copy: {expected_phrase!r}"
 
+        # Verify single unified data-driven comparative projection SVG (zero duplicate static curves)
+        assert page.locator("#projectionCompareSvg").count() == 1
+        assert page.locator("svg.projection-svg").count() == 0
+        series_paths = page.evaluate(
+            """() => [...document.querySelectorAll('#projectionCompareSvg path[data-series]')].map(
+                p => ({ id: p.getAttribute('data-series'), d: p.getAttribute('d') })
+            )"""
+        )
+        assert len(series_paths) == 4
+        assert len({p["d"] for p in series_paths}) == 4, f"Expected 4 distinct scaled paths, got {series_paths}"
+        svg_text = page.locator("#projectionCompareSvg").text_content() or ""
+        for label in ("Day 0", "M1", "M3", "M6", "M9", "M12", "$25,000 Active Float Cap"):
+            assert label in svg_text, f"Missing projection chart label {label!r}"
+        # Test seed filter controls dynamically rescale and filter series
+        page.locator("#projMode100").click()
+        assert page.locator("#projectionCompareSvg path[data-series]").count() == 2
+        page.locator("#projMode1000").click()
+        assert page.locator("#projectionCompareSvg path[data-series]").count() == 2
+        page.locator("#projModeAll").click()
+        assert page.locator("#projectionCompareSvg path[data-series]").count() == 4
+
         # Stage 5: Funding Instructions card displays opaque EXT-REF token, ADR-011 reassurance, IFAS host
         assert page.locator("#fundingInstructionsCard").is_visible()
         assert page.locator("#fundingBankRefToken").inner_text().strip() == bank_ref

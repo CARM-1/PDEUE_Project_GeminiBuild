@@ -71,9 +71,27 @@ code{background:#0B132B;color:var(--accent-sky);padding:2px 6px;border-radius:4p
 .step-chip{font-size:.72rem;padding:4px 9px;border-radius:999px;border:1px solid var(--border-subtle);background:#0B132B;color:var(--text-muted);font-weight:700}
 .step-chip.done{border-color:var(--status-green);color:#6EE7B7}
 .step-chip.current{border-color:var(--status-amber);color:#FCD34D}
+.proj-chart-shell{background:#0B132B;border:1px solid var(--border-subtle);border-radius:10px;padding:16px;margin:14px 0 22px}
+.proj-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+.proj-controls{display:flex;flex-wrap:wrap;gap:6px}
+.proj-seg-btn{border:1px solid var(--border-subtle);border-radius:999px;background:var(--bg-surface);color:var(--text-secondary);padding:6px 12px;font-size:.78rem;font-weight:700;cursor:pointer}
+.proj-seg-btn.active,.proj-seg-btn:hover{background:var(--accent-sky-deep);border-color:var(--accent-sky);color:var(--text-primary)}
+.chart-legend{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+.legend-pill{display:inline-flex;align-items:center;gap:7px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:999px;padding:5px 10px;font-size:.76rem;font-weight:700;color:var(--text-primary);font-variant-numeric:tabular-nums}
+.legend-swatch{display:inline-block;width:16px;height:0;border-top:3px solid currentColor;border-radius:2px}
+.legend-swatch.dashed{border-top-style:dashed}
+.proj-svg-wrap{width:100%;overflow-x:auto}
+.proj-svg{display:block;width:100%;height:auto}
+.proj-grid{stroke:#1E293B;stroke-width:1}
+.proj-axis-line{stroke:#334155;stroke-width:1.2}
+.proj-axis{fill:#94A3B8;font:600 11px ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-variant-numeric:tabular-nums}
+.proj-cap-line{stroke:#D97706;stroke-width:1.6;stroke-dasharray:6 5}
+.proj-cap-label{fill:#FCD34D;font:700 11px -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-variant-numeric:tabular-nums}
+.seed-table-section{margin-top:20px}
+.seed-table-section:first-child{margin-top:0}
 [hidden]{display:none!important}
 @media(max-width:850px){.pillar-grid,.metrics,.future-grid,.funding-grid{grid-template-columns:1fr 1fr}.slot-rack{grid-template-columns:repeat(2,1fr)}.split{flex-direction:column;align-items:stretch}}
-@media(max-width:520px){.pillar-grid,.metrics,.future-grid,.funding-grid{grid-template-columns:1fr}.shell{padding:13px}.workspace-switcher{flex-direction:column;align-items:stretch}}
+@media(max-width:520px){.pillar-grid,.metrics,.future-grid,.funding-grid{grid-template-columns:1fr}.shell{padding:13px}.workspace-switcher{flex-direction:column;align-items:stretch}.proj-chart-shell{padding:12px}}
 </style></head><body><div style="display:none" id="legacyPortalHub">PDEUE PORTAL HUB</div>
 <nav class="shell portal-nav"><div><strong>Active Hat: MEMBER_USER</strong> · <a href="/companion" class="nav-link campus-link" id="navCompanionLink">🎓 PDEUE University</a></div><div class="currency-toggle" aria-label="Currency display precision"><button id="currBtnClean" class="curr-btn active" onclick="setCurrencyMode('clean')">$ USD (Clean)</button><button id="currBtnExact" class="curr-btn" onclick="setCurrencyMode('exact')">$ USD.¢¢ (Exact Cents)</button></div></nav>
 <main class="shell">
@@ -117,6 +135,21 @@ code{background:#0B132B;color:var(--accent-sky);padding:2px 6px;border-radius:4p
 <section class="pillar-grid" aria-label="87 10 3 covenant"><article class="pillar"><strong>87%</strong><h3>Personal Compounding</h3><p>Retained in your SCMA above High-Water Mark to compound future positions (100% kept during drawdown recovery).</p></article><article class="pillar"><strong>10%</strong><h3>Familial Treasury · Familial Common Treasury</h3><p>CFCP emergency shield, FSAP toxic-debt relief, and shared lineage resilience—funded strictly from new net profit above HWM.</p></article><article class="pillar"><strong>3%</strong><h3>System Stewardship · Infrastructure</h3><p>Cloud servers and verified public data feeds, strictly from net profit above HWM: $0 on loss, $0 out-of-pocket.</p></article></section>
 
 <article class="card"><div class="label">N=12 production standard · illustrative, not guaranteed</div><h2>Dual-Seed 12-Month Numerical Projections ($100 vs $1,000)</h2><p class="fine">Complete schedules: $100.00 Starting Seed and $1,000.00 Starting Seed.</p><div class="disclosure-box"><strong>Explicit Non-Guarantee Disclosure:</strong> All $100 and $1,000 compounding scenarios below are illustrative mathematical simulations only—not a promise or guarantee of future returns. Actual live outcomes vary with market liquidity, fill quality, and drawdown cycles, and capital placed in event contracts is at risk of loss.</div><p>Each schedule separates capital working on-venue from cash swept into commercial-bank custody. Active float is hard-capped at <strong>$25,000</strong> to reduce order-book slippage; excess gains sweep off-venue and earn an illustrative <strong>4.5% APY</strong>.</p>
+<div id="unifiedProjectionChart" class="proj-chart-shell">
+  <div class="proj-header">
+    <div>
+      <div class="eyebrow" style="color:#38BDF8;">DATA-DRIVEN 12-MONTH CUMULATIVE WEALTH COMPARISON</div>
+      <div class="fine">Plotted directly from the capped numerical model below (exponential growth below $25,000 float cap, transitioning to steady post-cap bank sweeps + 4.5% APY).</div>
+    </div>
+    <div class="proj-controls" role="group" aria-label="Projection chart seed filter">
+      <button id="projModeAll" type="button" class="proj-seg-btn active" onclick="setProjectionMode('all')">All ($100 vs $1,000)</button>
+      <button id="projMode100" type="button" class="proj-seg-btn" onclick="setProjectionMode('100')">$100 Seed</button>
+      <button id="projMode1000" type="button" class="proj-seg-btn" onclick="setProjectionMode('1000')">$1,000 Seed</button>
+    </div>
+  </div>
+  <div id="projectionLegend" class="chart-legend" aria-label="Projection series legend"></div>
+  <div class="proj-svg-wrap" id="projectionSvgHost"></div>
+</div>
 <div id="projectionTables"></div></article>
 
 <article class="card cash-engine"><div class="label">After the $25,000 active-float ceiling</div><h2>Steady-State Monthly Cash-Flow Engine</h2><div class="run-rate">$7,830–$11,310+ / month</div><p>The engine keeps the full $25,000 trading float intact while net personal profits above the ceiling sweep to protected bank cash. The illustrative range reflects conservative-to-target production after the 87/10/3 waterfall above High-Water Mark; swept reserves continue earning illustrative 4.5% APY without increasing venue exposure.</p></article>
@@ -132,7 +165,7 @@ code{background:#0B132B;color:var(--accent-sky);padding:2px 6px;border-radius:4p
 <div class="future-grid" aria-label="Member performance visualizations">
 <section id="asset-rings-view" class="market"><h3>Asset Engine Rings</h3><svg viewBox="0 0 240 180" role="img" aria-labelledby="asset-rings-title asset-rings-desc"><title id="asset-rings-title">Concentric asset engine allocation rings</title><desc id="asset-rings-desc">Three rings show active float, swept reserve, and passive yield.</desc><circle cx="120" cy="90" r="64" fill="none" stroke="#29405f" stroke-width="12"/><circle cx="120" cy="90" r="48" fill="none" stroke="#42b8ef" stroke-width="10" stroke-dasharray="238 302" transform="rotate(-90 120 90)"/><circle cx="120" cy="90" r="32" fill="none" stroke="#4ade80" stroke-width="10" stroke-dasharray="141 201" transform="rotate(-90 120 90)"/></svg></section>
 <section id="trajectory-view" class="market"><h3>My Trajectory</h3><svg viewBox="0 0 240 180" role="img" aria-labelledby="trajectory-title trajectory-desc"><title id="trajectory-title">Member balance trajectory</title><desc id="trajectory-desc">An upward path represents growth from seed capital through the high-watermark sweep.</desc><defs><linearGradient id="trajectory-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#38bdf8" stop-opacity=".35"/><stop offset="1" stop-color="#38bdf8" stop-opacity="0"/></linearGradient></defs><path d="M16 154 C55 145 72 128 102 119 S154 75 224 30 L224 164 L16 164 Z" fill="url(#trajectory-fill)"/><path d="M16 154 C55 145 72 128 102 119 S154 75 224 30" fill="none" stroke="#38bdf8" stroke-width="5" stroke-linecap="round"/></svg></section>
-<section id="radar-view" class="market"><h3>High-Yield Radar</h3><svg viewBox="0 0 240 180" role="img" aria-labelledby="radar-title radar-desc"><title id="radar-title">Eighty-seven ten three distribution radar</title><desc id="radar-desc">The radar compares personal compounding, family shield, and platform operations allocations.</desc><polygon points="120,18 218,154 22,154" fill="none" stroke="#29405f" stroke-width="2"/><polygon points="120,30 181,145 91,116" fill="#42b8ef" fill-opacity=".22" stroke="#42b8ef" stroke-width="3"/><text id="wf87" x="120" y="15" fill="#eef6ff" text-anchor="middle">87% SCMA</text><text id="wf10" x="218" y="171" fill="#eef6ff" text-anchor="end">10% Family Shield</text><text id="wf3" x="22" y="171" fill="#eef6ff">3% Platform Ops</text></svg></section>
+<section id="radar-view" class="market"><h3>High-Yield Radar</h3><svg viewBox="0 0 240 180" role="img" aria-labelledby="radar-title radar-desc"><title id="radar-title">Eighty-seven ten three distribution radar</title><desc id="radar-desc">The radar compares personal compounding, family shield, and platform operations allocations.</desc><polygon points="120,18 218,154 22,154" fill="none" stroke="#29405f" stroke-width="2"/><polygon points="120,30 181,145 91,116" fill="#42b8ef" fill-opacity=".22" stroke="#42b8ef" stroke-width="3"/><text id="wf87" x="120" y="15" font-size="11" fill="#eef6ff" text-anchor="middle">87% SCMA</text><text id="wf10" x="234" y="172" font-size="11" fill="#eef6ff" text-anchor="end">10% Family Shield</text><text id="wf3" x="6" y="172" font-size="11" fill="#eef6ff">3% Platform Ops</text></svg></section>
 </div></article>
 <article class="card"><div class="label">Live transparency layer</div><h2>Glass Engine · 12-Slot Concurrency Rack</h2><p class="fine"><span title="Strategy D places inside-maker orders and never pays retail taker pricing.">Strategy D wholesale maker ⓘ</span></p><div id="slotRack" class="slot-rack"><article class="slot" data-slot-id="1"><div class="slot-id">SLOT 01</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="2"><div class="slot-id">SLOT 02</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="3"><div class="slot-id">SLOT 03</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="4"><div class="slot-id">SLOT 04</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="5"><div class="slot-id">SLOT 05</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="6"><div class="slot-id">SLOT 06</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="7"><div class="slot-id">SLOT 07</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="8"><div class="slot-id">SLOT 08</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="9"><div class="slot-id">SLOT 09</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="10"><div class="slot-id">SLOT 10</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="11"><div class="slot-id">SLOT 11</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="12"><div class="slot-id">SLOT 12</div><div class="slot-domain">Slot Available</div></article></div></article><div hidden aria-hidden="true"><button class="regime">Traditional Index (~9%)</button><button class="regime">Steady Pace</button><button class="regime">Standard Pace</button></div>
 <div class="split"><article class="card"><div class="label">Downward-Only Risk Governor</div><h2>Choose less exposure</h2><p>Members may reduce risk from 2.00% to 0.50%. Restoration is locked to the F2-H Head of Household.</p><div class="range-row"><input id="riskSlider" type="range" min="50" max="200" value="100" aria-label="Risk dial percent"><b id="riskValue">1.00%</b></div><button id="saveRiskBtn" onclick="saveRiskDial()">Apply reduction</button><div id="riskStatus" class="fine"></div></article><article class="card"><div class="label">3-Tier Distribution Request Drawer</div><h2>Request personal cash</h2><div class="tier-key"><b class="green">● Green</b><b class="yellow">● Yellow</b><b class="red">● Red</b></div><input id="distributionAmount" type="text" placeholder="Amount in dollars" aria-label="Distribution amount in dollars"><button id="distributionBtn">Review request</button><p id="distributionStatus" class="fine"></p></article></div>
@@ -176,9 +209,68 @@ function dollars(cents){return formatDollars(Number(cents||0)/100)}
 function setCurrencyMode(mode){currencyMode=mode==='exact'?'exact':'clean';localStorage.setItem('pdeue_curr_mode',currencyMode);currBtnClean.classList.toggle('active',currencyMode==='clean');currBtnExact.classList.toggle('active',currencyMode==='exact');renderProjections();if(memberState)renderBalances()}
 function switchMemberView(view){view=view==='engine'?'engine':'orientation';localStorage.setItem('pdeue_member_active_view',view);viewOrientation.hidden=view!=='orientation';viewEngine.hidden=view!=='engine';tabBtnOrientation.classList.toggle('active',view==='orientation');tabBtnEngine.classList.toggle('active',view==='engine')}
 const horizons=[0,1,3,6,9,12],seeds=[100,1000];
+let projectionMode='all';
+function setProjectionMode(mode){
+  projectionMode=(mode==='100'||mode==='1000')?mode:'all';
+  projModeAll.classList.toggle('active',projectionMode==='all');
+  projMode100.classList.toggle('active',projectionMode==='100');
+  projMode1000.classList.toggle('active',projectionMode==='1000');
+  renderProjections();
+}
 function simulateHorizon(seed,weeklyRate,targetMonths){let floatCash=seed;let sweptBankCash=0;let accumulatedYield=0;const floatCap=25000;const weeksPerMonth=52/12;const monthlySteadySweep=weeklyRate>=.20?9500:2800;for(let m=1;m<=targetMonths;m++){const idleCash=sweptBankCash+(floatCash*.40);const monthlyYield=idleCash*(.045/12);accumulatedYield+=monthlyYield;if(floatCash<floatCap){const monthGross=floatCash*Math.pow(1+weeklyRate,weeksPerMonth);if(monthGross>floatCap){sweptBankCash+=monthGross-floatCap;floatCash=floatCap}else{floatCash=monthGross}}else{sweptBankCash+=monthlySteadySweep}}return{gross:floatCash+sweptBankCash,active:floatCash,swept:sweptBankCash,yieldCash:accumulatedYield,total:floatCash+sweptBankCash+accumulatedYield}}
 function snapshot(seed,weekly,month){if(month===0){return{gross:seed,active:seed,swept:0,yieldCash:0,total:seed}}return simulateHorizon(seed,weekly,month)}
-function renderProjections(){projectionTables.innerHTML=seeds.map(seed=>{const rows=horizons.map(month=>{const low=snapshot(seed,.10,month),high=snapshot(seed,.23,month);return `<tr><td>${month?'Month '+month:'Day 0'}</td><td data-money>${formatDollars(low.gross)}</td><td data-money>${formatDollars(high.gross)}</td><td>${formatDollars(low.active)} / ${formatDollars(high.active)}</td><td>${formatDollars(low.swept)} / ${formatDollars(high.swept)}</td><td>${formatDollars(low.yieldCash)} / ${formatDollars(high.yieldCash)}</td><td>${formatDollars(low.total)} / ${formatDollars(high.total)}</td></tr>`}).join('');return `<section><div class="seed-title"><h3>${formatDollars(seed)} Starting Seed</h3><span class="fine">Illustrative only (not guaranteed) · Low / target where paired</span></div><div class="chart-legend" style="display:flex; gap:16px; margin:8px 0; font-size:12px; font-weight:700;"><span style="color:#38BDF8; display:inline-flex; align-items:center; gap:6px;"><span style="display:inline-block; width:12px; height:3px; background:#38BDF8; border-radius:2px;"></span>Conservative Pace (~10% weekly)</span><span style="color:#4ade80; display:inline-flex; align-items:center; gap:6px;"><span style="display:inline-block; width:12px; height:3px; background:#4ade80; border-radius:2px;"></span>Target / Bullish Pace (~23% weekly)</span></div><svg class="projection-svg" viewBox="0 0 800 140" role="img" aria-label="Compounding curves for ${formatDollars(seed)} seed"><line class="chart-grid" x1="20" y1="120" x2="780" y2="120"/><path class="curve-low" d="M20 120 C220 116 430 90 780 50"/><path class="curve-high" d="M20 120 C300 118 570 98 780 20"/></svg><div class="table-wrap"><table class="projection-table"><thead><tr><th>Milestone Horizon</th><th>Conservative Pace (~10%/wk)</th><th>Bullish/Target Pace (~23%/wk)</th><th>Active Float (low / target)</th><th>Swept Bank Cash (low / target)</th><th>4.5% APY Yield (low / target)</th><th>Total Cumulative Wealth (low / target)</th></tr></thead><tbody>${rows}</tbody></table></div></section>`}).join('')}
+function renderUnifiedProjectionChart(){
+  const allSeries=[
+    {id:'s1000-high',seed:1000,label:'$1,000 Seed · Target (~23%/wk)',color:'#4ade80',dashed:false,width:3,rate:.23},
+    {id:'s100-high',seed:100,label:'$100 Seed · Target (~23%/wk)',color:'#38BDF8',dashed:false,width:2.75,rate:.23},
+    {id:'s1000-low',seed:1000,label:'$1,000 Seed · Conservative (~10%/wk)',color:'#FBBF24',dashed:true,width:2.5,rate:.10},
+    {id:'s100-low',seed:100,label:'$100 Seed · Conservative (~10%/wk)',color:'#A78BFA',dashed:true,width:2.25,rate:.10},
+  ];
+  const activeSeries=allSeries.filter(s=>projectionMode==='all'||String(s.seed)===projectionMode).map(s=>{
+    const points=Array.from({length:13},(_,m)=>({m,val:snapshot(s.seed,s.rate,m).total}));
+    return {...s,points,m12:points[12].val};
+  });
+  projectionLegend.innerHTML=activeSeries.map(s=>`<span class="legend-pill"><span class="legend-swatch ${s.dashed?'dashed':''}" style="color:${s.color}"></span><span>${s.label}</span><strong style="color:${s.color}">${formatDollars(s.m12)}</strong></span>`).join('');
+  const W=860,H=320,padL=94,padR=28,padT=20,padB=38,plotW=W-padL-padR,plotH=H-padT-padB;
+  const maxVal=Math.max(25000,...activeSeries.flatMap(s=>s.points.map(p=>p.val)));
+  const step=maxVal>80000?30000:(maxVal>40000?20000:10000);
+  const yMax=Math.ceil(maxVal/step)*step;
+  const xFor=m=>padL+(m/12)*plotW;
+  const yFor=v=>padT+plotH-(v/yMax)*plotH;
+  const yTicks=[];
+  for(let v=0;v<=yMax;v+=step){yTicks.push(v)}
+  const gridSvg=yTicks.map(v=>{
+    const y=yFor(v).toFixed(1);
+    return `<line class="proj-grid" x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}"/><text class="proj-axis" x="${padL-10}" y="${(Number(y)+4).toFixed(1)}" text-anchor="end">${formatDollars(v)}</text>`;
+  }).join('');
+  const xLabels=[{m:0,t:'Day 0'},{m:1,t:'M1'},{m:3,t:'M3'},{m:6,t:'M6'},{m:9,t:'M9'},{m:12,t:'M12'}];
+  const xSvg=xLabels.map(({m,t})=>{
+    const x=xFor(m).toFixed(1);
+    return `<line class="proj-grid" x1="${x}" y1="${padT}" x2="${x}" y2="${padT+plotH}" stroke-opacity="0.45"/><text class="proj-axis" x="${x}" y="${H-12}" text-anchor="middle">${t}</text>`;
+  }).join('');
+  const capY=yFor(25000);
+  const capSvg=25000<=yMax?`<line class="proj-cap-line" x1="${padL}" y1="${capY.toFixed(1)}" x2="${W-padR}" y2="${capY.toFixed(1)}"/><rect x="${padL+8}" y="${(capY-23).toFixed(1)}" width="174" height="19" rx="4" fill="#0B132B" stroke="#D97706" stroke-width="1"/><text class="proj-cap-label" x="${padL+95}" y="${(capY-10).toFixed(1)}" text-anchor="middle">$25,000 Active Float Cap</text>`:'';
+  const linesSvg=activeSeries.map(s=>{
+    const d=s.points.map((p,idx)=>`${idx?'L':'M'}${xFor(p.m).toFixed(1)} ${yFor(p.val).toFixed(1)}`).join(' ');
+    const dots=horizons.map(m=>{
+      const pt=s.points[m];
+      return `<circle cx="${xFor(m).toFixed(1)}" cy="${yFor(pt.val).toFixed(1)}" r="3.6" fill="${s.color}" stroke="#0B132B" stroke-width="1.4"><title>${s.label} — ${m?'Month '+m:'Day 0'}: ${formatDollars(pt.val)}</title></circle>`;
+    }).join('');
+    return `<path data-series="${s.id}" d="${d}" fill="none" stroke="${s.color}" stroke-width="${s.width}" stroke-linecap="round" stroke-linejoin="round" ${s.dashed?'stroke-dasharray="7 5"':''}/>${dots}`;
+  }).join('');
+  projectionSvgHost.innerHTML=`<svg id="projectionCompareSvg" class="proj-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Unified 12-month capped compounding comparison for $100 and $1,000 seeds">${gridSvg}${xSvg}<line class="proj-axis-line" x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT+plotH}"/><line class="proj-axis-line" x1="${padL}" y1="${padT+plotH}" x2="${W-padR}" y2="${padT+plotH}"/>${capSvg}${linesSvg}</svg>`;
+}
+function renderProjections(){
+  renderUnifiedProjectionChart();
+  const visibleSeeds=projectionMode==='all'?seeds:[Number(projectionMode)];
+  projectionTables.innerHTML=visibleSeeds.map(seed=>{
+    const rows=horizons.map(month=>{
+      const low=snapshot(seed,.10,month),high=snapshot(seed,.23,month);
+      return `<tr><td>${month?'Month '+month:'Day 0'}</td><td data-money>${formatDollars(low.gross)}</td><td data-money>${formatDollars(high.gross)}</td><td>${formatDollars(low.active)} / ${formatDollars(high.active)}</td><td>${formatDollars(low.swept)} / ${formatDollars(high.swept)}</td><td>${formatDollars(low.yieldCash)} / ${formatDollars(high.yieldCash)}</td><td>${formatDollars(low.total)} / ${formatDollars(high.total)}</td></tr>`;
+    }).join('');
+    return `<section class="seed-table-section"><div class="seed-title"><h3>${formatDollars(seed)} Starting Seed Schedule</h3><span class="fine">Illustrative only (not guaranteed) · Conservative / Target paired</span></div><div class="table-wrap"><table class="projection-table"><thead><tr><th>Milestone Horizon</th><th>Conservative Pace (~10%/wk)</th><th>Bullish/Target Pace (~23%/wk)</th><th>Active Float (low / target)</th><th>Swept Bank Cash (low / target)</th><th>4.5% APY Yield (low / target)</th><th>Total Cumulative Wealth (low / target)</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
+  }).join('');
+}
 function renderBalances(){activeFloat.textContent=dollars(memberState.active_float_cents);sweptCash.textContent=dollars(memberState.swept_cash_cents);passiveYield.textContent=dollars(memberState.passive_yield_cents);totalWealth.textContent=dollars(memberState.active_float_cents+memberState.swept_cash_cents+memberState.passive_yield_cents);fundingHwmDisplay.textContent=dollars(memberState.high_water_mark_cents ?? memberState.cash_cents)}
 function renderSlots(slots=[]){const byId=new Map(slots.map(s=>[Number(s.slot_id),s]));slotRack.innerHTML=Array.from({length:12},(_,i)=>{const s=byId.get(i+1),active=s?.status==='RESTING';return `<article class="slot ${active?'active':''}"><div class="slot-id">SLOT ${String(i+1).padStart(2,'0')}</div><div class="slot-domain">${active?(s.domain||'Strategy D'):'Slot Available'}</div><div class="fine">${active?`${dollars(s.entry_price_cents)} inside maker · +${Number(s.net_edge_bps||0)/100}% edge`:'[Slot Available - Scanning]'}</div></article>`}).join('')}
 function renderOnboardingStatus(state){
