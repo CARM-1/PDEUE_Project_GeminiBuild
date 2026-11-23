@@ -4,6 +4,7 @@ from app.domain.position_exit_manager import PositionExitManager
 from app.domain.maker_execution_engine import MakerExecutionEngine
 from app.domain.priority_eviction import PriorityEvictionManager
 from app.domain.two_tier_risk import TwoTierRiskEnvelope
+from app.domain.settlement_engine import calculate_hwm_waterfall_cents
 
 class WalkForwardBenchmark:
     def __init__(self, initial_capital_cents: int = 10000, starting_cents: int = None):
@@ -37,6 +38,8 @@ class WalkForwardBenchmark:
 
         # Strategy D Execution Trackers (Inside Maker + Dynamic Bounds)
         cap_d = self.initial_capital_cents
+        scma_equity_d = self.initial_capital_cents
+        hwm_d = self.initial_capital_cents
         peak_equity_d = cap_d
         max_dd_d_pct = 0.0
         trade_returns_d: List[float] = []
@@ -135,14 +138,18 @@ class WalkForwardBenchmark:
             pnl_d = payout_d_cents - actual_cost_d_cents
             cap_d += pnl_d
             d_friction_cents += trade_friction_d
+            wf_d = calculate_hwm_waterfall_cents(
+                realized_profit_cents=pnl_d,
+                current_scma_equity_cents=scma_equity_d,
+                high_water_mark_cents=hwm_d,
+            )
+            scma_equity_d = wf_d["post_split_equity_cents"]
+            hwm_d = wf_d["high_water_mark_after_cents"]
             if pnl_d > 0:
                 wins_d += 1
-                cfcp = pnl_d * 10 // 100
-                faep = pnl_d * 3 // 100
-                member = pnl_d - cfcp - faep
-                waterfall["member_scma_cents"] += member
-                waterfall["cfcp_cents"] += cfcp
-                waterfall["faep_cents"] += faep
+                waterfall["member_scma_cents"] += wf_d["scma_cents"]
+                waterfall["cfcp_cents"] += wf_d["cfcp_cents"]
+                waterfall["faep_cents"] += wf_d["faep_cents"]
                 waterfall["realized_profit_cents"] += pnl_d
             trade_returns_d.append(pnl_d / max(1, actual_cost_d_cents))
 
@@ -154,7 +161,7 @@ class WalkForwardBenchmark:
             curves["strategy_d"].append(cap_d)
             curves["baseline_a"].append(cap_a)
             curves["baseline_c"].append(cap_c)
-            compounding_timeline.append({"cycle": len(compounding_timeline) + 1, "reinvested_cents": (pnl_d - pnl_d * 10 // 100 - pnl_d * 3 // 100) if pnl_d > 0 else 0, "strategy_d_equity_cents": cap_d})
+            compounding_timeline.append({"cycle": len(compounding_timeline) + 1, "reinvested_cents": wf_d["scma_cents"] if pnl_d > 0 else 0, "strategy_d_equity_cents": cap_d})
 
         # Baseline C Summary Metrics
         roi_c = round(((cap_c - self.initial_capital_cents) / self.initial_capital_cents) * 100.0, 2)

@@ -8,7 +8,7 @@
 
 ## Domain A — Core Trading, Quantitative Math & Gate Qualification
 - [x] **A1** | Exact-cent accounting (`ADR-008`) & 87/10/3 TPW | *Pre-Pilot* | Gate: `pytest` conservation invariants (767 tests green)
-- [ ] **A2** | **ADR-012 High-Water Mark & Rule A14 (100% SCMA Loss Isolation)** reconciled across ledger code, UI simulators, and manuals | *Pre-Pilot* | Gate: Unit tests proving 0% CFCP/FAEP skim during drawdown recovery and 100% SCMA loss containment
+- [x] **A2** | **ADR-012 High-Water Mark & Rule A14 (100% SCMA Loss Isolation)** reconciled across ledger code, UI simulators, and manuals | *Pre-Pilot* | Gate: Unit tests proving 0% CFCP/FAEP skim during drawdown recovery and 100% SCMA loss containment (`test_adr012_high_water_mark.py`, 779 backend + 16 Playwright E2E green)
 - [ ] **A3** | `B4-RSK` (2-tier risk), `B4-FIN` (slippage barrier), `B7-EXE` (velocity) granular + system harness verification | *Pre-Pilot* | Gate: Isolated + end-to-end harness tests
 - [x] **A4** | `OBSERVED_L2` dual-venue capture & zero-synthetic audit (Plays #11B–15B) | *Pre-Pilot* | Gate: SHA-256 manifest verification + `synthetic_fills_present: False`
 - [ ] **A5** | **Gate G2 candidate schemas (Draft 2020-12), `A01–A26` adversarial rules & WP-8V charter** committed to `ring1-alpha` | *Pre-Pilot* | Gate: Committed versioned specs + independent 3rd-party Umpire audit

@@ -25,10 +25,11 @@ def test_platform_yield_waterfall_and_conservation():
     cfcp = res["cfcp_cents"]
     faep = res["faep_cents"]
 
-    # Invariant: Conservation of exact cents
+    # Invariant: Conservation of exact cents (ADR-008/ADR-012: remainder routed to CFCP)
     assert scma + cfcp + faep == gross
-    assert cfcp == (gross * 10) // 100
     assert scma == (gross * 87) // 100
+    assert faep == (gross * 3) // 100
+    assert cfcp == gross - scma - faep
 
     # Invariant: Ledger balances credited
     mem = ledger.members["SCMA-YIELD-01"]
