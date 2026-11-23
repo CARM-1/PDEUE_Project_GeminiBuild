@@ -73,11 +73,43 @@
     .info-tip { position:relative; display:inline-block; color:#38bdf8; cursor:help; font-size:14px; }
     .info-tip:hover::after, .info-tip:focus::after { content:attr(data-tooltip); position:absolute; z-index:30; left:50%; bottom:calc(100% + 8px); transform:translateX(-50%); width:260px; padding:9px 11px; border:1px solid #38bdf8; border-radius:5px; background:#020617; color:#f8fafc; font-size:12px; line-height:1.4; text-transform:none; box-shadow:0 8px 20px #000; }
 
-    .modal-backdrop { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(4px); z-index: 20000; align-items: center; justify-content: center; }
-    .modal-box { background: #111c44; border-radius: 10px; width: 560px; max-width: 90vw; padding: 24px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7); animation: modalIn 0.2s ease-out; }
+    .modal-backdrop { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(4px); z-index: 20000; align-items: center; justify-content: center; padding: 16px; overflow-y: auto; }
+    .modal-box { background: #1C2541; border-radius: 10px; width: 600px; max-width: 94vw; max-height: 92vh; overflow-y: auto; padding: 24px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7); animation: modalIn 0.2s ease-out; }
     @keyframes modalIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
-      .campus-link { color: #f7c967 !important; font-weight: 800; white-space: nowrap; }
+    .campus-link { color: #f7c967 !important; font-weight: 800; white-space: nowrap; }
     .table-card { margin-bottom: 32px; display: block; clear: both; overflow-x: auto; }
+    .lineage-toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+    .lineage-toolbar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-onboard { background: #0284C7; color: #F8FAFC; border: 1px solid #38BDF8; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 12px; }
+    .btn-onboard:hover { background: #0369A1; }
+    .btn-batch { background: #1E293B; color: #38BDF8; border: 1px solid #334155; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 12px; }
+    .btn-batch:hover { border-color: #38BDF8; }
+    .onboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .onboard-field { display: flex; flex-direction: column; gap: 5px; }
+    .onboard-field.full { grid-column: 1 / -1; }
+    .onboard-field label { font-size: 12px; font-weight: 600; color: #CBD5E1; }
+    .onboard-field input[type="text"], .onboard-field input[type="number"], .onboard-field select, .onboard-field textarea { background: #0B132B; color: #F8FAFC; border: 1px solid #334155; border-radius: 6px; padding: 9px 10px; font-size: 13px; width: 100%; }
+    .onboard-field input:focus, .onboard-field select:focus, .onboard-field textarea:focus { outline: none; border-color: #38BDF8; }
+    .onboard-hint { font-size: 11px; color: #94A3B8; line-height: 1.4; }
+    .onboard-check { display: flex; align-items: center; gap: 8px; padding: 10px; background: #0B132B; border: 1px solid #334155; border-radius: 6px; cursor: pointer; font-size: 12px; color: #CBD5E1; }
+    .onboard-error { display: none; background: rgba(220, 38, 38, 0.14); border: 1px solid #DC2626; color: #FECACA; border-radius: 6px; padding: 10px 12px; font-size: 12px; margin-bottom: 12px; }
+    .onboard-receipt { display: none; background: rgba(5, 150, 105, 0.12); border: 1px solid #059669; border-radius: 8px; padding: 14px; margin-top: 14px; }
+    .mono-token { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-variant-numeric: tabular-nums; background: #0B132B; color: #38BDF8; border: 1px solid #334155; border-radius: 4px; padding: 6px 8px; font-size: 12px; word-break: break-all; display: block; margin-top: 4px; }
+    .batch-drawer { background: #1C2541; border: 1px solid #38BDF8; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+    .member-status-pill { display: inline-block; padding: 2px 7px; border-radius: 999px; font-size: 10px; font-weight: 800; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    .member-status-pill.pending { background: rgba(217, 119, 6, 0.18); color: #FCD34D; border: 1px solid #D97706; }
+    .member-status-pill.active { background: rgba(5, 150, 105, 0.18); color: #6EE7B7; border: 1px solid #059669; }
+    .member-status-pill.frozen { background: rgba(220, 38, 38, 0.18); color: #FCA5A5; border: 1px solid #DC2626; }
+    @media (max-width: 720px) {
+      .hub-ribbon, .hub-links, .header, .tabs { flex-wrap: wrap; }
+      .onboard-grid { grid-template-columns: 1fr; gap: 8px; }
+      .modal-backdrop { align-items: flex-start; padding: 10px; }
+      .modal-box { padding: 16px; width: 100%; max-width: calc(100vw - 20px); max-height: calc(100vh - 20px); }
+      .onboard-field input[type="text"], .onboard-field input[type="number"], .onboard-field select { padding: 7px 9px; font-size: 12px; }
+      .onboard-hint { font-size: 10px; }
+      .grid-4 { grid-template-columns: 1fr 1fr; }
+      .house-header { grid-template-columns: 1fr 1fr; }
+    }
 </style>
 </head>
 <body>
@@ -179,7 +211,38 @@
       </div>
     </div>
     <div class="card" id="lineage-house-tree-container" data-house-count="12">
-      <div class="card-title" style="color:#38bdf8;margin-bottom:12px;">12-House Master-Detail Lineage Tree <span class="info-tip" tabindex="0" data-tooltip="The Downward-Only Risk Dial protects capital: members may reduce exposure, never raise it above their authorized ceiling.">ⓘ</span> <span class="info-tip" tabindex="0" data-tooltip="The 87/10/3 waterfall reinvests 87% in the private SCMA, directs 10% to the CFCP resilience shield, and preserves 3% in the FAEP lineage endowment.">ⓘ</span></div>
+      <div class="lineage-toolbar">
+        <div class="card-title" style="color:#38bdf8;margin-bottom:0;">12-House Master-Detail Lineage Tree <span class="info-tip" tabindex="0" data-tooltip="The Downward-Only Risk Dial protects capital: members may reduce exposure, never raise it above their authorized ceiling.">ⓘ</span> <span class="info-tip" tabindex="0" data-tooltip="The 87/10/3 waterfall reinvests 87% in the private SCMA, directs 10% to the CFCP resilience shield, and preserves 3% in the FAEP lineage endowment.">ⓘ</span></div>
+        <div class="lineage-toolbar-actions">
+          <button id="openOnboardModalBtn" type="button" class="btn-onboard" onclick="openOnboardModal()">+ Onboard Member</button>
+          <button id="openBatchDrawerBtn" type="button" class="btn-batch" aria-expanded="false" aria-controls="batch-provision-drawer" onclick="toggleBatchDrawer()">Batch Provision (JSON / CSV)</button>
+        </div>
+      </div>
+      <section id="batch-provision-drawer" class="batch-drawer" hidden aria-label="Batch member provisioning drawer">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap;">
+          <div>
+            <strong style="color:#38BDF8;font-size:14px;">Batch Member Provisioning Drawer (Stage 1 · Atomic Fail-Closed)</strong>
+            <div class="onboard-hint">Accepts JSON array or CSV rows with ADR-008 exact integer <code>seed_cents</code> and ADR-011 opaque <code>EXT-REF-[ENTITY]-****[LAST4]</code> tokens.</div>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <select id="batch-format-select" aria-label="Batch provisioning format" style="background:#0B132B;color:#F8FAFC;border:1px solid #334155;border-radius:6px;padding:6px 10px;font-size:12px;">
+              <option value="json">JSON Array</option>
+              <option value="csv">CSV Table</option>
+            </select>
+            <button id="loadBatchTemplateBtn" type="button" class="btn-batch" onclick="loadBatchTemplate()">Load Sample</button>
+            <button id="closeBatchDrawerBtn" type="button" class="btn-batch" onclick="toggleBatchDrawer()">Hide Drawer</button>
+          </div>
+        </div>
+        <div class="onboard-field full" style="margin-bottom:10px;">
+          <label for="batch-provision-input">Batch Payload (JSON or CSV)</label>
+          <textarea id="batch-provision-input" rows="5" placeholder='[{"full_name":"Clara Vance","lineage_house":"HOUSE-03","role_tier":"MEMBER_USER","seed_cents":100000,"risk_dial_pct":1.25,"is_custodial":false,"bank_ref_token":"EXT-REF-PENFED-****4821"}]'></textarea>
+        </div>
+        <div id="batch-provision-error" class="onboard-error" role="alert"></div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;">
+          <button id="submitBatchProvisionBtn" type="button" class="btn-onboard" onclick="submitBatchProvision()">Provision Batch &amp; Issue 48h Invites</button>
+        </div>
+        <div id="batch-provision-result" class="onboard-receipt" role="status" aria-live="polite"></div>
+      </section>
       <div id="lineage-action-status" class="lineage-status" role="status" aria-live="polite"></div>
       <div id="lineage-house-tree" class="lineage-tree" aria-label="Twelve House lineage accounts">
         <div style="color:#94a3b8;padding:16px;">Loading all 12 Houses and subordinate SCMA accounts…</div>
@@ -356,6 +419,104 @@
     </div>
   </div>
 
+  <!-- STAGE 1: ONBOARD MEMBER MODAL -->
+  <div id="onboard-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="onboard-modal-title">
+    <div class="modal-box" style="border: 1px solid #38BDF8;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 12px; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <span style="background: #0284C7; color: #F8FAFC; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 4px; letter-spacing: .06em;">STAGE 1 · CHIEF ADMIN PROVISIONING</span>
+          <strong id="onboard-modal-title" style="color: #F8FAFC; font-size: 16px;">Onboard New Lineage Member</strong>
+        </div>
+        <button id="closeOnboardModalBtn" type="button" onclick="closeOnboardModal()" style="background: transparent; border: 1px solid #334155; color: #CBD5E1; border-radius: 4px; padding: 4px 8px; font-size: 12px; cursor: pointer;">Close</button>
+      </div>
+
+      <form id="onboard-member-form" onsubmit="submitOnboardMember(event)">
+        <div class="onboard-grid">
+          <div class="onboard-field">
+            <label for="onboard-full-name">Full Name</label>
+            <input id="onboard-full-name" type="text" required placeholder="e.g. Elena Vance" aria-label="Member full name">
+          </div>
+          <div class="onboard-field">
+            <label for="onboard-member-id">Member ID (optional)</label>
+            <input id="onboard-member-id" type="text" placeholder="Auto-generated if blank (e.g. MEM-ELENA-01)" aria-label="Member identifier">
+          </div>
+          <div class="onboard-field">
+            <label for="onboard-house">Lineage House (HOUSE-01..HOUSE-12)</label>
+            <select id="onboard-house" aria-label="Lineage House">
+              <option value="HOUSE-01">HOUSE-01 — House of the Founder</option>
+              <option value="HOUSE-02">HOUSE-02 — House of Julian</option>
+              <option value="HOUSE-03">HOUSE-03 — Lineage 03</option>
+              <option value="HOUSE-04">HOUSE-04 — Lineage 04</option>
+              <option value="HOUSE-05">HOUSE-05 — Lineage 05</option>
+              <option value="HOUSE-06">HOUSE-06 — Lineage 06</option>
+              <option value="HOUSE-07">HOUSE-07 — Lineage 07</option>
+              <option value="HOUSE-08">HOUSE-08 — Lineage 08</option>
+              <option value="HOUSE-09">HOUSE-09 — Lineage 09</option>
+              <option value="HOUSE-10">HOUSE-10 — Lineage 10</option>
+              <option value="HOUSE-11">HOUSE-11 — Lineage 11</option>
+              <option value="HOUSE-12">HOUSE-12 — Lineage 12</option>
+            </select>
+          </div>
+          <div class="onboard-field">
+            <label for="onboard-role-tier">Role / Authority Tier</label>
+            <select id="onboard-role-tier" aria-label="Role and authority tier">
+              <option value="MEMBER_USER">MEMBER_USER (Class M Member)</option>
+              <option value="F1">F1 (Peer Mentor)</option>
+              <option value="F2-H">F2-H (Head of Household)</option>
+              <option value="F2-A">F2-A (Lineage Financial Advisor)</option>
+              <option value="F3">F3 (Chief Risk Officer)</option>
+              <option value="T1">T1 (Telemetry Monitor)</option>
+              <option value="T2">T2 (Systems Engineer)</option>
+              <option value="T2-HOUSEHOLD">T2-HOUSEHOLD (Household Engineer)</option>
+              <option value="T3">T3 (CTO)</option>
+              <option value="H1">H1 (House Assistant)</option>
+              <option value="H2">H2 (House Leader)</option>
+            </select>
+          </div>
+          <div class="onboard-field">
+            <label for="onboard-seed-cents">Initial Seed (Exact Integer Cents · ADR-008)</label>
+            <input id="onboard-seed-cents" type="text" inputmode="numeric" required value="100000" placeholder="100000 (= $1,000.00)" aria-label="Initial seed in exact integer cents" oninput="updateOnboardSeedPreview()">
+            <span id="onboard-seed-preview" class="onboard-hint" style="font-variant-numeric:tabular-nums;">Exact Cents: 100,000¢ ($1,000.00) · Initializes HWM = 100,000¢ (ADR-012)</span>
+          </div>
+          <div class="onboard-field">
+            <label for="onboard-risk-dial">Downward-Only Risk Dial Ceiling (0.50%–2.00%)</label>
+            <input id="onboard-risk-dial" type="number" min="0.50" max="2.00" step="0.05" required value="1.50" aria-label="Downward-only risk dial ceiling percent">
+            <span class="onboard-hint">Members may lower exposure autonomously; upward restoration requires F2-H approval.</span>
+          </div>
+          <div class="onboard-field full">
+            <label for="onboard-bank-ref">Opaque ADR-011 Bank Reference Token</label>
+            <input id="onboard-bank-ref" type="text" required value="EXT-REF-PENFED-****4821" placeholder="EXT-REF-[ENTITY]-****[LAST4]" aria-label="Opaque ADR-011 bank reference token">
+            <span class="onboard-hint">ADR-011 Fail-Closed: Never enter routing numbers or bank account numbers (&gt;4 digits). Live banking routes solely through <code>accounting.narratix.io</code>.</span>
+          </div>
+          <div class="onboard-field full">
+            <label class="onboard-check" for="onboard-is-custodial">
+              <input id="onboard-is-custodial" type="checkbox" aria-label="Custodial minor account flag">
+              <span><strong>Custodial Minor Flag (<code>is_custodial: true</code>)</strong> — Route through Delaware Master Trust sub-ledger with F2-H Head of Household co-sign locks.</span>
+            </label>
+          </div>
+        </div>
+
+        <div id="onboard-error" class="onboard-error" role="alert"></div>
+
+        <div id="onboard-actions" style="display: flex; justify-content: flex-end; gap: 10px;">
+          <button id="cancelOnboardBtn" type="button" onclick="closeOnboardModal()" style="background: #334155; color: #CBD5E1; border: none; padding: 9px 16px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 13px;">Dismiss</button>
+          <button id="submitOnboardBtn" type="submit" class="btn-onboard" style="padding: 9px 18px; font-size: 13px;">Provision Member &amp; Issue 48h Invite</button>
+        </div>
+      </form>
+
+      <div id="onboard-receipt" class="onboard-receipt" role="status" aria-live="polite">
+        <div style="color: #6EE7B7; font-weight: 800; font-size: 14px; margin-bottom: 6px;">✓ Member Provisioned — Status: PENDING_TUTOR_CERTIFICATION</div>
+        <div id="onboard-receipt-summary" style="font-size: 12px; color: #CBD5E1; line-height: 1.5; margin-bottom: 8px;"></div>
+        <div style="font-size: 11px; color: #94A3B8; font-weight: 700;">SINGLE-USE 48-HOUR ACTIVATION TOKEN (DISPLAYED ONCE)</div>
+        <code id="onboard-invite-token" class="mono-token"></code>
+        <div style="font-size: 11px; color: #94A3B8; font-weight: 700; margin-top: 8px;">ACTIVATION LINK (EXPIRES <span id="onboard-invite-expires"></span>)</div>
+        <div style="margin-top: 4px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <a id="onboard-invite-link" href="/member" style="color: #38BDF8; font-family: ui-monospace, monospace; font-size: 12px; word-break: break-all;">Open Member Activation Link</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
 
 
   <script>
@@ -509,10 +670,186 @@
             <span class="house-freeze ${house.status === 'QUARANTINED' ? 'house-restore' : ''}" role="button" onclick="event.stopPropagation(); setHouseQuarantine(${house.house_id}, '${house.status === 'QUARANTINED' ? 'restore' : 'freeze'}')">${house.status === 'QUARANTINED' ? '↺ Restore House' : '⚡ Freeze Entire House'}</span>
           </button>
           <div class="subaccount-panel" ${openHouseIds.has(String(house.house_id)) || (isInitialRender && index === 0) ? '' : 'hidden'}>
-            <table style="width: 100%; margin-bottom: 32px; border-collapse: collapse; display: table;"><thead><tr><th>SCMA ID</th><th>MEMBER NAME</th><th>ROLE / TAG</th><th>CURRENT BALANCE</th><th>RISK DIAL</th><th>RESTING MAKER ORDERS</th><th>ACTIONS</th></tr></thead>
-            <tbody>${house.members.map(member => `<tr data-scma="${member.scma_id}" data-baseline="${member.baseline_risk_dial || .01}"><td class="house-code">${member.scma_id}</td><td><a href="/member?scma_id=${member.scma_id}" style="color:#38bdf8;text-decoration:underline;">${member.name}</a></td><td>${member.role_tag || 'Lineal Member'}</td><td>${money(member.cash_cents)}</td><td class="risk-value">${(Number(member.risk_dial) * 100).toFixed(1)}%</td><td class="order-value">${(member.open_orders || []).length}</td><td>${member.scma_id === 'SCMA-FOUNDER_-C8575D7E' || member.role_tag === 'Sovereign Settlor' ? '<span style="background:#1e293b;border:1px solid #38bdf8;color:#38bdf8;padding:4px 8px;border-radius:4px;font-weight:bold;font-size:11px;">🛡️ Sovereign Immune</span>' : `<button class="lineage-action freeze-risk" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'freeze-risk', this)">⚡ Freeze Risk</button> <button class="lineage-action restore-risk" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'restore-risk', this)">↺ Restore Risk</button> <button class="lineage-action revoke-orders" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'cancel-orders', this)">✕ Revoke Orders</button>`}</td></tr>`).join('')}</tbody></table>
+            <table style="width: 100%; margin-bottom: 32px; border-collapse: collapse; display: table;"><thead><tr><th>SCMA ID</th><th>MEMBER NAME</th><th>ROLE / TAG</th><th>STATUS</th><th>CURRENT BALANCE</th><th>RISK DIAL</th><th>RESTING MAKER ORDERS</th><th>ACTIONS</th></tr></thead>
+            <tbody>${house.members.map(member => `<tr data-scma="${member.scma_id}" data-baseline="${member.baseline_risk_dial || .01}"><td class="house-code">${member.scma_id}</td><td><a href="/member?scma_id=${member.scma_id}" style="color:#38bdf8;text-decoration:underline;">${member.name}</a></td><td>${member.role_tag || 'Lineal Member'}${member.is_custodial ? ' <span class="member-status-pill pending">CUSTODIAL</span>' : ''}</td><td><span class="member-status-pill ${member.status === 'ACTIVE' ? 'active' : (String(member.status || '').includes('PENDING') ? 'pending' : 'frozen')}">${member.status || 'ACTIVE'}</span></td><td style="font-variant-numeric:tabular-nums;">${money(member.cash_cents)}</td><td class="risk-value">${(Number(member.risk_dial) * 100).toFixed(1)}%</td><td class="order-value">${(member.open_orders || []).length}</td><td>${member.scma_id === 'SCMA-FOUNDER_-C8575D7E' || member.role_tag === 'Sovereign Settlor' ? '<span style="background:#1e293b;border:1px solid #38bdf8;color:#38bdf8;padding:4px 8px;border-radius:4px;font-weight:bold;font-size:11px;">🛡️ Sovereign Immune</span>' : `<button class="lineage-action freeze-risk" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'freeze-risk', this)">⚡ Freeze Risk</button> <button class="lineage-action restore-risk" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'restore-risk', this)">↺ Restore Risk</button> <button class="lineage-action revoke-orders" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'cancel-orders', this)">✕ Revoke Orders</button>`}</td></tr>`).join('')}</tbody></table>
           </div>
         </section>`).join('');
+    }
+
+    function openOnboardModal() {
+      document.getElementById('onboard-error').style.display = 'none';
+      document.getElementById('onboard-receipt').style.display = 'none';
+      document.getElementById('onboard-modal').style.display = 'flex';
+      updateOnboardSeedPreview();
+      const nameInput = document.getElementById('onboard-full-name');
+      if (nameInput) nameInput.focus();
+    }
+
+    function closeOnboardModal() {
+      document.getElementById('onboard-modal').style.display = 'none';
+    }
+
+    function updateOnboardSeedPreview() {
+      const raw = (document.getElementById('onboard-seed-cents').value || '').trim();
+      const preview = document.getElementById('onboard-seed-preview');
+      if (/^\d+$/.test(raw)) {
+        const cents = parseInt(raw, 10);
+        const formatted = '$' + (cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        preview.style.color = '#94A3B8';
+        preview.textContent = `Exact Cents: ${cents.toLocaleString()}¢ (${formatted}) · Initializes HWM = ${cents.toLocaleString()}¢ (ADR-012)`;
+      } else {
+        preview.style.color = '#FCA5A5';
+        preview.textContent = 'ADR-008: Enter exact non-negative integer cents only (no decimals or currency symbols).';
+      }
+    }
+
+    async function submitOnboardMember(event) {
+      event.preventDefault();
+      const errBox = document.getElementById('onboard-error');
+      const receiptBox = document.getElementById('onboard-receipt');
+      const submitBtn = document.getElementById('submitOnboardBtn');
+      errBox.style.display = 'none';
+      receiptBox.style.display = 'none';
+
+      const rawSeed = (document.getElementById('onboard-seed-cents').value || '').trim();
+      const parsedSeed = /^\d+$/.test(rawSeed) ? parseInt(rawSeed, 10) : (rawSeed.includes('.') && !isNaN(Number(rawSeed)) ? Number(rawSeed) : rawSeed);
+      const payload = {
+        full_name: (document.getElementById('onboard-full-name').value || '').trim(),
+        member_id: (document.getElementById('onboard-member-id').value || '').trim() || undefined,
+        lineage_house: document.getElementById('onboard-house').value,
+        role_tier: document.getElementById('onboard-role-tier').value,
+        seed_cents: parsedSeed,
+        risk_dial_pct: Number(document.getElementById('onboard-risk-dial').value),
+        is_custodial: Boolean(document.getElementById('onboard-is-custodial').checked),
+        bank_ref_token: (document.getElementById('onboard-bank-ref').value || '').trim(),
+      };
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Provisioning…';
+      try {
+        const response = await fetch('/api/v1/onboarding/provision', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          errBox.textContent = data.detail || `Provisioning rejected (HTTP ${response.status})`;
+          errBox.style.display = 'block';
+          return;
+        }
+        const m = data.member;
+        const inv = data.invite;
+        document.getElementById('onboard-receipt-summary').textContent =
+          `${m.full_name} (${m.scma_id}) assigned to ${m.lineage_code} as ${m.role_tier} · Seed/HWM: ${m.seed_cents.toLocaleString()}¢ · Bank Ref: ${m.bank_ref_token} · Custodial: ${m.is_custodial ? 'Yes' : 'No'}`;
+        document.getElementById('onboard-invite-token').textContent = inv.token;
+        document.getElementById('onboard-invite-expires').textContent = inv.expires_at;
+        const linkEl = document.getElementById('onboard-invite-link');
+        linkEl.href = inv.activation_link;
+        linkEl.textContent = inv.activation_link;
+        receiptBox.style.display = 'block';
+        showLineageStatus(`Provisioned ${m.full_name} (${m.scma_id}) in ${m.lineage_code} with status ${m.status}.`);
+        await loadWorkspaceState();
+      } catch (err) {
+        errBox.textContent = `Network error during provisioning: ${err.message}`;
+        errBox.style.display = 'block';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Provision Member & Issue 48h Invite';
+      }
+    }
+
+    function toggleBatchDrawer() {
+      const drawer = document.getElementById('batch-provision-drawer');
+      const btn = document.getElementById('openBatchDrawerBtn');
+      drawer.hidden = !drawer.hidden;
+      if (btn) btn.setAttribute('aria-expanded', String(!drawer.hidden));
+    }
+
+    function loadBatchTemplate() {
+      const fmt = document.getElementById('batch-format-select').value;
+      const box = document.getElementById('batch-provision-input');
+      if (fmt === 'csv') {
+        box.value = [
+          'full_name,lineage_house,role_tier,seed_cents,risk_dial_pct,is_custodial,bank_ref_token',
+          'Clara Vance,HOUSE-03,MEMBER_USER,100000,1.25,false,EXT-REF-PENFED-****4821',
+          'Noah Vance,HOUSE-03,MEMBER_USER,25000,0.75,true,EXT-REF-TRUST-****9012',
+        ].join('\n');
+      } else {
+        box.value = JSON.stringify([
+          {
+            full_name: 'Clara Vance',
+            lineage_house: 'HOUSE-03',
+            role_tier: 'MEMBER_USER',
+            seed_cents: 100000,
+            risk_dial_pct: 1.25,
+            is_custodial: false,
+            bank_ref_token: 'EXT-REF-PENFED-****4821',
+          },
+          {
+            full_name: 'Noah Vance',
+            lineage_house: 'HOUSE-03',
+            role_tier: 'MEMBER_USER',
+            seed_cents: 25000,
+            risk_dial_pct: 0.75,
+            is_custodial: true,
+            bank_ref_token: 'EXT-REF-TRUST-****9012',
+          },
+        ], null, 2);
+      }
+    }
+
+    async function submitBatchProvision() {
+      const fmt = document.getElementById('batch-format-select').value;
+      const raw = (document.getElementById('batch-provision-input').value || '').trim();
+      const errBox = document.getElementById('batch-provision-error');
+      const resultBox = document.getElementById('batch-provision-result');
+      const btn = document.getElementById('submitBatchProvisionBtn');
+      errBox.style.display = 'none';
+      resultBox.style.display = 'none';
+
+      let bodyPayload;
+      if (fmt === 'csv') {
+        bodyPayload = { format: 'csv', csv_text: raw };
+      } else {
+        try {
+          const parsed = JSON.parse(raw);
+          bodyPayload = Array.isArray(parsed) ? { members: parsed } : parsed;
+        } catch (parseErr) {
+          errBox.textContent = `Invalid JSON batch payload: ${parseErr.message}`;
+          errBox.style.display = 'block';
+          return;
+        }
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Provisioning Batch…';
+      try {
+        const response = await fetch('/api/v1/onboarding/provision/batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(bodyPayload),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          errBox.textContent = data.detail || `Batch provisioning rejected (HTTP ${response.status})`;
+          errBox.style.display = 'block';
+          return;
+        }
+        const items = (data.provisioned || []).map(item =>
+          `<div>• <b>${item.member.full_name}</b> (<code>${item.member.scma_id}</code> · ${item.member.lineage_code}) — <a href="${item.invite.activation_link}" style="color:#38BDF8;">48h Invite Link</a></div>`
+        ).join('');
+        resultBox.innerHTML = `<div style="color:#6EE7B7;font-weight:800;margin-bottom:6px;">✓ Batch Provisioned (${data.count} members · PENDING_TUTOR_CERTIFICATION)</div>${items}`;
+        resultBox.style.display = 'block';
+        showLineageStatus(`Batch provisioned ${data.count} members with 48-hour single-use invite links.`);
+        await loadWorkspaceState();
+      } catch (err) {
+        errBox.textContent = `Batch request failed: ${err.message}`;
+        errBox.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Provision Batch & Issue 48h Invites';
+      }
     }
 
     function toggleHouse(button) {

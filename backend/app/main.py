@@ -54,8 +54,10 @@ except Exception:
 
 from app.api.v1.workspace_router import workspace_router
 from app.api.v1.lineage_router import lineage_router
+from app.api.v1.onboarding_router import onboarding_router
 app.include_router(workspace_router)
 app.include_router(lineage_router)
+app.include_router(onboarding_router)
 
 app.include_router(accounting_router)
 app.include_router(copilot_router)
