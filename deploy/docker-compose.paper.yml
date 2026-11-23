@@ -1,0 +1,91 @@
+# PDEUE Milestone B2-PREP — Hardened Fail-Closed Paper / Observation Stack for AWS Lightsail
+# Target Host: pdeue-production-node (512 MB RAM + 2 GB swap)
+#
+# Host preparation (run once on Lightsail as sudo so non-root UID/GID 10001 can persist SQLite + tapes):
+#   sudo mkdir -p /var/lib/pdeue/data /var/lib/pdeue/tapes
+#   sudo chown -R 10001:10001 /var/lib/pdeue
+#
+# Start stack (from repo root):
+#   docker compose -f deploy/docker-compose.paper.yml up -d --build
+#
+# Port mapping guidance:
+#   - Default binds 127.0.0.1:8000 -> container 8000 (dark-by-default for reverse proxy / Tailscale / SSH tunnel).
+#   - To expose directly on Lightsail port 8000 or 80 behind firewall rules, override PDEUE_BIND_ADDR:
+#       PDEUE_BIND_ADDR=0.0.0.0 PDEUE_HTTP_PORT=80 docker compose -f deploy/docker-compose.paper.yml up -d
+#       PDEUE_BIND_ADDR=0.0.0.0 PDEUE_HTTP_PORT=8000 docker compose -f deploy/docker-compose.paper.yml up -d
+
+services:
+  pdeue-api:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    image: pdeue-paper-node:b2-prep
+    container_name: pdeue-paper-api
+    restart: unless-stopped
+    init: true
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=32m,noexec,nosuid
+    ports:
+      - "${PDEUE_BIND_ADDR:-127.0.0.1}:${PDEUE_HTTP_PORT:-8000}:8000"
+    environment:
+      PDEUE_VENUE_MODE: paper
+      PDEUE_LIVE_TRADING_ENABLED: "false"
+      PDEUE_GOVERNANCE_MODE: EXECUTIVE_COMMAND
+      PDEUE_GATE_G1_STATUS: HOLD_OBSERVATIONS_ONLY
+      DATABASE_URL: sqlite:////var/lib/pdeue/data/pdeue.db
+      PDEUE_TAPE_DIR: /var/lib/pdeue/tapes
+    volumes:
+      - "${PDEUE_HOST_DATA_DIR:-/var/lib/pdeue/data}:/var/lib/pdeue/data"
+      - "${PDEUE_HOST_TAPE_DIR:-/var/lib/pdeue/tapes}:/var/lib/pdeue/tapes"
+    # Tuned for 512 MB RAM + 2 GB swap Lightsail host (combined with collector <= 448 MB RAM)
+    mem_limit: 320m
+    memswap_limit: 1024m
+    mem_reservation: 128m
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys, urllib.request; r = urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3); sys.exit(0 if r.status == 200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  pdeue-l2-collector:
+    image: pdeue-paper-node:b2-prep
+    container_name: pdeue-l2-collector
+    restart: unless-stopped
+    init: true
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=16m,noexec,nosuid
+    depends_on:
+      pdeue-api:
+        condition: service_healthy
+    command: ["collector"]
+    environment:
+      PDEUE_VENUE_MODE: observation
+      PDEUE_LIVE_TRADING_ENABLED: "false"
+      PDEUE_GOVERNANCE_MODE: EXECUTIVE_COMMAND
+      PDEUE_GATE_G1_STATUS: HOLD_OBSERVATIONS_ONLY
+      PDEUE_TAPE_DIR: /var/lib/pdeue/tapes
+      PDEUE_L2_POLL_INTERVAL_SECONDS: "${PDEUE_L2_POLL_INTERVAL_SECONDS:-60}"
+      PDEUE_L2_KALSHI_COUNT: "${PDEUE_L2_KALSHI_COUNT:-2}"
+      PDEUE_L2_POLY_COUNT: "${PDEUE_L2_POLY_COUNT:-2}"
+    volumes:
+      - "${PDEUE_HOST_TAPE_DIR:-/var/lib/pdeue/tapes}:/var/lib/pdeue/tapes"
+    mem_limit: 128m
+    memswap_limit: 512m
+    mem_reservation: 48m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
