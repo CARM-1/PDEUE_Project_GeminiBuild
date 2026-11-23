@@ -202,3 +202,125 @@ class OnboardingInviteTokenModel(Base):
     consumed_at = Column(String, nullable=True)
     created_at = Column(String, default=_now)
 
+
+class LineageHouseModel(Base):
+    """Milestone C6: Relational 12-House Lineage Registry (HOUSE-01..HOUSE-12)."""
+    __tablename__ = 'lineage_houses'
+    house_id = Column(Integer, primary_key=True, index=True)
+    lineage_code = Column(String, unique=True, nullable=False, index=True)
+    name = Column(String, nullable=False)
+    leader_name = Column(String, nullable=False)
+    leader_role = Column(String, nullable=False, default='H2')
+    status = Column(String, nullable=False, default='ACTIVE')
+    governance_seat = Column(Integer, nullable=False, default=1)
+    created_at = Column(String, default=_now)
+    updated_at = Column(String, default=_now)
+    members = relationship('LineageHouseMemberModel', back_populates='house', cascade='all, delete-orphan')
+
+
+class LineageHouseMemberModel(Base):
+    """Milestone C6: Subordinate SCMA membership & exact 64-bit integer-cent rollups (ADR-008)."""
+    __tablename__ = 'lineage_house_members'
+    scma_id = Column(String, primary_key=True, index=True)
+    house_id = Column(Integer, ForeignKey('lineage_houses.house_id'), nullable=False, index=True)
+    member_id = Column(String, nullable=True)
+    name = Column(String, nullable=False)
+    role_tag = Column(String, nullable=False, default='Lineal Member')
+    cash_cents = Column(BigInteger, nullable=False, default=0)
+    high_water_mark_cents = Column(BigInteger, nullable=False, default=0)
+    risk_dial_bps = Column(Integer, nullable=False, default=100)
+    baseline_risk_dial_bps = Column(Integer, nullable=False, default=100)
+    is_custodial = Column(Integer, nullable=False, default=0)
+    status = Column(String, nullable=False, default='ACTIVE')
+    literacy_completion_pct = Column(Integer, nullable=False, default=100)
+    open_orders_json = Column(Text, nullable=False, default='[]')
+    created_at = Column(String, default=_now)
+    updated_at = Column(String, default=_now)
+    house = relationship('LineageHouseModel', back_populates='members')
+
+
+class GovernanceConfigModel(Base):
+    """Milestone C6: Global 3-Stage Governance Mode configuration (defaults fail-closed EXECUTIVE_COMMAND)."""
+    __tablename__ = 'governance_config'
+    config_id = Column(String, primary_key=True, default='GLOBAL')
+    governance_mode = Column(String, nullable=False, default='EXECUTIVE_COMMAND')
+    updated_by = Column(String, nullable=False, default='SYSTEM_INIT')
+    updated_at = Column(String, default=_now)
+    last_reason = Column(Text, nullable=True)
+
+
+class GovernanceBodyModel(Base):
+    """Milestone C6: Data-driven FUTURE Enclave communal bodies with configurable quorum/veto thresholds."""
+    __tablename__ = 'governance_bodies'
+    body_id = Column(String, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False)
+    description = Column(Text, nullable=False, default='')
+    quorum_numerator = Column(Integer, nullable=False, default=9)
+    quorum_denominator = Column(Integer, nullable=False, default=12)
+    quorum_pct = Column(Integer, nullable=False, default=75)
+    veto_threshold_count = Column(Integer, nullable=False, default=9)
+    veto_threshold_pct = Column(Integer, nullable=False, default=75)
+    can_exercise_stage3_veto = Column(Integer, nullable=False, default=1)
+    active = Column(Integer, nullable=False, default=1)
+    created_by = Column(String, nullable=False, default='CHIEF_ADMINISTRATOR')
+    created_at = Column(String, default=_now)
+    updated_at = Column(String, default=_now)
+    seats = relationship('GovernanceVoterSeatModel', back_populates='body', cascade='all, delete-orphan')
+
+
+class GovernanceVoterSeatModel(Base):
+    """Milestone C6: Grants voting/veto rights to either a House/Role office or a specific named individual."""
+    __tablename__ = 'governance_voter_seats'
+    seat_id = Column(String, primary_key=True, index=True)
+    body_id = Column(String, ForeignKey('governance_bodies.body_id'), nullable=False, index=True)
+    seat_type = Column(String, nullable=False, default='HOUSE_OFFICE')
+    house_id = Column(Integer, nullable=True, index=True)
+    office_role = Column(String, nullable=True)
+    user_id = Column(String, nullable=True, index=True)
+    display_name = Column(String, nullable=False)
+    can_vote = Column(Integer, nullable=False, default=1)
+    can_veto = Column(Integer, nullable=False, default=0)
+    active = Column(Integer, nullable=False, default=1)
+    granted_by = Column(String, nullable=False, default='CHIEF_ADMINISTRATOR')
+    granted_at = Column(String, default=_now)
+    revoked_by = Column(String, nullable=True)
+    revoked_at = Column(String, nullable=True)
+    body = relationship('GovernanceBodyModel', back_populates='seats')
+
+
+class GovernancePetitionModel(Base):
+    """Milestone C6: Persisted governance proposals/petitions with ADR-008 exact-cent amounts."""
+    __tablename__ = 'governance_petitions'
+    proposal_id = Column(String, primary_key=True, index=True)
+    body_id = Column(String, ForeignKey('governance_bodies.body_id'), nullable=False, default='COUNCIL_OF_12_HOUSES', index=True)
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=False, default='')
+    proposal_category = Column(String, nullable=False, default='CFCP_GRANT')
+    target_house_id = Column(Integer, nullable=False, default=1)
+    amount_cents = Column(BigInteger, nullable=False, default=0)
+    status = Column(String, nullable=False, default='HOUSE_VOTE_OPEN')
+    created_by = Column(String, nullable=False, default='SYSTEM')
+    settled_by = Column(String, nullable=True)
+    settled_at = Column(String, nullable=True)
+    veto_reason = Column(Text, nullable=True)
+    created_at = Column(String, default=_now)
+    updated_at = Column(String, default=_now)
+    votes = relationship('GovernanceVoteModel', back_populates='petition', cascade='all, delete-orphan')
+
+
+class GovernanceVoteModel(Base):
+    """Milestone C6: Persisted AYE / NAY / VETO ballots cast by House office or named individual seats."""
+    __tablename__ = 'governance_votes'
+    vote_id = Column(String, primary_key=True, index=True)
+    proposal_id = Column(String, ForeignKey('governance_petitions.proposal_id'), nullable=False, index=True)
+    body_id = Column(String, ForeignKey('governance_bodies.body_id'), nullable=False, index=True)
+    seat_id = Column(String, ForeignKey('governance_voter_seats.seat_id'), nullable=True, index=True)
+    voter_house_id = Column(Integer, nullable=True, index=True)
+    voter_user_id = Column(String, nullable=True, index=True)
+    voter_display_name = Column(String, nullable=False)
+    vote_choice = Column(String, nullable=False)
+    rationale = Column(Text, nullable=True, default='')
+    cast_at = Column(String, default=_now)
+    petition = relationship('GovernancePetitionModel', back_populates='votes')
+
+
