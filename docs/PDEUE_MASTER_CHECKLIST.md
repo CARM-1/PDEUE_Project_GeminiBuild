@@ -26,10 +26,10 @@
 
 ## Domain C — Member Onboarding & Role / Authority Tier Matrix
 - [x] **C1** | **5-Stage Member Onboarding Pipeline** (`[+ Onboard Member]` modal & batch ingest on `/dashboard`, 48h invite tokens, first-run Platform Orientation & Pay-It-Forward view on `/member`, `/companion` certification gate, `EXT-REF-...` funding instructions) | *Ring 1 Alpha* | Gate: Playwright E2E onboarding walk (Admin -> Member) (`test_c1_member_onboarding.py` + `tests/e2e/test_c1_onboarding_e2e.py`, 806 backend + 18 Playwright E2E green)
-- [ ] **C2** | **Directive R-06 Active-Hat Context Switching** & strict non-admin navigation siloing | *Ring 1 Alpha* | Gate: Playwright HTTP 403 isolation + JWT hat-switch tests
-- [ ] **C3** | **Founder Quarantine Immunity** & **Supervisory Audit Lens** amber banner | *Ring 1 Alpha* | Gate: Unit + Playwright test (Founder root SCMA cannot be clamped)
-- [ ] **C4** | **Class T Sub-Tier Decomposition** (`T1` Monitor, `T2` Engineer, `T2-Household`, `T3` CTO + Directive R-12 `$****.**` masking) | *Full Prod* | Gate: Playwright DOM-strip + redaction assertions per tier
-- [ ] **C5** | **Class F Sub-Tier Decomposition** (`F1` Mentor, `F2-H` HoH + `is_custodial` minor locks, `F2-A` Lineage Advisor, `F3` CRO dual-sign override) | *Full Prod* | Gate: Playwright role-matrix + dual-signature API tests
+- [x] **C2** | **Directive R-06 Active-Hat Context Switching** & strict non-admin navigation siloing | *Ring 1 Alpha* | Gate: Playwright HTTP 403 isolation + JWT hat-switch tests (`test_c2_c5_authority_tiers.py` + `tests/e2e/test_c2_c5_role_matrix_e2e.py`, 869 backend + 24 Playwright E2E green)
+- [x] **C3** | **Founder Quarantine Immunity** & **Supervisory Audit Lens** amber banner | *Ring 1 Alpha* | Gate: Unit + Playwright test (Founder root SCMA & identity immune across all subordinate tiers with HTTP 403 + audit log; `#D97706` read-only Supervisory Audit Lens banner verified)
+- [x] **C4** | **Class T Sub-Tier Decomposition** (`T1` Monitor, `T2` Engineer, `T2-Household`, `T3` CTO + Directive R-12 `$****.**` masking) | *Full Prod* | Gate: Playwright DOM-strip + time-bounded audited CA Override + redaction assertions per tier (`test_c2_c5_authority_tiers.py` + `test_c2_c5_role_matrix_e2e.py` green)
+- [x] **C5** | **Class F Sub-Tier Decomposition** (`F1` Mentor, `F2-H` HoH + `is_custodial` minor locks, `F2-A` Lineage Advisor, `F3` CRO dual-sign override & CA-only resumption) | *Full Prod* | Gate: Playwright role-matrix + dual-signature API tests (`test_c2_c5_authority_tiers.py` + `test_c2_c5_role_matrix_e2e.py` green)
 - [ ] **C6** | **Class H 12-House Lineage Schema & Portal** (`SCMA -> Household -> House (1..12) -> CFCP`, `/lineage/house/{id}`, `H1` vs `H2`, 9/12 petition + **Absolute Founder Veto**) | *Full Prod* | Gate: DB hierarchy tests + H1 403 block + Founder veto test
 
 ## Domain D — IFAS Banking, Distributions, Tax & FSAP / Pay-It-Forward

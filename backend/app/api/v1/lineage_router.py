@@ -3,10 +3,18 @@ PDEUE Lineage & House Leader Desk Router (Class H)
 Enforces strict Lineal branch confinement, subordinate roster controls,
 institutional intervention modals with zero native alerts, and bicameral consensus.
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Header, HTTPException
 from fastapi.responses import HTMLResponse
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from app.domain.lineage_hierarchy import get_lineage_service
+from app.domain.authority_tiers import (
+    enforce_founder_immunity,
+    get_governance_audit_log,
+    is_chief_admin_role,
+    is_class_t_role,
+    is_founder_target,
+    normalize_role_token,
+)
 
 lineage_router = APIRouter()
 _lineage_service = get_lineage_service()
@@ -60,41 +68,129 @@ def get_house_detail(house_id: int):
     return _lineage_service.get_house_summary(house_id)
 
 @lineage_router.post("/api/v1/lineage/house/{house_id}/subordinate/cancel-orders")
-def cancel_subordinate_orders(house_id: int, payload: Dict[str, Any]):
+def cancel_subordinate_orders(
+    house_id: int,
+    payload: Dict[str, Any],
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+):
     scma_id = payload.get("scma_id")
     if not scma_id:
         raise HTTPException(status_code=400, detail="Missing scma_id in payload.")
+    actor_role = x_actor_role or payload.get("actor_role")
+    if actor_role and is_class_t_role(actor_role):
+        get_governance_audit_log().record(
+            event_type="ROLE_BOUNDARY_DENIED",
+            actor_id=str(payload.get("actor_id") or actor_role),
+            actor_role=normalize_role_token(actor_role),
+            target_id=str(scma_id),
+            action="CANCEL_SUBORDINATE_ORDERS",
+            outcome="DENIED_CLASS_T_ZERO_HOUSE_AUTHORITY",
+            http_status=403,
+            detail="Class T technical operators inherit zero House or household authority.",
+        )
+        raise HTTPException(status_code=403, detail="Class T technical roles have zero House or household authority.")
+    if actor_role and is_founder_target(scma_id):
+        enforce_founder_immunity(
+            target_id=scma_id,
+            action="CANCEL_ORDERS",
+            actor_role=actor_role,
+            actor_id=str(payload.get("actor_id") or actor_role),
+        )
     try:
-        return _lineage_service.cancel_subordinate_orders(house_id=house_id, scma_id=scma_id)
+        result = _lineage_service.cancel_subordinate_orders(house_id=house_id, scma_id=scma_id)
+        if result.get("status") == "SOVEREIGN_IMMUNE":
+            get_governance_audit_log().record(
+                event_type="FOUNDER_IMMUNITY_ENFORCED",
+                actor_id="lineage_router",
+                actor_role="HOUSE_DELEGATE",
+                target_id=str(scma_id),
+                action="CANCEL_ORDERS",
+                outcome="SOVEREIGN_IMMUNE",
+                http_status=200,
+                detail="Founder SCMA orders preserved under Sovereign Settlor immunity.",
+            )
+        return result
     except ValueError as err:
         raise HTTPException(status_code=404, detail=str(err))
 
 @lineage_router.post("/api/v1/lineage/house/{house_id}/subordinate/freeze-risk")
-def freeze_subordinate_risk(house_id: int, payload: Dict[str, Any]):
+def freeze_subordinate_risk(
+    house_id: int,
+    payload: Dict[str, Any],
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+):
     scma_id = payload.get("scma_id")
     if not scma_id:
         raise HTTPException(status_code=400, detail="Missing scma_id in payload.")
+    actor_role = x_actor_role or payload.get("actor_role")
+    if actor_role and is_class_t_role(actor_role):
+        get_governance_audit_log().record(
+            event_type="ROLE_BOUNDARY_DENIED",
+            actor_id=str(payload.get("actor_id") or actor_role),
+            actor_role=normalize_role_token(actor_role),
+            target_id=str(scma_id),
+            action="FREEZE_SUBORDINATE_RISK",
+            outcome="DENIED_CLASS_T_ZERO_HOUSE_AUTHORITY",
+            http_status=403,
+            detail="Class T technical operators inherit zero House or household authority.",
+        )
+        raise HTTPException(status_code=403, detail="Class T technical roles have zero House or household authority.")
+    if actor_role and is_founder_target(scma_id):
+        enforce_founder_immunity(
+            target_id=scma_id,
+            action="FREEZE_RISK",
+            actor_role=actor_role,
+            actor_id=str(payload.get("actor_id") or actor_role),
+        )
     try:
-        return _lineage_service.freeze_subordinate_risk(house_id=house_id, scma_id=scma_id)
+        result = _lineage_service.freeze_subordinate_risk(house_id=house_id, scma_id=scma_id)
+        if result.get("status") == "SOVEREIGN_IMMUNE":
+            get_governance_audit_log().record(
+                event_type="FOUNDER_IMMUNITY_ENFORCED",
+                actor_id="lineage_router",
+                actor_role="HOUSE_DELEGATE",
+                target_id=str(scma_id),
+                action="FREEZE_RISK",
+                outcome="SOVEREIGN_IMMUNE",
+                http_status=200,
+                detail="Founder SCMA risk dial preserved under Sovereign Settlor immunity.",
+            )
+        return result
     except ValueError as err:
         raise HTTPException(status_code=404, detail=str(err))
 
 @lineage_router.post("/api/v1/lineage/house/{house_id}/freeze")
-def freeze_house(house_id: int):
+def freeze_house(
+    house_id: int,
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+):
+    if x_actor_role and is_class_t_role(x_actor_role):
+        raise HTTPException(status_code=403, detail="Class T technical roles have zero House or household authority.")
     try:
         return _lineage_service.freeze_house(house_id)
     except ValueError as err:
         raise HTTPException(status_code=404, detail=str(err))
 
 @lineage_router.post("/api/v1/lineage/house/{house_id}/restore")
-def restore_house(house_id: int):
+def restore_house(
+    house_id: int,
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+):
+    if x_actor_role and is_class_t_role(x_actor_role):
+        raise HTTPException(status_code=403, detail="Class T technical roles have zero House or household authority.")
     try:
         return _lineage_service.restore_house(house_id)
     except ValueError as err:
         raise HTTPException(status_code=404, detail=str(err))
 
 @lineage_router.post("/api/v1/lineage/house/{house_id}/subordinate/restore-risk")
-def restore_subordinate_risk(house_id: int, payload: Dict[str, Any]):
+def restore_subordinate_risk(
+    house_id: int,
+    payload: Dict[str, Any],
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+):
+    if x_actor_role and is_class_t_role(x_actor_role):
+        raise HTTPException(status_code=403, detail="Class T technical roles have zero House or household authority.")
     scma_id = payload.get("scma_id")
     target_risk_dial = payload.get("target_risk_dial")
     if not scma_id or target_risk_dial is None:
@@ -105,6 +201,68 @@ def restore_subordinate_risk(house_id: int, payload: Dict[str, Any]):
         )
     except (TypeError, ValueError) as err:
         raise HTTPException(status_code=400, detail=str(err))
+
+
+@lineage_router.post("/api/v1/governance/accounts/{target_id}/action")
+def execute_account_governance_action(
+    target_id: str,
+    payload: Dict[str, Any],
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+):
+    """Enforce un-overridable Founder/Chief Administrator Apex immunity against freeze/quarantine/demote/revoke."""
+    action = str(payload.get("action") or "").strip().upper()
+    if action not in {"FREEZE", "QUARANTINE", "DEMOTE", "REVOKE"}:
+        raise HTTPException(status_code=422, detail="action must be FREEZE, QUARANTINE, DEMOTE, or REVOKE")
+    actor_role = x_actor_role or str(payload.get("actor_role") or "")
+    actor_id = str(payload.get("actor_id") or actor_role or "unknown")
+    norm_role = normalize_role_token(actor_role)
+
+    # Un-overridable Founder Apex Immunity: no tier (including T3, F3, H2, F2-H) may freeze/quarantine/demote/revoke Founder.
+    if is_founder_target(target_id):
+        enforce_founder_immunity(
+            target_id=target_id,
+            action=action,
+            actor_role=norm_role or "UNSPECIFIED",
+            actor_id=actor_id,
+        )
+
+    if not is_chief_admin_role(norm_role):
+        get_governance_audit_log().record(
+            event_type="ROLE_BOUNDARY_DENIED",
+            actor_id=actor_id,
+            actor_role=norm_role or "UNSPECIFIED",
+            target_id=target_id,
+            action=action,
+            outcome="DENIED_CHIEF_ADMIN_REQUIRED",
+            http_status=403,
+            detail=f"Role {norm_role or 'UNSPECIFIED'} lacks authority to {action} account {target_id}.",
+        )
+        raise HTTPException(status_code=403, detail="Chief Administrator authority is required for account governance actions.")
+
+    audit = get_governance_audit_log().record(
+        event_type="GOVERNANCE_ACCOUNT_ACTION",
+        actor_id=actor_id,
+        actor_role="CHIEF_ADMINISTRATOR",
+        target_id=target_id,
+        action=action,
+        outcome="EXECUTED",
+        http_status=200,
+        detail=f"Chief Administrator executed {action} on subordinate account {target_id}.",
+    )
+    return {
+        "status": f"{action}_APPLIED",
+        "target_id": target_id,
+        "action": action,
+        "actor_role": "CHIEF_ADMINISTRATOR",
+        "audit_event_id": audit["event_id"],
+    }
+
+
+@lineage_router.get("/api/v1/governance/audit-log")
+def get_governance_audit_events(event_type: Optional[str] = None, limit: int = 100):
+    return {
+        "events": get_governance_audit_log().list_events(event_type=event_type, limit=limit),
+    }
 
 @lineage_router.post("/api/v1/lineage/governance/propose")
 def evaluate_proposal(payload: Dict[str, Any]):
@@ -392,10 +550,29 @@ def submit_petition(payload: Dict[str, Any]):
     )
 
 @lineage_router.post("/api/v1/lineage/governance/adjudicate")
-def adjudicate_governance_proposal(payload: Dict[str, Any]):
+def adjudicate_governance_proposal(
+    payload: Dict[str, Any],
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+):
     proposal_id = payload.get("proposal_id")
     action = payload.get("action")
     caller_scma = payload.get("caller_scma", "SCMA-FOUNDER_-C8575D7E")
+    actor_role = x_actor_role or payload.get("actor_role")
+    if actor_role and not is_chief_admin_role(actor_role):
+        get_governance_audit_log().record(
+            event_type="ROLE_BOUNDARY_DENIED",
+            actor_id=str(caller_scma),
+            actor_role=normalize_role_token(actor_role),
+            target_id=str(proposal_id or ""),
+            action="ADJUDICATE_SOVEREIGN_PROPOSAL",
+            outcome="DENIED_NON_SOVEREIGN",
+            http_status=403,
+            detail="Only Founder/Chief Administrator possesses Sovereign Veto and Execution authority.",
+        )
+        raise HTTPException(
+            status_code=403,
+            detail="Access Denied: Only Founder/Chief Administrator possesses Sovereign Veto and Execution authority.",
+        )
     if not proposal_id or not action:
         raise HTTPException(status_code=400, detail="Missing proposal_id or action.")
     try:

@@ -122,13 +122,13 @@
         <a href="/dashboard" class="hub-btn active">Chief Admin Cockpit</a>
         <a href="/admin/tech" class="hub-btn inactive">Technical Console (Class T)</a>
         <a href="/advisor" class="hub-btn inactive">Lineal Advisory (Class F)</a>
-        <a href="/member" class="hub-btn inactive">Member Desktop (Class M)</a>
+        <a href="/member" class="hub-btn inactive" id="hubMemberLink" onclick="return openHatSwitchModalFromLink(event)">Member Desktop (Class M)</a>
         <a href="/companion" class="nav-link campus-link" id="navCompanionLink">🎓 PDEUE University</a>
       </div>
     </div>
     <div class="currency-toggle" aria-label="Currency display precision"><button id="currBtnClean" class="curr-btn active" onclick="setCurrencyMode('clean')">$ USD (Clean)</button><button id="currBtnExact" class="curr-btn" onclick="setCurrencyMode('exact')">$ USD.¢¢ (Exact Cents)</button></div>
   </div>
-  <header class="header"><div><div style="color:#38bdf8;font-size:11px;font-weight:800;letter-spacing:.08em;">SOVEREIGN SETTLOR JURISDICTION</div><h1>Chief Administrator Cockpit</h1><div style="color:#94a3b8;font-size:12px;">FOUNDER VETO: ACTIVE · IMMUTABLE 87 / 10 / 3 WATERFALL</div></div><div class="header-controls"><span class="badge-mode">MODE: PAPER</span><button class="btn-kill" type="button" onclick="confirmKillSwitch()">EMERGENCY KILL SWITCH</button></div></header>
+  <header class="header"><div><div style="color:#38bdf8;font-size:11px;font-weight:800;letter-spacing:.08em;">SOVEREIGN SETTLOR JURISDICTION</div><h1>Chief Administrator Cockpit</h1><div style="color:#94a3b8;font-size:12px;">FOUNDER VETO: ACTIVE · IMMUTABLE 87 / 10 / 3 WATERFALL</div></div><div class="header-controls"><span id="activeHatBadge" class="badge-mode" style="background:#1E293B;color:#F8FAFC;border-color:#38BDF8;">Active Hat: CHIEF_ADMIN</span><button id="openHatSwitchBtn" type="button" class="btn-batch" onclick="openHatSwitchModal()">Switch Active Hat</button><span class="badge-mode">MODE: PAPER</span><button class="btn-kill" type="button" onclick="confirmKillSwitch()">EMERGENCY KILL SWITCH</button></div></header>
   <details class="qualification-drawer"><summary>Engine Qualification Telemetry</summary><div class="qualification-grid"><span data-bind="capital.data.total_equity_cents">Lineage equity feed: qualification pending</span><span data-bind="capital.data.dry_powder_policy_status">Dry-powder policy: qualification pending</span><span data-bind="capital.data.cfcp_balance_cents">CFCP feed: qualification pending</span><span data-bind="capital.data.faep_balance_cents">FAEP feed: qualification pending</span><span data-bind="governance.system_halt">System halt: armed</span><span data-bind="governance.pending_dual_control">Dual-control queue: qualification pending</span><span data-bind="personal.data.principal_cents">Principal feed: qualification pending</span><span data-bind="personal.data.unreserved_cash_cents">Available cash feed: qualification pending</span><span>Four-domain scanner: NOT AVAILABLE - QUALIFICATION PENDING</span></div></details>
   <div class="tabs">
     <button id="tab-btn-1" class="tab-btn active" onclick="switchTab(1)">1. Lineage Executive Overview</button>
@@ -517,6 +517,31 @@
     </div>
   </div>
 
+  <!-- DIRECTIVE R-06: ACTIVE-HAT CONTEXT SWITCH CONFIRMATION GATEWAY -->
+  <div id="hat-switch-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="hat-switch-title">
+    <div class="modal-box" style="border: 1px solid #D97706;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 12px; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <span style="background: #D97706; color: #0B132B; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 4px; letter-spacing: .06em;">DIRECTIVE R-06 · ACTIVE-HAT GATEWAY</span>
+          <strong id="hat-switch-title" style="color: #F8FAFC; font-size: 16px;">Switch Active Hat Confirmation</strong>
+        </div>
+        <button id="closeHatSwitchBtn" type="button" onclick="closeHatSwitchModal()" style="background: transparent; border: 1px solid #334155; color: #CBD5E1; border-radius: 4px; padding: 4px 8px; font-size: 12px; cursor: pointer;">Close</button>
+      </div>
+      <p style="color: #CBD5E1; font-size: 13px; line-height: 1.5; margin-bottom: 12px;">
+        Privileges never blend across PDEUE workspaces. Switching from <strong style="color:#38BDF8;">CHIEF_ADMINISTRATOR</strong> to your personal <strong style="color:#FCD34D;">PERSONAL_SCMA (CLASS M: MEMBER_USER)</strong> hat revokes executive session authority for the personal workspace and logs an auditable Directive R-06 context-switch event.
+      </p>
+      <div style="background: #0B132B; border: 1px solid #334155; border-radius: 8px; padding: 12px; margin-bottom: 14px; font-size: 12px; color: #CBD5E1;">
+        <div>Current Active Hat: <code style="color:#38BDF8;">CHIEF_ADMINISTRATOR</code> (/dashboard)</div>
+        <div style="margin-top: 6px;">Target Active Hat: <code style="color:#FCD34D;">PERSONAL_SCMA</code> (/member?scma_id=SCMA-FOUNDER_-C8575D7E)</div>
+      </div>
+      <div id="hat-switch-error" class="onboard-error" role="alert"></div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button id="cancelHatSwitchBtn" type="button" onclick="closeHatSwitchModal()" style="background: #334155; color: #CBD5E1; border: none; padding: 9px 16px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 13px;">Stay in Chief Admin</button>
+        <button id="confirmHatSwitchBtn" type="button" onclick="confirmSwitchActiveHat()" style="background: #D97706; color: #0B132B; border: 1px solid #FCD34D; padding: 9px 18px; border-radius: 6px; cursor: pointer; font-weight: 800; font-size: 13px;">Confirm &amp; Switch Active Hat</button>
+      </div>
+    </div>
+  </div>
+
 
 
   <script>
@@ -671,9 +696,71 @@
           </button>
           <div class="subaccount-panel" ${openHouseIds.has(String(house.house_id)) || (isInitialRender && index === 0) ? '' : 'hidden'}>
             <table style="width: 100%; margin-bottom: 32px; border-collapse: collapse; display: table;"><thead><tr><th>SCMA ID</th><th>MEMBER NAME</th><th>ROLE / TAG</th><th>STATUS</th><th>CURRENT BALANCE</th><th>RISK DIAL</th><th>RESTING MAKER ORDERS</th><th>ACTIONS</th></tr></thead>
-            <tbody>${house.members.map(member => `<tr data-scma="${member.scma_id}" data-baseline="${member.baseline_risk_dial || .01}"><td class="house-code">${member.scma_id}</td><td><a href="/member?scma_id=${member.scma_id}" style="color:#38bdf8;text-decoration:underline;">${member.name}</a></td><td>${member.role_tag || 'Lineal Member'}${member.is_custodial ? ' <span class="member-status-pill pending">CUSTODIAL</span>' : ''}</td><td><span class="member-status-pill ${member.status === 'ACTIVE' ? 'active' : (String(member.status || '').includes('PENDING') ? 'pending' : 'frozen')}">${member.status || 'ACTIVE'}</span></td><td style="font-variant-numeric:tabular-nums;">${money(member.cash_cents)}</td><td class="risk-value">${(Number(member.risk_dial) * 100).toFixed(1)}%</td><td class="order-value">${(member.open_orders || []).length}</td><td>${member.scma_id === 'SCMA-FOUNDER_-C8575D7E' || member.role_tag === 'Sovereign Settlor' ? '<span style="background:#1e293b;border:1px solid #38bdf8;color:#38bdf8;padding:4px 8px;border-radius:4px;font-weight:bold;font-size:11px;">🛡️ Sovereign Immune</span>' : `<button class="lineage-action freeze-risk" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'freeze-risk', this)">⚡ Freeze Risk</button> <button class="lineage-action restore-risk" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'restore-risk', this)">↺ Restore Risk</button> <button class="lineage-action revoke-orders" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'cancel-orders', this)">✕ Revoke Orders</button>`}</td></tr>`).join('')}</tbody></table>
+            <tbody>${house.members.map(member => `<tr data-scma="${member.scma_id}" data-baseline="${member.baseline_risk_dial || .01}"><td class="house-code">${member.scma_id}</td><td><a href="/member?scma_id=${member.scma_id}" style="color:#38bdf8;text-decoration:underline;">${member.name}</a>${member.scma_id === 'SCMA-FOUNDER_-C8575D7E' || member.role_tag === 'Sovereign Settlor' ? '' : ` <a href="/member?scma_id=${member.scma_id}&supervisory=1&inspector=CHIEF_ADMIN" style="display:inline-block;margin-left:6px;background:rgba(217,119,6,0.18);border:1px solid #D97706;color:#FCD34D;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:800;text-decoration:none;">Audit Lens</a>`}</td><td>${member.role_tag || 'Lineal Member'}${member.is_custodial ? ' <span class="member-status-pill pending">CUSTODIAL</span>' : ''}</td><td><span class="member-status-pill ${member.status === 'ACTIVE' ? 'active' : (String(member.status || '').includes('PENDING') ? 'pending' : 'frozen')}">${member.status || 'ACTIVE'}</span></td><td style="font-variant-numeric:tabular-nums;">${money(member.cash_cents)}</td><td class="risk-value">${(Number(member.risk_dial) * 100).toFixed(1)}%</td><td class="order-value">${(member.open_orders || []).length}</td><td>${member.scma_id === 'SCMA-FOUNDER_-C8575D7E' || member.role_tag === 'Sovereign Settlor' ? '<span style="background:#1e293b;border:1px solid #38bdf8;color:#38bdf8;padding:4px 8px;border-radius:4px;font-weight:bold;font-size:11px;">🛡️ Sovereign Immune</span>' : `<button class="lineage-action freeze-risk" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'freeze-risk', this)">⚡ Freeze Risk</button> <button class="lineage-action restore-risk" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'restore-risk', this)">↺ Restore Risk</button> <button class="lineage-action revoke-orders" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'cancel-orders', this)">✕ Revoke Orders</button>`}</td></tr>`).join('')}</tbody></table>
           </div>
         </section>`).join('');
+    }
+
+    function openHatSwitchModal() {
+      const errBox = document.getElementById('hat-switch-error');
+      if (errBox) errBox.style.display = 'none';
+      const modal = document.getElementById('hat-switch-modal');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function openHatSwitchModalFromLink(event) {
+      if (event) event.preventDefault();
+      openHatSwitchModal();
+      return false;
+    }
+
+    function closeHatSwitchModal() {
+      const modal = document.getElementById('hat-switch-modal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    async function confirmSwitchActiveHat() {
+      const errBox = document.getElementById('hat-switch-error');
+      const btn = document.getElementById('confirmHatSwitchBtn');
+      if (errBox) errBox.style.display = 'none';
+      if (btn) { btn.disabled = true; btn.textContent = 'Switching Active Hat…'; }
+      try {
+        const res = await fetch('/api/v1/portal/active-hat/switch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            principal_id: 'USR-founder_ch-C8575D7E',
+            principal_role: 'CHIEF_ADMINISTRATOR',
+            from_hat: 'CHIEF_ADMINISTRATOR',
+            to_hat: 'PERSONAL_SCMA',
+            confirmed: true,
+            target_workspace: '/member?scma_id=SCMA-FOUNDER_-C8575D7E',
+            reason: 'Intentional executive to personal SCMA Active-Hat switch'
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          if (errBox) {
+            errBox.textContent = data.detail || `Active-Hat switch rejected (HTTP ${res.status})`;
+            errBox.style.display = 'block';
+          }
+          return;
+        }
+        try {
+          sessionStorage.setItem('pdeue_active_hat_token', data.access_token || '');
+          sessionStorage.setItem('pdeue_active_hat_event', data.event_id || '');
+          sessionStorage.setItem('pdeue_active_hat_role', data.active_hat || 'PERSONAL_SCMA');
+          sessionStorage.setItem('pdeue_multi_role_principal', data.principal_id || 'USR-founder_ch-C8575D7E');
+        } catch (_e) {}
+        window.location.assign(`/member?scma_id=SCMA-FOUNDER_-C8575D7E&hat_switch=${encodeURIComponent(data.event_id || '')}`);
+      } catch (err) {
+        if (errBox) {
+          errBox.textContent = `Active-Hat switch failed: ${err.message}`;
+          errBox.style.display = 'block';
+        }
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Confirm & Switch Active Hat'; }
+      }
     }
 
     function openOnboardModal() {

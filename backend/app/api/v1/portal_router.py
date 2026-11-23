@@ -17,6 +17,19 @@ from app.domain.lineage_hierarchy import get_lineage_service
 from app.domain.scan_worker import AutonomousScanWorker
 from app.domain.fleet_bridge import get_shared_fleet_coordinator
 from app.domain.ai_copilot import AICopilotEngine
+from app.domain.authority_tiers import (
+    enforce_founder_immunity,
+    get_active_hat_gateway,
+    get_ca_override_manager,
+    get_directive_r04_controller,
+    get_governance_audit_log,
+    is_chief_admin_role,
+    is_class_t_role,
+    is_founder_target,
+    normalize_advisor_role,
+    normalize_role_token,
+    normalize_tech_tier,
+)
 
 router = APIRouter(tags=['Portals'])
 portal_router = router
@@ -120,6 +133,58 @@ class AssistantQuery(BaseModel):
 
 class CAOverrideRequest(BaseModel):
     token: str
+    reason: Optional[str] = "Audited incident diagnostics"
+    ttl_seconds: int = 300
+    actor_id: Optional[str] = "T3_CTO"
+
+
+class CAOverrideRevokeRequest(BaseModel):
+    grant_token: Optional[str] = None
+    actor_id: Optional[str] = "T3_CTO"
+
+
+class ActiveHatSwitchRequest(BaseModel):
+    principal_id: str = "USR-founder_ch-C8575D7E"
+    principal_role: str = "CHIEF_ADMINISTRATOR"
+    from_hat: Optional[str] = None
+    to_hat: str
+    confirmed: bool = False
+    target_workspace: Optional[str] = None
+    reason: Optional[str] = ""
+
+
+class DirectiveR04HaltRequest(BaseModel):
+    reason: str
+    actor_role: Optional[str] = None
+    actor_id: Optional[str] = None
+
+
+class DirectiveR04ResumeRequest(BaseModel):
+    justification: Optional[str] = ""
+    actor_role: Optional[str] = None
+    actor_id: Optional[str] = None
+
+
+class DualSignatureOverrideRequest(BaseModel):
+    target_scope: str
+    action: str = "RISK_CAP_OVERRIDE"
+    justification: str
+    actor_role: Optional[str] = None
+    actor_id: Optional[str] = None
+
+
+class DualSignatureCountersignRequest(BaseModel):
+    decision: str
+    actor_role: Optional[str] = None
+    actor_id: Optional[str] = None
+
+
+class CustodialRiskDialRequest(BaseModel):
+    scma_id: str
+    requested_risk_pct: float
+    household_id: Optional[str] = None
+    actor_role: Optional[str] = None
+
 
 class CoSignRequest(BaseModel):
     request_id: str
@@ -146,6 +211,82 @@ class CommunityMessageRequest(BaseModel):
 class CommunityTutorRequest(BaseModel):
     query: str
     member_id: str
+
+
+def _enforce_portal_boundary(
+    *,
+    allowed_hats: set[str],
+    action: str,
+    target_id: str = "",
+    authorization: Optional[str] = None,
+    x_active_hat: Optional[str] = None,
+    x_actor_role: Optional[str] = None,
+    x_supervisory_mode: Optional[str] = None,
+    block_class_t: bool = False,
+    is_mutation: bool = False,
+) -> None:
+    """Enforce Directive R-06 Active-Hat, C3 Supervisory read-only, and Class T isolation."""
+    audit = get_governance_audit_log()
+    if is_mutation and x_supervisory_mode and x_supervisory_mode.strip().lower() in {"read-only", "readonly", "true", "1", "supervisory"}:
+        audit.record(
+            event_type="SUPERVISORY_READ_ONLY_BLOCK",
+            actor_id="CHIEF_ADMIN_INSPECTOR",
+            actor_role="SUPERVISORY_AUDIT_LENS",
+            target_id=target_id,
+            action=action,
+            outcome="DENIED_READ_ONLY_LENS",
+            http_status=403,
+            detail=f"Supervisory Audit Lens is strictly read-only; blocked mutation {action}.",
+        )
+        raise HTTPException(
+            status_code=403,
+            detail="SUPERVISORY_READ_ONLY_INSPECTION: Mutations are disabled while Supervisory Audit Lens is active.",
+        )
+
+    if authorization and authorization.lower().startswith("bearer "):
+        token = authorization.split(" ", 1)[1].strip()
+        get_active_hat_gateway().verify_token(
+            token,
+            allowed_hats,
+            action=action,
+            target_id=target_id,
+        )
+
+    norm_allowed = {normalize_role_token(h) for h in allowed_hats}
+    if x_active_hat:
+        norm_hat = normalize_role_token(x_active_hat)
+        if norm_hat not in norm_allowed:
+            audit.record(
+                event_type="ACTIVE_HAT_DENIED",
+                actor_id=x_actor_role or norm_hat,
+                actor_role=norm_hat,
+                target_id=target_id,
+                action=action,
+                outcome="DENIED_CROSS_HAT",
+                http_status=403,
+                detail=f"Active Hat {norm_hat} cannot invoke {action}; switch Active Hat first.",
+            )
+            raise HTTPException(
+                status_code=403,
+                detail=f"ACTIVE_HAT_MISMATCH: Active Hat {norm_hat} is not permitted for {action}. Switch Active Hat first.",
+            )
+
+    if block_class_t and x_actor_role and is_class_t_role(x_actor_role):
+        norm_t = normalize_role_token(x_actor_role)
+        audit.record(
+            event_type="ROLE_BOUNDARY_DENIED",
+            actor_id=x_actor_role,
+            actor_role=norm_t,
+            target_id=target_id,
+            action=action,
+            outcome="DENIED_CLASS_T_ZERO_FINANCIAL_AUTHORITY",
+            http_status=403,
+            detail=f"Class T sub-tier {norm_t} inherits zero financial, House, or household authority.",
+        )
+        raise HTTPException(
+            status_code=403,
+            detail=f"CLASS_T_BOUNDARY_VIOLATION: {norm_t} inherits zero financial distribution, House, or household authority.",
+        )
 
 
 # Process-local demo state is deliberate: these portal endpoints operate the same
@@ -352,13 +493,79 @@ def get_lineage_house_state(
     }
 
 
+@router.post("/api/v1/portal/active-hat/switch")
+def switch_active_hat(
+    request: ActiveHatSwitchRequest,
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+) -> Dict[str, Any]:
+    """Directive R-06 server-validated Active-Hat context switching gateway."""
+    from app.core.security import decode_access_token
+
+    identity_claims = None
+    principal_id = request.principal_id
+    principal_role = request.principal_role
+    if authorization and authorization.lower().startswith("bearer "):
+        claims = decode_access_token(authorization.split(" ", 1)[1].strip())
+        if not claims:
+            raise HTTPException(status_code=403, detail="Invalid or expired identity token")
+        identity_claims = claims
+        principal_id = str(claims.get("sub") or claims.get("user_id") or principal_id)
+        principal_role = str(claims.get("role") or principal_role)
+
+    return get_active_hat_gateway().switch_hat(
+        principal_id=principal_id,
+        principal_role=principal_role,
+        from_hat=request.from_hat,
+        to_hat=request.to_hat,
+        confirmed=request.confirmed,
+        target_workspace=request.target_workspace,
+        reason=request.reason or "",
+        identity_claims=identity_claims,
+    )
+
+
+@router.get("/api/v1/portal/active-hat/state")
+def get_active_hat_state(principal_id: str = Query("USR-founder_ch-C8575D7E")) -> Dict[str, Any]:
+    gateway = get_active_hat_gateway()
+    session = gateway.current_session(principal_id)
+    return {
+        "principal_id": principal_id,
+        "active_session": session,
+        "entitled_hats": sorted(gateway.entitled_hats(principal_id)),
+    }
+
+
+@router.get("/api/v1/portal/active-hat/audit")
+def get_active_hat_audit(limit: int = Query(50, ge=1, le=200)) -> Dict[str, Any]:
+    audit = get_governance_audit_log()
+    return {
+        "events": audit.list_events(event_type="ACTIVE_HAT_SWITCH", limit=limit),
+        "denied_events": audit.list_events(event_type="ACTIVE_HAT_DENIED", limit=limit),
+    }
+
+
 @router.post("/api/v1/portal/lineage/house/{house_id}/vote")
 def vote_on_lineage_proposal(
     house_id: int, request: LineageVoteRequest,
     role: str = Query("H2"),
     x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
     actor_house_id: Optional[int] = Query(None),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_supervisory_mode: Optional[str] = Header(None, alias="X-Supervisory-Mode"),
 ):
+    _enforce_portal_boundary(
+        allowed_hats={"H2", "CHIEF_ADMINISTRATOR"},
+        action="LINEAGE_VOTE",
+        target_id=f"HOUSE-{house_id:02d}",
+        authorization=authorization,
+        x_active_hat=x_active_hat,
+        x_actor_role=x_actor_role,
+        x_supervisory_mode=x_supervisory_mode,
+        block_class_t=True,
+        is_mutation=True,
+    )
     role = _lineage_role(role)
     _lineage_claim(house_id, x_house_id, actor_house_id)
     if role != "H2":
@@ -385,11 +592,33 @@ def execute_lineage_circuit_breaker(
     role: str = Query("H2"),
     x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
     actor_house_id: Optional[int] = Query(None),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_supervisory_mode: Optional[str] = Header(None, alias="X-Supervisory-Mode"),
 ):
+    _enforce_portal_boundary(
+        allowed_hats={"H2", "CHIEF_ADMINISTRATOR"},
+        action="LINEAGE_CIRCUIT_BREAKER",
+        target_id=request.scma_id,
+        authorization=authorization,
+        x_active_hat=x_active_hat,
+        x_actor_role=x_actor_role,
+        x_supervisory_mode=x_supervisory_mode,
+        block_class_t=True,
+        is_mutation=True,
+    )
     role = _lineage_role(role)
     _lineage_claim(house_id, x_house_id, actor_house_id)
     if role != "H2":
         raise HTTPException(status_code=403, detail="H1 secretarial role cannot operate circuit breakers")
+    if is_founder_target(request.scma_id):
+        enforce_founder_immunity(
+            target_id=request.scma_id,
+            action=request.action.upper(),
+            actor_role=x_actor_role or role,
+            actor_id=f"HOUSE-{house_id:02d}:{role}",
+        )
     action = request.action.upper().replace("-", "_")
     try:
         if action in {"FREEZE", "FREEZE_DIAL", "GOVERNOR_CLAMP"}:
@@ -661,13 +890,16 @@ def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str
     active_float_cents = min(cash_cents, 2_500_000)
     swept_cash_cents = max(cash_cents - active_float_cents, 0)
     passive_yield_cents = cash_cents * 450 // 10_000
-    quarantined = member_status in {
-        "QUARANTINED", "FROZEN_BY_HOUSE_LEADER", "FROZEN_BY_HOUSE_QUARANTINE"
-    }
+    is_sovereign_immune = bool(
+        is_founder_target(target) or (lineage_member and _lineage_service._is_sovereign_settlor(lineage_member))
+    )
+    quarantined = False if is_sovereign_immune else (
+        member_status in {"QUARANTINED", "FROZEN_BY_HOUSE_LEADER", "FROZEN_BY_HOUSE_QUARANTINE"}
+    )
     parent_house_quarantined = (
         (lineage_member["parent_house_status"] if lineage_member else "ACTIVE") == "QUARANTINED"
     )
-    is_frozen = quarantined or parent_house_quarantined
+    is_frozen = False if is_sovereign_immune else (quarantined or parent_house_quarantined)
     if is_frozen:
         # A governance halt is an absolute zero-basis-point clamp, not the
         # ordinary member governor's 50-bps lower bound.
@@ -748,6 +980,7 @@ def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str
         "passive_yield_cents": passive_yield_cents,
         "quarantined": quarantined,
         "is_frozen": is_frozen,
+        "is_sovereign_immune": is_sovereign_immune,
         "parent_house_quarantined": parent_house_quarantined,
         "allocation": {
             "cap_cents": 2_500_000,
@@ -788,9 +1021,26 @@ def get_member_telemetry(scma_id: str) -> Dict[str, Any]:
 
 
 @router.post("/api/v1/portal/member/risk-dial")
-def update_current_member_risk_dial(req: RiskUpdateRequest):
+def update_current_member_risk_dial(
+    req: RiskUpdateRequest,
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_supervisory_mode: Optional[str] = Header(None, alias="X-Supervisory-Mode"),
+):
     """Apply the member HUD's 50–200 bps, downward-only governor."""
     scma_id = req.scma_id or "SCMA-ELEANOR_-B2B31C9E"
+    _enforce_portal_boundary(
+        allowed_hats={"MEMBER_USER", "PERSONAL_SCMA"},
+        action="MEMBER_RISK_DIAL_UPDATE",
+        target_id=scma_id,
+        authorization=authorization,
+        x_active_hat=x_active_hat,
+        x_actor_role=x_actor_role,
+        x_supervisory_mode=x_supervisory_mode,
+        block_class_t=True,
+        is_mutation=True,
+    )
     portal_account = next(
         (account for house in LINEAGE_DATA.values() for account in house["accounts"]
          if account["scma_id"] == scma_id or account["user_id"] == scma_id),
@@ -902,7 +1152,31 @@ def update_member_risk_dial(scma_id: str, req: RiskUpdateRequest):
             "risk_dial": val, "new_risk_pct": val}
 
 @router.post("/api/v1/portal/member/request-distribution")
-def request_capital_distribution(req: DistributionRequest):
+def request_capital_distribution(
+    req: DistributionRequest,
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_supervisory_mode: Optional[str] = Header(None, alias="X-Supervisory-Mode"),
+):
+    _enforce_portal_boundary(
+        allowed_hats={"MEMBER_USER", "PERSONAL_SCMA"},
+        action="MEMBER_DISTRIBUTION_REQUEST",
+        target_id=req.scma_id,
+        authorization=authorization,
+        x_active_hat=x_active_hat,
+        x_actor_role=x_actor_role,
+        x_supervisory_mode=x_supervisory_mode,
+        block_class_t=True,
+        is_mutation=True,
+    )
+    for house in LINEAGE_DATA.values():
+        for acct in house["accounts"]:
+            if acct["scma_id"] == req.scma_id and acct.get("is_custodial"):
+                raise HTTPException(
+                    status_code=403,
+                    detail="Custodial accounts require F2-H Head of Household authorization",
+                )
     allowed_tags = ["Tuition", "Medical", "Real Estate", "Personal"]
     if req.category_tag not in allowed_tags:
         raise HTTPException(status_code=400, detail=f"Invalid tag. Must be one of {allowed_tags}")
@@ -992,8 +1266,21 @@ def get_advisor_household_tree(
     household_id: str = Query("HOUSEHOLD-ALPHA"),
     role: str = Query("F2-H"),
     authenticated_household_id: str = Header("HOUSEHOLD-ALPHA", alias="X-Household-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
 ) -> Dict[str, Any]:
     """Return only the branch assigned to the authenticated advisor session."""
+    _enforce_portal_boundary(
+        allowed_hats={"F1", "F2-H", "F2-A", "F3", "CHIEF_ADMINISTRATOR"},
+        action="ADVISOR_HOUSEHOLD_TREE",
+        target_id=household_id,
+        authorization=authorization,
+        x_active_hat=x_active_hat,
+        x_actor_role=x_actor_role,
+        block_class_t=True,
+        is_mutation=False,
+    )
     if household_id != authenticated_household_id:
         raise HTTPException(status_code=403, detail="Cross-household access denied")
     house = LINEAGE_DATA.get(authenticated_household_id)
@@ -1004,21 +1291,27 @@ def get_advisor_household_tree(
     if role not in {"F1", "F2-H", "F2-A", "F3"}:
         raise HTTPException(status_code=422, detail="Unsupported financial advisor role")
 
-    accounts = [
-        {
+    accounts = []
+    for account in house["accounts"]:
+        if role == "F1" and not account["is_custodial"]:
+            continue
+        item: Dict[str, Any] = {
             "user_id": account["user_id"],
             "name": account["name"],
             "scma_id": account["scma_id"],
-            "balance_cents": round(account["balance"] * 100),
             "risk_dial_bps": round(account["risk_dial"] * 100),
             "is_custodial": account["is_custodial"],
             "custodian_id": account["custodian_id"],
             "risk_controls_locked": account["is_custodial"],
             "risk_increase_requires": "F2_CO_SIGN" if account["is_custodial"] else None,
         }
-        for account in house["accounts"]
-        if role != "F1" or account["is_custodial"]
-    ]
+        if role == "F1":
+            item["balance_redacted"] = True
+            item["balance_display"] = "$****.**"
+        else:
+            item["balance_cents"] = round(account["balance"] * 100)
+        accounts.append(item)
+
     distributions = [
         {"request_id": "DIST-104", "member": "Julian Vance", "category": "Tuition", "amount_cents": 65000, "action": "F2_CO_SIGN", "status": _DISTRIBUTION_STATE["DIST-104"]["status"]},
         {"request_id": "DIST-105", "member": "Eleanor Vance", "category": "Living", "amount_cents": 18000, "action": "APPROVE", "status": _DISTRIBUTION_STATE["DIST-105"]["status"]},
@@ -1067,22 +1360,54 @@ def get_advisor_household_tree(
 
 
 @router.get("/api/v1/portal/advisor/macro-risk")
-def get_advisor_macro_risk(role: str = Query("F3")) -> Dict[str, Any]:
+def get_advisor_macro_risk(
+    role: str = Query("F3"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+) -> Dict[str, Any]:
     """Return platform risk in integer cents; household domestic detail is excluded."""
+    _enforce_portal_boundary(
+        allowed_hats={"F3", "CHIEF_ADMINISTRATOR"},
+        action="ADVISOR_MACRO_RISK",
+        target_id="PLATFORM_MACRO_RISK",
+        authorization=authorization,
+        x_active_hat=x_active_hat,
+        x_actor_role=x_actor_role,
+        block_class_t=True,
+        is_mutation=False,
+    )
     if role.upper() not in {"F3", "CHIEF_ADMIN", "CHIEF_ADMINISTRATOR"}:
         raise HTTPException(status_code=403, detail="F3 CRO or Chief Admin authority required")
+    r04_controller = get_directive_r04_controller()
     return {
         "platform_var_99_24h_cents": 42_000,
         "cross_house_gross_margin_cents": 1_850_000,
         "margin_utilization_pct": 74,
         "venue_distribution_pct": {"Kalshi": 58, "Polymarket": 42},
-        "directive_r04": {"status": "NORMAL", "failsafe": "ARMED"},
+        "directive_r04": r04_controller.snapshot(),
+        "dual_signature_overrides": r04_controller.list_overrides(),
         "house_exposures": _MACRO_HOUSE_EXPOSURES,
     }
 
 
 @router.get("/api/v1/portal/advisor/proposals")
-def get_advisor_proposals(role: str = Query("F2-A")) -> Dict[str, Any]:
+def get_advisor_proposals(
+    role: str = Query("F2-A"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+) -> Dict[str, Any]:
+    _enforce_portal_boundary(
+        allowed_hats={"F2-A", "F2-H", "F3", "CHIEF_ADMINISTRATOR"},
+        action="ADVISOR_LIST_PROPOSALS",
+        target_id="ADVISORY_PROPOSALS",
+        authorization=authorization,
+        x_active_hat=x_active_hat,
+        x_actor_role=x_actor_role,
+        block_class_t=True,
+        is_mutation=False,
+    )
     if role.upper() not in {"F2-A", "F2-H", "F3", "CHIEF_ADMIN", "CHIEF_ADMINISTRATOR"}:
         raise HTTPException(status_code=403, detail="Advisory proposal access denied")
     return {"proposals": list(_ADVISORY_PROPOSALS.values())}
@@ -1092,12 +1417,33 @@ def get_advisor_proposals(role: str = Query("F2-A")) -> Dict[str, Any]:
 def stage_advisor_proposal(
     request: AdvisoryProposalRequest,
     role: Optional[str] = Query(None),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
     x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_supervisory_mode: Optional[str] = Header(None, alias="X-Supervisory-Mode"),
 ) -> Dict[str, Any]:
     global _ADVISORY_PROPOSAL_SEQUENCE
+    _enforce_portal_boundary(
+        allowed_hats={"F2-A", "F2-H", "CHIEF_ADMINISTRATOR"},
+        action="ADVISOR_STAGE_PROPOSAL",
+        target_id=request.target_scma,
+        authorization=authorization,
+        x_active_hat=x_active_hat,
+        x_actor_role=x_actor_role,
+        x_supervisory_mode=x_supervisory_mode,
+        block_class_t=True,
+        is_mutation=True,
+    )
     actor_role = (role or x_actor_role or request.actor_role or "").upper()
     if actor_role not in {"F2-A", "F2-H"}:
         raise HTTPException(status_code=403, detail="Only F2-A or F2-H may stage advisory proposals")
+    if is_founder_target(request.target_scma):
+        enforce_founder_immunity(
+            target_id=request.target_scma,
+            action="STAGE_ADVISORY_PROPOSAL",
+            actor_role=actor_role,
+            actor_id=actor_role,
+        )
     if not request.target_scma.strip() or not request.justification.strip():
         raise HTTPException(status_code=422, detail="Target SCMA and justification are required")
     if request.proposed_dial < 0 or request.proposed_dial > 100:
@@ -1119,8 +1465,22 @@ def adjudicate_advisor_proposal(
     proposal_id: str,
     request: AdvisoryAdjudicationRequest,
     role: Optional[str] = Query(None),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
     x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_supervisory_mode: Optional[str] = Header(None, alias="X-Supervisory-Mode"),
 ) -> Dict[str, Any]:
+    _enforce_portal_boundary(
+        allowed_hats={"F3", "CHIEF_ADMINISTRATOR"},
+        action="ADVISOR_ADJUDICATE_PROPOSAL",
+        target_id=proposal_id,
+        authorization=authorization,
+        x_active_hat=x_active_hat,
+        x_actor_role=x_actor_role,
+        x_supervisory_mode=x_supervisory_mode,
+        block_class_t=True,
+        is_mutation=True,
+    )
     actor_role = (role or x_actor_role or request.actor_role or "").upper()
     if actor_role not in {"F3", "CHIEF_ADMIN", "CHIEF_ADMINISTRATOR"}:
         raise HTTPException(status_code=403, detail="Only F3 CRO or Chief Admin may adjudicate proposals")
@@ -1143,43 +1503,346 @@ def adjudicate_advisor_proposal(
     proposal["adjudicated_at"] = datetime.now(timezone.utc).isoformat()
     return proposal
 
-# --- Technical Infrastructure (T1, T2, T3 & Directive R-12) ---
+
+@router.post("/api/v1/portal/advisor/custodial-risk-dial")
+def update_custodial_minor_risk_dial(
+    request: CustodialRiskDialRequest,
+    role: Optional[str] = Query(None),
+    authenticated_household_id: str = Header("HOUSEHOLD-ALPHA", alias="X-Household-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_supervisory_mode: Optional[str] = Header(None, alias="X-Supervisory-Mode"),
+) -> Dict[str, Any]:
+    """F2-H Head of Household custodial minor risk dial governance (0.50%-1.00% conservative bounds)."""
+    _enforce_portal_boundary(
+        allowed_hats={"F2-H", "CHIEF_ADMINISTRATOR"},
+        action="CUSTODIAL_RISK_DIAL_UPDATE",
+        target_id=request.scma_id,
+        authorization=authorization,
+        x_active_hat=x_active_hat,
+        x_actor_role=x_actor_role,
+        x_supervisory_mode=x_supervisory_mode,
+        block_class_t=True,
+        is_mutation=True,
+    )
+    actor_role = normalize_advisor_role(role or x_actor_role or request.actor_role or "")
+    if actor_role != "F2-H":
+        get_governance_audit_log().record(
+            event_type="ROLE_BOUNDARY_DENIED",
+            actor_id=actor_role or "UNKNOWN",
+            actor_role=actor_role or "UNKNOWN",
+            target_id=request.scma_id,
+            action="CUSTODIAL_RISK_DIAL_UPDATE",
+            outcome="DENIED_F2H_REQUIRED",
+            http_status=403,
+            detail="Only F2-H Head of Household may govern custodial minor risk dials.",
+        )
+        raise HTTPException(status_code=403, detail="F2-H Head of Household authority is required for custodial accounts")
+
+    if is_founder_target(request.scma_id):
+        enforce_founder_immunity(
+            target_id=request.scma_id,
+            action="UPDATE_CUSTODIAL_RISK_DIAL",
+            actor_role="F2-H",
+            actor_id="F2-H",
+        )
+
+    target_household = request.household_id or authenticated_household_id
+    if target_household != authenticated_household_id:
+        raise HTTPException(status_code=403, detail="Cross-household custodial control denied")
+    house = LINEAGE_DATA.get(authenticated_household_id)
+    if house is None:
+        raise HTTPException(status_code=404, detail="Household branch not found")
+    target = next((a for a in house["accounts"] if a["scma_id"] == request.scma_id), None)
+    if target is None:
+        raise HTTPException(status_code=404, detail="SCMA not found in assigned household")
+    if not target.get("is_custodial"):
+        raise HTTPException(status_code=403, detail="Target account is not a custodial minor account")
+    if request.requested_risk_pct < 0.50 or request.requested_risk_pct > 1.00:
+        raise HTTPException(status_code=400, detail="Custodial minor risk dial must remain within 0.50% to 1.00% bounds")
+
+    target["risk_dial"] = request.requested_risk_pct
+    try:
+        lineage_member = _lineage_service.get_member_state(request.scma_id)
+        lineage_member["risk_dial"] = request.requested_risk_pct / 100.0
+    except ValueError:
+        pass
+    return {
+        "status": "CUSTODIAL_RISK_UPDATED",
+        "scma_id": request.scma_id,
+        "household_id": authenticated_household_id,
+        "applied_risk_pct": request.requested_risk_pct,
+        "authorized_by": "F2-H",
+        "is_custodial": True,
+    }
+
+
+@router.post("/api/v1/portal/advisor/emergency-halt")
+def advisor_trigger_emergency_halt(
+    request: DirectiveR04HaltRequest,
+    role: Optional[str] = Query(None),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_supervisory_mode: Optional[str] = Header(None, alias="X-Supervisory-Mode"),
+) -> Dict[str, Any]:
+    """Directive R-04 Emergency Financial Halt — F3 CRO or Chief Administrator."""
+    _enforce_portal_boundary(
+        allowed_hats={"F3", "CHIEF_ADMINISTRATOR"},
+        action="DIRECTIVE_R04_HALT",
+        target_id="DIRECTIVE_R04",
+        authorization=authorization,
+        x_active_hat=x_active_hat,
+        x_actor_role=x_actor_role,
+        x_supervisory_mode=x_supervisory_mode,
+        block_class_t=True,
+        is_mutation=True,
+    )
+    actor_role = role or x_actor_role or request.actor_role or ""
+    actor_id = request.actor_id or actor_role or "unknown"
+    return get_directive_r04_controller().trigger_halt(
+        actor_role=actor_role,
+        actor_id=actor_id,
+        reason=request.reason,
+    )
+
+
+@router.post("/api/v1/portal/advisor/emergency-resume")
+def advisor_resume_from_halt(
+    request: DirectiveR04ResumeRequest,
+    role: Optional[str] = Query(None),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_supervisory_mode: Optional[str] = Header(None, alias="X-Supervisory-Mode"),
+) -> Dict[str, Any]:
+    """Directive R-04 Resumption — strictly reserved to Chief Administrator (HTTP 403 for F3 and all subordinates)."""
+    _enforce_portal_boundary(
+        allowed_hats={"CHIEF_ADMINISTRATOR"},
+        action="DIRECTIVE_R04_RESUME",
+        target_id="DIRECTIVE_R04",
+        authorization=authorization,
+        x_active_hat=x_active_hat,
+        x_actor_role=x_actor_role,
+        x_supervisory_mode=x_supervisory_mode,
+        block_class_t=True,
+        is_mutation=True,
+    )
+    actor_role = role or x_actor_role or request.actor_role or ""
+    actor_id = request.actor_id or actor_role or "unknown"
+    return get_directive_r04_controller().resume(
+        actor_role=actor_role,
+        actor_id=actor_id,
+        justification=request.justification or "",
+    )
+
+
+@router.get("/api/v1/portal/advisor/dual-signature-overrides")
+def list_dual_signature_overrides(
+    role: str = Query("F3"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+) -> Dict[str, Any]:
+    _enforce_portal_boundary(
+        allowed_hats={"F3", "CHIEF_ADMINISTRATOR"},
+        action="LIST_DUAL_SIG_OVERRIDES",
+        target_id="DUAL_SIG_OVERRIDES",
+        authorization=authorization,
+        x_active_hat=x_active_hat,
+        x_actor_role=x_actor_role,
+        block_class_t=True,
+        is_mutation=False,
+    )
+    if normalize_role_token(role) not in {"F3", "CHIEF_ADMINISTRATOR"}:
+        raise HTTPException(status_code=403, detail="F3 CRO or Chief Admin authority required")
+    return {"overrides": get_directive_r04_controller().list_overrides()}
+
+
+@router.post("/api/v1/portal/advisor/dual-signature-override", status_code=201)
+def submit_dual_signature_override(
+    request: DualSignatureOverrideRequest,
+    role: Optional[str] = Query(None),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_supervisory_mode: Optional[str] = Header(None, alias="X-Supervisory-Mode"),
+) -> Dict[str, Any]:
+    _enforce_portal_boundary(
+        allowed_hats={"F3", "CHIEF_ADMINISTRATOR"},
+        action="SUBMIT_DUAL_SIG_OVERRIDE",
+        target_id=request.target_scope,
+        authorization=authorization,
+        x_active_hat=x_active_hat,
+        x_actor_role=x_actor_role,
+        x_supervisory_mode=x_supervisory_mode,
+        block_class_t=True,
+        is_mutation=True,
+    )
+    actor_role = role or x_actor_role or request.actor_role or ""
+    actor_id = request.actor_id or actor_role or "unknown"
+    return get_directive_r04_controller().submit_dual_signature_override(
+        actor_role=actor_role,
+        actor_id=actor_id,
+        target_scope=request.target_scope,
+        action=request.action,
+        justification=request.justification,
+    )
+
+
+@router.post("/api/v1/portal/advisor/dual-signature-override/{override_id}/countersign")
+def countersign_dual_signature_override(
+    override_id: str,
+    request: DualSignatureCountersignRequest,
+    role: Optional[str] = Query(None),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_supervisory_mode: Optional[str] = Header(None, alias="X-Supervisory-Mode"),
+) -> Dict[str, Any]:
+    _enforce_portal_boundary(
+        allowed_hats={"CHIEF_ADMINISTRATOR"},
+        action="COUNTERSIGN_DUAL_SIG_OVERRIDE",
+        target_id=override_id,
+        authorization=authorization,
+        x_active_hat=x_active_hat,
+        x_actor_role=x_actor_role,
+        x_supervisory_mode=x_supervisory_mode,
+        block_class_t=True,
+        is_mutation=True,
+    )
+    actor_role = role or x_actor_role or request.actor_role or ""
+    actor_id = request.actor_id or actor_role or "unknown"
+    return get_directive_r04_controller().countersign_override(
+        override_id=override_id,
+        actor_role=actor_role,
+        actor_id=actor_id,
+        decision=request.decision,
+    )
+
+
+# --- Technical Infrastructure (T1, T2, T2-Household, T3 & Directive R-12) ---
 @router.get("/api/v1/portal/tech/telemetry")
 def get_tech_telemetry(
     tier: str = Query("T1"),
-    unredact_token: Optional[str] = Query(None)
+    unredact_token: Optional[str] = Query(None),
+    household_id: str = Query("HOUSEHOLD-ALPHA"),
+    authenticated_household_id: Optional[str] = Header(None, alias="X-Household-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
 ) -> Dict[str, Any]:
-    tier_upper = tier.upper()
-    if tier_upper not in ["T1", "T2", "T3"]:
-        tier_upper = "T1"
-
-    is_unredacted = (
-        tier_upper == "T3" and unredact_token == "AUTH-CA-OVERRIDE-TEMP"
+    _enforce_portal_boundary(
+        allowed_hats={"T1", "T2", "T2-HOUSEHOLD", "T3", "CHIEF_ADMINISTRATOR"},
+        action="TECH_TELEMETRY_READ",
+        target_id=tier,
+        authorization=authorization,
+        x_active_hat=x_active_hat,
+        block_class_t=False,
+        is_mutation=False,
     )
+    tier_norm = normalize_tech_tier(tier)
 
-    recent_orders = [
-        {
-            "order_id": "ORD-0912-A1",
-            "account_id": "SCMA-ELEANOR_-B2B31C9E" if is_unredacted else "SCMA-MEM-****-REDACTED",
-            "contract": "KX-MIA-FRZ-32",
-            "notional_cents": 2500 if is_unredacted else "REDACTED",
-            "mode": "PAPER_MAKER"
-        }
-    ]
+    if tier_norm == "T2-HOUSEHOLD":
+        if authenticated_household_id and authenticated_household_id.upper() != household_id.upper():
+            get_governance_audit_log().record(
+                event_type="ROLE_BOUNDARY_DENIED",
+                actor_id=authenticated_household_id,
+                actor_role="T2-HOUSEHOLD",
+                target_id=household_id,
+                action="HOUSEHOLD_TELEMETRY_READ",
+                outcome="DENIED_CROSS_HOUSEHOLD",
+                http_status=403,
+                detail=f"T2-Household scoped to {authenticated_household_id} cannot inspect {household_id}.",
+            )
+            raise HTTPException(
+                status_code=403,
+                detail="CROSS_HOUSEHOLD_TELEMETRY_DENIED: T2-Household is scoped strictly to its assigned household.",
+            )
+        if household_id not in LINEAGE_DATA:
+            raise HTTPException(status_code=404, detail="Assigned household not found")
 
-    return {
-        "tier": tier_upper,
-        "telemetry_scope": "CLASS_T_OPERATIONAL",
-        "redaction_active": not is_unredacted,
-        "directive_enforced": "Directive R-12 (Least Privilege Redacted Financial Telemetry)",
-        "can_trigger_daemons": tier_upper in ["T2", "T3"],
-        "can_override_redaction": tier_upper == "T3",
-        "worker_health": [
+    override_grant = get_ca_override_manager().validate_token(tier_norm, unredact_token)
+    is_unredacted = bool(tier_norm == "T3" and override_grant is not None)
+
+    if tier_norm == "T2-HOUSEHOLD":
+        recent_orders = [
+            {
+                "order_id": f"ORD-HH-{household_id[-5:]}",
+                "account_id": "SCMA-MEM-****-REDACTED",
+                "contract": "KX-MIA-FRZ-32",
+                "notional_cents": "REDACTED",
+                "household_id": household_id,
+                "mode": "PAPER_MAKER",
+            }
+        ]
+        order_ladder = [
+            {
+                "candidate_id": f"CAND-HH-{household_id[-5:]}",
+                "venue": "Kalshi",
+                "household_id": household_id,
+                "scma_id": "SCMA-MEM-****",
+                "model_probability_bps": 3150,
+                "exposure_cents": "$****.**",
+            }
+        ]
+        worker_health = [
+            {
+                "worker": f"HouseholdRelay-{household_id}",
+                "cycle": _TECH_WORKER.cycle_count,
+                "status": "NOMINAL",
+                "latency_ms": 11.2,
+                "scope": household_id,
+            },
+            {
+                "worker": "RateLimiter-Kalshi",
+                "bucket_tokens": 85,
+                "max_tokens": 100,
+                "status": "OPTIMAL",
+                "scope": household_id,
+            },
+        ]
+    else:
+        recent_orders = [
+            {
+                "order_id": "ORD-0912-A1",
+                "account_id": "SCMA-ELEANOR_-B2B31C9E" if is_unredacted else "SCMA-MEM-****-REDACTED",
+                "contract": "KX-MIA-FRZ-32",
+                "notional_cents": 2500 if is_unredacted else "REDACTED",
+                "mode": "PAPER_MAKER",
+            }
+        ]
+        order_ladder = [
+            {
+                "candidate_id": "CAND-0912-A1",
+                "venue": "Kalshi",
+                "scma_id": "SCMA-ELEANOR_-B2B31C9E" if is_unredacted else "SCMA-MEM-****",
+                "model_probability_bps": 3150,
+                "exposure_cents": 2500 if is_unredacted else "$****.**",
+            }
+        ]
+        worker_health = [
             {"worker": "AutonomousScanWorker", "cycle": _TECH_WORKER.cycle_count, "status": "NOMINAL", "latency_ms": 12.4},
             {"worker": "SettlementReconciler", "cycle": 710, "status": "IDLE", "latency_ms": 4.1},
             {"worker": "RateLimiter-Kalshi", "bucket_tokens": 85, "max_tokens": 100, "status": "OPTIMAL"},
-            {"worker": "RateLimiter-Polymarket", "bucket_tokens": 92, "max_tokens": 100, "status": "OPTIMAL"}
-        ],
+            {"worker": "RateLimiter-Polymarket", "bucket_tokens": 92, "max_tokens": 100, "status": "OPTIMAL"},
+        ]
+
+    return {
+        "tier": tier_norm,
+        "telemetry_scope": "CLASS_T_HOUSEHOLD_SCOPED" if tier_norm == "T2-HOUSEHOLD" else "CLASS_T_OPERATIONAL",
+        "assigned_household_id": household_id if tier_norm == "T2-HOUSEHOLD" else None,
+        "redaction_active": not is_unredacted,
+        "override_grant_id": override_grant["grant_id"] if is_unredacted else None,
+        "override_expires_at_utc": override_grant["expires_at_utc"] if is_unredacted else None,
+        "directive_enforced": "Directive R-12 (Least Privilege Redacted Financial Telemetry)",
+        "can_trigger_daemons": tier_norm in {"T2", "T3"},
+        "can_trigger_global_daemons": tier_norm in {"T2", "T3"},
+        "can_override_redaction": tier_norm == "T3",
+        "financial_authority": False,
+        "house_authority": False,
+        "household_authority": False,
+        "worker_health": worker_health,
         "daemon_status": {"AutonomousScanWorker": "ACTIVE"},
         "cycle_count": _TECH_WORKER.cycle_count,
         "settled_count": _TECH_SETTLED_COUNT,
@@ -1188,19 +1851,14 @@ def get_tech_telemetry(
         "token_buckets": _TECH_TOKEN_BUCKETS,
         "dry_powder_floor_cents": 4000,
         "dry_powder_floor_status": "COMPLIANT",
-        "active_order_ladder": [{
-            "candidate_id": "CAND-0912-A1", "venue": "Kalshi",
-            "scma_id": "SCMA-ELEANOR_-B2B31C9E" if is_unredacted else "SCMA-MEM-****",
-            "model_probability_bps": 3150,
-            "exposure_cents": 2500 if is_unredacted else "$****.**",
-        }],
+        "active_order_ladder": order_ladder,
         "recent_dispatches": recent_orders,
         "system_metrics": {
             "cpu_load_pct": 8.5,
             "memory_usage_mb": 142.1,
             "active_websockets": 2,
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        }
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        },
     }
 
 
@@ -1222,10 +1880,41 @@ def get_daemon_summary() -> Dict[str, Any]:
     }
 
 @router.post("/api/v1/portal/tech/trigger-daemon")
-def trigger_tech_daemon(tier: str = Query("T3")) -> Dict[str, Any]:
+def trigger_tech_daemon(
+    tier: str = Query("T3"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+    x_supervisory_mode: Optional[str] = Header(None, alias="X-Supervisory-Mode"),
+) -> Dict[str, Any]:
     """Run one real worker evaluation and expose only operational telemetry."""
-    if tier.upper() not in {"T2", "T3"}:
-        raise HTTPException(status_code=403, detail="T1 telemetry access is read-only")
+    _enforce_portal_boundary(
+        allowed_hats={"T2", "T3", "CHIEF_ADMINISTRATOR"},
+        action="TECH_TRIGGER_DAEMON",
+        target_id="AutonomousScanWorker",
+        authorization=authorization,
+        x_active_hat=x_active_hat,
+        x_supervisory_mode=x_supervisory_mode,
+        block_class_t=False,
+        is_mutation=True,
+    )
+    tier_norm = normalize_tech_tier(tier)
+    if tier_norm not in {"T2", "T3"}:
+        get_governance_audit_log().record(
+            event_type="ROLE_BOUNDARY_DENIED",
+            actor_id=tier_norm,
+            actor_role=tier_norm,
+            target_id="AutonomousScanWorker",
+            action="TECH_TRIGGER_DAEMON",
+            outcome="DENIED_TIER_BLOCKED",
+            http_status=403,
+            detail=f"{tier_norm} cannot invoke global daemon triggers.",
+        )
+        detail = (
+            "T2-Household is strictly household-scoped and cannot trigger global daemons"
+            if tier_norm == "T2-HOUSEHOLD"
+            else "T1 telemetry access is read-only"
+        )
+        raise HTTPException(status_code=403, detail=detail)
     result = _TECH_WORKER.run_single_cycle()
     # Deterministic live telemetry avoids external venue dependencies in the console.
     _TECH_LATENCY_MS["Kalshi"] = 11 + (_TECH_WORKER.cycle_count % 5)
@@ -1241,11 +1930,42 @@ def trigger_tech_daemon(tier: str = Query("T3")) -> Dict[str, Any]:
 
 
 @router.post("/api/v1/portal/tech/trigger-settlement")
-def trigger_tech_settlement(tier: str = Query("T3")) -> Dict[str, Any]:
+def trigger_tech_settlement(
+    tier: str = Query("T3"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+    x_supervisory_mode: Optional[str] = Header(None, alias="X-Supervisory-Mode"),
+) -> Dict[str, Any]:
     """Run a deterministic reconciliation cycle without exposing ledger values."""
     global _TECH_SETTLED_COUNT
-    if tier.upper() not in {"T2", "T3"}:
-        raise HTTPException(status_code=403, detail="T1 telemetry access is read-only")
+    _enforce_portal_boundary(
+        allowed_hats={"T2", "T3", "CHIEF_ADMINISTRATOR"},
+        action="TECH_TRIGGER_SETTLEMENT",
+        target_id="SettlementReconciler",
+        authorization=authorization,
+        x_active_hat=x_active_hat,
+        x_supervisory_mode=x_supervisory_mode,
+        block_class_t=False,
+        is_mutation=True,
+    )
+    tier_norm = normalize_tech_tier(tier)
+    if tier_norm not in {"T2", "T3"}:
+        get_governance_audit_log().record(
+            event_type="ROLE_BOUNDARY_DENIED",
+            actor_id=tier_norm,
+            actor_role=tier_norm,
+            target_id="SettlementReconciler",
+            action="TECH_TRIGGER_SETTLEMENT",
+            outcome="DENIED_TIER_BLOCKED",
+            http_status=403,
+            detail=f"{tier_norm} cannot invoke global settlement reconciliation.",
+        )
+        detail = (
+            "T2-Household is strictly household-scoped and cannot trigger global settlement"
+            if tier_norm == "T2-HOUSEHOLD"
+            else "T1 telemetry access is read-only"
+        )
+        raise HTTPException(status_code=403, detail=detail)
     _TECH_SETTLED_COUNT += 1
     return {
         "status": "SETTLED",
@@ -1254,15 +1974,40 @@ def trigger_tech_settlement(tier: str = Query("T3")) -> Dict[str, Any]:
     }
 
 @router.post("/api/v1/portal/tech/ca-override")
-def activate_ca_override(request: CAOverrideRequest, tier: str = Query("T3")) -> Dict[str, Any]:
-    """Issue page-scoped unredacted data only after explicit CA authentication."""
-    if tier.upper() != "T3":
-        raise HTTPException(status_code=403, detail="CA override requires T3 CTO authority")
-    if request.token != "CA-OVERRIDE-SECRET-DEV":
-        raise HTTPException(status_code=401, detail="Invalid CA override token; Directive R-12 masking remains active")
+def activate_ca_override(
+    request: CAOverrideRequest,
+    tier: str = Query("T3"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+    x_supervisory_mode: Optional[str] = Header(None, alias="X-Supervisory-Mode"),
+) -> Dict[str, Any]:
+    """Issue a time-bounded, audited, page-scoped unredact grant only for T3 CTO after CA authentication."""
+    _enforce_portal_boundary(
+        allowed_hats={"T3", "CHIEF_ADMINISTRATOR"},
+        action="ACTIVATE_CA_OVERRIDE",
+        target_id="DIRECTIVE_R12_UNREDACT",
+        authorization=authorization,
+        x_active_hat=x_active_hat,
+        x_supervisory_mode=x_supervisory_mode,
+        block_class_t=False,
+        is_mutation=True,
+    )
+    grant = get_ca_override_manager().issue_grant(
+        tier=tier,
+        secret_token=request.token,
+        actor_id=request.actor_id or "T3_CTO",
+        reason=request.reason or "Audited incident diagnostics",
+        ttl_seconds=request.ttl_seconds,
+    )
     return {
         "status": "ACTIVE_UNREDACT_GRANT",
         "redaction_active": False,
+        "grant_id": grant["grant_id"],
+        "grant_token": grant["grant_token"],
+        "ttl_seconds": grant["ttl_seconds"],
+        "issued_at_utc": grant["issued_at_utc"],
+        "expires_at_utc": grant["expires_at_utc"],
+        "audit_event_id": grant["audit_event_id"],
         "active_order_ladder": [{
             "candidate_id": "CAND-0912-A1", "venue": "Kalshi",
             "scma_id": "SCMA-ELEANOR_-B2B31C9E", "model_probability_bps": 3150,
@@ -1270,9 +2015,51 @@ def activate_ca_override(request: CAOverrideRequest, tier: str = Query("T3")) ->
         }],
     }
 
+
+@router.post("/api/v1/portal/tech/ca-override/revoke")
+def revoke_ca_override(
+    request: Optional[CAOverrideRevokeRequest] = None,
+    tier: str = Query("T3"),
+) -> Dict[str, Any]:
+    """Immediately revoke an active CA R-12 override grant and restore masking."""
+    if normalize_tech_tier(tier) != "T3":
+        raise HTTPException(status_code=403, detail="CA override revocation requires T3 CTO authority")
+    return get_ca_override_manager().revoke_grant(
+        request.grant_token if request else None,
+        actor_id=(request.actor_id if request and request.actor_id else "T3_CTO"),
+    )
+
+
 @router.post("/api/v1/portal/advisor/co-sign")
-def co_sign_distribution(request: CoSignRequest) -> Dict[str, Any]:
-    if request.actor_role != "F2-H":
+def co_sign_distribution(
+    request: CoSignRequest,
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_supervisory_mode: Optional[str] = Header(None, alias="X-Supervisory-Mode"),
+) -> Dict[str, Any]:
+    _enforce_portal_boundary(
+        allowed_hats={"F2-H"},
+        action="ADVISOR_CO_SIGN_DISTRIBUTION",
+        target_id=request.request_id,
+        authorization=authorization,
+        x_active_hat=x_active_hat,
+        x_actor_role=x_actor_role,
+        x_supervisory_mode=x_supervisory_mode,
+        block_class_t=True,
+        is_mutation=True,
+    )
+    if request.actor_role != "F2-H" or (x_actor_role and normalize_advisor_role(x_actor_role) != "F2-H"):
+        get_governance_audit_log().record(
+            event_type="ROLE_BOUNDARY_DENIED",
+            actor_id=x_actor_role or request.actor_role,
+            actor_role=normalize_role_token(x_actor_role or request.actor_role),
+            target_id=request.request_id,
+            action="ADVISOR_CO_SIGN_DISTRIBUTION",
+            outcome="DENIED_F2H_REQUIRED",
+            http_status=403,
+            detail="F2-H Head of Household authority is required for dual-control co-signature.",
+        )
         raise HTTPException(status_code=403, detail="F2-H authority is required for dual-control co-signature")
     distribution = _DISTRIBUTION_STATE.get(request.request_id)
     if distribution is None:
