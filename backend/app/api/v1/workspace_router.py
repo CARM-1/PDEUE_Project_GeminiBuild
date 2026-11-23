@@ -3,10 +3,10 @@ PDEUE Chief Administrator Workspace Router
 Authoritative endpoint provider for Operator Workspace, Active Positions Ledger,
 Velocity Radar Telemetry, Stage Dispatch, and Settlement Waterfall Reconciler.
 """
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.responses import HTMLResponse
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import pathlib
 
 from app.domain.operator_workspace import OperatorWorkspaceService
@@ -21,6 +21,13 @@ from app.domain.walk_forward_simulation import WalkForwardBenchmark
 from app.domain.ai_copilot import AICopilotEngine
 from app.domain.active_hat import ActiveHatSessionAuthority, FounderHat
 from app.domain.founder_workspace import FounderWorkspaceService
+from app.domain.authority_tiers import (
+    get_active_hat_gateway,
+    get_directive_r04_controller,
+    get_governance_audit_log,
+    is_chief_admin_role,
+    normalize_role_token,
+)
 from app.schemas.rca_workspace import (
     ExecutiveCapitalEnvelope, PersonalScmaEnvelope, ScannerSummaryEnvelope,
 )
@@ -69,6 +76,15 @@ def select_founder_hat(request: HatSelectionRequest, identity_token: str = Depen
     return _hat_authority.select_hat(identity_token, request.hat, request.confirmed)
 
 
+@workspace_router.get("/api/v1/workspace/hat-sessions/audit")
+def get_hat_session_audit(limit: int = 50):
+    audit = get_governance_audit_log()
+    return {
+        "events": audit.list_events(event_type="ACTIVE_HAT_SWITCH", limit=limit),
+        "denied_events": audit.list_events(event_type="ACTIVE_HAT_DENIED", limit=limit),
+    }
+
+
 @workspace_router.get("/api/v1/workspace/capital-summary", response_model=ExecutiveCapitalEnvelope)
 def get_capital_summary(_session=Depends(_chief_session)):
     return _founder_service.capital_summary()
@@ -97,8 +113,15 @@ def system_halt(request: HaltRequest, session=Depends(_chief_session)):
 
 
 @workspace_router.post("/api/v1/workspace/authority/revoke")
-def revoke_authority(request: RevocationRequest, _session=Depends(_chief_session)):
-    return {"revoked": _hat_authority.revoke_subject(request.subject), "subject": request.subject}
+def revoke_authority(request: RevocationRequest, session=Depends(_chief_session)):
+    return {
+        "revoked": _hat_authority.revoke_subject(
+            request.subject,
+            actor_role=session.role,
+            actor_id=session.subject,
+        ),
+        "subject": request.subject,
+    }
 
 CANONICAL_SEED_POSITION: Dict[str, Any] = {
     "contract": "KX-MIA-FRZ-32",
@@ -131,9 +154,59 @@ def get_dashboard_html():
     return HTMLResponse(content=DASHBOARD_HTML_TEMPLATE)
 
 @workspace_router.post("/api/v1/operator/emergency-stop")
-def trigger_emergency_stop():
+def trigger_emergency_stop(
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+):
     """Trip the fail-closed execution breaker from the operator cockpit."""
-    return _service.trigger_emergency_stop(actor_id="CHIEF_ADMIN", reason="Dashboard Kill Switch Activated")
+    if authorization and authorization.lower().startswith("bearer "):
+        get_active_hat_gateway().verify_token(
+            authorization.split(" ", 1)[1].strip(),
+            {"CHIEF_ADMINISTRATOR", "F3"},
+            action="OPERATOR_EMERGENCY_STOP",
+            target_id="EXECUTION_BREAKER",
+        )
+    if x_active_hat and normalize_role_token(x_active_hat) not in {"CHIEF_ADMINISTRATOR", "F3"}:
+        raise HTTPException(status_code=403, detail="ACTIVE_HAT_MISMATCH: Chief Administrator or F3 CRO hat required.")
+    if x_actor_role and normalize_role_token(x_actor_role) not in {"CHIEF_ADMINISTRATOR", "F3"}:
+        raise HTTPException(status_code=403, detail="Only Chief Administrator or F3 CRO may engage emergency stop.")
+    actor = normalize_role_token(x_actor_role) or "CHIEF_ADMIN"
+    get_directive_r04_controller().trigger_halt(
+        actor_role=actor if actor in {"F3", "CHIEF_ADMINISTRATOR"} else "CHIEF_ADMINISTRATOR",
+        actor_id=actor,
+        reason="Dashboard Kill Switch Activated",
+    )
+    return _service.trigger_emergency_stop(actor_id=actor, reason="Dashboard Kill Switch Activated")
+
+
+@workspace_router.post("/api/v1/operator/emergency-resume")
+def resume_operator_execution(
+    payload: Optional[Dict[str, Any]] = None,
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+):
+    """Lift emergency halt — strictly reserved to Chief Administrator."""
+    if authorization and authorization.lower().startswith("bearer "):
+        get_active_hat_gateway().verify_token(
+            authorization.split(" ", 1)[1].strip(),
+            {"CHIEF_ADMINISTRATOR"},
+            action="OPERATOR_EMERGENCY_RESUME",
+            target_id="EXECUTION_BREAKER",
+        )
+    if x_active_hat and not is_chief_admin_role(x_active_hat):
+        raise HTTPException(status_code=403, detail="CHIEF_ADMIN_RESUMPTION_ONLY: Switch Active Hat to CHIEF_ADMINISTRATOR.")
+    actor_role = x_actor_role or (payload or {}).get("actor_role") or "CHIEF_ADMINISTRATOR"
+    justification = str((payload or {}).get("justification") or "Chief Administrator verified safe resumption.")
+    res = get_directive_r04_controller().resume(
+        actor_role=actor_role,
+        actor_id=str((payload or {}).get("actor_id") or actor_role),
+        justification=justification,
+    )
+    _service.circuit_breaker.is_tripped = False
+    _service.circuit_breaker.trip_reason = None
+    return {"status": "RESUMED", "directive_r04": res}
 
 
 @workspace_router.get("/api/v1/operator/simulation/benchmark")

@@ -89,11 +89,24 @@ code{background:#0B132B;color:var(--accent-sky);padding:2px 6px;border-radius:4p
 .proj-cap-label{fill:#FCD34D;font:700 11px -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-variant-numeric:tabular-nums}
 .seed-table-section{margin-top:20px}
 .seed-table-section:first-child{margin-top:0}
+.supervisory-lens-banner{width:100%;background:#D97706;color:#0B132B;border-bottom:2px solid #FCD34D;padding:12px 20px;font-weight:800;font-size:.9rem;letter-spacing:.03em;position:sticky;top:0;z-index:5000;box-shadow:0 4px 16px rgba(217,119,6,.35)}
+.supervisory-lens-inner{max-width:1240px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.supervisory-lens-meta{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.78rem;background:rgba(11,19,43,.16);padding:4px 9px;border-radius:6px}
+.hat-modal-backdrop{position:fixed;inset:0;background:rgba(2,6,23,.85);display:grid;place-items:center;z-index:9000;padding:16px}
+.hat-modal-box{width:min(480px,94vw);background:var(--bg-card);border:1px solid #D97706;border-radius:12px;padding:22px;box-shadow:0 16px 40px rgba(0,0,0,.6)}
+.hat-btn-amber{background:#D97706;color:#0B132B;border:1px solid #FCD34D;font-weight:800}
+.hat-btn-amber:hover{background:#F59E0B;color:#0B132B}
 [hidden]{display:none!important}
 @media(max-width:850px){.pillar-grid,.metrics,.future-grid,.funding-grid{grid-template-columns:1fr 1fr}.slot-rack{grid-template-columns:repeat(2,1fr)}.split{flex-direction:column;align-items:stretch}}
 @media(max-width:520px){.pillar-grid,.metrics,.future-grid,.funding-grid{grid-template-columns:1fr}.shell{padding:13px}.workspace-switcher{flex-direction:column;align-items:stretch}.proj-chart-shell{padding:12px}}
 </style></head><body><div style="display:none" id="legacyPortalHub">PDEUE PORTAL HUB</div>
-<nav class="shell portal-nav"><div><strong>Active Hat: MEMBER_USER</strong> · <a href="/companion" class="nav-link campus-link" id="navCompanionLink">🎓 PDEUE University</a></div><div class="currency-toggle" aria-label="Currency display precision"><button id="currBtnClean" class="curr-btn active" onclick="setCurrencyMode('clean')">$ USD (Clean)</button><button id="currBtnExact" class="curr-btn" onclick="setCurrencyMode('exact')">$ USD.¢¢ (Exact Cents)</button></div></nav>
+<div id="supervisoryAuditLensBanner" class="supervisory-lens-banner" hidden role="region" aria-label="Supervisory Audit Lens">
+  <div class="supervisory-lens-inner">
+    <span>SUPERVISORY AUDIT LENS — READ-ONLY INSPECTION</span>
+    <span id="supervisoryLensMeta" class="supervisory-lens-meta">INSPECTOR: CHIEF_ADMIN · MUTATIONS LOCKED</span>
+  </div>
+</div>
+<nav class="shell portal-nav"><div><strong id="activeHatNavLabel">Active Hat: MEMBER_USER</strong> · <a href="/companion" class="nav-link campus-link" id="navCompanionLink">🎓 PDEUE University</a></div><div class="currency-toggle" aria-label="Currency display precision"><button id="memberSwitchHatBtn" type="button" class="curr-btn" hidden onclick="openMemberHatSwitchModal()">Switch Active Hat</button><button id="currBtnClean" class="curr-btn active" onclick="setCurrencyMode('clean')">$ USD (Clean)</button><button id="currBtnExact" class="curr-btn" onclick="setCurrencyMode('exact')">$ USD.¢¢ (Exact Cents)</button></div></nav>
 <main class="shell">
 <header class="topbar"><div><div class="eyebrow">Private SCMA · Member workspace</div><h1>My Wealth Desktop</h1><div id="identity" class="fine">Loading your account…</div></div><div class="header-actions"><span id="memberRoleBadge" class="badge-pill sky">CLASS M: MEMBER_USER</span><span id="memberStatusBadge" class="badge-pill green">ACTIVE</span></div></header>
 
@@ -198,6 +211,20 @@ code{background:#0B132B;color:var(--accent-sky);padding:2px 6px;border-radius:4p
   <p class="fine" style="margin:0;color:#CBD5E1;"><strong>Live Bank Linking &amp; Custody Notice:</strong> All live bank linking, ACH/wire funding transfers, and fiduciary reconciliation route exclusively through the independent IFAS portal at <code id="ifasPortalHost">accounting.narratix.io</code>.</p>
 </article>
 </main>
+<div id="member-hat-switch-modal" class="hat-modal-backdrop" hidden role="dialog" aria-modal="true" aria-labelledby="memberHatSwitchTitle">
+  <div class="hat-modal-box">
+    <div class="status-row" style="margin-bottom:12px;">
+      <strong id="memberHatSwitchTitle" style="color:#F8FAFC;font-size:1rem;">Directive R-06 · Switch Active Hat</strong>
+      <button id="closeMemberHatSwitchBtn" type="button" onclick="closeMemberHatSwitchModal()">Close</button>
+    </div>
+    <p class="fine" style="color:#CBD5E1;margin-bottom:12px;">You are currently operating under your personal <strong>CLASS M: MEMBER_USER (PERSONAL_SCMA)</strong> hat. Switching back to <strong>CHIEF_ADMINISTRATOR</strong> revokes this personal hat session and records an auditable Directive R-06 context-switch event.</p>
+    <div id="memberHatSwitchError" class="fine" style="color:#FCA5A5;margin-bottom:10px;" role="alert"></div>
+    <div class="status-row" style="justify-content:flex-end;">
+      <button id="cancelMemberHatSwitchBtn" type="button" onclick="closeMemberHatSwitchModal()">Stay in Member Desktop</button>
+      <button id="confirmMemberHatSwitchBtn" type="button" class="hat-btn-amber" onclick="confirmReturnToChiefAdminHat()">Confirm &amp; Switch to Chief Admin</button>
+    </div>
+  </div>
+</div>
 <script>
 let memberState=null;
 const query=new URLSearchParams(location.search);
@@ -321,6 +348,65 @@ async function maybeActivateInvite(){
     activationBanner.textContent=`Invite activation failed: ${err.message}`;
   }
 }
+const isSupervisoryLens=query.get('supervisory')==='1'||query.get('audit_lens')==='1'||query.get('inspector')==='CHIEF_ADMIN';
+const hatSwitchEventId=query.get('hat_switch')||'';
+function applySupervisoryLens(state){
+  if(!isSupervisoryLens){
+    supervisoryAuditLensBanner.hidden=true;
+    return;
+  }
+  supervisoryAuditLensBanner.hidden=false;
+  const inspector=(query.get('inspector')||'CHIEF_ADMIN').toUpperCase();
+  const targetScma=state?.scma_id||activeScmaId||'MEMBER_SCMA';
+  supervisoryLensMeta.textContent=`INSPECTOR: ${inspector} · TARGET: ${targetScma} · MUTATIONS LOCKED`;
+  riskSlider.disabled=true;
+  saveRiskBtn.disabled=true;
+  distributionAmount.disabled=true;
+  distributionBtn.disabled=true;
+  riskStatus.textContent='Read-only Supervisory Audit Lens active — risk mutations disabled.';
+  distributionStatus.textContent='Read-only Supervisory Audit Lens active — distribution requests disabled.';
+}
+function applyMultiRoleHatControls(){
+  let activeRole='';
+  try{activeRole=sessionStorage.getItem('pdeue_active_hat_role')||''}catch(_e){}
+  const hasHatSwitch=Boolean(hatSwitchEventId)||activeRole==='PERSONAL_SCMA';
+  memberSwitchHatBtn.hidden=!hasHatSwitch||isSupervisoryLens;
+  if(hasHatSwitch&&!isSupervisoryLens){
+    activeHatNavLabel.textContent='Active Hat: MEMBER_USER (PERSONAL_SCMA)';
+  }
+}
+function openMemberHatSwitchModal(){document.getElementById('memberHatSwitchError').textContent='';document.getElementById('member-hat-switch-modal').hidden=false}
+function closeMemberHatSwitchModal(){document.getElementById('member-hat-switch-modal').hidden=true}
+async function confirmReturnToChiefAdminHat(){
+  const errEl=document.getElementById('memberHatSwitchError');
+  const btn=document.getElementById('confirmMemberHatSwitchBtn');
+  errEl.textContent='';
+  btn.disabled=true;btn.textContent='Switching Active Hat…';
+  try{
+    const res=await fetch('/api/v1/portal/active-hat/switch',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        principal_id:'USR-founder_ch-C8575D7E',
+        principal_role:'CHIEF_ADMINISTRATOR',
+        from_hat:'PERSONAL_SCMA',
+        to_hat:'CHIEF_ADMINISTRATOR',
+        confirmed:true,
+        target_workspace:'/dashboard',
+        reason:'Intentional return from Personal SCMA to Chief Administrator Cockpit'
+      })
+    });
+    const data=await res.json();
+    if(!res.ok){errEl.textContent=data.detail||`Switch rejected (HTTP ${res.status})`;return}
+    try{
+      sessionStorage.setItem('pdeue_active_hat_token',data.access_token||'');
+      sessionStorage.setItem('pdeue_active_hat_event',data.event_id||'');
+      sessionStorage.setItem('pdeue_active_hat_role','CHIEF_ADMINISTRATOR');
+    }catch(_e){}
+    window.location.assign('/dashboard');
+  }catch(err){errEl.textContent=`Switch failed: ${err.message}`}
+  finally{btn.disabled=false;btn.textContent='Confirm & Switch to Chief Admin'}
+}
 async function loadState(){
   const suffix=activeScmaId?`?scma_id=${encodeURIComponent(activeScmaId)}`:'';
   const response=await fetch('/api/v1/portal/member/state'+suffix);
@@ -335,17 +421,20 @@ async function loadState(){
   riskSlider.max=Math.min(200,Math.max(50,bps));
   riskSlider.value=Math.max(50,bps);
   showRisk();
+  applySupervisoryLens(memberState);
 }
 function showRisk(){riskValue.textContent=(Number(riskSlider.value)/100).toFixed(2)+'%'}
 riskSlider.addEventListener('input',showRisk);
-async function saveRiskDial(){riskStatus.textContent='Saving…';const r=await fetch('/api/v1/portal/member/risk-dial',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scma_id:memberState.scma_id,requested_risk_pct:Number(riskSlider.value)/100})});riskStatus.textContent=r.ok?'Risk reduction applied. F2-H authorization is required to restore it.':'Unable to update risk.'}
+async function saveRiskDial(){if(isSupervisoryLens){riskStatus.textContent='Supervisory Audit Lens is read-only.';return}riskStatus.textContent='Saving…';const r=await fetch('/api/v1/portal/member/risk-dial',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scma_id:memberState.scma_id,requested_risk_pct:Number(riskSlider.value)/100})});riskStatus.textContent=r.ok?'Risk reduction applied. F2-H authorization is required to restore it.':'Unable to update risk.'}
 function clearTutorAnswer(){tutorResponse.textContent='Your educational answer will appear here.';tutorInput.value='';tutorInput.focus()}
 clearTutorBtn.addEventListener('click',clearTutorAnswer);
-distributionBtn.addEventListener('click',()=>distributionStatus.textContent=Number(distributionAmount.value)>0?'Request ready for Green / Yellow / Red safeguard review.':'Enter a valid amount.');
+distributionBtn.addEventListener('click',()=>{if(isSupervisoryLens){distributionStatus.textContent='Supervisory Audit Lens is read-only.';return}distributionStatus.textContent=Number(distributionAmount.value)>0?'Request ready for Green / Yellow / Red safeguard review.':'Enter a valid amount.'});
 tutorForm.addEventListener('submit',async e=>{e.preventDefault();tutorResponse.textContent='Thinking…';const r=await fetch('/api/v1/portal/member/tutor',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:tutorInput.value})});const d=await r.json();tutorResponse.textContent=d.response||d.answer||'Tutor unavailable.'});
 // Legacy onboarding dismissal key retained for preference migration.
 localStorage.getItem('pdeue_welcome_dismissed');
 setCurrencyMode(currencyMode);
+applySupervisoryLens(null);
+applyMultiRoleHatControls();
 switchMemberView(query.get('invite_token')?'orientation':(localStorage.getItem('pdeue_member_active_view')||'orientation'));
 (async()=>{await maybeActivateInvite();await loadState();setInterval(loadState, 3000)})();
 </script></body></html>
