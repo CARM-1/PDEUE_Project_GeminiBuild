@@ -6,12 +6,13 @@ import json
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import httpx
 
 KALSHI_PUBLIC_BASE = "https://api.elections.kalshi.com/trade-api/v2"
 POLYMARKET_PUBLIC_BASE = "https://clob.polymarket.com"
+POLYMARKET_GAMMA_BASE = "https://gamma-api.polymarket.com"
 
 
 def _utc_now_iso() -> str:
@@ -50,10 +51,29 @@ def _to_int_size(raw_size: Any) -> int:
     return qty
 
 
-def normalize_kalshi_l2(ticker: str, payload: Dict[str, Any], source_url: str, captured_at_utc: Optional[str] = None) -> Dict[str, Any]:
-    ob = payload.get("orderbook", payload)
-    yes_raw = ob.get("yes") or []
-    no_raw = ob.get("no") or []
+def _to_float_metric(val: Any) -> float:
+    try:
+        return float(val) if val is not None else 0.0
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def normalize_kalshi_l2(
+    ticker: str,
+    payload: Dict[str, Any],
+    source_url: str,
+    captured_at_utc: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Normalize both Kalshi live orderbook_fp (yes_dollars/no_dollars) and legacy orderbook (yes/no)."""
+    if "orderbook_fp" in payload and isinstance(payload["orderbook_fp"], dict):
+        ob_fp = payload["orderbook_fp"]
+        yes_raw = ob_fp.get("yes_dollars") or []
+        no_raw = ob_fp.get("no_dollars") or []
+    else:
+        ob = payload.get("orderbook", payload)
+        yes_raw = ob.get("yes") or ob.get("yes_dollars") or []
+        no_raw = ob.get("no") or ob.get("no_dollars") or []
+
     bids = [[_to_price_cents(p, venue="KALSHI"), _to_int_size(q)] for p, q in yes_raw if _to_int_size(q) > 0]
     # Kalshi NO bids at price p correspond to YES asks at 100 - p
     asks = [[100 - _to_price_cents(p, venue="KALSHI"), _to_int_size(q)] for p, q in no_raw if _to_int_size(q) > 0]
@@ -70,7 +90,12 @@ def normalize_kalshi_l2(ticker: str, payload: Dict[str, Any], source_url: str, c
     }
 
 
-def normalize_polymarket_l2(token_id: str, payload: Dict[str, Any], source_url: str, captured_at_utc: Optional[str] = None) -> Dict[str, Any]:
+def normalize_polymarket_l2(
+    token_id: str,
+    payload: Dict[str, Any],
+    source_url: str,
+    captured_at_utc: Optional[str] = None,
+) -> Dict[str, Any]:
     bids_raw = payload.get("bids") or []
     asks_raw = payload.get("asks") or []
     bids = [[_to_price_cents(lv["price"], venue="POLYMARKET"), _to_int_size(lv["size"])] for lv in bids_raw if _to_int_size(lv["size"]) > 0]
@@ -88,14 +113,80 @@ def normalize_polymarket_l2(token_id: str, payload: Dict[str, Any], source_url: 
     }
 
 
+def discover_liquid_kalshi_tickers(
+    http_client: Optional[httpx.Client] = None,
+    limit: int = 5,
+    events_limit: int = 50,
+) -> List[str]:
+    """Discover active, non-combo Kalshi single-event tickers ranked by live volume_24h_fp & open_interest_fp."""
+    owns = http_client is None
+    client = http_client or httpx.Client(timeout=15.0)
+    try:
+        resp = client.get(
+            f"{KALSHI_PUBLIC_BASE}/events",
+            params={"status": "open", "with_nested_markets": "true", "limit": events_limit},
+        )
+        resp.raise_for_status()
+        events = resp.json().get("events", [])
+        markets = [
+            m for ev in events for m in ev.get("markets", [])
+            if m.get("ticker") and not str(m["ticker"]).startswith("KXMVE")
+        ]
+        markets.sort(
+            key=lambda m: (
+                _to_float_metric(m.get("volume_24h_fp", m.get("volume_24h"))),
+                _to_float_metric(m.get("open_interest_fp", m.get("open_interest"))),
+                _to_float_metric(m.get("volume_fp", m.get("volume"))),
+            ),
+            reverse=True,
+        )
+        return [str(m["ticker"]) for m in markets[:limit]]
+    finally:
+        if owns:
+            client.close()
+
+
+def discover_liquid_polymarket_tokens(
+    http_client: Optional[httpx.Client] = None,
+    limit: int = 5,
+) -> List[str]:
+    """Discover active Polymarket CLOB token IDs ranked by 24h volume."""
+    owns = http_client is None
+    client = http_client or httpx.Client(timeout=15.0)
+    try:
+        resp = client.get(
+            f"{POLYMARKET_GAMMA_BASE}/markets",
+            params={"active": "true", "closed": "false", "limit": max(limit * 2, 10), "order": "volume24hr", "ascending": "false"},
+        )
+        resp.raise_for_status()
+        tokens: List[str] = []
+        for m in resp.json():
+            raw = m.get("clobTokenIds")
+            parsed = json.loads(raw) if isinstance(raw, str) else (raw or [])
+            if parsed:
+                tokens.append(str(parsed[0]))
+            if len(tokens) >= limit:
+                break
+        return tokens
+    finally:
+        if owns:
+            client.close()
+
+
 class ReadOnlyL2TapeRecorder:
     """Polls public venue L2 order books (GET only, zero auth/order capability) and seals a SHA-256 manifest."""
 
-    def __init__(self, output_dir: Path, http_client: Optional[httpx.Client] = None) -> None:
+    def __init__(
+        self,
+        output_dir: Path,
+        http_client: Optional[httpx.Client] = None,
+        require_non_empty_book: bool = True,
+    ) -> None:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self._owns_client = http_client is None
         self.client = http_client or httpx.Client(timeout=10.0)
+        self.require_non_empty_book = bool(require_non_empty_book)
         self.tape_path = self.output_dir / "tape.jsonl"
         self.manifest_path = self.output_dir / "tape_manifest.json"
         self._records: List[Dict[str, Any]] = []
@@ -104,11 +195,16 @@ class ReadOnlyL2TapeRecorder:
         if self._owns_client:
             self.client.close()
 
+    def _enforce_depth(self, snap: Dict[str, Any]) -> None:
+        if self.require_non_empty_book and not snap["bids"] and not snap["asks"]:
+            raise ValueError(f"Empty L2 order book rejected for {snap['venue']}:{snap['contract_ticker']}")
+
     def capture_kalshi_snapshot(self, ticker: str, *, captured_at_utc: Optional[str] = None) -> Dict[str, Any]:
         url = f"{KALSHI_PUBLIC_BASE}/markets/{ticker}/orderbook"
         resp = self.client.get(url)
         resp.raise_for_status()
         snap = normalize_kalshi_l2(ticker, resp.json(), source_url=url, captured_at_utc=captured_at_utc)
+        self._enforce_depth(snap)
         self._append(snap)
         return snap
 
@@ -117,6 +213,7 @@ class ReadOnlyL2TapeRecorder:
         resp = self.client.get(url, params={"token_id": token_id})
         resp.raise_for_status()
         snap = normalize_polymarket_l2(token_id, resp.json(), source_url=f"{url}?token_id={token_id}", captured_at_utc=captured_at_utc)
+        self._enforce_depth(snap)
         self._append(snap)
         return snap
 
@@ -148,8 +245,8 @@ class ReadOnlyL2TapeRecorder:
         return manifest
 
 
-def verify_tape_manifest(manifest_path: Path) -> Dict[str, Any]:
-    """Fail-closed verifier for OBSERVED_L2 tape manifests: validates SHA-256, integer cents, and monotonic UTC."""
+def verify_tape_manifest(manifest_path: Path, *, require_non_empty_book: bool = True) -> Dict[str, Any]:
+    """Fail-closed verifier for OBSERVED_L2 tape manifests: validates SHA-256, integer cents, depth, and monotonic UTC."""
     mpath = Path(manifest_path)
     manifest = json.loads(mpath.read_text(encoding="utf-8"))
     if manifest.get("data_provenance") != "OBSERVED_L2":
@@ -178,6 +275,8 @@ def verify_tape_manifest(manifest_path: Path) -> Dict[str, Any]:
         if prev_ts is not None and ts < prev_ts:
             raise ValueError(f"Non-monotonic timestamp at line {idx}")
         prev_ts = ts
+        if require_non_empty_book and not rec["bids"] and not rec["asks"]:
+            raise ValueError(f"Empty L2 order book at line {idx}")
         for side in ("bids", "asks"):
             for price, qty in rec[side]:
                 if not (isinstance(price, int) and 1 <= price <= 99 and isinstance(qty, int) and qty > 0):
