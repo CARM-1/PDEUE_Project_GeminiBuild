@@ -127,12 +127,37 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
 .glossary-item p{margin:6px 0 6px;font-size:.84rem;color:var(--text-secondary);line-height:1.45}
 .glossary-aliases{display:flex;flex-wrap:wrap;gap:5px}
 .glossary-alias{font-size:.7rem;padding:2px 7px;border-radius:999px;background:var(--bg-surface);color:var(--text-muted);border:1px solid var(--border-subtle)}
+.tutor-header{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:10px}
+.tutor-prompts{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.tutor-chip{border:1px solid var(--border-subtle);border-radius:999px;background:var(--bg-surface);color:var(--text-secondary);padding:5px 11px;font-size:.76rem;font-weight:700;cursor:pointer}
+.tutor-chip:hover{background:var(--accent-sky-deep);border-color:var(--accent-sky);color:var(--text-primary)}
+.tutor-form-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tutor-form-row input[type=text]{flex:1 1 240px;min-width:0}
+.tutor-meta-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px}
+.tutor-analogy{background:#0F1A36;border:1px solid var(--accent-sky);border-left:4px solid var(--accent-sky);border-radius:8px;padding:11px 13px;margin-top:10px;color:var(--text-secondary);font-size:.88rem}
+.tutor-citations{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.tutor-cite-btn{padding:4px 9px;font-size:.73rem;border-radius:999px;background:var(--bg-surface);border:1px solid var(--accent-sky);color:var(--accent-sky);cursor:pointer;font-weight:700}
+.tutor-cite-btn:hover{background:var(--accent-sky-deep);color:var(--text-primary)}
+.impact-card{background:#0F1A36;border:1px solid var(--status-amber);border-left:5px solid var(--status-amber);border-radius:10px;padding:14px 16px;margin-top:12px}
+.impact-card.tier-red{border-color:var(--status-red);border-left-color:var(--status-red)}
+.impact-card.tier-green{border-color:var(--status-green);border-left-color:var(--status-green)}
+.impact-card-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.impact-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:10px 0}
+.impact-tile{background:var(--bg-canvas);border:1px solid var(--border-subtle);border-radius:8px;padding:10px;min-width:0}
+.impact-tile .impact-val{display:block;margin-top:3px;font:700 .98rem ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-variant-numeric:tabular-nums;color:var(--text-primary)}
+.impact-tile .impact-val.amber{color:#FCD34D}
+.impact-tile .impact-val.green{color:#6EE7B7}
+.tutor-action-list{display:grid;gap:10px;margin-top:12px}
+.tutor-action-card{background:var(--bg-canvas);border:1px solid var(--border-subtle);border-left:4px solid var(--accent-sky);border-radius:9px;padding:12px 14px}
+.tutor-action-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.tutor-action-foot{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:10px}
+.badge-pill.red{background:rgba(220,38,38,.2);color:#FCA5A5;border:1px solid var(--status-red)}
 [hidden]{display:none!important}
-.pillar-grid,.metrics,.future-grid,.funding-grid,.slot-rack{min-width:0}
-.pillar-grid>*,.metrics>*,.future-grid>*,.funding-grid>*,.slot-rack>*,.card{min-width:0}
+.pillar-grid,.metrics,.future-grid,.funding-grid,.slot-rack,.impact-grid{min-width:0}
+.pillar-grid>*,.metrics>*,.future-grid>*,.funding-grid>*,.slot-rack>*,.impact-grid>*,.card{min-width:0}
 .currency-toggle,.header-actions{flex-wrap:wrap}
-@media(max-width:850px){.pillar-grid,.metrics,.future-grid,.funding-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.slot-rack{grid-template-columns:repeat(2,minmax(0,1fr))}.split{flex-direction:column;align-items:stretch}}
-@media(max-width:520px){.pillar-grid,.metrics,.future-grid,.funding-grid,.slot-rack{grid-template-columns:minmax(0,1fr)}.shell{padding:12px}.workspace-switcher{flex-direction:column;align-items:stretch}.proj-chart-shell{padding:10px}.curr-btn{padding:7px 10px;font-size:.78rem}}
+@media(max-width:850px){.pillar-grid,.metrics,.future-grid,.funding-grid,.impact-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.slot-rack{grid-template-columns:repeat(2,minmax(0,1fr))}.split{flex-direction:column;align-items:stretch}}
+@media(max-width:520px){.pillar-grid,.metrics,.future-grid,.funding-grid,.slot-rack,.impact-grid{grid-template-columns:minmax(0,1fr)}.shell{padding:12px}.workspace-switcher{flex-direction:column;align-items:stretch}.proj-chart-shell{padding:10px}.curr-btn{padding:7px 10px;font-size:.78rem}}
 </style></head><body><div style="display:none" id="legacyPortalHub">PDEUE PORTAL HUB</div>
 <div id="supervisoryAuditLensBanner" class="supervisory-lens-banner" hidden role="region" aria-label="Supervisory Audit Lens">
   <div class="supervisory-lens-inner">
@@ -226,7 +251,39 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
 </div></article>
 <article class="card"><div class="label">Live transparency layer</div><h2>Glass Engine · 12-Slot Concurrency Rack</h2><p class="fine"><span title="Strategy D places inside-maker orders and never pays retail taker pricing.">Strategy D wholesale maker ⓘ</span></p><div id="slotRack" class="slot-rack"><article class="slot" data-slot-id="1"><div class="slot-id">SLOT 01</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="2"><div class="slot-id">SLOT 02</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="3"><div class="slot-id">SLOT 03</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="4"><div class="slot-id">SLOT 04</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="5"><div class="slot-id">SLOT 05</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="6"><div class="slot-id">SLOT 06</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="7"><div class="slot-id">SLOT 07</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="8"><div class="slot-id">SLOT 08</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="9"><div class="slot-id">SLOT 09</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="10"><div class="slot-id">SLOT 10</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="11"><div class="slot-id">SLOT 11</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="12"><div class="slot-id">SLOT 12</div><div class="slot-domain">Slot Available</div></article></div></article><div hidden aria-hidden="true"><button class="regime">Traditional Index (~9%)</button><button class="regime">Steady Pace</button><button class="regime">Standard Pace</button></div>
 <div class="split"><article class="card"><div class="label">Downward-Only Risk Governor</div><h2>Choose less exposure</h2><p>Members may reduce risk from 2.00% to 0.50%. Restoration is locked to the F2-H Head of Household.</p><div class="range-row"><input id="riskSlider" type="range" min="50" max="200" value="100" aria-label="Risk dial percent"><b id="riskValue">1.00%</b></div><button id="saveRiskBtn" onclick="saveRiskDial()">Apply reduction</button><div id="riskStatus" class="fine"></div></article><article class="card"><div class="label">3-Tier Distribution Request Drawer</div><h2>Request personal cash</h2><div class="tier-key"><b class="green">● Green</b><b class="yellow">● Yellow</b><b class="red">● Red</b></div><input id="distributionAmount" type="text" placeholder="Amount in dollars" aria-label="Distribution amount in dollars"><button id="distributionBtn">Review request</button><p id="distributionStatus" class="fine"></p></article></div>
-<article class="card"><div class="label">AI literacy tutor · AI Tutor drawer</div><h2>Ask in everyday language</h2><form id="tutorForm"><input id="tutorInput" type="text" required placeholder="How does fostering work?" aria-label="Ask AI literacy tutor"><button id="askTutorBtn" type="submit">Ask tutor</button><button id="clearTutorBtn" type="button">Clear Answer</button></form><div id="tutorResponse" class="response">Your educational answer will appear here.</div></article></section>
+<article id="tutorCard" class="card" aria-label="Class M Member AI Literacy Tutor">
+  <div class="tutor-header">
+    <div>
+      <div class="label">AI literacy tutor · AI Tutor drawer · Lexicon v0.5 Grounded</div>
+      <h2 style="margin-bottom:4px;">Ask in everyday language</h2>
+    </div>
+    <span id="tutorInvariantBadge" class="badge-pill green">🔒 UNILATERAL EXECUTION: OFF (AUTH-01–AUTH-04)</span>
+  </div>
+  <p class="fine" style="margin:0 0 10px;">Scoped strictly to your own SCMA. Explains rules with plain-English analogies and exact-cent Yellow-Tier previews—never trades, moves funds, or changes settings without you.</p>
+  <div class="tutor-prompts" role="group" aria-label="Suggested novice questions">
+    <button type="button" class="tutor-chip" onclick="askPresetTutor('Explain the 87/10/3 waterfall simply')">87/10/3 Waterfall</button>
+    <button type="button" class="tutor-chip" onclick="askPresetTutor('How does the 40% dry-powder floor protect me?')">40% Dry-Powder Floor</button>
+    <button type="button" class="tutor-chip" onclick="askPresetTutor('Explain Quarter-Kelly sizing simply')">Quarter-Kelly</button>
+    <button type="button" class="tutor-chip" onclick="askPresetTutor('How does the High-Water Mark ADR-012 work?')">High-Water Mark (ADR-012)</button>
+    <button type="button" class="tutor-chip" onclick="askPresetTutor('How does the ADR-011 banking air-gap work?')">ADR-011 Air-Gap</button>
+    <button type="button" class="tutor-chip" onclick="askPresetTutor('What happens if I withdraw $100 from my seed?')">Yellow-Tier Withdrawal Impact</button>
+  </div>
+  <form id="tutorForm" class="tutor-form-row">
+    <input id="tutorInput" type="text" required placeholder="Ask about 87/10/3, High-Water Mark, 40% floor, or withdrawal impact…" aria-label="Ask AI literacy tutor">
+    <button id="askTutorBtn" type="submit">Ask tutor</button>
+    <button id="clearTutorBtn" type="button" aria-label="Clear tutor answer and reset input">Clear Answer</button>
+  </form>
+  <div id="tutorMetaBar" class="tutor-meta-bar" hidden aria-live="polite">
+    <span id="tutorProviderPill" class="badge-pill sky">PROVIDER: mock</span>
+    <span id="tutorAuthTierPill" class="badge-pill green">AUTH-01</span>
+    <span id="tutorGuardPill" class="badge-pill amber" hidden>GUARDRAIL REFUSAL</span>
+  </div>
+  <div id="tutorResponse" class="response" aria-live="polite">Your educational answer will appear here.</div>
+  <div id="tutorAnalogyBox" class="tutor-analogy" hidden><strong style="color:#38BDF8;">Everyday Analogy:</strong> <span id="tutorAnalogyText"></span></div>
+  <div id="tutorCitationsHost" class="tutor-citations" aria-label="Lexicon v0.5 citations"></div>
+  <div id="tutorImpactCardHost" aria-live="polite"></div>
+  <div id="tutorActionCardsHost" class="tutor-action-list" aria-label="Staged non-executing Action Cards"></div>
+</article></section>
 
 <!-- STAGE 5: FUNDING INSTRUCTIONS CARD (ADR-011 ZERO-CREDENTIAL ISOLATION) -->
 <article id="fundingInstructionsCard" class="card funding-card" aria-label="Funding Instructions">
@@ -643,10 +700,98 @@ async function loadState(){
 function showRisk(){riskValue.textContent=(Number(riskSlider.value)/100).toFixed(2)+'%'}
 riskSlider.addEventListener('input',showRisk);
 async function saveRiskDial(){if(isSupervisoryLens){riskStatus.textContent='Supervisory Audit Lens is read-only.';return}riskStatus.textContent='Saving…';const r=await fetch('/api/v1/portal/member/risk-dial',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scma_id:memberState.scma_id,requested_risk_pct:Number(riskSlider.value)/100})});riskStatus.textContent=r.ok?'Risk reduction applied. F2-H authorization is required to restore it.':'Unable to update risk.'}
-function clearTutorAnswer(){tutorResponse.textContent='Your educational answer will appear here.';tutorInput.value='';tutorInput.focus()}
+let lastTutorActionCards=[];
+function formatExactCentsJs(cents){const v=Math.trunc(Number(cents)||0);const s=v<0?'-':'';const a=Math.abs(v);return `${s}$${Math.floor(a/100).toLocaleString('en-US')}.${String(a%100).padStart(2,'0')}`}
+function openGlossaryForTerm(termId){
+  openGlossaryDrawer();
+  const qEl=document.getElementById('glossarySearchInput');
+  const match=glossaryTermsCache.find(t=>t.id===termId);
+  if(qEl){qEl.value=match?(match.short_label||match.term):termId}
+  setGlossaryCategory('all');
+}
+function renderTutorImpactCard(card){
+  if(!card){tutorImpactCardHost.innerHTML='';return}
+  const d=card.display||{};
+  const tier=String(card.tier||'YELLOW_TIER');
+  const tierClass=tier==='RED_TIER'?'tier-red':(tier==='GREEN_TIER'?'tier-green':'');
+  const pillClass=tier==='RED_TIER'?'red':(tier==='GREEN_TIER'?'green':'amber');
+  tutorImpactCardHost.innerHTML=`<section id="yellowTierImpactCard" class="impact-card ${tierClass}" data-tier="${escHtml(tier)}" data-mutated="false" aria-label="Yellow-Tier Compounding Impact Card"><div class="impact-card-head"><div><div class="eyebrow" style="color:#FCD34D;">YELLOW-TIER IMPACT CARD · EXACT INTEGER CENTS (ADR-008)</div><strong style="color:#F8FAFC;font-size:.96rem;">${escHtml(card.tier_label||'Yellow-Tier Educational Friction')}</strong></div><span class="badge-pill ${pillClass}">${escHtml(tier.replace('_',' '))} · ZERO MUTATION</span></div><div class="impact-grid"><div class="impact-tile"><div class="eyebrow">Current SCMA</div><span class="impact-val">${escHtml(d.current_balance||formatExactCentsJs(card.current_balance_cents))}</span></div><div class="impact-tile"><div class="eyebrow">Requested Withdrawal</div><span class="impact-val amber">${escHtml(d.requested_withdrawal||formatExactCentsJs(card.requested_withdrawal_cents))}</span></div><div class="impact-tile"><div class="eyebrow">Post-Withdrawal Balance</div><span class="impact-val">${escHtml(d.post_withdrawal_balance||formatExactCentsJs(card.post_withdrawal_balance_cents))}</span></div><div class="impact-tile"><div class="eyebrow">40% Dry-Powder Floor (After)</div><span class="impact-val green">${escHtml(d.dry_powder_floor_after||formatExactCentsJs(card.dry_powder_floor_after_cents))}</span></div><div class="impact-tile"><div class="eyebrow">6-Month Compounding Drag</div><span class="impact-val amber">${escHtml(d.compounding_friction_6m||formatExactCentsJs(card.compounding_friction_6m_cents))} (${escHtml(d.velocity_reduction_pct||'0.00%')})</span></div><div class="impact-tile"><div class="eyebrow">Gentler Partial Option</div><span class="impact-val green">${escHtml(d.recommended_partial||formatExactCentsJs(card.recommended_partial_cents))}</span></div></div><p class="fine" style="margin:6px 0 0;color:#FDE68A;">${escHtml(card.non_guarantee_notice||'Illustrative exact-cent simulation only. No balance has been changed.')}</p></section>`;
+}
+function stageTutorActionInUI(idx){
+  const card=lastTutorActionCards[idx];
+  if(!card)return;
+  const target=card.ui_target||'';
+  const payload=card.payload||{};
+  if(target==='distribution_drawer'){
+    const cents=Math.trunc(Number(payload.amount_cents||0));
+    if(cents>0&&!isSupervisoryLens){
+      distributionAmount.value=`${Math.floor(cents/100)}.${String(cents%100).padStart(2,'0')}`;
+    }
+    distributionStatus.textContent=isSupervisoryLens?'Supervisory Audit Lens is read-only — distribution review locked.':`Staged ${formatExactCentsJs(cents)} for manual review (${card.auth_tier}, unilateral_execution = false). Click Review request when ready.`;
+    distributionAmount.scrollIntoView({behavior:'smooth',block:'center'});
+    if(!isSupervisoryLens)distributionAmount.focus();
+  }else if(target==='risk_governor'){
+    riskStatus.textContent=isSupervisoryLens?'Supervisory Audit Lens is read-only — risk governor locked.':`Staged review only (${card.auth_tier}, unilateral_execution = false). Use the slider manually for downward-only reductions.`;
+    riskSlider.scrollIntoView({behavior:'smooth',block:'center'});
+    if(!isSupervisoryLens)riskSlider.focus();
+  }else if(target==='glossary_drawer'){
+    openGlossaryForTerm(payload.term_id||payload.search||'');
+  }else if(target==='glass_engine'){
+    slotRack.scrollIntoView({behavior:'smooth',block:'center'});
+  }
+}
+function renderTutorActionCards(cards){
+  lastTutorActionCards=Array.isArray(cards)?cards:[];
+  if(!lastTutorActionCards.length){tutorActionCardsHost.innerHTML='';return}
+  tutorActionCardsHost.innerHTML=lastTutorActionCards.map((c,idx)=>{
+    const tier=escHtml(c.auth_tier||'AUTH-01');
+    const tierCls=tier==='AUTH-03'||tier==='AUTH-04'?'amber':'sky';
+    const btnLabel=c.ui_target==='distribution_drawer'?'Pre-fill Distribution Drawer (No Submit)':(c.ui_target==='risk_governor'?'Focus Risk Governor (No Change)':(c.ui_target==='glossary_drawer'?'Open in Lexicon v0.5':'Inspect Control'));
+    return `<article class="tutor-action-card" data-auth-tier="${tier}" data-executed="false" data-unilateral-execution="false"><div class="tutor-action-head"><strong style="color:#F8FAFC;font-size:.92rem;">${escHtml(c.title||'Staged Action Card')}</strong><div style="display:flex;gap:6px;flex-wrap:wrap;"><span class="badge-pill ${tierCls}">${tier}</span><span class="badge-pill green">STAGED · NOT EXECUTED</span></div></div><p class="fine" style="margin:4px 0 0;color:#CBD5E1;">${escHtml(c.description||'')}</p><div class="tutor-action-foot"><span class="fine">${escHtml(c.confirmation_notice||'Requires explicit human confirmation.')}</span><button type="button" class="curr-btn" onclick="stageTutorActionInUI(${idx})">${btnLabel}</button></div></article>`;
+  }).join('');
+}
+function renderTutorCitations(ids){
+  const list=Array.isArray(ids)?ids:[];
+  if(!list.length){tutorCitationsHost.innerHTML='';return}
+  tutorCitationsHost.innerHTML=list.map(id=>{
+    const entry=glossaryTermsCache.find(t=>t.id===id);
+    const label=entry?(entry.short_label||entry.term):id;
+    return `<button type="button" class="tutor-cite-btn" onclick="openGlossaryForTerm('${escHtml(id)}')">📖 ${escHtml(label)}</button>`;
+  }).join('');
+}
+function clearTutorAnswer(){tutorResponse.textContent='Your educational answer will appear here.';tutorInput.value='';tutorMetaBar.hidden=true;tutorAnalogyBox.hidden=true;tutorAnalogyText.textContent='';tutorCitationsHost.innerHTML='';tutorImpactCardHost.innerHTML='';tutorActionCardsHost.innerHTML='';lastTutorActionCards=[];tutorInput.focus()}
 clearTutorBtn.addEventListener('click',clearTutorAnswer);
 distributionBtn.addEventListener('click',()=>{if(isSupervisoryLens){distributionStatus.textContent='Supervisory Audit Lens is read-only.';return}distributionStatus.textContent=Number(distributionAmount.value)>0?'Request ready for Green / Yellow / Red safeguard review.':'Enter a valid amount.'});
-tutorForm.addEventListener('submit',async e=>{e.preventDefault();tutorResponse.textContent='Thinking…';const r=await fetch('/api/v1/portal/member/tutor',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:tutorInput.value})});const d=await r.json();tutorResponse.textContent=d.response||d.answer||'Tutor unavailable.'});
+async function submitTutorQuery(questionText){
+  const q=String(questionText||'').trim();
+  if(!q)return;
+  tutorResponse.textContent='Thinking…';
+  tutorMetaBar.hidden=true;
+  tutorAnalogyBox.hidden=true;
+  tutorCitationsHost.innerHTML='';
+  tutorImpactCardHost.innerHTML='';
+  tutorActionCardsHost.innerHTML='';
+  try{
+    const scma=(memberState&&memberState.scma_id)||activeScmaId||null;
+    const r=await fetch('/api/v1/portal/member/tutor',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,scma_id:scma})});
+    const d=await r.json();
+    tutorResponse.textContent=d.response||d.answer||'Tutor unavailable.';
+    tutorMetaBar.hidden=false;
+    tutorProviderPill.textContent=`PROVIDER: ${d.provider_used||'mock'}${d.fallback_used?' (FAIL-CLOSED FALLBACK)':''}`;
+    tutorAuthTierPill.textContent=`${d.auth_tier||'AUTH-01'} · UNILATERAL=FALSE`;
+    tutorGuardPill.hidden=!d.guard_blocked;
+    if(d.guard_blocked){tutorGuardPill.textContent=`GUARDRAIL REFUSAL · ${d.guard_category||'PROTECTED'}`}
+    if(d.analogy){tutorAnalogyText.textContent=d.analogy;tutorAnalogyBox.hidden=false}else{tutorAnalogyBox.hidden=true;tutorAnalogyText.textContent=''}
+    renderTutorCitations(d.lexicon_citations);
+    renderTutorImpactCard(d.impact_card);
+    renderTutorActionCards(d.action_cards);
+  }catch(_err){
+    tutorResponse.textContent='UNAVAILABLE — AI Literacy Tutor unreachable; no action was executed.';
+    tutorMetaBar.hidden=true;
+  }
+}
+function askPresetTutor(promptText){tutorInput.value=promptText;submitTutorQuery(promptText)}
+tutorForm.addEventListener('submit',async e=>{e.preventDefault();await submitTutorQuery(tutorInput.value)});
 // Legacy onboarding dismissal key retained for preference migration.
 localStorage.getItem('pdeue_welcome_dismissed');
 setCurrencyMode(currencyMode);

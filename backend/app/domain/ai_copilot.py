@@ -1,6 +1,8 @@
 import re
 from typing import Dict, Any, Optional
 
+from app.domain.ai_clients import BaseLLMClient, inspect_user_input
+
 class AICopilotEngine:
     """Deterministic AI Copilot Engine enforcing AUTH-01/02 point-in-time governance."""
     def __init__(self, llm_client: Optional[Any] = None):
@@ -27,7 +29,22 @@ class AICopilotEngine:
         return result["response_text"]
 
     def process_query(self, query: str, workspace_state: Optional[Dict[str, Any]] = None, actor_hat: Optional[str] = "Chief Administrator") -> Dict[str, Any]:
-        q_str = (query or "").lower().strip()
+        verdict = inspect_user_input(
+            query or "",
+            actor_role=str(actor_hat or "Chief Administrator"),
+            actor_id=str(actor_hat or "Chief Administrator"),
+        )
+        if verdict.blocked:
+            return {
+                "response_text": verdict.refusal_message or "Request refused under PDEUE constitutional guardrails.",
+                "unilateral_execution": False,
+                "guard_blocked": True,
+                "guard_category": verdict.category,
+                "audit_event_id": verdict.audit_event_id,
+                "lineage_context": {"guard_blocked": True, "category": verdict.category, "model_prob": 0.27},
+                "action_cards": [],
+            }
+        q_str = verdict.sanitized_text.lower().strip()
 
         # Advisor-domain explanations formerly lived as shallow HTTP-route
         # mocks.  They remain deterministic here for backwards compatibility,
@@ -244,6 +261,22 @@ class AICopilotEngine:
             }
 
         # 5. Default Mock / Fallback Handler
+        if isinstance(self.llm_client, BaseLLMClient):
+            llm_resp = self.llm_client.generate_safe_response(
+                system_prompt="PDEUE AI Copilot Engine (AUTH-01–AUTH-04, unilateral_execution=False).",
+                user_query=query,
+                context=workspace_state or {},
+                actor_role=str(actor_hat or "Chief Administrator"),
+                actor_id=str(actor_hat or "Chief Administrator"),
+            )
+            return {
+                "response_text": llm_resp.content,
+                "unilateral_execution": False,
+                "provider_used": llm_resp.provider,
+                "model_used": llm_resp.model,
+                "lineage_context": {"query_echo": query, "model_prob": 0.27},
+                "action_cards": llm_resp.action_cards,
+            }
         resp_text = self.llm_client.generate(query) if (self.llm_client and hasattr(self.llm_client, "generate")) else f"Mock LLM Response for: {query}"
         return {
             "response_text": resp_text,
