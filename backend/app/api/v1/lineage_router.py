@@ -501,7 +501,7 @@ def get_house_leader_portal(house_id: int = 1):
 
   <div class="class-h-banner" style="flex-wrap: wrap; gap: 12px;">
     <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-      <a href="/community" class="brand-lockup" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Heritage">
+      <a href="/community/heritage" class="brand-lockup" data-plane-doorway="heritage" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Heritage">
         <span class="brand-crests">
           <img class="brand-crest" src="/static/assets/crests/carmichael_crest.svg" alt="Carmichael Family Crest" width="40" height="46" loading="eager">
           <span class="brand-crest-divider" aria-hidden="true"></span>

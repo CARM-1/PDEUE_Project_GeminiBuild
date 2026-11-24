@@ -454,6 +454,41 @@ LEXICON_TERMS: List[Dict[str, Any]] = [
         ),
         "aliases": ["community hearth", "/community", "family hearth", "jitsi classroom", "family living room"],
     },
+    {
+        "id": "bordure-differencing",
+        "term": "Bordure Differencing",
+        "short_label": "Bordure Differencing",
+        "category": "Family & Heritage",
+        "authority_ref": "PR #83 · Scottish Heraldry · 12-House Hall of Arms",
+        "plain_english": (
+            "A classic Scottish family-crest tradition where each branch keeps the same core family shield "
+            "in the center and adds its own distinct decorative border color and edge pattern so every House is easy to recognize."
+        ),
+        "technical_spec": (
+            "Scottish heraldic cadency applied across Houses 02–12 descending from foundational McCormick stock: "
+            "each House retains the foundational silver shield with three royal-blue eagles and crimson zigzag fess dancetté, "
+            "differentiated by distinct bordure tinctures and edge lines (engrailed, indented, wavy, invected, embattled, compony), "
+            "while House 01 (Carmichael) descends from the eldest McCormick daughter."
+        ),
+        "aliases": ["scottish bordure", "cadency", "house crest border", "engrailed", "indented", "invected"],
+    },
+    {
+        "id": "guided-tour",
+        "term": "Guided Tour (PDEUE University)",
+        "short_label": "Guided Tour",
+        "category": "Family & Heritage",
+        "authority_ref": "PR #83 · /companion · Paced Plain-English Narration",
+        "plain_english": (
+            "A step-by-step learning mode in PDEUE University that always starts cleanly at Chapter 1 and walks "
+            "you through short, plain-English lessons one slide at a time—at your own reading or listening pace."
+        ),
+        "technical_spec": (
+            "Deterministic chapter-and-beat walkthrough engine in /companion (#guidedMode). Resets cleanly to the opening "
+            "chapter (Chapter 1), synchronizes paced plain-language caption beats with visual slide highlights, supports "
+            "adjustable speech rate and voice selection, and falls back gracefully to a silent beat timer when browser voices are unavailable."
+        ),
+        "aliases": ["guided step-by-step", "paced narration", "university tour", "step-by-step walkthrough"],
+    },
 ]
 
 # Populate backward-compatible tooltip & definition fields directly from plain_english
@@ -488,6 +523,8 @@ REQUIRED_CANONICAL_TERM_IDS: tuple[str, ...] = (
     "family-home-hub",
     "hall-of-arms",
     "lineage-hearth",
+    "bordure-differencing",
+    "guided-tour",
 )
 
 

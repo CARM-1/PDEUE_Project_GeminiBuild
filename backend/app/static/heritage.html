@@ -65,8 +65,8 @@
     .founding-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 18px;
-      margin: 20px 0 24px;
+      gap: 20px;
+      margin: 18px 0 24px;
     }
     .founding-card {
       background: linear-gradient(145deg, #213054, #15203A);
@@ -74,12 +74,40 @@
       border-radius: 18px;
       padding: 20px;
       display: flex;
-      gap: 18px;
-      align-items: center;
+      flex-direction: column;
+      gap: 14px;
       text-decoration: none;
       color: inherit;
+      transition: border-color 0.15s ease, transform 0.15s ease;
     }
-    .founding-card:hover { border-color: #F6DE8D; background: #263861; }
+    .founding-card:hover { border-color: #F6DE8D; background: #263861; transform: translateY(-2px); }
+
+    .achievement-frame {
+      width: 100%;
+      border-radius: 14px;
+      border: 1.5px solid rgba(228,187,99,.72);
+      background: #0B132B;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .achievement-frame img { width: auto; max-width: 100%; height: auto; max-height: 310px; object-fit: contain; display: block; }
+    .bordure-pill {
+      display: inline-block; padding: 2px 9px; border-radius: 999px;
+      font-size: 0.72rem; font-weight: 700;
+      background: rgba(217,119,6,.16); border: 1px solid rgba(228,187,99,.58); color: #FDE68A;
+    }
+    .heraldry-explainer {
+      background: var(--bg-card);
+      border: 1px solid rgba(228,187,99,.45);
+      border-left: 4px solid var(--gold);
+      border-radius: 14px;
+      padding: 15px 18px;
+      margin-bottom: 18px;
+      color: var(--text-secondary);
+      font-size: 0.94rem;
+    }
 
     .crest-frame {
       width: 90px;
@@ -225,71 +253,95 @@
       .brand-lockup { gap: 8px; }
       .brand-title { font-size: .72rem; }
       .brand-motto { font-size: .66rem; }
-      .founding-card { flex-direction: column; align-items: flex-start; }
     }
   </style>
 </head>
 <body>
 <div style="display:none" id="legacyPortalHub">PDEUE PORTAL HUB</div>
 <main class="shell">
-  <div class="top-brand-bar">
-    <a href="/community/heritage" class="brand-lockup" data-plane-doorway="heritage" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Hall of Arms">
-      <span class="brand-crests">
-        <img class="brand-crest" src="/static/assets/crests/carmichael_crest.svg" alt="Carmichael Family Crest" width="40" height="46" loading="eager">
-        <span class="brand-crest-divider" aria-hidden="true"></span>
-        <img class="brand-crest" src="/static/assets/crests/mccormick_crest.svg" alt="McCormick Family Crest" width="40" height="46" loading="eager">
-      </span>
-      <span class="brand-stack">
-        <span class="brand-title">FUTURE · CARMICHAEL — McCORMICK</span>
-        <span class="brand-motto">Generational Love, Harmony, Resilience, and Wealth</span>
-      </span>
-    </a>
-    <div class="senior-a11y-controls">
-      <a id="backToHomeBtn" class="back-home-btn" href="/home" data-plane-doorway="home">← Back to Home</a>
-      <div id="textScaleGroup" class="text-scale-group" role="group" aria-label="Text size controls">
-        <button type="button" class="text-scale-btn active" data-scale="standard" aria-pressed="true" aria-label="Standard text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('standard')">A</button>
-        <button type="button" class="text-scale-btn" data-scale="large" aria-pressed="false" aria-label="Large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('large')">A+</button>
-        <button type="button" class="text-scale-btn" data-scale="xlarge" aria-pressed="false" aria-label="Extra large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('xlarge')">A++</button>
+  <div class="portal-header-shell" role="banner">
+    <nav aria-label="Hall of Arms navigation">
+      <div class="portal-header-row1">
+        <a href="/community/heritage" class="brand-lockup" data-plane-doorway="heritage" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Hall of Arms">
+          <span class="brand-crests">
+            <img class="brand-crest" src="/static/assets/crests/carmichael_crest.svg" alt="Carmichael Family Crest" width="40" height="46" loading="eager">
+            <span class="brand-crest-divider" aria-hidden="true"></span>
+            <img class="brand-crest" src="/static/assets/crests/mccormick_crest.svg" alt="McCormick Family Crest" width="40" height="46" loading="eager">
+          </span>
+          <span class="brand-stack">
+            <span class="brand-title">FUTURE · CARMICHAEL — McCORMICK</span>
+            <span class="brand-motto">Generational Love, Harmony, Resilience, and Wealth</span>
+          </span>
+        </a>
+        <div class="senior-a11y-controls">
+          <a id="backToHomeBtn" class="back-home-btn" href="/home" data-plane-doorway="home">← Back to Home</a>
+          <div id="textScaleGroup" class="text-scale-group" role="group" aria-label="Text size controls">
+            <button type="button" class="text-scale-btn active" data-scale="standard" aria-pressed="true" aria-label="Standard text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('standard')">A</button>
+            <button type="button" class="text-scale-btn" data-scale="large" aria-pressed="false" aria-label="Large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('large')">A+</button>
+            <button type="button" class="text-scale-btn" data-scale="xlarge" aria-pressed="false" aria-label="Extra large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('xlarge')">A++</button>
+          </div>
+        </div>
       </div>
-    </div>
+      <div class="portal-header-row2">
+        <div class="portal-hub-pills">
+          <span class="portal-hub-label">FAMILY SPACE:</span>
+          <a href="/community" class="portal-hub-pill" data-plane-doorway="community">🔥 Family Hearth</a>
+          <a href="/community/heritage" class="portal-hub-pill active" data-plane-doorway="heritage" aria-current="page">🛡️ Hall of Arms</a>
+          <a href="/companion" class="nav-link campus-link" id="navCompanionLink" data-plane-doorway="companion">🎓 PDEUE University</a>
+        </div>
+      </div>
+    </nav>
+    <header class="portal-header-row3">
+      <div class="portal-title-block">
+        <div class="eyebrow" style="margin-top:0;">CARMICHAEL &amp; McCORMICK LINEAGE ARCHIVE · 12 HOUSES · 28+ ALLIED SURNAMES</div>
+        <h1 style="margin:4px 0 4px;font-size:clamp(1.45rem,2.6vw,2rem);"><abbr class="pdeue-term" tabindex="0" data-term="hall-of-arms" data-tooltip="Our family heritage gallery displaying the founding Carmichael and McCormick crests, all 12 Houses, and 28+ allied surnames—curated by trusted House Genealogists.">Hall of Arms<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> &amp; Family Heritage</h1>
+        <p style="margin:0;color:var(--text-secondary);font-size:0.92rem;">Two-scale heraldry: compact shield emblems in every portal header, full heraldic achievements below. Curated solely by assigned <abbr class="pdeue-term" tabindex="0" data-term="house-genealogist" data-tooltip="A trusted family historian assigned to help verify how new relatives connect to the family tree and prepare welcome paperwork—without ever moving money or activating accounts on their own.">House Genealogist<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> officers or Chief Admin.</p>
+      </div>
+      <div class="portal-action-strip">
+        <span class="plane-badge">🛡️ Family Social Space — No Financial Data</span>
+      </div>
+    </header>
   </div>
 
-  <header class="hero">
-    <span class="plane-badge">🛡️ Family Social Space — No Financial Data</span>
-    <div class="eyebrow">CARMICHAEL &amp; McCORMICK LINEAGE ARCHIVE · 12 HOUSES · 28+ ALLIED SURNAMES</div>
-    <h1><abbr class="pdeue-term" tabindex="0" data-term="hall-of-arms" data-tooltip="Our family heritage gallery displaying the founding Carmichael and McCormick crests, all 12 Houses, and 28+ allied surnames—curated by trusted House Genealogists.">Hall of Arms<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> &amp; Family Heritage</h1>
-    <p>Every founding House and married-in family line has a place of honor here. Select any crest to read its chronicle, or search by surname or House number below. Only assigned <abbr class="pdeue-term" tabindex="0" data-term="house-genealogist" data-tooltip="A trusted family historian assigned to help verify how new relatives connect to the family tree and prepare welcome paperwork—without ever moving money or activating accounts on their own.">House Genealogist<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> historians (for their own House) or the Chief Administrator may update history pages.</p>
-  </header>
-
-  <section aria-label="Founding Family Crests">
-    <div class="section-head">
-      <h2>Founding Pillars — Carmichael &amp; McCormick</h2>
-      <span class="count-pill">2 Founding Surnames</span>
+  <section id="foundingAchievementsShowcase" aria-label="Founding Full Heraldic Achievements">
+    <div class="section-head" style="margin-top:6px;">
+      <h2>Founding Heraldic Achievements — Carmichael &amp; McCormick</h2>
+      <span class="count-pill">Full Achievement View · 2 Founding Surnames</span>
     </div>
     <div id="foundingSurnamesGrid" class="founding-grid">
       <a class="founding-card" href="/community/heritage/surname/carmichael">
-        <div class="crest-frame"><img src="/static/assets/crests/carmichael_crest.svg" alt="Carmichael Founding Crest"></div>
+        <div class="achievement-frame">
+          <img src="/static/assets/crests/carmichael_achievement.svg" alt="Full Carmichael Heraldic Achievement — Hyndford eagle, blue and crimson wreathed inescutcheon, armored arm with broken spear, knight and crowned golden African lion supporters">
+        </div>
         <div>
-          <span class="code-tag">FOUNDING · HOUSE-01</span>
-          <h3 style="margin:6px 0 4px;font-size:1.3rem;">Carmichael</h3>
-          <p class="summary-line">Toujours Prest — Co-founding pillar of generational stewardship and preparedness.</p>
-          <span class="read-link">Read Carmichael History →</span>
+          <span class="code-tag">HOUSE-01 · DESCENDING FROM ELDEST McCORMICK DAUGHTER</span>
+          <h3 style="margin:8px 0 4px;font-size:1.3rem;">Carmichael — Full Achievement</h3>
+          <p class="motto-line">Toujours Prest — Always Ready in Stewardship</p>
+          <p class="summary-line" style="margin-top:6px;">Hyndford eagle &amp; blue/crimson wreathed inescutcheon, armored arm with broken spear, <em>TOUJOURS PREST</em> scroll, armored knight supporter, crowned golden African lion supporter, Scottish thistles, and gold/black/green heritage accent ribbon.</p>
+          <span class="read-link" style="display:inline-block;margin-top:8px;">Read Carmichael History →</span>
         </div>
       </a>
       <a class="founding-card" href="/community/heritage/surname/mccormick">
-        <div class="crest-frame"><img src="/static/assets/crests/mccormick_crest.svg" alt="McCormick Founding Crest"></div>
+        <div class="achievement-frame">
+          <img src="/static/assets/crests/mccormick_achievement.svg" alt="Full Foundational McCormick Heraldic Achievement — Three royal-blue eagles, crimson zigzag fess dancette, black engrailed border, blue eagle crest, twin golden Highland stags">
+        </div>
         <div>
-          <span class="code-tag">FOUNDING · HOUSE-02</span>
-          <h3 style="margin:6px 0 4px;font-size:1.3rem;">McCormick</h3>
-          <p class="summary-line">Sine Timore — Co-founding pillar of steadfast courage, scholarship, and kinship.</p>
-          <span class="read-link">Read McCormick History →</span>
+          <span class="code-tag">FOUNDATIONAL STOCK · HOUSES 02–12 ROOT ARMS</span>
+          <h3 style="margin:8px 0 4px;font-size:1.3rem;">Foundational McCormick — Full Achievement</h3>
+          <p class="motto-line">Sine Timore — Steadfast Without Fear</p>
+          <p class="summary-line" style="margin-top:6px;">Three royal-blue eagles, crimson zigzag <em>fess dancetté</em>, and black engrailed border on silver, topped by a royal-blue eagle crest over helm and mantling, supported by twin golden Highland stags and Scottish thistles.</p>
+          <span class="read-link" style="display:inline-block;margin-top:8px;">Read McCormick History →</span>
         </div>
       </a>
+    </div>
+    <div class="heraldry-explainer">
+      <strong style="color:#F6DE8D;">Scottish <abbr class="pdeue-term" tabindex="0" data-term="bordure-differencing" data-tooltip="A classic Scottish family-crest tradition where each branch keeps the same core family shield in the center and adds its own distinct decorative border color and edge pattern so every House is easy to recognize.">Bordure Differencing<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> Across All 12 Houses:</strong>
+      House 01 (Carmichael Prime) descends from the eldest McCormick daughter. Houses 02 through 12 descend from the foundational McCormick stock—preserving the three royal-blue eagles and crimson zigzag shield core while distinguishing each House with its own Scottish heraldic bordure tincture and edge treatment (engrailed, indented, wavy, invected, embattled, or compony).
     </div>
   </section>
 
   <section class="filter-bar" aria-label="Search Hall of Arms">
-    <input id="heritageSearchInput" type="search" aria-label="Search Houses, mottos, or allied surnames" placeholder="Search surname, House name, or motto (e.g., Vance, Sinclair, Highland)…" oninput="loadHeritageGallery()">
+    <input id="heritageSearchInput" type="search" aria-label="Search Houses, mottos, or allied surnames" placeholder="Search surname, House name, bordure style, or motto (e.g., Vance, Sinclair, Indented)…" oninput="loadHeritageGallery()">
     <select id="heritageHouseFilter" aria-label="Filter by House" onchange="loadHeritageGallery()">
       <option value="">All 12 Houses</option>
       <option value="1">House 01</option>
@@ -310,7 +362,7 @@
 
   <section aria-label="Twelve Family Houses">
     <div class="section-head">
-      <h2>The 12 Family Houses</h2>
+      <h2>The 12 Family Houses (Carmichael + 11 Bordure-Differenced McCormick Houses)</h2>
       <span id="housesCountPill" class="count-pill">12 Houses</span>
     </div>
     <div id="housesGalleryGrid" class="houses-grid">
@@ -430,6 +482,12 @@ async function loadHeritageGallery(){
       const meta=document.createElement('div');
       meta.appendChild(makeEl('span','code-tag',h.lineage_code));
       meta.appendChild(makeEl('h3','',h.house_name));
+      if(h.bordure_differencing){
+        const bdLabel=h.bordure_differencing.is_bordure_differenced
+          ? ('Bordure '+h.bordure_differencing.border_style+' · '+h.bordure_differencing.tincture)
+          : 'Carmichael Line · Eldest McCormick Daughter';
+        meta.appendChild(makeEl('span','bordure-pill',bdLabel));
+      }
       top.append(frame,meta);
       card.append(
         top,

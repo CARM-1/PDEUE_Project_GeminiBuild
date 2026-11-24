@@ -95,45 +95,51 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
 </div>
 <main class="shell">
 <div style="display:none" id="legacyPortalHub">PDEUE PORTAL HUB</div>
-<nav class="nav">
-  <div class="row" style="gap:14px;">
-    <a href="/community/heritage" class="brand-lockup" data-plane-doorway="heritage" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Heritage">
-      <span class="brand-crests">
-        <img class="brand-crest" src="/static/assets/crests/carmichael_crest.svg" alt="Carmichael Family Crest" width="40" height="46" loading="eager">
-        <span class="brand-crest-divider" aria-hidden="true"></span>
-        <img class="brand-crest" src="/static/assets/crests/mccormick_crest.svg" alt="McCormick Family Crest" width="40" height="46" loading="eager">
-      </span>
-      <span class="brand-stack">
-        <span class="brand-title">FUTURE · CARMICHAEL — McCORMICK</span>
-        <span class="brand-motto">Generational Love, Harmony, Resilience, and Wealth</span>
-      </span>
-    </a>
-    <strong>Technical Console (Class T)</strong>
-  </div>
-  <div class="senior-a11y-controls">
-    <a id="backToHomeBtn" class="back-home-btn" href="/home" data-plane-doorway="home">← Back to Home</a>
-    <a href="/companion" class="nav-link campus-link" id="navCompanionLink">🎓 PDEUE University</a>
-    <div id="textScaleGroup" class="text-scale-group" role="group" aria-label="Text size controls">
-      <button type="button" class="text-scale-btn active" data-scale="standard" aria-pressed="true" aria-label="Standard text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('standard')">A</button>
-      <button type="button" class="text-scale-btn" data-scale="large" aria-pressed="false" aria-label="Large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('large')">A+</button>
-      <button type="button" class="text-scale-btn" data-scale="xlarge" aria-pressed="false" aria-label="Extra large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('xlarge')">A++</button>
+<div class="portal-header-shell" role="banner">
+  <nav aria-label="Class T Technical navigation">
+    <div class="portal-header-row1">
+      <a href="/community/heritage" class="brand-lockup" data-plane-doorway="heritage" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Heritage">
+        <span class="brand-crests">
+          <img class="brand-crest" src="/static/assets/crests/carmichael_crest.svg" alt="Carmichael Family Crest" width="40" height="46" loading="eager">
+          <span class="brand-crest-divider" aria-hidden="true"></span>
+          <img class="brand-crest" src="/static/assets/crests/mccormick_crest.svg" alt="McCormick Family Crest" width="40" height="46" loading="eager">
+        </span>
+        <span class="brand-stack">
+          <span class="brand-title">FUTURE · CARMICHAEL — McCORMICK</span>
+          <span class="brand-motto">Generational Love, Harmony, Resilience, and Wealth</span>
+        </span>
+      </a>
+      <div class="senior-a11y-controls">
+        <a id="backToHomeBtn" class="back-home-btn" href="/home" data-plane-doorway="home">← Back to Home</a>
+        <div id="textScaleGroup" class="text-scale-group" role="group" aria-label="Text size controls">
+          <button type="button" class="text-scale-btn active" data-scale="standard" aria-pressed="true" aria-label="Standard text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('standard')">A</button>
+          <button type="button" class="text-scale-btn" data-scale="large" aria-pressed="false" aria-label="Large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('large')">A+</button>
+          <button type="button" class="text-scale-btn" data-scale="xlarge" aria-pressed="false" aria-label="Extra large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('xlarge')">A++</button>
+        </div>
+      </div>
     </div>
-  </div>
-</nav>
-<header class="hero">
-  <div>
-    <p class="eyebrow"><abbr class="pdeue-term" tabindex="0" data-term="directive-r12-masking" data-tooltip="Privacy blinds for technical helpers. Engineers and house secretaries can keep systems healthy without seeing anyone's real dollar balances or account names—those numbers appear hidden as stars.">Directive R-12<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> protected plane</p>
-    <h1>Technical Infrastructure Console</h1>
-    <p class="muted">Live diagnostics. Financial fields remain masked (<code>$****.**</code> / <code>SCMA-MEM-****</code>) under <abbr class="pdeue-term" tabindex="0" data-term="active-hat-r06" data-tooltip="One role at a time. Even if a family leader holds two jobs—like personal member and platform steward—they must intentionally switch hats so personal money and leadership tools never mix by accident.">Active-Hat / R-06<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> until an explicit, time-bounded, audited CA grant is active.</p>
-  </div>
-  <div class="header-controls">
-    <span class="badge" id="active-hat">Active Hat: TECHNICAL_OPERATOR (T3_CTO)</span>
-    <span class="badge-zero-fin" id="zero-fin-badge">ZERO FINANCIAL / HOUSE AUTHORITY</span>
-    <button class="override-alert" type="button" id="grant">Authenticate CA Override</button>
-    <span id="grant-badge" class="badge" hidden>ACTIVE UNREDACT GRANT</span>
-    <button type="button" id="revoke" hidden>Revoke &amp; Remask</button>
-  </div>
-</header>
+    <div class="portal-header-row2">
+      <div class="portal-hub-pills">
+        <strong class="portal-hub-pill active">Technical Console (Class T)</strong>
+        <a href="/companion" class="nav-link campus-link" id="navCompanionLink">🎓 PDEUE University</a>
+      </div>
+    </div>
+  </nav>
+  <header class="portal-header-row3 hero">
+    <div class="portal-title-block">
+      <p class="eyebrow" style="margin:0;"><abbr class="pdeue-term" tabindex="0" data-term="directive-r12-masking" data-tooltip="Privacy blinds for technical helpers. Engineers and house secretaries can keep systems healthy without seeing anyone's real dollar balances or account names—those numbers appear hidden as stars.">Directive R-12<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> protected plane</p>
+      <h1>Technical Infrastructure Console</h1>
+      <p class="muted" style="margin:0;">Live diagnostics. Financial fields remain masked (<code>$****.**</code> / <code>SCMA-MEM-****</code>) under <abbr class="pdeue-term" tabindex="0" data-term="active-hat-r06" data-tooltip="One role at a time. Even if a family leader holds two jobs—like personal member and platform steward—they must intentionally switch hats so personal money and leadership tools never mix by accident.">Active-Hat / R-06<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> until an explicit, time-bounded, audited CA grant is active.</p>
+    </div>
+    <div class="header-controls portal-action-strip">
+      <span class="badge" id="active-hat">Active Hat: TECHNICAL_OPERATOR (T3_CTO)</span>
+      <span class="badge-zero-fin" id="zero-fin-badge">ZERO FINANCIAL / HOUSE AUTHORITY</span>
+      <button class="override-alert" type="button" id="grant">Authenticate CA Override</button>
+      <span id="grant-badge" class="badge" hidden>ACTIVE UNREDACT GRANT</span>
+      <button type="button" id="revoke" hidden>Revoke &amp; Remask</button>
+    </div>
+  </header>
+</div>
 <section id="readModelStatusBanner" class="rm-banner rm-qualification_pending" hidden role="status" aria-live="assertive" data-rm-status="OK">
   <div>
     <span id="readModelStatusCode" class="rm-pill">QUALIFICATION_PENDING</span>

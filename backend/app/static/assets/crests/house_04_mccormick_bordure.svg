@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120" width="100" height="120" role="img" aria-label="House 04 House of the Riverbend — Bordure wavy Azure (Royal Blue)">
+  <title>HOUSE-04 House of the Riverbend (Bordure wavy Azure (Royal Blue))</title>
+  <desc>Foundational McCormick shield core (three royal-blue eagles and crimson zigzag fess dancette on silver) differenced under Scottish heraldry with Bordure wavy Azure (Royal Blue).</desc>
+  <defs>
+    <linearGradient id="h04Gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FCE79C"/>
+      <stop offset="50%" stop-color="#D4AF37"/>
+      <stop offset="100%" stop-color="#9A721C"/>
+    </linearGradient>
+    <clipPath id="h04Clip">
+      <path d="M12 20 H88 V64 C88 89 68 104 50 113 C32 104 12 89 12 64 Z"/>
+    </clipPath>
+    <g id="h04Eagle">
+      <path d="M0,-8.5 L2,-5.5 L8.5,-6.5 L10.5,-2.5 L6.5,-0.5 L9.5,2.2 L4.5,3 L2.8,1.8 L4.5,7.8 L1.2,5.6 L0,9.2 L-1.2,5.6 L-4.5,7.8 L-2.8,1.8 L-4.5,3 L-9.5,2.2 L-6.5,-0.5 L-10.5,-2.5 L-8.5,-6.5 L-2,-5.5 Z" fill="#1D4ED8" stroke="#0F2A6B" stroke-width="0.65" stroke-linejoin="round"/>
+      <circle cx="0" cy="-6.6" r="1.3" fill="#1D4ED8"/>
+    </g>
+  </defs>
+  <!-- House Numeral Coronet Badge -->
+  <path d="M34 15 L39 7 L45 11 L50 5 L55 11 L61 7 L66 15 Z" fill="url(#h04Gold)" stroke="#FFF3C4" stroke-width="0.8"/>
+  <rect x="34" y="15" width="32" height="3.2" rx="1.2" fill="url(#h04Gold)"/>
+  <!-- Outer Shield -->
+  <path d="M9 19 H91 V65 C91 91 70 107 50 117 C30 107 9 91 9 65 Z" fill="#1D4ED8" stroke="url(#h04Gold)" stroke-width="2.8"/>
+  <g clip-path="url(#h04Clip)">
+    <!-- Scottish Bordure Tincture Field -->
+    <rect x="10" y="18" width="80" height="98" fill="#1D4ED8"/>
+    <!-- Inner Silver Field Shaped by Bordure Differencing Edge -->
+    <path d="M22 30 C26 26 30 34 34 30 C38 26 42 34 46 30 C50 26 54 34 58 30 C62 26 66 34 70 30 C74 26 77 32 78 30 C81 36 74 40 78 46 C81 52 74 56 78 62 C76 70 72 76 70 82 C65 89 58 96 50 101 C42 96 35 89 30 82 C28 76 24 70 22 62 C26 56 19 52 22 46 C26 40 19 36 22 30 Z" fill="#FFFFFF" stroke="#93C5FD" stroke-width="1.3"/>
+    <!-- Foundational McCormick Crimson Zigzag Fess Dancette -->
+    <path d="M21 65 L29 57 L37 65 L45 57 L53 65 L61 57 L69 65 L79 57 V66 L69 74 L61 66 L53 74 L45 66 L37 74 L29 66 L21 74 Z" fill="#B91C1C" stroke="#7F1D1D" stroke-width="0.85"/>
+    <!-- Foundational McCormick Three Royal-Blue Eagles -->
+    <use href="#h04Eagle" transform="translate(37, 45) scale(0.86)"/>
+    <use href="#h04Eagle" transform="translate(63, 45) scale(0.86)"/>
+    <use href="#h04Eagle" transform="translate(50, 85) scale(0.86)"/>
+  </g>
+  <!-- Outer Hairline -->
+  <path d="M12 20 H88 V64 C88 89 68 104 50 113 C32 104 12 89 12 64 Z" fill="none" stroke="url(#h04Gold)" stroke-width="1.2"/>
+</svg>

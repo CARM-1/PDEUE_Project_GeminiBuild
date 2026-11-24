@@ -1,85 +1,536 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-text-scale="standard">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PDEUE University — Sovereign Academy</title>
 <link rel="stylesheet" href="/static/css/senior_a11y.css">
 <style>
-:root{color-scheme:dark;--bg:#06101e;--panel:#102038;--panel2:#091729;--line:#294766;--ink:#edf6ff;--muted:#9fb2ca;--cyan:#38bdf8;--green:#34d399;--amber:#fbbf24;--red:#fb7185}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 80% 0,#17385d 0,transparent 35%),var(--bg);color:var(--ink);font:15px/1.52 system-ui,-apple-system,"Segoe UI",sans-serif}button,input,select{font:inherit}button,select,input[type=number]{border:1px solid var(--line);border-radius:.55rem;background:#172d49;color:var(--ink);padding:.48rem .75rem}button{cursor:pointer}button:hover,button:focus-visible{border-color:var(--cyan)}a{color:var(--cyan)}.nav{display:flex;flex-wrap:wrap;justify-content:space-between;gap:.75rem 1rem;align-items:center;padding:.55rem clamp(1rem,4vw,3.5rem);background:#030914;border-bottom:1px solid var(--line)}.nav-links{display:flex;flex-wrap:wrap;gap:.85rem;align-items:center}.brand-lockup{display:inline-flex;align-items:center;gap:10px;text-decoration:none;color:inherit;min-width:0;max-width:100%}.brand-lockup:hover .brand-title{color:#F6DE8D}.brand-crests{display:inline-flex;align-items:center;gap:6px;flex-shrink:0}.brand-crest{width:40px;height:46px;aspect-ratio:5/6;object-fit:contain;border:1px solid rgba(212,175,55,.6);border-radius:5px;background:rgba(11,19,43,.88);padding:2px;display:block;flex-shrink:0}.brand-crest-divider{width:1px;height:34px;background:linear-gradient(180deg,transparent,rgba(212,175,55,.78),transparent);flex-shrink:0}.brand-stack{display:flex;flex-direction:column;min-width:0;line-height:1.2}.brand-title{font-size:.78rem;font-weight:800;letter-spacing:.08em;color:#F8FAFC;white-space:normal}.brand-motto{font-size:.7rem;font-style:italic;color:#D8C48B;white-space:normal}.campus-link{color:#fcd978;font-weight:800}header,.workspace{max-width:1320px;margin:auto;padding-left:clamp(1rem,4vw,3.5rem);padding-right:clamp(1rem,4vw,3.5rem)}header{padding-top:.85rem;padding-bottom:.45rem}header p{margin:.25rem 0 0;color:var(--muted);font-size:.9rem;max-width:780px}h1{font-size:clamp(1.32rem,2.05vw,1.68rem);line-height:1.2;font-weight:700;max-width:820px;margin:.18rem 0 .22rem}h2,.chapter h2{font-size:clamp(1.06rem,1.4vw,1.22rem);line-height:1.26;font-weight:700;margin:.2rem 0 .6rem}h3{font-size:1rem;line-height:1.3;font-weight:700;margin:.55rem 0 .35rem}h4{font-size:.93rem;line-height:1.32;font-weight:700}.eyebrow,.tag{color:#fcd978;font-size:.74rem;font-weight:800;letter-spacing:.1em}.workspace{padding-bottom:3rem}.tabs,.mode,.transport,.quick-select{display:flex;gap:.5rem;flex-wrap:wrap}.tab[aria-selected=true],.mode .active,.speed.active{background:#38bdf8;color:#0f172a;font-weight:700;border-color:#7dd3fc}.toolbar{position:sticky;top:.4rem;z-index:5;display:grid;gap:.55rem;background:#071524f2;border:1px solid var(--line);border-radius:.85rem;padding:.75rem .9rem;margin:.65rem 0 .85rem;backdrop-filter:blur(8px)}.transport{align-items:center}.audio-badge{border:1px solid var(--muted);border-radius:99px;padding:.28rem .65rem;color:var(--muted);font-size:.78rem;font-weight:800}.audio-badge.active{color:#bfffea;border-color:var(--green);box-shadow:0 0 16px #34d39988}.timeline-shell{position:relative;padding-top:1.1rem}.timeline-shell input{width:100%;accent-color:var(--cyan)}.ticks{position:absolute;top:0;left:0;right:0;display:grid;grid-template-columns:repeat(6,1fr);font-size:.68rem;color:var(--muted)}.ticks span:last-child{text-align:right}.time-row{display:flex;justify-content:space-between;font-size:.8rem}.captions{min-height:2rem;padding:.45rem .75rem;border-left:4px solid #fcd978;background:#020813;font-size:.88rem}.chapters{display:grid;gap:1rem}.chapter{scroll-margin-top:10rem;border:1px solid var(--line);border-radius:.95rem;padding:clamp(.95rem,2.2vw,1.45rem);background:linear-gradient(145deg,#11243e,#091728);transition:border-color .35s,box-shadow .35s,transform .35s}.chapter.active-chapter{border-color:var(--cyan);box-shadow:0 0 28px #38bdf833;transform:translateY(-2px)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.85rem}.card{border:1px solid var(--line);border-radius:.75rem;padding:.9rem;background:var(--panel2);transition:.3s}.money{font:800 1.28rem ui-monospace,monospace;color:#fcd978}.callout,.toast{border:1px solid var(--green);border-radius:.65rem;padding:.75rem;background:#07251d;color:#c7ffe6;font-weight:700}.toast{opacity:0;transform:translateY(8px);transition:.25s;margin:.6rem 0}.toast.show{opacity:1;transform:none}.toast.amber{border-color:var(--amber);background:#302305;color:#ffedb5}.toast.red{border-color:var(--red);background:#300d18;color:#ffd4dc}.waterfall{width:100%;height:auto;max-height:190px}.flow{fill:none;stroke-width:16;stroke-linecap:round}.field{display:grid;gap:.35rem;margin:.65rem 0}.field input[type=range]{width:100%;accent-color:var(--cyan)}.status{display:inline-block;border-radius:99px;padding:.28rem .65rem;font-weight:800}.status.frozen{background:#7f1d2d;color:#ffe4e8;border:1px solid var(--red)}.household{border:1px solid #45617f;border-radius:1rem;padding:.95rem;background:#071421}.account.loss{border-color:var(--red);animation:pulseRed .7s}.account.protected{border-color:var(--green);box-shadow:0 0 18px #34d39944}.shield{display:block;color:var(--green);font-size:.78rem;font-weight:800;opacity:0;transform:scale(.9);transition:.3s}.protected .shield{opacity:1;transform:none}.meter{height:1.15rem;border:1px solid var(--line);background:#020813;border-radius:99px;overflow:hidden}.meter span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--cyan),#fcd978);transition:width .35s}.json{overflow:auto;white-space:pre-wrap;color:#b7f7d5}.tier{border-top:5px solid var(--line);opacity:.55}.tier.active{opacity:1;transform:translateY(-4px);box-shadow:0 0 22px currentColor}.tier-green{color:var(--green)}.tier-yellow{color:var(--amber)}.tier-red{color:var(--red)}.friction,.cosign{margin-top:.85rem}.countdown{font:800 1.35rem ui-monospace,monospace}.seals{display:grid;grid-template-columns:repeat(6,1fr);gap:.5rem;margin:.85rem 0}.seal{aspect-ratio:1;border:2px solid var(--line);border-radius:50%;display:grid;place-items:center;font-weight:900;background:#071421;transition:.3s}.seal.aye{border-color:var(--green);background:#075238;color:#dcfff1;box-shadow:0 0 14px #34d39966}.ratified{display:inline-block;opacity:0;transform:scale(.85);transition:.35s}.ratified.show{opacity:1;transform:none;background:#075238;color:#dcfff1;border:1px solid var(--green);padding:.45rem .75rem;border-radius:99px;font-weight:900}.quiz-option{display:block;width:100%;text-align:left;margin:.38rem 0}.quiz-option.correct{background:#075238;border-color:var(--green)}.quiz-option.incorrect{background:#5b1625;border-color:var(--red)}.answer-feedback{min-height:1.4rem;font-weight:700}.manual-tools{display:flex;gap:.85rem;align-items:center;flex-wrap:wrap;margin:.85rem 0}.manual-reader{width:100%;background:#081526;border:1px solid var(--line);border-radius:1rem;padding:clamp(1rem,3.5vw,2.2rem)}.manual-reader details{border-bottom:1px solid var(--line);padding:.5rem 0}.manual-reader summary{cursor:pointer;color:#bfeaff;font-weight:800;padding:.45rem}.manual-reader pre{white-space:pre-wrap;font:inherit;color:#dbe8f7;margin:.45rem 0}abbr.pdeue-term{position:relative;display:inline-flex;align-items:baseline;gap:3px;text-decoration:underline dotted var(--cyan);text-underline-offset:3px;cursor:help;color:inherit}abbr.pdeue-term .pdeue-term-info{font-size:.78em;color:var(--cyan);font-style:normal;line-height:1;user-select:none}abbr.pdeue-term::after{content:attr(data-tooltip);display:none;position:absolute;z-index:6000;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);width:max-content;max-width:min(280px,78vw);padding:9px 12px;border:1px solid var(--cyan);border-radius:6px;background:#1E293B;color:#F8FAFC;font-size:.78rem;font-weight:500;line-height:1.4;text-align:left;white-space:normal;box-shadow:0 10px 24px rgba(0,0,0,.55);pointer-events:none;opacity:0;visibility:hidden}abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-visible::after{display:block;opacity:1;visibility:visible}.pdeue-colophon{margin-top:2rem;padding:12px 4px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:.76rem}.colophon-attr{color:var(--muted);letter-spacing:.02em}.colophon-mode-badge{display:inline-flex;align-items:center;gap:6px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.7rem;font-weight:700;padding:3px 9px;border-radius:999px;background:#102038;border:1px solid var(--line);color:#dbe8f7}.hidden{display:none!important}@keyframes pulseRed{50%{box-shadow:0 0 25px #fb7185}}@media(max-width:650px){.toolbar{position:static}.seals{grid-template-columns:repeat(4,1fr)}.brand-lockup{gap:8px}.brand-title{font-size:.72rem}.brand-motto{font-size:.66rem}header{padding-top:.65rem;padding-bottom:.35rem}}
-@media print{body{background:#fff;color:#111}.nav,header,.tabs,.toolbar,#simulator,.manual-tools,.pdeue-colophon{display:none!important}.workspace{max-width:none;padding:0}.hidden{display:block!important}#colleges{display:block!important}.manual-reader{border:0;background:#fff;color:#111;padding:0}.manual-reader details{break-inside:avoid;border-color:#bbb}.manual-reader details>*{display:block!important}.manual-reader summary{color:#111}.manual-reader pre{color:#111;font-size:10pt}}
+:root{color-scheme:dark;--bg:#06101e;--panel:#102038;--panel2:#091729;--line:#294766;--ink:#edf6ff;--muted:#9fb2ca;--cyan:#38bdf8;--green:#34d399;--amber:#fbbf24;--red:#fb7185;--gold:#fcd978}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:radial-gradient(circle at 80% 0,#17385d 0,transparent 35%),var(--bg);color:var(--ink);font:15px/1.52 system-ui,-apple-system,"Segoe UI",sans-serif}
+button,input,select{font:inherit}
+button,select,input[type=number]{border:1px solid var(--line);border-radius:.55rem;background:#172d49;color:var(--ink);padding:.42rem .72rem}
+button{cursor:pointer}
+button:hover,button:focus-visible{border-color:var(--cyan)}
+a{color:var(--cyan)}
+.page-shell{max-width:1320px;margin:auto;padding:12px clamp(1rem,3.5vw,2.5rem) 2.5rem}
+.brand-lockup{display:inline-flex;align-items:center;gap:10px;text-decoration:none;color:inherit;min-width:0;max-width:100%}
+.brand-lockup:hover .brand-title{color:#F6DE8D}
+.brand-crests{display:inline-flex;align-items:center;gap:6px;flex-shrink:0}
+.brand-crest{width:40px;height:46px;aspect-ratio:5/6;object-fit:contain;border:1px solid rgba(212,175,55,.6);border-radius:5px;background:rgba(11,19,43,.88);padding:2px;display:block;flex-shrink:0}
+.brand-crest-divider{width:1px;height:34px;background:linear-gradient(180deg,transparent,rgba(212,175,55,.78),transparent);flex-shrink:0}
+.brand-stack{display:flex;flex-direction:column;min-width:0;line-height:1.2}
+.brand-title{font-size:.78rem;font-weight:800;letter-spacing:.08em;color:#F8FAFC;white-space:normal}
+.brand-motto{font-size:.7rem;font-style:italic;color:#D8C48B;white-space:normal}
+header p{margin:.18rem 0 0;color:var(--muted);font-size:.88rem;max-width:820px}
+h1{font-size:clamp(1.28rem,1.95vw,1.62rem);line-height:1.2;font-weight:700;max-width:860px;margin:.12rem 0 .16rem}
+h2,.chapter h2{font-size:clamp(1.04rem,1.35vw,1.18rem);line-height:1.25;font-weight:700;margin:.18rem 0 .48rem}
+h3{font-size:.98rem;line-height:1.3;font-weight:700;margin:.55rem 0 .35rem}
+h4{font-size:.92rem;line-height:1.32;font-weight:700}
+.eyebrow,.tag{color:var(--gold);font-size:.72rem;font-weight:800;letter-spacing:.1em}
+.workspace{padding-top:2px}
+.tabs,.mode,.transport,.quick-select,.chapter-pills{display:flex;gap:.45rem;flex-wrap:wrap;align-items:center}
+.tab[aria-selected=true],.mode .active,.speed.active,.chapter-pill-btn.active{background:#38bdf8;color:#0f172a;font-weight:800;border-color:#7dd3fc}
+.chapter-pill-btn{font-size:.78rem;padding:.34rem .62rem;border-radius:999px;background:#0d213a;color:#dbeafe;border:1px solid var(--line);font-weight:700}
+.toolbar{position:static;display:grid;gap:.45rem;background:#071524f4;border:1px solid var(--line);border-radius:.85rem;padding:.62rem .85rem;margin:.5rem 0 .7rem}
+.toolbar-top-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem}
+.chapter-badge-pill{display:inline-flex;align-items:center;gap:6px;padding:.26rem .68rem;border-radius:999px;background:#0F2544;border:1px solid var(--cyan);color:#BAE6FD;font-size:.76rem;font-weight:800;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+.audio-badge{border:1px solid var(--muted);border-radius:99px;padding:.24rem .62rem;color:var(--muted);font-size:.76rem;font-weight:800}
+.audio-badge.active{color:#bfffea;border-color:var(--green);box-shadow:0 0 14px #34d39966}
+.voice-select{font-size:.78rem;max-width:190px;padding:.34rem .55rem}
+.timeline-shell{position:relative;padding-top:1rem}
+.timeline-shell input{width:100%;accent-color:var(--cyan);margin:0}
+.ticks{position:absolute;top:0;left:0;right:0;display:grid;grid-template-columns:repeat(6,1fr);font-size:.66rem;color:var(--muted)}
+.ticks span:last-child{text-align:right}
+.time-row{display:flex;justify-content:space-between;font-size:.76rem;color:var(--muted)}
+.narration-slide{display:grid;gap:.32rem;padding:.5rem .78rem;border:1px solid rgba(56,189,248,.45);border-left:4px solid var(--gold);border-radius:.6rem;background:#030b17}
+.narration-slide-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:.76rem}
+.narration-beat-title{color:var(--gold);font-weight:800;letter-spacing:.03em}
+.narration-beat-step{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;color:#7dd3fc;font-weight:800}
+.captions{min-height:1.5rem;font-size:.88rem;color:#F8FAFC;line-height:1.45}
+.beat-progress-track{height:5px;background:#0f233b;border-radius:999px;overflow:hidden}
+.beat-progress-fill{height:100%;width:16%;background:linear-gradient(90deg,var(--cyan),var(--gold));transition:width .28s ease}
+.plain-english-box{background:rgba(5,150,105,.12);border:1px solid rgba(52,211,153,.55);border-left:4px solid var(--green);border-radius:.7rem;padding:.72rem .9rem;margin:.55rem 0 .85rem}
+.plain-english-box strong{color:#A7F3D0;display:block;font-size:.82rem;letter-spacing:.04em;text-transform:uppercase;margin-bottom:.2rem}
+.plain-english-box p{margin:0;color:#ECFDF5;font-size:.93rem;line-height:1.52}
+.chapter-footer-nav{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:1rem;padding-top:.75rem;border-top:1px solid var(--line)}
+.chapters{display:grid;gap:1rem}
+.chapter{scroll-margin-top:10rem;border:1px solid var(--line);border-radius:.95rem;padding:clamp(.9rem,2vw,1.35rem);background:linear-gradient(145deg,#11243e,#091728);transition:border-color .35s,box-shadow .35s,transform .35s}
+.chapter.active-chapter{border-color:var(--cyan);box-shadow:0 0 28px #38bdf833}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.85rem}
+.card{border:1px solid var(--line);border-radius:.75rem;padding:.9rem;background:var(--panel2);transition:.3s}
+.money{font:800 1.24rem ui-monospace,monospace;color:var(--gold)}
+.callout,.toast{border:1px solid var(--green);border-radius:.65rem;padding:.75rem;background:#07251d;color:#c7ffe6;font-weight:700}
+.toast{opacity:0;transform:translateY(8px);transition:.25s;margin:.6rem 0}
+.toast.show{opacity:1;transform:none}
+.toast.amber{border-color:var(--amber);background:#302305;color:#ffedb5}
+.toast.red{border-color:var(--red);background:#300d18;color:#ffd4dc}
+.waterfall{width:100%;height:auto;max-height:185px}
+.flow{fill:none;stroke-width:16;stroke-linecap:round}
+.field{display:grid;gap:.35rem;margin:.65rem 0}
+.field input[type=range]{width:100%;accent-color:var(--cyan)}
+.status{display:inline-block;border-radius:99px;padding:.28rem .65rem;font-weight:800}
+.status.frozen{background:#7f1d2d;color:#ffe4e8;border:1px solid var(--red)}
+.household{border:1px solid #45617f;border-radius:1rem;padding:.95rem;background:#071421}
+.account.loss{border-color:var(--red);animation:pulseRed .7s}
+.account.protected{border-color:var(--green);box-shadow:0 0 18px #34d39944}
+.shield{display:block;color:var(--green);font-size:.78rem;font-weight:800;opacity:0;transform:scale(.9);transition:.3s}
+.protected .shield{opacity:1;transform:none}
+.meter{height:1.15rem;border:1px solid var(--line);background:#020813;border-radius:99px;overflow:hidden}
+.meter span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--cyan),var(--gold));transition:width .35s}
+.json{overflow:auto;white-space:pre-wrap;color:#b7f7d5}
+.tier{border-top:5px solid var(--line);opacity:.55}
+.tier.active{opacity:1;transform:translateY(-4px);box-shadow:0 0 22px currentColor}
+.tier-green{color:var(--green)}.tier-yellow{color:var(--amber)}.tier-red{color:var(--red)}
+.friction,.cosign{margin-top:.85rem}
+.countdown{font:800 1.35rem ui-monospace,monospace}
+.seals{display:grid;grid-template-columns:repeat(6,1fr);gap:.5rem;margin:.85rem 0}
+.seal{aspect-ratio:1;border:2px solid var(--line);border-radius:50%;display:grid;place-items:center;font-weight:900;background:#071421;transition:.3s}
+.seal.aye{border-color:var(--green);background:#075238;color:#dcfff1;box-shadow:0 0 14px #34d39966}
+.ratified{display:inline-block;opacity:0;transform:scale(.85);transition:.35s}
+.ratified.show{opacity:1;transform:none;background:#075238;color:#dcfff1;border:1px solid var(--green);padding:.45rem .75rem;border-radius:99px;font-weight:900}
+.quiz-option{display:block;width:100%;text-align:left;margin:.38rem 0}
+.quiz-option.correct{background:#075238;border-color:var(--green)}
+.quiz-option.incorrect{background:#5b1625;border-color:var(--red)}
+.answer-feedback{min-height:1.4rem;font-weight:700}
+.manual-cards-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin:14px 0 18px}
+.manual-card{background:linear-gradient(145deg,#11243e,#091729);border:1.5px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;justify-content:space-between;gap:10px;transition:border-color .15s ease,transform .15s ease}
+.manual-card.active-manual{border-color:var(--cyan);box-shadow:0 0 18px rgba(56,189,248,.22)}
+.manual-card h3{margin:2px 0 4px;color:#F8FAFC}
+.manual-card p{margin:0;color:var(--muted);font-size:.88rem}
+.manual-card-btn{align-self:flex-start;background:#0284C7;border-color:#38BDF8;color:#FFFFFF;font-weight:800;padding:.52rem .9rem}
+.manual-card-btn:hover{background:#0369A1}
+.manual-tools{display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;margin:.6rem 0 1rem;padding:12px 14px;background:#091729;border:1px solid var(--line);border-radius:12px}
+.manual-reader-panel{width:100%;background:#081526;border:2px solid var(--cyan);border-radius:1rem;overflow:hidden;box-shadow:0 16px 36px rgba(0,0,0,.45)}
+.manual-reader-bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px;background:#0F2544;border-bottom:1px solid var(--line)}
+.manual-reader-title{margin:0;font-size:1.05rem;color:#F8FAFC}
+.manual-reader-status{font-size:.78rem;font-weight:800;color:#7DD3FC}
+.manual-reader{width:100%;padding:clamp(1rem,3vw,2rem)}
+.manual-reader details{border-bottom:1px solid var(--line);padding:.5rem 0}
+.manual-reader summary{cursor:pointer;color:#bfeaff;font-weight:800;padding:.45rem}
+.manual-reader pre{white-space:pre-wrap;font:inherit;color:#dbe8f7;margin:.45rem 0;line-height:1.58}
+abbr.pdeue-term{position:relative;display:inline-flex;align-items:baseline;gap:3px;text-decoration:underline dotted var(--cyan);text-underline-offset:3px;cursor:help;color:inherit}
+abbr.pdeue-term .pdeue-term-info{font-size:.78em;color:var(--cyan);font-style:normal;line-height:1;user-select:none}
+abbr.pdeue-term::after{content:attr(data-tooltip);display:none;position:absolute;z-index:6000;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);width:max-content;max-width:min(280px,78vw);padding:9px 12px;border:1px solid var(--cyan);border-radius:6px;background:#1E293B;color:#F8FAFC;font-size:.78rem;font-weight:500;line-height:1.4;text-align:left;white-space:normal;box-shadow:0 10px 24px rgba(0,0,0,.55);pointer-events:none;opacity:0;visibility:hidden}
+abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-visible::after{display:block;opacity:1;visibility:visible}
+.pdeue-colophon{margin-top:2rem;padding:12px 4px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:.76rem}
+.colophon-attr{color:var(--muted);letter-spacing:.02em}
+.colophon-mode-badge{display:inline-flex;align-items:center;gap:6px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.7rem;font-weight:700;padding:3px 9px;border-radius:999px;background:#102038;border:1px solid var(--line);color:#dbe8f7}
+.hidden{display:none!important}
+@keyframes pulseRed{50%{box-shadow:0 0 25px #fb7185}}
+@media(max-width:650px){.toolbar{position:static}.seals{grid-template-columns:repeat(4,1fr)}.brand-lockup{gap:8px}.brand-title{font-size:.72rem}.brand-motto{font-size:.66rem}}
+@media print{body{background:#fff;color:#111}.portal-header-shell,.tabs,.toolbar,#simulator,.manual-tools,.manual-cards-grid,.manual-reader-bar,.pdeue-colophon{display:none!important}.page-shell{max-width:none;padding:0}.hidden{display:block!important}#colleges,#manual-reader-panel{display:block!important}.manual-reader-panel{border:0;box-shadow:none}.manual-reader{border:0;background:#fff;color:#111;padding:0}.manual-reader details{break-inside:avoid;border-color:#bbb}.manual-reader details>*{display:block!important}.manual-reader summary{color:#111}.manual-reader pre{color:#111;font-size:10pt}}
 </style>
 </head>
 <body>
 <div style="display:none" id="legacyPortalHub">PDEUE PORTAL HUB</div>
-<nav class="nav" aria-label="Portal navigation">
-  <a href="/community/heritage" class="brand-lockup" data-plane-doorway="heritage" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Heritage">
-    <span class="brand-crests">
-      <img class="brand-crest" src="/static/assets/crests/carmichael_crest.svg" alt="Carmichael Family Crest" width="40" height="46" loading="eager">
-      <span class="brand-crest-divider" aria-hidden="true"></span>
-      <img class="brand-crest" src="/static/assets/crests/mccormick_crest.svg" alt="McCormick Family Crest" width="40" height="46" loading="eager">
-    </span>
-    <span class="brand-stack">
-      <span class="brand-title">FUTURE · CARMICHAEL — McCORMICK</span>
-      <span class="brand-motto">Generational Love, Harmony, Resilience, and Wealth</span>
-    </span>
-  </a>
-  <div class="nav-links">
-    <a id="backToHomeBtn" class="back-home-btn" href="/home" data-plane-doorway="home">← Back to Home</a>
-    <strong>PDEUE UNIVERSITY</strong>
-    <a href="/dashboard">Chief Admin</a>
-    <a href="/member">Member</a>
-    <a href="/companion" class="nav-link campus-link" id="navCompanionLink" aria-current="page">🎓 PDEUE University</a>
-    <div id="textScaleGroup" class="text-scale-group" role="group" aria-label="Text size controls">
-      <button type="button" class="text-scale-btn active" data-scale="standard" aria-pressed="true" aria-label="Standard text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('standard')">A</button>
-      <button type="button" class="text-scale-btn" data-scale="large" aria-pressed="false" aria-label="Large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('large')">A+</button>
-      <button type="button" class="text-scale-btn" data-scale="xlarge" aria-pressed="false" aria-label="Extra large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('xlarge')">A++</button>
+<div class="page-shell">
+  <div class="portal-header-shell portal-header-compact" role="banner">
+    <nav aria-label="Portal navigation">
+      <div class="portal-header-row1">
+        <a href="/community/heritage" class="brand-lockup" data-plane-doorway="heritage" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Heritage">
+          <span class="brand-crests">
+            <img class="brand-crest" src="/static/assets/crests/carmichael_crest.svg" alt="Carmichael Family Crest" width="40" height="46" loading="eager">
+            <span class="brand-crest-divider" aria-hidden="true"></span>
+            <img class="brand-crest" src="/static/assets/crests/mccormick_crest.svg" alt="McCormick Family Crest" width="40" height="46" loading="eager">
+          </span>
+          <span class="brand-stack">
+            <span class="brand-title">FUTURE · CARMICHAEL — McCORMICK</span>
+            <span class="brand-motto">Generational Love, Harmony, Resilience, and Wealth</span>
+          </span>
+        </a>
+        <div class="senior-a11y-controls">
+          <a id="backToHomeBtn" class="back-home-btn" href="/home" data-plane-doorway="home">← Back to Home</a>
+          <div id="textScaleGroup" class="text-scale-group" role="group" aria-label="Text size controls">
+            <button type="button" class="text-scale-btn active" data-scale="standard" aria-pressed="true" aria-label="Standard text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('standard')">A</button>
+            <button type="button" class="text-scale-btn" data-scale="large" aria-pressed="false" aria-label="Large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('large')">A+</button>
+            <button type="button" class="text-scale-btn" data-scale="xlarge" aria-pressed="false" aria-label="Extra large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('xlarge')">A++</button>
+          </div>
+        </div>
+      </div>
+      <div class="portal-header-row2">
+        <div class="portal-hub-pills">
+          <span class="portal-hub-label">PDEUE UNIVERSITY:</span>
+          <a href="/dashboard" class="portal-hub-pill">Chief Admin</a>
+          <a href="/member" class="portal-hub-pill">Member</a>
+          <a href="/companion" class="nav-link campus-link" id="navCompanionLink" aria-current="page">🎓 PDEUE University</a>
+        </div>
+      </div>
+    </nav>
+    <header class="portal-header-row3">
+      <div class="portal-title-block">
+        <div class="eyebrow">CANONICAL LEXICON v0.5 · PLAIN-ENGLISH v0.6 · ZERO-CDN CAMPUS</div>
+        <h1>PDEUE University: Sovereign Academy of Lineage Capital &amp; Systems Engineering</h1>
+        <p>Plain-English lessons and interactive simulators teach exact-cent stewardship, isolated accounts, human approval, and safe banking walls.</p>
+      </div>
+    </header>
+  </div>
+
+<main class="workspace">
+<div class="tabs" role="tablist">
+  <button id="tabSimulatorBtn" class="tab" type="button" role="tab" aria-selected="true" data-panel="simulator">Campus Simulator (6 Chapters)</button>
+  <button id="tabCollegesBtn" class="tab" type="button" role="tab" aria-selected="false" data-panel="colleges">Degree Colleges (Syllabi &amp; Manuals)</button>
+</div>
+
+<section id="simulator" role="tabpanel">
+  <div class="toolbar">
+    <div class="toolbar-top-row">
+      <div class="mode" role="group" aria-label="Learning tour mode">
+        <button id="guidedMode" type="button" class="active">Guided Step-by-Step</button>
+        <button id="exploreMode" type="button">Explore Freely</button>
+        <button id="prevChapterBtn" type="button" aria-label="Previous chapter">← Prev Ch</button>
+        <button id="nextChapterBtn" type="button" aria-label="Next chapter">Next Ch →</button>
+        <button id="jumpChapter6Btn" type="button">🎓 Ch 6 Certification Gate</button>
+      </div>
+      <span id="activeChapterBadge" class="chapter-badge-pill">Chapter 1 of 6 · Guided Tour</span>
+    </div>
+
+    <div class="chapter-pills" role="group" aria-label="Jump to chapter 1 through 6">
+      <button type="button" class="chapter-pill-btn active" data-chapter-idx="0">Ch 1: 87/10/3</button>
+      <button type="button" class="chapter-pill-btn" data-chapter-idx="1">Ch 2: Safety Dial</button>
+      <button type="button" class="chapter-pill-btn" data-chapter-idx="2">Ch 3: Loss Firewall</button>
+      <button type="button" class="chapter-pill-btn" data-chapter-idx="3">Ch 4: $25k Sweep</button>
+      <button type="button" class="chapter-pill-btn" data-chapter-idx="4">Ch 5: Withdrawals</button>
+      <button type="button" class="chapter-pill-btn" data-chapter-idx="5">Ch 6: Governance</button>
+    </div>
+
+    <div class="transport">
+      <button id="playPause" type="button">▶ Play</button>
+      <button id="prevBeatBtn" type="button" aria-label="Previous narration beat">⏮ Prev Beat</button>
+      <button id="nextBeatBtn" type="button" aria-label="Next narration beat">Next Beat ⏭</button>
+      <button id="rewind" type="button">↶ 10s</button>
+      <button id="forward" type="button">10s ↷</button>
+      <button type="button" class="speed active" data-speed="1">1.0x</button>
+      <button type="button" class="speed" data-speed="1.25">1.25x</button>
+      <button type="button" class="speed" data-speed="1.5">1.5x</button>
+      <select id="voiceSelect" class="voice-select" aria-label="Narration voice selection">
+        <option value="default">Voice: Default / Silent Timer</option>
+      </select>
+      <button id="mute" type="button" aria-pressed="false">🔊 Mute</button>
+      <span id="audioBadge" class="audio-badge">Paced Narration: Ready</span>
+    </div>
+
+    <div class="timeline-shell">
+      <div class="ticks" aria-hidden="true"><span>◆ Ch 1</span><span>◆ Ch 2</span><span>◆ Ch 3</span><span>◆ Ch 4</span><span>◆ Ch 5</span><span>◆ Ch 6</span></div>
+      <input id="companion-timeline" type="range" min="0" max="270" step="0.1" value="0" aria-label="Lesson timeline">
+      <div class="time-row"><span id="elapsed">0:00</span><span>4:30</span></div>
+    </div>
+
+    <div id="narrationSlideCard" class="narration-slide" aria-live="polite">
+      <div class="narration-slide-head">
+        <span id="narrationBeatTitle" class="narration-beat-title">Chapter 1 · Beat 1: How New Profits Are Shared</span>
+        <span id="narrationBeatStep" class="narration-beat-step">Beat 1 of 18</span>
+      </div>
+      <div id="captions" class="captions" role="status"></div>
+      <div class="beat-progress-track" aria-hidden="true"><div id="beatProgressFill" class="beat-progress-fill"></div></div>
+    </div>
+    <audio id="companionAudioPlayer" preload="none"><source src="/static/media/companion/pdeue-university.mp3" type="audio/mpeg"></audio>
+  </div>
+
+<div class="chapters">
+  <section class="chapter active-chapter" id="chapter-waterfall" data-chapter-number="1">
+    <div class="tag">CHAPTER 1 · ADR-008 &amp; ADR-012 (HIGH-WATER MARK)</div>
+    <h2>The 87/10/3 Transaction Profit Waterfall (<abbr class="pdeue-term" tabindex="0" data-term="tpw-waterfall" data-tooltip="How brand-new profits are shared: 87% stays in your personal account to grow, 10% builds the shared family safety net, and 3% keeps the system running. Nothing is shared until you pass your own previous peak.">TPW<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>)</h2>
+    <div class="plain-english-box">
+      <strong>What This Means in Plain English</strong>
+      <p>Whenever your account reaches a brand-new personal record high, 87 cents of every new profit dollar stays in your account to keep growing, 10 cents strengthens the shared family safety net (CFCP), and 3 cents pays for servers and data feeds (FAEP). If your account dips and climbs back up, you keep 100% of every recovery dollar—zero profit is shared until you pass your old high mark.</p>
+    </div>
+    <p>Under <strong><abbr class="pdeue-term" tabindex="0" data-term="high-water-mark-adr-012" data-tooltip="Your account's personal all-time high balance. If your account dips and then climbs back up, you keep 100% of every recovery dollar—profit sharing only resumes once you earn genuinely new gains above your old peak.">ADR-012 (Per-SCMA High-Water Mark)<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></strong>, the 87/10/3 waterfall executes strictly on <strong>net new profit above each SCMA's prior High-Water Mark (HWM)</strong>—eliminating the 13% volatility tax during drawdown recovery. Profit earned while recovering below HWM stays 100% in the executing SCMA ($0.00 to CFCP and FAEP).</p>
+    <div class="grid"><label class="field">Realized profit (integer cents)<input id="profitCents" type="number" min="0" step="1" value="10001"></label><label class="field">Prior drawdown deficit below HWM (integer cents)<input id="drawdownCents" type="number" min="0" step="1" value="0"></label></div>
+    <svg class="waterfall" viewBox="0 0 800 210" role="img" aria-label="Profit waterfall"><path class="flow" stroke="#38bdf8" d="M50 105H280"/><path class="flow" stroke="#34d399" d="M280 105C390 105 390 35 530 35H750"/><path class="flow" stroke="#fbbf24" d="M280 105H750"/><path class="flow" stroke="#c4a7ff" d="M280 105C390 105 390 175 530 175H750"/><text x="560" y="25" fill="#34d399">100% recovery + 87% above HWM</text><text x="560" y="95" fill="#fbbf24">10% CFCP + residual (above HWM)</text><text x="580" y="165" fill="#c4a7ff">3% FAEP (above HWM)</text></svg>
+    <div class="grid"><div class="card">SCMA<div id="scmaValue" class="money"></div><small id="hwmSummary"></small></div><div class="card">CFCP<div id="cfcpValue" class="money"></div><small id="residualValue"></small></div><div class="card">FAEP<div id="faepValue" class="money"></div></div></div>
+    <p class="callout">Rule A14 &amp; ADR-012: 100% loss isolation within the executing SCMA, and 0% CFCP/FAEP skim during drawdown recovery below each SCMA's High-Water Mark (eliminating the volatility tax).</p>
+    <div class="chapter-footer-nav"><span>Chapter 1 of 6</span><button type="button" onclick="window.PDEUECompanion && window.PDEUECompanion.goChapter(1)">Continue to Chapter 2: Safety Dial →</button></div>
+  </section>
+
+  <section class="chapter hidden" id="chapter-risk-governor" data-chapter-number="2">
+    <div class="tag">CHAPTER 2 · SAFETY ENVELOPE · QUARTER-KELLY &amp; GATE G1</div>
+    <h2>Downward-Only Risk Governor &amp; Concentric Asset Engine Rings</h2>
+    <div class="plain-english-box">
+      <strong>What This Means in Plain English</strong>
+      <p>You can always turn your safety dial down or pause your account yourself whenever you want extra caution—just like easing off the gas pedal. To prevent emotional heat-of-the-moment bets, turning the dial back up requires a second calm pair of eyes (your Head of Household), and at least 40% of your money always stays safely in cash.</p>
+    </div>
+    <p>Position sizing obeys <strong>Quarter-Kelly (0.25f*)</strong> and the <strong>40% Dry-Powder Floor</strong>—visualized across portals by the <strong>Concentric Asset Engine Rings</strong>—while <strong>Gate G1 (HOLD_OBSERVATIONS_ONLY)</strong> keeps execution fail-closed in paper observation mode until Founder qualification sign-off.</p>
+    <label class="field">Active risk watermark<input id="riskSlider" type="range" min="50" max="200" step="25" value="200"><output id="riskValue">2.00%</output></label>
+    <button id="freezeRisk" type="button" aria-pressed="false">Freeze / Quarantine</button> <span id="riskStatus" class="status">ACTIVE · 2.00% CEILING</span>
+    <div id="riskToast" class="toast amber" role="alert">Upward restoration locked: Requires F2-H Head of Household Approval</div>
+    <label class="field">Household equity (integer cents)<input id="equityCents" type="number" min="0" step="1" value="10001"></label>
+    <div class="card">Dry-powder floor: <span id="floorValue" class="money"></span><small id="floorCents"></small></div>
+    <div class="chapter-footer-nav"><button type="button" onclick="window.PDEUECompanion && window.PDEUECompanion.goChapter(0)">← Back to Chapter 1</button><button type="button" onclick="window.PDEUECompanion && window.PDEUECompanion.goChapter(2)">Continue to Chapter 3: Loss Firewall →</button></div>
+  </section>
+
+  <section class="chapter hidden" id="chapter-segregation" data-chapter-number="3">
+    <div class="tag">CHAPTER 3 · RULE A14 &amp; RING-FENCED LEDGERS</div>
+    <h2>Household Alpha — 100% SCMA Loss Isolation</h2>
+    <div class="plain-english-box">
+      <strong>What This Means in Plain English</strong>
+      <p>Think of every family member's account as its own watertight room on a ship. If one relative's trade loses money, that loss stays 100% inside their own room—it can never drain a sibling's savings, a grandparent's account, or the shared family emergency pool.</p>
+    </div>
+    <p>Under <strong>Rule A14 (100% SCMA Loss Isolation)</strong>, any realized trading loss remains 100% contained inside the executing SCMA. Sibling SCMAs, the <strong>CFCP Reserve Shield</strong>, and <strong>FAEP</strong> never decrease to absorb an individual trading loss. Under <strong>ADR-012</strong>, subsequent winning trades by that SCMA remain 100% inside the SCMA until its equity recovers past its prior High-Water Mark—eliminating any volatility tax.</p>
+    <div class="household"><div class="grid"><div class="card account" id="acctAda"><strong>SCMA-Ada</strong><div class="money">$1,200.00</div><span class="shield">🛡 Contagion Prevented: Zero Communal Loss Bleed</span></div><div class="card account" id="acctBo"><strong>SCMA-Bo</strong><div class="money">$0.00 — Isolated Loss</div></div><div class="card account" id="acctCam"><strong>SCMA-Cam</strong><div class="money">$430.00</div><span class="shield">🛡 Contagion Prevented: Zero Communal Loss Bleed</span></div><div class="card account" id="acctCfcp"><strong>CFCP Reserve Shield</strong><div class="money">$5,000.00</div><span class="shield">🛡 Contagion Prevented: Zero Communal Loss Bleed</span></div></div><p><button id="lossEvent" type="button">Simulate Loss in SCMA-Bo</button></p><div id="isolationStatus" class="toast" role="status">Contagion Prevented: Zero Communal Loss Bleed</div></div>
+    <div class="chapter-footer-nav"><button type="button" onclick="window.PDEUECompanion && window.PDEUECompanion.goChapter(1)">← Back to Chapter 2</button><button type="button" onclick="window.PDEUECompanion && window.PDEUECompanion.goChapter(3)">Continue to Chapter 4: $25k Sweep →</button></div>
+  </section>
+
+  <section class="chapter hidden" id="chapter-float-ceiling" data-chapter-number="4">
+    <div class="tag">CHAPTER 4 · ADR-011 AIR-GAP &amp; IFAS / IF-038</div>
+    <h2>$25k Active Float Ceiling, IFAS Custody &amp; Dynamic Outbox</h2>
+    <div class="plain-english-box">
+      <strong>What This Means in Plain English</strong>
+      <p>The trading software only ever keeps up to $25,000 working on a venue so orders stay nimble. Everything you earn above $25,000 automatically sweeps out to safe bank custody managed by our separate bookkeeping system (IFAS). Crucially, this trading app never sees or stores your bank routing numbers or bank logins.</p>
+    </div>
+    <p>Under the <strong>ADR-011 Air-Gap</strong>, PDEUE never stores bank credentials; all real bank custody, tax records, and sweep settlements live in <strong>IFAS (Independent Financial Accounting System)</strong> at <code>accounting.narratix.io</code>, supporting <strong>Pay-it-Forward / LCCF</strong> stewardship.</p>
+    <label class="field">Custodial balance (integer cents)<input id="floatCents" type="number" min="0" step="1" value="2750001"></label>
+    <div class="meter"><span id="floatMeter"></span></div>
+    <div class="grid"><div class="card">Active float<div id="activeFloat" class="money"></div></div><div class="card">Surplus sweep<div id="surplusSweep" class="money"></div></div></div>
+    <details open><summary>Signed outbox preview</summary><pre id="dynamic-outbox-container" class="card json" aria-live="polite"></pre></details>
+    <div id="outboxToast" class="toast">Signed ADR-011 Outbox Envelope Ready for Delaware FBO Sweep</div>
+    <div class="chapter-footer-nav"><button type="button" onclick="window.PDEUECompanion && window.PDEUECompanion.goChapter(2)">← Back to Chapter 3</button><button type="button" onclick="window.PDEUECompanion && window.PDEUECompanion.goChapter(4)">Continue to Chapter 5: Withdrawals →</button></div>
+  </section>
+
+  <section class="chapter hidden" id="chapter-distribution" data-chapter-number="5">
+    <div class="tag">CHAPTER 5 · DIRECTIVE R-15 &amp; PAY-IT-FORWARD / LCCF</div>
+    <h2>Three-Tier Distribution Gateway</h2>
+    <div class="plain-english-box">
+      <strong>What This Means in Plain English</strong>
+      <p>Small everyday withdrawals (Green) go through smoothly right away. Medium withdrawals (Yellow) pause briefly to show how much long-term compounding you would give up so you can decide calmly. Large withdrawals (Red) include a 24-hour cooling-off pause and two family co-signers to guard against scams or rushed decisions.</p>
+    </div>
+    <label class="field">Distribution amount (integer cents)<input id="distributionCents" type="number" min="0" step="1" value="10000"></label>
+    <div class="quick-select"><button type="button" data-amount="10000">$100.00 Green</button><button type="button" data-amount="25000">$250.00 Yellow</button><button type="button" data-amount="65000">$650.00 Red</button></div>
+    <div class="grid" id="classification-tier-containers"><div id="tierGreen" class="card tier tier-green"><strong>GREEN</strong><p>Autonomous Instant Execution</p></div><div id="tierYellow" class="card tier tier-yellow"><strong>YELLOW</strong><p>AI Educational Friction</p></div><div id="tierRed" class="card tier tier-red"><strong>RED</strong><p>24-hour lock + dual F2-H co-signing</p></div></div>
+    <div id="frictionCard" class="card friction hidden"><strong>AI Educational Friction Card</strong><p id="opportunityCost"></p><button id="ackEducation" type="button">I understand the opportunity cost</button><span id="educationStatus"></span></div>
+    <div id="redControls" class="card cosign hidden"><div class="countdown" id="countdown">24:00:00</div><label class="field">F2-H co-signer 1<input id="cosigner1" type="text"></label><label class="field">F2-H co-signer 2<input id="cosigner2" type="text"></label><button id="validateCosign" type="button">Validate Dual Control</button><div id="cosignStatus" role="status"></div></div>
+    <div class="chapter-footer-nav"><button type="button" onclick="window.PDEUECompanion && window.PDEUECompanion.goChapter(3)">← Back to Chapter 4</button><button type="button" onclick="window.PDEUECompanion && window.PDEUECompanion.goChapter(5)">Continue to Chapter 6: Governance &amp; Certification →</button></div>
+  </section>
+
+  <section class="chapter hidden" id="chapter-governance" data-chapter-number="6">
+    <div class="tag">CHAPTER 6 · ACTIVE-HAT (R-06), DIRECTIVE R-12 &amp; BICAMERAL DUAL CONTROL</div>
+    <h2>Sovereign Governance &amp; Self-Check</h2>
+    <div class="plain-english-box">
+      <strong>What This Means in Plain English</strong>
+      <p>No single computer or helper can move family money on its own. Leaders wear one clear role hat at a time, technical helpers see hidden star balances (<code>$****.**</code>) to protect privacy, and family votes act as respectful petitions reviewed alongside Founder stewardship. Answer the 3 short questions below to earn your Stewardship L1 badge!</p>
+    </div>
+    <p>Multi-role stewards switch hats explicitly under <strong>Active-Hat / R-06</strong>, while <strong>Directive R-12 Masking</strong> keeps member dollar balances hidden as <code>$****.**</code> on technical and secretarial desks.</p>
+    <div class="seals" id="houseSeals" aria-label="Twelve House Senate"></div>
+    <button id="senateVote" type="button">Cast 9 Aye Votes</button> <span id="ratifiedBadge" class="ratified">SENATE RATIFIED (75% SUPERMAJORITY)</span>
+    <p><button id="chancellorReview" type="button" disabled>Review Ratified Petition</button></p>
+    <div id="chancellorStatus" class="toast">Sovereign Chancellor review recorded; ratification alone moved no money.</div>
+    <h3>Comprehension Self-Check</h3>
+    <div id="quiz"></div>
+    <div id="certificationGateCard" class="card" style="margin:1rem 0;border-color:#38bdf8;">
+      <div class="tag">STAGE 4 · STEWARDSHIP L1 CERTIFICATION GATE</div>
+      <h4 style="margin:.35rem 0;">Complete Certification to Upgrade Status to ACTIVE</h4>
+      <p id="quizProgressText" style="margin:.25rem 0 .75rem;color:#cbd5e1;">Self-Check Progress: 0 / 3 correct — answer all 3 comprehension questions accurately to unlock certification.</p>
+      <label class="field">Member SCMA Identifier<input id="certScmaId" type="text" placeholder="SCMA-..." aria-label="Member SCMA ID for certification" style="border:1px solid var(--line);border-radius:.55rem;background:#071421;color:var(--ink);padding:.58rem .8rem;"></label>
+      <p><button id="completeCertificationBtn" type="button" disabled style="background:#0284c7;border-color:#38bdf8;color:#f8fafc;font-weight:800;">Complete Stewardship L1 Certification</button></p>
+      <div id="certificationResult" class="callout hidden" role="status" aria-live="polite"></div>
+      <p id="returnToMemberWrap" class="hidden"><a id="returnToMemberLink" href="/member" style="display:inline-block;margin-top:.4rem;font-weight:800;">Return to My Wealth Desktop (/member) →</a></p>
+    </div>
+    <details id="enclaveGovernanceCharter" class="card" open style="margin:1rem 0;border-color:#38bdf8;"><summary><strong>🏛️ Three-Stage Governance Lifecycle &amp; FUTURE Enclave Charter (Open-Study Doctrine)</strong></summary><p style="color:#cbd5e1;margin:.6rem 0;">Family members and future successors can openly study the complete constitutional progression here without exposing live balances, credentials, or premature production voting controls:</p><ol style="color:#dbe8f7;line-height:1.6;"><li><strong>Stage 1 — Executive Command (<code>EXECUTIVE_COMMAND</code>, Default Fledgling &amp; SHTF Mode):</strong> Fresh deployments start fail-closed here while the family builds operational discipline. Production House desks display <em>"Executive Command Mode Active — Voting Dormant"</em>, strip voting/veto buttons, and reject voting mutations (HTTP 403).</li><li><strong>Stage 2 — Advisory Petition Filter (<code>ADVISORY_PETITION_FILTER</code>):</strong> Activated solely by the Chief Administrator. Unlocks advisory voting (default 9-of-12 / 75% quorum -&gt; <code>RATIFIED_PENDING_SETTLOR</code>) with zero unilateral execution and <strong>Absolute Founder Veto (<code>VETOED_BY_FOUNDER</code>)</strong>.</li><li><strong>Stage 3 — Configurable Bicameral Veto (<code>BICAMERAL_VETO_ACTIVE</code>):</strong> Unlocks binding Bicameral Veto (<code>VETOED_BY_BICAMERAL_CHAMBER</code>) on eligible policy and CFCP grant proposals for authorized communal bodies (such as the <em>Council of 12 Houses</em>, <em>Council of Elders</em>, or <em>Enclave Stewardship Assembly</em>) and named individual or office voter seats configured by the Chief Administrator without code changes.</li><li><strong>Immutable Core Guardrail (ALL Modes):</strong> Proposals targeting the <strong>87/10/3 waterfall</strong>, <strong>ADR-012 High-Water Mark</strong>, <strong>Rule A14 100% SCMA loss isolation</strong>, <strong>Quarter-Kelly bounds</strong>, <strong>3% FAEP</strong>, <strong>ADR-011 banking air-gap</strong>, or <strong>Directive R-04 Emergency Kill Switch</strong> are permanently rejected (HTTP 403, <code>IMMUTABLE_CORE_INVARIANT</code>).</li><li><strong>1-Click SHTF Snap-Back Protocol:</strong> During any systemic emergency, the Chief Administrator can instantaneously return governance to <code>EXECUTIVE_COMMAND</code> with full <code>GovernanceAuditLog</code> recording.</li></ol></details>
+    <details class="card"><summary><strong>📘 Canon Reference Cheat Sheet — Lexicon v0.5</strong></summary><ol><li><strong>ADR-008 Exact-Cent Conservation &amp; 87/10/3 Waterfall (TPW):</strong> Every penny is counted as a whole cent; residual rounding goes to <strong>CFCP</strong> so every integer cent is conserved across <strong>SCMA</strong> (87%), <strong>CFCP</strong> (10%), and <strong>FAEP</strong> (3%).</li><li><strong>High-Water Mark (ADR-012) &amp; Rule A14:</strong> Trading losses stay 100% inside the executing <strong>SCMA</strong> (CFCP/FAEP never absorb member losses), and the 87/10/3 waterfall applies strictly to net new profit above each SCMA's High-Water Mark (0% skim during drawdown recovery, eliminating the volatility tax).</li><li><strong>Quarter-Kelly, 40% Dry-Powder Floor &amp; Concentric Asset Engine Rings:</strong> Sizing stays conservative at one-quarter Kelly while at least 40% of capital stays uncommitted in cash; members cannot raise risk autonomously because the governor is downward-only.</li><li><strong>IFAS &amp; ADR-011 Air-Gap:</strong> Real bank accounts, deposits, and tax records live separately in <strong>IFAS</strong> (<code>accounting.narratix.io</code>); PDEUE never stores bank routing or account credentials.</li><li><strong>Active-Hat (R-06), Directive R-12 Masking, Directive R-04 Halt &amp; Gate G1:</strong> Operators wear one role hat at a time, technical desks see masked balances (<code>$****.**</code>), leadership holds a platform-wide emergency brake, and <strong>Gate G1</strong> defaults to <code>HOLD_OBSERVATIONS_ONLY</code> paper mode.</li><li><strong>Executive Command Mode &amp; Pay-it-Forward / LCCF:</strong> Senate ratification stages a petition while Sovereign Chancellor dual control remains required, and the <strong>Pay-it-Forward / LCCF</strong> family fund helps lift relatives out of high-interest debt as the lineage grows.</li><li><strong>House Genealogist, Anti-Tribalism Custody, Delegated Onboarding &amp; Genealogical Ratification:</strong> Trusted <strong>House Genealogist</strong> officers and ranked House leaders can prepare welcome dossiers when <strong>Delegated Onboarding</strong> is enabled, while <strong>Genealogical Ratification</strong> keeps final activation with leadership and sends a signed notice to <strong>IFAS</strong>. Optional <strong>Anti-Tribalism Custody</strong> pairs mentors across Houses to keep family unity strong and prevent cliques.</li><li><strong>Family Home Hub, Hall of Arms, Lineage Hearth, Bordure Differencing &amp; Guided Tour:</strong> Every family member begins at the calm four-card <strong>Family Home Hub</strong> (<code>/home</code>), gathers inside the <strong>Lineage Hearth</strong> (<code>/community</code>), explores two-scale heraldic crests and Scottish <strong>Bordure Differencing</strong> across the 12 Houses (House 01 Carmichael from the eldest McCormick daughter + 11 bordure-differenced McCormick Houses) in the <strong>Hall of Arms</strong> (<code>/community/heritage</code>), and studies calmly via the <strong>Guided Tour</strong> in PDEUE University.</li></ol></details>
+    <div class="chapter-footer-nav"><button type="button" onclick="window.PDEUECompanion && window.PDEUECompanion.goChapter(4)">← Back to Chapter 5</button><button type="button" onclick="window.PDEUECompanion && window.PDEUECompanion.goChapter(0)">↺ Restart at Chapter 1</button></div>
+  </section>
+</div>
+</section>
+
+<section id="colleges" role="tabpanel" class="hidden">
+  <div class="plain-english-box" style="margin-top:.8rem;">
+    <strong>Degree Colleges &amp; Role Manuals — Plain-English Library</strong>
+    <p>Choose any role manual card below (or pick from the dropdown) and click <strong>Load Manual</strong>. The full manual opens immediately inside the highlighted reader panel below with expandable sections and one-click printing.</p>
+  </div>
+
+  <div class="manual-cards-grid" aria-label="Canonical Role Manuals">
+    <article class="manual-card" data-manual-card="USER_QUICKSTART.md">
+      <div>
+        <span class="tag">COLLEGE OF FOUNDATIONS · CLASS M</span>
+        <h3>Family Member Quickstart</h3>
+        <p>Everyday guide to your private SCMA, 87/10/3 waterfall, High-Water Mark, and withdrawal tiers.</p>
+      </div>
+      <button type="button" class="manual-card-btn" data-manual-load="USER_QUICKSTART.md" onclick="window.PDEUECompanion && window.PDEUECompanion.loadManualByName('USER_QUICKSTART.md')">Load Manual</button>
+    </article>
+    <article class="manual-card" data-manual-card="CLASS_F_FINANCIAL_MANUAL.md">
+      <div>
+        <span class="tag">COLLEGE OF STEWARDSHIP · CLASS F</span>
+        <h3>Class F Financial Manual</h3>
+        <p>Fiduciary handbook for Peer Guides, Heads of Household, Lineage Advisors, and CRO dual-control.</p>
+      </div>
+      <button type="button" class="manual-card-btn" data-manual-load="CLASS_F_FINANCIAL_MANUAL.md" onclick="window.PDEUECompanion && window.PDEUECompanion.loadManualByName('CLASS_F_FINANCIAL_MANUAL.md')">Load Manual</button>
+    </article>
+    <article class="manual-card" data-manual-card="CLASS_T_TECHNICAL_MANUAL.md">
+      <div>
+        <span class="tag">COLLEGE OF ENGINEERING · CLASS T</span>
+        <h3>Class T Technical Manual</h3>
+        <p>Systems reliability, Directive R-12 financial privacy masking, telemetry relays, and fail-closed safety.</p>
+      </div>
+      <button type="button" class="manual-card-btn" data-manual-load="CLASS_T_TECHNICAL_MANUAL.md" onclick="window.PDEUECompanion && window.PDEUECompanion.loadManualByName('CLASS_T_TECHNICAL_MANUAL.md')">Load Manual</button>
+    </article>
+    <article class="manual-card" data-manual-card="CHIEF_ADMIN_RUNBOOK.md">
+      <div>
+        <span class="tag">SOVEREIGN SETTLOR · CHIEF ADMIN</span>
+        <h3>Chief Administrator Runbook</h3>
+        <p>Executive Command operations, Gate G1 controls, 12-House oversight, and emergency R-04 procedures.</p>
+      </div>
+      <button type="button" class="manual-card-btn" data-manual-load="CHIEF_ADMIN_RUNBOOK.md" onclick="window.PDEUECompanion && window.PDEUECompanion.loadManualByName('CHIEF_ADMIN_RUNBOOK.md')">Load Manual</button>
+    </article>
+  </div>
+
+  <div class="manual-tools">
+    <label for="manualSelect"><strong>Canonical runbook</strong></label>
+    <select id="manualSelect">
+      <option value="USER_QUICKSTART.md">USER_QUICKSTART.md</option>
+      <option value="CLASS_F_FINANCIAL_MANUAL.md">CLASS_F_FINANCIAL_MANUAL.md</option>
+      <option value="CLASS_T_TECHNICAL_MANUAL.md">CLASS_T_TECHNICAL_MANUAL.md</option>
+      <option value="CHIEF_ADMIN_RUNBOOK.md">CHIEF_ADMIN_RUNBOOK.md</option>
+    </select>
+    <button id="loadManual" type="button">Load Manual</button>
+    <button id="printManual" type="button">Print / Save PDF</button>
+  </div>
+
+  <div id="manual-reader-panel" class="manual-reader-panel">
+    <div class="manual-reader-bar">
+      <div>
+        <h3 id="manualReaderTitle" class="manual-reader-title">Canonical Manual Reader</h3>
+        <div id="manualReaderStatus" class="manual-reader-status" role="status" aria-live="polite">Select any manual card above and click Load Manual.</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button id="printManualInlineBtn" type="button" onclick="window.print()">Print / Save PDF</button>
+        <button id="closeManualReaderBtn" type="button" aria-label="Close manual reader panel">✕ Close Reader</button>
+      </div>
+    </div>
+    <div id="manual-reader-container" class="manual-reader" aria-live="polite">
+      <p>Choose a canonical manual above. The local reader converts its Markdown sections into accessible accordions.</p>
     </div>
   </div>
-</nav>
-<header><div class="eyebrow">CANONICAL LEXICON v0.5 · PLAIN-ENGLISH v0.6 · ZERO-CDN CAMPUS</div><h1>PDEUE University: Sovereign Academy of Lineage Capital &amp; Systems Engineering</h1><p>Interactive controls teach exact-cent stewardship, isolated liability, human authorization, and signed accounting boundaries.</p></header>
-<main class="workspace">
-<div class="tabs" role="tablist"><button class="tab" role="tab" aria-selected="true" data-panel="simulator">Campus Simulator (6 Chapters)</button><button class="tab" role="tab" aria-selected="false" data-panel="colleges">Degree Colleges (Syllabi)</button></div>
-<section id="simulator" role="tabpanel">
-<div class="toolbar"><div class="mode"><button id="guidedMode" class="active">Guided Step-by-Step</button><button id="exploreMode">Explore Freely</button><button id="jumpChapter6Btn" type="button">🎓 Ch 6 Certification Gate</button></div><div class="transport"><button id="playPause">▶ Play</button><button id="rewind">↶ 10s</button><button id="forward">10s ↷</button><button class="speed active" data-speed="1">1.0x</button><button class="speed" data-speed="1.25">1.25x</button><button class="speed" data-speed="1.5">1.5x</button><button id="mute" aria-pressed="false">🔊 Mute</button><span id="audioBadge" class="audio-badge">Audio Narration: Ready</span></div><div class="timeline-shell"><div class="ticks" aria-hidden="true"><span>◆ Ch 1</span><span>◆ Ch 2</span><span>◆ Ch 3</span><span>◆ Ch 4</span><span>◆ Ch 5</span><span>◆ Ch 6</span></div><input id="companion-timeline" type="range" min="0" max="270" step="0.1" value="0" aria-label="Lesson timeline"><div class="time-row"><span id="elapsed">0:00</span><span>4:30</span></div></div><div id="captions" class="captions" role="status" aria-live="polite"></div><audio id="companionAudioPlayer" preload="none"><source src="/static/media/companion/pdeue-university.mp3" type="audio/mpeg"></audio></div>
-<div class="chapters">
-<section class="chapter active-chapter" id="chapter-waterfall"><div class="tag">CHAPTER 1 · ADR-008 &amp; ADR-012 (HIGH-WATER MARK)</div><h2>The 87/10/3 Transaction Profit Waterfall (<abbr class="pdeue-term" tabindex="0" data-term="tpw-waterfall" data-tooltip="How brand-new profits are shared: 87% stays in your personal account to grow, 10% builds the shared family safety net, and 3% keeps the system running. Nothing is shared until you pass your own previous peak.">TPW<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>)</h2><p>Under <strong><abbr class="pdeue-term" tabindex="0" data-term="high-water-mark-adr-012" data-tooltip="Your account's personal all-time high balance. If your account dips and then climbs back up, you keep 100% of every recovery dollar—profit sharing only resumes once you earn genuinely new gains above your old peak.">ADR-012 (Per-SCMA High-Water Mark)<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></strong>, the 87/10/3 waterfall executes strictly on <strong>net new profit above each SCMA's prior High-Water Mark (HWM)</strong>—eliminating the 13% volatility tax during drawdown recovery. Profit earned while recovering below HWM stays 100% in the executing SCMA ($0.00 to CFCP and FAEP).</p><div class="grid"><label class="field">Realized profit (integer cents)<input id="profitCents" type="number" min="0" step="1" value="10001"></label><label class="field">Prior drawdown deficit below HWM (integer cents)<input id="drawdownCents" type="number" min="0" step="1" value="0"></label></div><svg class="waterfall" viewBox="0 0 800 210" role="img" aria-label="Profit waterfall"><path class="flow" stroke="#38bdf8" d="M50 105H280"/><path class="flow" stroke="#34d399" d="M280 105C390 105 390 35 530 35H750"/><path class="flow" stroke="#fbbf24" d="M280 105H750"/><path class="flow" stroke="#c4a7ff" d="M280 105C390 105 390 175 530 175H750"/><text x="560" y="25" fill="#34d399">100% recovery + 87% above HWM</text><text x="560" y="95" fill="#fbbf24">10% CFCP + residual (above HWM)</text><text x="580" y="165" fill="#c4a7ff">3% FAEP (above HWM)</text></svg><div class="grid"><div class="card">SCMA<div id="scmaValue" class="money"></div><small id="hwmSummary"></small></div><div class="card">CFCP<div id="cfcpValue" class="money"></div><small id="residualValue"></small></div><div class="card">FAEP<div id="faepValue" class="money"></div></div></div><p class="callout">Rule A14 &amp; ADR-012: 100% loss isolation within the executing SCMA, and 0% CFCP/FAEP skim during drawdown recovery below each SCMA's High-Water Mark (eliminating the volatility tax).</p></section>
-<section class="chapter" id="chapter-risk-governor"><div class="tag">CHAPTER 2 · SAFETY ENVELOPE · QUARTER-KELLY &amp; GATE G1</div><h2>Downward-Only Risk Governor &amp; Concentric Asset Engine Rings</h2><p>Position sizing obeys <strong>Quarter-Kelly (0.25f*)</strong> and the <strong>40% Dry-Powder Floor</strong>—visualized across portals by the <strong>Concentric Asset Engine Rings</strong>—while <strong>Gate G1 (HOLD_OBSERVATIONS_ONLY)</strong> keeps execution fail-closed in paper observation mode until Founder qualification sign-off.</p><label class="field">Active risk watermark<input id="riskSlider" type="range" min="50" max="200" step="25" value="200"><output id="riskValue">2.00%</output></label><button id="freezeRisk" aria-pressed="false">Freeze / Quarantine</button> <span id="riskStatus" class="status">ACTIVE · 2.00% CEILING</span><div id="riskToast" class="toast amber" role="alert">Upward restoration locked: Requires F2-H Head of Household Approval</div><label class="field">Household equity (integer cents)<input id="equityCents" type="number" min="0" step="1" value="10001"></label><div class="card">Dry-powder floor: <span id="floorValue" class="money"></span><small id="floorCents"></small></div></section>
-<section class="chapter" id="chapter-segregation"><div class="tag">CHAPTER 3 · RULE A14 &amp; RING-FENCED LEDGERS</div><h2>Household Alpha — 100% SCMA Loss Isolation</h2><p>Under <strong>Rule A14 (100% SCMA Loss Isolation)</strong>, any realized trading loss remains 100% contained inside the executing SCMA. Sibling SCMAs, the <strong>CFCP Reserve Shield</strong>, and <strong>FAEP</strong> never decrease to absorb an individual trading loss. Under <strong>ADR-012</strong>, subsequent winning trades by that SCMA remain 100% inside the SCMA until its equity recovers past its prior High-Water Mark—eliminating any volatility tax.</p><div class="household"><div class="grid"><div class="card account" id="acctAda"><strong>SCMA-Ada</strong><div class="money">$1,200.00</div><span class="shield">🛡 Contagion Prevented: Zero Communal Loss Bleed</span></div><div class="card account" id="acctBo"><strong>SCMA-Bo</strong><div class="money">$0.00 — Isolated Loss</div></div><div class="card account" id="acctCam"><strong>SCMA-Cam</strong><div class="money">$430.00</div><span class="shield">🛡 Contagion Prevented: Zero Communal Loss Bleed</span></div><div class="card account" id="acctCfcp"><strong>CFCP Reserve Shield</strong><div class="money">$5,000.00</div><span class="shield">🛡 Contagion Prevented: Zero Communal Loss Bleed</span></div></div><p><button id="lossEvent">Simulate Loss in SCMA-Bo</button></p><div id="isolationStatus" class="toast" role="status">Contagion Prevented: Zero Communal Loss Bleed</div></div></section>
-<section class="chapter" id="chapter-float-ceiling"><div class="tag">CHAPTER 4 · ADR-011 AIR-GAP &amp; IFAS / IF-038</div><h2>$25k Active Float Ceiling, IFAS Custody &amp; Dynamic Outbox</h2><p>Under the <strong>ADR-011 Air-Gap</strong>, PDEUE never stores bank credentials; all real bank custody, tax records, and sweep settlements live in <strong>IFAS (Independent Financial Accounting System)</strong> at <code>accounting.narratix.io</code>, supporting <strong>Pay-it-Forward / LCCF</strong> stewardship.</p><label class="field">Custodial balance (integer cents)<input id="floatCents" type="number" min="0" step="1" value="2750001"></label><div class="meter"><span id="floatMeter"></span></div><div class="grid"><div class="card">Active float<div id="activeFloat" class="money"></div></div><div class="card">Surplus sweep<div id="surplusSweep" class="money"></div></div></div><details open><summary>Signed outbox preview</summary><pre id="dynamic-outbox-container" class="card json" aria-live="polite"></pre></details><div id="outboxToast" class="toast">Signed ADR-011 Outbox Envelope Ready for Delaware FBO Sweep</div></section>
-<section class="chapter" id="chapter-distribution"><div class="tag">CHAPTER 5 · DIRECTIVE R-15 &amp; PAY-IT-FORWARD / LCCF</div><h2>Three-Tier Distribution Gateway</h2><label class="field">Distribution amount (integer cents)<input id="distributionCents" type="number" min="0" step="1" value="10000"></label><div class="quick-select"><button data-amount="10000">$100.00 Green</button><button data-amount="25000">$250.00 Yellow</button><button data-amount="65000">$650.00 Red</button></div><div class="grid" id="classification-tier-containers"><div id="tierGreen" class="card tier tier-green"><strong>GREEN</strong><p>Autonomous Instant Execution</p></div><div id="tierYellow" class="card tier tier-yellow"><strong>YELLOW</strong><p>AI Educational Friction</p></div><div id="tierRed" class="card tier tier-red"><strong>RED</strong><p>24-hour lock + dual F2-H co-signing</p></div></div><div id="frictionCard" class="card friction hidden"><strong>AI Educational Friction Card</strong><p id="opportunityCost"></p><button id="ackEducation">I understand the opportunity cost</button><span id="educationStatus"></span></div><div id="redControls" class="card cosign hidden"><div class="countdown" id="countdown">24:00:00</div><label class="field">F2-H co-signer 1<input id="cosigner1" type="text"></label><label class="field">F2-H co-signer 2<input id="cosigner2" type="text"></label><button id="validateCosign">Validate Dual Control</button><div id="cosignStatus" role="status"></div></div></section>
-<section class="chapter" id="chapter-governance"><div class="tag">CHAPTER 6 · ACTIVE-HAT (R-06), DIRECTIVE R-12 &amp; BICAMERAL DUAL CONTROL</div><h2>Sovereign Governance &amp; Self-Check</h2><p>Multi-role stewards switch hats explicitly under <strong>Active-Hat / R-06</strong>, while <strong>Directive R-12 Masking</strong> keeps member dollar balances hidden as <code>$****.**</code> on technical and secretarial desks.</p><div class="seals" id="houseSeals" aria-label="Twelve House Senate"></div><button id="senateVote">Cast 9 Aye Votes</button> <span id="ratifiedBadge" class="ratified">SENATE RATIFIED (75% SUPERMAJORITY)</span><p><button id="chancellorReview" disabled>Review Ratified Petition</button></p><div id="chancellorStatus" class="toast">Sovereign Chancellor review recorded; ratification alone moved no money.</div><h3>Comprehension Self-Check</h3><div id="quiz"></div>
-<div id="certificationGateCard" class="card" style="margin:1rem 0;border-color:#38bdf8;">
-  <div class="tag">STAGE 4 · STEWARDSHIP L1 CERTIFICATION GATE</div>
-  <h4 style="margin:.35rem 0;">Complete Certification to Upgrade Status to ACTIVE</h4>
-  <p id="quizProgressText" style="margin:.25rem 0 .75rem;color:#cbd5e1;">Self-Check Progress: 0 / 3 correct — answer all 3 comprehension questions accurately to unlock certification.</p>
-  <label class="field">Member SCMA Identifier<input id="certScmaId" type="text" placeholder="SCMA-..." aria-label="Member SCMA ID for certification" style="border:1px solid var(--line);border-radius:.55rem;background:#071421;color:var(--ink);padding:.58rem .8rem;"></label>
-  <p><button id="completeCertificationBtn" type="button" disabled style="background:#0284c7;border-color:#38bdf8;color:#f8fafc;font-weight:800;">Complete Stewardship L1 Certification</button></p>
-  <div id="certificationResult" class="callout hidden" role="status" aria-live="polite"></div>
-  <p id="returnToMemberWrap" class="hidden"><a id="returnToMemberLink" href="/member" style="display:inline-block;margin-top:.4rem;font-weight:800;">Return to My Wealth Desktop (/member) →</a></p>
-</div>
-<details id="enclaveGovernanceCharter" class="card" open style="margin:1rem 0;border-color:#38bdf8;"><summary><strong>🏛️ Three-Stage Governance Lifecycle &amp; FUTURE Enclave Charter (Open-Study Doctrine)</strong></summary><p style="color:#cbd5e1;margin:.6rem 0;">Family members and future successors can openly study the complete constitutional progression here without exposing live balances, credentials, or premature production voting controls:</p><ol style="color:#dbe8f7;line-height:1.6;"><li><strong>Stage 1 — Executive Command (<code>EXECUTIVE_COMMAND</code>, Default Fledgling &amp; SHTF Mode):</strong> Fresh deployments start fail-closed here while the family builds operational discipline. Production House desks display <em>"Executive Command Mode Active — Voting Dormant"</em>, strip voting/veto buttons, and reject voting mutations (HTTP 403).</li><li><strong>Stage 2 — Advisory Petition Filter (<code>ADVISORY_PETITION_FILTER</code>):</strong> Activated solely by the Chief Administrator. Unlocks advisory voting (default 9-of-12 / 75% quorum -&gt; <code>RATIFIED_PENDING_SETTLOR</code>) with zero unilateral execution and <strong>Absolute Founder Veto (<code>VETOED_BY_FOUNDER</code>)</strong>.</li><li><strong>Stage 3 — Configurable Bicameral Veto (<code>BICAMERAL_VETO_ACTIVE</code>):</strong> Unlocks binding Bicameral Veto (<code>VETOED_BY_BICAMERAL_CHAMBER</code>) on eligible policy and CFCP grant proposals for authorized communal bodies (such as the <em>Council of 12 Houses</em>, <em>Council of Elders</em>, or <em>Enclave Stewardship Assembly</em>) and named individual or office voter seats configured by the Chief Administrator without code changes.</li><li><strong>Immutable Core Guardrail (ALL Modes):</strong> Proposals targeting the <strong>87/10/3 waterfall</strong>, <strong>ADR-012 High-Water Mark</strong>, <strong>Rule A14 100% SCMA loss isolation</strong>, <strong>Quarter-Kelly bounds</strong>, <strong>3% FAEP</strong>, <strong>ADR-011 banking air-gap</strong>, or <strong>Directive R-04 Emergency Kill Switch</strong> are permanently rejected (HTTP 403, <code>IMMUTABLE_CORE_INVARIANT</code>).</li><li><strong>1-Click SHTF Snap-Back Protocol:</strong> During any systemic emergency, the Chief Administrator can instantaneously return governance to <code>EXECUTIVE_COMMAND</code> with full <code>GovernanceAuditLog</code> recording.</li></ol></details>
-<details class="card"><summary><strong>📘 Canon Reference Cheat Sheet — Lexicon v0.5</strong></summary><ol><li><strong>ADR-008 Exact-Cent Conservation &amp; 87/10/3 Waterfall (TPW):</strong> Every penny is counted as a whole cent; residual rounding goes to <strong>CFCP</strong> so every integer cent is conserved across <strong>SCMA</strong> (87%), <strong>CFCP</strong> (10%), and <strong>FAEP</strong> (3%).</li><li><strong>High-Water Mark (ADR-012) &amp; Rule A14:</strong> Trading losses stay 100% inside the executing <strong>SCMA</strong> (CFCP/FAEP never absorb member losses), and the 87/10/3 waterfall applies strictly to net new profit above each SCMA's High-Water Mark (0% skim during drawdown recovery, eliminating the volatility tax).</li><li><strong>Quarter-Kelly, 40% Dry-Powder Floor &amp; Concentric Asset Engine Rings:</strong> Sizing stays conservative at one-quarter Kelly while at least 40% of capital stays uncommitted in cash; members cannot raise risk autonomously because the governor is downward-only.</li><li><strong>IFAS &amp; ADR-011 Air-Gap:</strong> Real bank accounts, deposits, and tax records live separately in <strong>IFAS</strong> (<code>accounting.narratix.io</code>); PDEUE never stores bank routing or account credentials.</li><li><strong>Active-Hat (R-06), Directive R-12 Masking, Directive R-04 Halt &amp; Gate G1:</strong> Operators wear one role hat at a time, technical desks see masked balances (<code>$****.**</code>), leadership holds a platform-wide emergency brake, and <strong>Gate G1</strong> defaults to <code>HOLD_OBSERVATIONS_ONLY</code> paper mode.</li><li><strong>Executive Command Mode &amp; Pay-it-Forward / LCCF:</strong> Senate ratification stages a petition while Sovereign Chancellor dual control remains required, and the <strong>Pay-it-Forward / LCCF</strong> family fund helps lift relatives out of high-interest debt as the lineage grows.</li><li><strong>House Genealogist, Anti-Tribalism Custody, Delegated Onboarding &amp; Genealogical Ratification:</strong> Trusted <strong>House Genealogist</strong> officers and ranked House leaders can prepare welcome dossiers when <strong>Delegated Onboarding</strong> is enabled, while <strong>Genealogical Ratification</strong> keeps final activation with leadership and sends a signed notice to <strong>IFAS</strong>. Optional <strong>Anti-Tribalism Custody</strong> pairs mentors across Houses to keep family unity strong and prevent cliques.</li><li><strong>Family Home Hub, Hall of Arms &amp; Lineage Hearth:</strong> Every family member begins at the calm four-card <strong>Family Home Hub</strong> (<code>/home</code>), gathers for news, reunions, and video calls inside the <strong>Lineage Hearth</strong> (<code>/community</code>), and celebrates our 12 Houses and 28+ allied surnames in the <strong>Hall of Arms</strong> (<code>/community/heritage</code>)—all strictly separated from financial balances and trading software.</li></ol></details></section>
-</div></section>
-<section id="colleges" role="tabpanel" class="hidden"><div class="manual-tools"><label for="manualSelect"><strong>Canonical runbook</strong></label><select id="manualSelect"><option>USER_QUICKSTART.md</option><option>CLASS_F_FINANCIAL_MANUAL.md</option><option>CLASS_T_TECHNICAL_MANUAL.md</option><option>CHIEF_ADMIN_RUNBOOK.md</option></select><button id="loadManual">Load Manual</button><button id="printManual">Print / Save PDF</button></div><div id="manual-reader-container" class="manual-reader" aria-live="polite"><p>Choose a canonical manual. The local reader converts its Markdown sections into accessible accordions.</p></div></section>
+</section>
+
 <footer class="pdeue-colophon" role="contentinfo">
   <span class="colophon-attr">Powered by CARM Aerotech Corporation</span>
   <span class="colophon-mode-badge">FAIL-CLOSED · PAPER / OBSERVATION MODE · GATE G1</span>
 </footer>
 </main>
+</div>
+
 <script>
-(()=>{ 'use strict';const $=id=>document.getElementById(id),money=c=>'$'+(c/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}),show=(el,ms=2200)=>{el.classList.add('show');if(ms)setTimeout(()=>el.classList.remove('show'),ms)};
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id);
+const money=c=>'$'+(c/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const show=(el,ms=2200)=>{el.classList.add('show');if(ms)setTimeout(()=>el.classList.remove('show'),ms)};
 const urlParams=new URLSearchParams(location.search);
 const initialScma=urlParams.get('scma_id')||urlParams.get('scma')||(()=>{try{return localStorage.getItem('pdeue_active_scma_id')||''}catch(_e){return ''}})()||'SCMA-ELEANOR_-B2B31C9E';
 $('certScmaId').value=initialScma;
 const memberNavLink=document.querySelector('nav a[href="/member"]');
 if(memberNavLink&&urlParams.get('scma_id')){memberNavLink.href='/member?scma_id='+encodeURIComponent(urlParams.get('scma_id'))}
-function waterfall(){const total=Math.max(0,Math.trunc(Number($('profitCents').value)||0)),deficit=Math.max(0,Math.trunc(Number($('drawdownCents').value)||0)),recovery=Math.min(total,deficit),eligible=total-recovery,scmaShare=Math.floor(eligible*87/100),faep=Math.floor(eligible*3/100),cfcp=eligible-scmaShare-faep,scma=recovery+scmaShare,residual=cfcp-Math.floor(eligible*10/100);$('scmaValue').textContent=`${scma.toLocaleString()}¢ / ${money(scma)}`;$('cfcpValue').textContent=`${cfcp.toLocaleString()}¢ / ${money(cfcp)}`;$('faepValue').textContent=`${faep.toLocaleString()}¢ / ${money(faep)}`;$('hwmSummary').textContent=recovery>0?`${recovery.toLocaleString()}¢ recovery (0% skim) + ${scmaShare.toLocaleString()}¢ above HWM`:`At HWM · ${eligible.toLocaleString()}¢ waterfall-eligible`;$('residualValue').textContent=`${residual} residual cent${residual===1?'':'s'} routed to CFCP · conserved ${total}¢`}$('profitCents').oninput=waterfall;$('drawdownCents').oninput=waterfall;waterfall();
-let watermark=200,baseline=200,frozen=false;$('riskSlider').oninput=e=>{const requested=Number(e.target.value);if(requested>watermark){e.target.value=watermark;show($('riskToast'));return}watermark=requested;$('riskValue').textContent=(watermark/100).toFixed(2)+'%';$('riskStatus').textContent=`ACTIVE · ${(watermark/100).toFixed(2)}% WATERMARK`};$('freezeRisk').onclick=()=>{frozen=!frozen;const slider=$('riskSlider');if(frozen){baseline=watermark;slider.disabled=true;slider.min=0;slider.value=0;$('riskValue').textContent='0.00%';$('riskStatus').textContent='HALTED / FROZEN';$('riskStatus').classList.add('frozen')}else{slider.min=50;watermark=baseline;slider.value=baseline;slider.disabled=false;$('riskValue').textContent=(baseline/100).toFixed(2)+'%';$('riskStatus').textContent=`ACTIVE · ${(baseline/100).toFixed(2)}% WATERMARK`;$('riskStatus').classList.remove('frozen')}$('freezeRisk').setAttribute('aria-pressed',String(frozen))};function floor(){const equity=Math.max(0,Math.trunc(Number($('equityCents').value)||0)),cents=Math.max(4000,Math.trunc(equity*40/100));$('floorValue').textContent=money(cents);$('floorCents').textContent=` (${cents.toLocaleString()} integer cents)`}$('equityCents').oninput=floor;floor();
-$('lossEvent').onclick=()=>{$('acctBo').classList.remove('loss');void $('acctBo').offsetWidth;$('acctBo').classList.add('loss');['acctAda','acctCam','acctCfcp'].forEach(id=>$(id).classList.add('protected'));show($('isolationStatus'),0)};
-function floatCalc(){const balance=Math.max(0,Math.trunc(Number($('floatCents').value)||0)),active=Math.min(balance,2500000),surplus=Math.max(0,balance-2500000);$('floatMeter').style.width=(active/2500000*100)+'%';$('activeFloat').textContent=`${active.toLocaleString()}¢ / ${money(active)}`;$('surplusSweep').textContent=`${surplus.toLocaleString()}¢ / ${money(surplus)}`;$('dynamic-outbox-container').textContent=surplus?JSON.stringify({type:'IF-038',amount_cents:surplus,formatted:money(surplus),sequence:1,signed:true,signature:'sha256-mock-sweep-sig-ok'},null,2):'No envelope: custodial balance does not exceed the active-float ceiling.';$('outboxToast').classList.toggle('show',surplus>0)}$('floatCents').oninput=floatCalc;floatCalc();
-let countdownTimer;function classify(){const cents=Math.max(0,Math.trunc(Number($('distributionCents').value)||0));['tierGreen','tierYellow','tierRed'].forEach(id=>$(id).classList.remove('active'));$('frictionCard').classList.add('hidden');$('redControls').classList.add('hidden');clearInterval(countdownTimer);if(cents<=15000){$('tierGreen').classList.add('active')}else if(cents<=50000){$('tierYellow').classList.add('active');$('frictionCard').classList.remove('hidden');const future=Math.trunc(cents*Math.pow(1.10,3));$('opportunityCost').textContent=`Withdrawing ${money(cents)} forgoes a projected ${money(future-cents)} over 3 years at the educational 10% annual illustration.`}else{$('tierRed').classList.add('active');$('redControls').classList.remove('hidden');let remaining=86400;const draw=()=>{$('countdown').textContent=[Math.floor(remaining/3600),Math.floor(remaining%3600/60),remaining%60].map(n=>String(n).padStart(2,'0')).join(':');remaining=Math.max(0,remaining-60)};draw();countdownTimer=setInterval(draw,1000)}}$('distributionCents').oninput=classify;document.querySelectorAll('[data-amount]').forEach(b=>b.onclick=()=>{$('distributionCents').value=b.dataset.amount;classify()});$('ackEducation').onclick=()=>{$('educationStatus').textContent=' ✓ Educational friction acknowledged'};$('validateCosign').onclick=()=>{$('cosignStatus').textContent=$('cosigner1').value.trim()&&$('cosigner2').value.trim()&&$('cosigner1').value!==$('cosigner2').value?'✓ Independent F2-H signatures staged; time-lock remains active.':'Enter two distinct F2-H co-signers.'};classify();
-for(let i=1;i<=12;i++)$('houseSeals').insertAdjacentHTML('beforeend',`<span class="seal" aria-label="House ${i}">H${i}</span>`);$('senateVote').onclick=()=>{[...document.querySelectorAll('.seal')].forEach((s,i)=>s.classList.toggle('aye',i<9));$('ratifiedBadge').classList.add('show');$('chancellorReview').disabled=false};$('chancellorReview').onclick=()=>show($('chancellorStatus'),0);
-const questions=[['Where does waterfall rounding residual go?',['SCMA','CFCP (ADR-008)'],'CFCP (ADR-008)','CFCP receives every residual cent so the split conserves its source.'],['Can a member raise risk autonomously?',['Yes','No (Downward-Only)'],'No (Downward-Only)','Upward restoration requires F2-H approval.'],['Does Senate ratification move money?',['Yes','No (Dual Control)'],'No (Dual Control)','Ratification only stages a petition for Chancellor review.']];
+
+/* Interactive Simulators (Chapters 1-6) */
+function waterfall(){
+  const total=Math.max(0,Math.trunc(Number($('profitCents').value)||0));
+  const deficit=Math.max(0,Math.trunc(Number($('drawdownCents').value)||0));
+  const recovery=Math.min(total,deficit);
+  const eligible=total-recovery;
+  const scmaShare=Math.floor(eligible*87/100);
+  const faep=Math.floor(eligible*3/100);
+  const cfcp=eligible-scmaShare-faep;
+  const scma=recovery+scmaShare;
+  const residual=cfcp-Math.floor(eligible*10/100);
+  $('scmaValue').textContent=`${scma.toLocaleString()}¢ / ${money(scma)}`;
+  $('cfcpValue').textContent=`${cfcp.toLocaleString()}¢ / ${money(cfcp)}`;
+  $('faepValue').textContent=`${faep.toLocaleString()}¢ / ${money(faep)}`;
+  $('hwmSummary').textContent=recovery>0?`${recovery.toLocaleString()}¢ recovery (0% skim) + ${scmaShare.toLocaleString()}¢ above HWM`:`At HWM · ${eligible.toLocaleString()}¢ waterfall-eligible`;
+  $('residualValue').textContent=`${residual} residual cent${residual===1?'':'s'} routed to CFCP · conserved ${total}¢`;
+}
+$('profitCents').oninput=waterfall;
+$('drawdownCents').oninput=waterfall;
+waterfall();
+
+let watermark=200,baseline=200,frozen=false;
+$('riskSlider').oninput=e=>{
+  const requested=Number(e.target.value);
+  if(requested>watermark){e.target.value=watermark;show($('riskToast'));return}
+  watermark=requested;
+  $('riskValue').textContent=(watermark/100).toFixed(2)+'%';
+  $('riskStatus').textContent=`ACTIVE · ${(watermark/100).toFixed(2)}% WATERMARK`;
+};
+$('freezeRisk').onclick=()=>{
+  frozen=!frozen;
+  const slider=$('riskSlider');
+  if(frozen){
+    baseline=watermark;slider.disabled=true;slider.min=0;slider.value=0;
+    $('riskValue').textContent='0.00%';$('riskStatus').textContent='HALTED / FROZEN';$('riskStatus').classList.add('frozen');
+  }else{
+    slider.min=50;watermark=baseline;slider.value=baseline;slider.disabled=false;
+    $('riskValue').textContent=(baseline/100).toFixed(2)+'%';$('riskStatus').textContent=`ACTIVE · ${(baseline/100).toFixed(2)}% WATERMARK`;$('riskStatus').classList.remove('frozen');
+  }
+  $('freezeRisk').setAttribute('aria-pressed',String(frozen));
+};
+function floor(){
+  const equity=Math.max(0,Math.trunc(Number($('equityCents').value)||0));
+  const cents=Math.max(4000,Math.trunc(equity*40/100));
+  $('floorValue').textContent=money(cents);
+  $('floorCents').textContent=` (${cents.toLocaleString()} integer cents)`;
+}
+$('equityCents').oninput=floor;
+floor();
+
+$('lossEvent').onclick=()=>{
+  $('acctBo').classList.remove('loss');
+  void $('acctBo').offsetWidth;
+  $('acctBo').classList.add('loss');
+  ['acctAda','acctCam','acctCfcp'].forEach(id=>$(id).classList.add('protected'));
+  show($('isolationStatus'),0);
+};
+
+function floatCalc(){
+  const balance=Math.max(0,Math.trunc(Number($('floatCents').value)||0));
+  const active=Math.min(balance,2500000);
+  const surplus=Math.max(0,balance-2500000);
+  $('floatMeter').style.width=(active/2500000*100)+'%';
+  $('activeFloat').textContent=`${active.toLocaleString()}¢ / ${money(active)}`;
+  $('surplusSweep').textContent=`${surplus.toLocaleString()}¢ / ${money(surplus)}`;
+  $('dynamic-outbox-container').textContent=surplus?JSON.stringify({type:'IF-038',amount_cents:surplus,formatted:money(surplus),sequence:1,signed:true,signature:'sha256-mock-sweep-sig-ok'},null,2):'No envelope: custodial balance does not exceed the active-float ceiling.';
+  $('outboxToast').classList.toggle('show',surplus>0);
+}
+$('floatCents').oninput=floatCalc;
+floatCalc();
+
+let countdownTimer;
+function classify(){
+  const cents=Math.max(0,Math.trunc(Number($('distributionCents').value)||0));
+  ['tierGreen','tierYellow','tierRed'].forEach(id=>$(id).classList.remove('active'));
+  $('frictionCard').classList.add('hidden');
+  $('redControls').classList.add('hidden');
+  clearInterval(countdownTimer);
+  if(cents<=15000){
+    $('tierGreen').classList.add('active');
+  }else if(cents<=50000){
+    $('tierYellow').classList.add('active');
+    $('frictionCard').classList.remove('hidden');
+    const future=Math.trunc(cents*Math.pow(1.10,3));
+    $('opportunityCost').textContent=`Withdrawing ${money(cents)} forgoes a projected ${money(future-cents)} over 3 years at the educational 10% annual illustration.`;
+  }else{
+    $('tierRed').classList.add('active');
+    $('redControls').classList.remove('hidden');
+    let remaining=86400;
+    const draw=()=>{$('countdown').textContent=[Math.floor(remaining/3600),Math.floor(remaining%3600/60),remaining%60].map(n=>String(n).padStart(2,'0')).join(':');remaining=Math.max(0,remaining-60)};
+    draw();
+    countdownTimer=setInterval(draw,1000);
+  }
+}
+$('distributionCents').oninput=classify;
+document.querySelectorAll('[data-amount]').forEach(b=>b.onclick=()=>{$('distributionCents').value=b.dataset.amount;classify()});
+$('ackEducation').onclick=()=>{$('educationStatus').textContent=' ✓ Educational friction acknowledged'};
+$('validateCosign').onclick=()=>{$('cosignStatus').textContent=$('cosigner1').value.trim()&&$('cosigner2').value.trim()&&$('cosigner1').value!==$('cosigner2').value?'✓ Independent F2-H signatures staged; time-lock remains active.':'Enter two distinct F2-H co-signers.'};
+classify();
+
+for(let i=1;i<=12;i++)$('houseSeals').insertAdjacentHTML('beforeend',`<span class="seal" aria-label="House ${i}">H${i}</span>`);
+$('senateVote').onclick=()=>{[...document.querySelectorAll('.seal')].forEach((s,i)=>s.classList.toggle('aye',i<9));$('ratifiedBadge').classList.add('show');$('chancellorReview').disabled=false};
+$('chancellorReview').onclick=()=>show($('chancellorStatus'),0);
+
+const questions=[
+  ['Where does waterfall rounding residual go?',['SCMA','CFCP (ADR-008)'],'CFCP (ADR-008)','CFCP receives every residual cent so the split conserves its source.'],
+  ['Can a member raise risk autonomously?',['Yes','No (Downward-Only)'],'No (Downward-Only)','Upward restoration requires F2-H approval.'],
+  ['Does Senate ratification move money?',['Yes','No (Dual Control)'],'No (Dual Control)','Ratification only stages a petition for Chancellor review.']
+];
 const quizScore=new Map();
 function updateQuizProgress(){
   const correct=[...quizScore.values()].filter(Boolean).length;
@@ -87,7 +538,20 @@ function updateQuizProgress(){
   $('quizProgressText').textContent=correct===total?`Self-Check Progress: ${correct} / ${total} correct ✓ — Ready to complete Stewardship L1 Certification!`:`Self-Check Progress: ${correct} / ${total} correct — answer all ${total} comprehension questions accurately to unlock certification.`;
   $('completeCertificationBtn').disabled=correct<total;
 }
-questions.forEach((q,i)=>{const node=document.createElement('fieldset');node.className='card';node.innerHTML=`<legend>${i+1}. ${q[0]}</legend>${q[1].map(a=>`<button type="button" class="quiz-option" data-question="${i}" data-answer="${a}">${a}</button>`).join('')}<div class="answer-feedback" aria-live="polite"></div>`;node.querySelectorAll('button').forEach(b=>b.onclick=()=>{node.querySelectorAll('button').forEach(x=>x.classList.remove('correct','incorrect'));const ok=b.dataset.answer===q[2];quizScore.set(i,ok);b.classList.add(ok?'correct':'incorrect');node.querySelector('.answer-feedback').textContent=(ok?'✓ Correct. ':'✗ Not quite. ')+q[3];updateQuizProgress()});$('quiz').appendChild(node)});
+questions.forEach((q,i)=>{
+  const node=document.createElement('fieldset');
+  node.className='card';
+  node.innerHTML=`<legend>${i+1}. ${q[0]}</legend>${q[1].map(a=>`<button type="button" class="quiz-option" data-question="${i}" data-answer="${a}">${a}</button>`).join('')}<div class="answer-feedback" aria-live="polite"></div>`;
+  node.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    node.querySelectorAll('button').forEach(x=>x.classList.remove('correct','incorrect'));
+    const ok=b.dataset.answer===q[2];
+    quizScore.set(i,ok);
+    b.classList.add(ok?'correct':'incorrect');
+    node.querySelector('.answer-feedback').textContent=(ok?'✓ Correct. ':'✗ Not quite. ')+q[3];
+    updateQuizProgress();
+  });
+  $('quiz').appendChild(node);
+});
 $('completeCertificationBtn').onclick=async()=>{
   const scma=($('certScmaId').value||'').trim();
   const resEl=$('certificationResult');
@@ -118,42 +582,282 @@ $('completeCertificationBtn').onclick=async()=>{
     $('completeCertificationBtn').textContent='Complete Stewardship L1 Certification';
   }
 };
-const cues=[{t:0,id:'chapter-waterfall',text:'Chapter 1. Under ADR-012, the exact-cent 87/10/3 waterfall applies strictly above each SCMA High-Water Mark—eliminating the volatility tax—and routes all residual rounding to CFCP.'},{t:45,id:'chapter-risk-governor',text:'Chapter 2. Risk moves down freely, while upward restoration requires F2-H approval.'},{t:90,id:'chapter-segregation',text:'Chapter 3. Under Rule A14, ring-fenced SCMAs enforce 100% loss isolation with zero communal loss bleed to sibling SCMAs, CFCP, or FAEP.'},{t:135,id:'chapter-float-ceiling',text:'Chapter 4. Active float is capped at twenty-five thousand dollars and surplus enters the signed outbox.'},{t:180,id:'chapter-distribution',text:'Chapter 5. Directive R-15 applies green, yellow, or red distribution controls.'},{t:225,id:'chapter-governance',text:'Chapter 6. Senate ratification and Sovereign Chancellor review form dual control.'}],timeline=$('companion-timeline'),audio=$('companionAudioPlayer');let guided=true,playing=false,muted=false,speed=1,raf,last,activeIndex=-1,audioFailed=false;audio.addEventListener('error',()=>{audioFailed=true});function speak(cue){if(muted||!('speechSynthesis' in window))return;window.speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(cue.text);utterance.rate=speed;window.speechSynthesis.speak(utterance);$('audioBadge').textContent='Audio Narration: WebSpeech Active';$('audioBadge').classList.add('active')}function activate(index,autoScroll=false){if(index===activeIndex)return;activeIndex=index;document.querySelectorAll('.chapter').forEach((c,i)=>{c.classList.toggle('active-chapter',i===index);c.classList.toggle('hidden',guided&&i!==index)});$('captions').textContent=cues[index].text;if(autoScroll)document.getElementById(cues[index].id).scrollIntoView({ behavior: 'smooth', block: 'center' });if(playing&&(audioFailed||audio.readyState===0))speak(cues[index])}function seek(value,autoScroll=false){const v=Math.max(0,Math.min(270,Number(value)));timeline.value=v;$('elapsed').textContent=Math.floor(v/60)+':'+String(Math.floor(v%60)).padStart(2,'0');activate(Math.min(5,Math.floor(v/45)),autoScroll);if(audio.readyState>0&&Math.abs(audio.currentTime-v)>1)audio.currentTime=v}function frame(ts){if(!playing)return;if(!last)last=ts;const previous=Math.floor(Number(timeline.value)/45),next=Number(timeline.value)+(ts-last)/1000*speed;last=ts;seek(next,Math.floor(next/45)!==previous);if(next>=270)return pause();raf=requestAnimationFrame(frame)}function play(){playing=true;last=0;$('playPause').textContent='❚❚ Pause';audio.playbackRate=speed;audio.play().catch(()=>{audioFailed=true;speak(cues[activeIndex])});raf=requestAnimationFrame(frame)}function pause(){playing=false;cancelAnimationFrame(raf);audio.pause();if('speechSynthesis' in window)window.speechSynthesis.cancel();$('playPause').textContent='▶ Play';$('audioBadge').classList.remove('active')}$('playPause').onclick=()=>playing?pause():play();$('rewind').onclick=()=>seek(Number(timeline.value)-10,true);$('forward').onclick=()=>seek(Number(timeline.value)+10,true);timeline.oninput=()=>seek(timeline.value,true);document.querySelectorAll('.speed').forEach(b=>b.onclick=()=>{speed=Number(b.dataset.speed);document.querySelectorAll('.speed').forEach(x=>x.classList.toggle('active',x===b));audio.playbackRate=speed;if(playing&&(audioFailed||audio.readyState===0))speak(cues[activeIndex])});$('mute').onclick=()=>{muted=!muted;$('mute').setAttribute('aria-pressed',String(muted));$('mute').textContent=muted?'🔇 Unmute':'🔊 Mute';audio.muted=muted;if(muted&&'speechSynthesis' in window)window.speechSynthesis.cancel();else if(playing&&(audioFailed||audio.readyState===0))speak(cues[activeIndex])};$('guidedMode').onclick=()=>{guided=true;$('guidedMode').classList.add('active');$('exploreMode').classList.remove('active');document.querySelectorAll('.chapter').forEach((c,i)=>c.classList.toggle('hidden',i!==activeIndex))};$('exploreMode').onclick=()=>{guided=false;$('exploreMode').classList.add('active');$('guidedMode').classList.remove('active');document.querySelectorAll('.chapter').forEach(c=>c.classList.remove('hidden'))};$('jumpChapter6Btn').onclick=()=>seek(225,true);
-function renderMarkdown(markdown){const lines=markdown.split('\n'),title=lines.find(l=>l.startsWith('# '))||'# Canonical Manual';let html=`<h2>${title.slice(2)}</h2>`,section=[],heading='Overview';const flush=()=>{if(!section.length)return;const safe=section.join('\n').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));html+=`<details open><summary>${heading}</summary><pre>${safe}</pre></details>`;section=[]};lines.slice(1).forEach(line=>{if(/^#{2,3} /.test(line)){flush();heading=line.replace(/^#+ /,'')}else section.push(line)});flush();$('manual-reader-container').innerHTML=html}async function loadManual(){const name=$('manualSelect').value;$('manual-reader-container').innerHTML='<p>Loading local canonical manual…</p>';try{const response=await fetch(`/api/v1/portal/companion/manual/${encodeURIComponent(name)}`);if(!response.ok)throw new Error('Manual unavailable');renderMarkdown(await response.text())}catch(error){$('manual-reader-container').innerHTML=`<p role="alert">${error.message}. The repository manual remains available in docs/manuals.</p>`}}$('loadManual').onclick=loadManual;$('manualSelect').onchange=loadManual;$('printManual').onclick=()=>{$('printManual').textContent='Print dialog opened';window.print();setTimeout(()=>$('printManual').textContent='Print / Save PDF',1500)};document.querySelectorAll('.tab').forEach(tab=>tab.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.setAttribute('aria-selected',String(x===tab)));['simulator','colleges'].forEach(id=>$(id).classList.toggle('hidden',id!==tab.dataset.panel));if(tab.dataset.panel==='colleges')loadManual()});seek(urlParams.get('scma_id')?225:0);
+
+/* Paced Plain-Language Narration Engine (18 Beats across 6 Chapters, Graceful Headless/Offline Fallback) */
+const chapterIds=['chapter-waterfall','chapter-risk-governor','chapter-segregation','chapter-float-ceiling','chapter-distribution','chapter-governance'];
+const beats=[
+  {t:0,  ch:0,title:'Chapter 1 · Beat 1: How New Profits Are Shared',text:'Welcome to Chapter 1. When your personal account reaches a brand-new record high, 87% of new profit stays with you, 10% builds the shared family shield, and 3% keeps the software running.'},
+  {t:15, ch:0,title:'Chapter 1 · Beat 2: Your Personal High-Water Mark',text:'If your account ever dips and climbs back up, you keep 100% of every recovery dollar. Zero profit is shared until you climb above your own previous peak.'},
+  {t:30, ch:0,title:'Chapter 1 · Beat 3: Exact Whole-Cent Accounting',text:'Every penny is counted as an exact whole cent under ADR-008, with any rounding penny routed to the shared family pool so nothing is ever lost.'},
+  {t:45, ch:1,title:'Chapter 2 · Beat 1: Turning Risk Down Anytime',text:'In Chapter 2, you can turn your safety dial down or freeze new orders at any time—just like easing off the gas pedal whenever you want more calm.'},
+  {t:60, ch:1,title:'Chapter 2 · Beat 2: Why Turning Up Needs a Partner',text:'To guard against rushed decisions, turning the safety dial back upward requires approval from your Head of Household.'},
+  {t:75, ch:1,title:'Chapter 2 · Beat 3: The 40% Cash Safety Cushion',text:'At least 40% of your capital always remains safely in uncommitted cash, and Quarter-Kelly keeps every single position modest.'},
+  {t:90, ch:2,title:'Chapter 3 · Beat 1: Watertight Family Accounts',text:'Chapter 3 shows Rule A14 in action. Every family member has a completely walled-off personal account.'},
+  {t:105,ch:2,title:'Chapter 3 · Beat 2: Zero Contagion Between Relatives',text:'If one relative takes a trading loss, that loss stays 100% inside their own account. Siblings and the shared family pool are never touched.'},
+  {t:120,ch:2,title:'Chapter 3 · Beat 3: Calm Recovery Without Penalty',text:'As the recovering account earns gains back toward its prior high mark, it keeps 100% of its recovery without any volatility tax.'},
+  {t:135,ch:3,title:'Chapter 4 · Beat 1: The $25,000 Active Float Ceiling',text:'Chapter 4 explains why active trading capital caps at $25,000: staying nimble avoids crowding smaller markets.'},
+  {t:150,ch:3,title:'Chapter 4 · Beat 2: Automatic Sweeps to Protected Custody',text:'Profits above $25,000 sweep automatically into off-venue bank custody managed by our separate bookkeeping system, IFAS.'},
+  {t:165,ch:3,title:'Chapter 4 · Beat 3: The ADR-011 Banking Safety Wall',text:'PDEUE never asks for or stores bank account numbers, routing numbers, or banking passwords—only signed notices cross the air gap.'},
+  {t:180,ch:4,title:'Chapter 5 · Beat 1: Green-Tier Everyday Withdrawals',text:'In Chapter 5, small Green-Tier withdrawals execute smoothly right away without red tape.'},
+  {t:195,ch:4,title:'Chapter 5 · Beat 2: Yellow-Tier Calm Reflection Card',text:'Medium Yellow-Tier withdrawals show a friendly preview of the long-term compounding you would trade away so you can decide thoughtfully.'},
+  {t:210,ch:4,title:'Chapter 5 · Beat 3: Red-Tier 24-Hour Shield & Dual Co-Sign',text:'Large Red-Tier withdrawals include a 24-hour cooling-off timer and two Head of Household co-signers to protect your family from scams.'},
+  {t:225,ch:5,title:'Chapter 6 · Beat 1: One Active Hat & Privacy Blinds',text:'Welcome to Chapter 6. Leaders wear one role hat at a time, and technical helpers see star-masked balances so family privacy stays protected.'},
+  {t:240,ch:5,title:'Chapter 6 · Beat 2: Twelve-House Petitions & Dual Control',text:'Family votes stage respectful petitions while human dual control ensures no vote or AI assistant can unilaterally move money.'},
+  {t:255,ch:5,title:'Chapter 6 · Beat 3: Earn Your Stewardship L1 Badge',text:'Complete the 3 short comprehension questions below to verify your understanding and unlock your active account status.'}
+];
+
+const timeline=$('companion-timeline'),audio=$('companionAudioPlayer'),voiceSelect=$('voiceSelect');
+let guided=true,playing=false,muted=false,speed=1,raf=0,lastTs=0,activeIndex=-1,activeBeatIndex=-1,audioFailed=false,availableVoices=[];
+audio.addEventListener('error',()=>{audioFailed=true});
+
+function populateVoices(){
+  if(!('speechSynthesis' in window)||typeof window.speechSynthesis.getVoices!=='function')return;
+  const list=window.speechSynthesis.getVoices()||[];
+  availableVoices=list;
+  const currentVal=voiceSelect.value||'default';
+  voiceSelect.innerHTML='<option value="default">Voice: Default / Silent Timer</option>';
+  list.slice(0,12).forEach((v,idx)=>{
+    const opt=document.createElement('option');
+    opt.value=String(idx);
+    opt.textContent=`${v.name} (${v.lang})`;
+    voiceSelect.appendChild(opt);
+  });
+  if([...voiceSelect.options].some(o=>o.value===currentVal))voiceSelect.value=currentVal;
+}
+if('speechSynthesis' in window){
+  populateVoices();
+  if('onvoiceschanged' in window.speechSynthesis){
+    window.speechSynthesis.onvoiceschanged=populateVoices;
+  }
+}
+
+function speakBeat(beat){
+  if(!beat)return;
+  if(muted||!('speechSynthesis' in window)){
+    $('audioBadge').textContent=muted?'Paced Narration: Muted (Visual Timer)':'Paced Narration: Silent Visual Timer';
+    $('audioBadge').classList.toggle('active',playing);
+    return;
+  }
+  try{
+    window.speechSynthesis.cancel();
+    const utterance=new SpeechSynthesisUtterance(beat.text);
+    utterance.rate=speed;
+    const vIdx=Number(voiceSelect.value);
+    if(!Number.isNaN(vIdx)&&availableVoices[vIdx])utterance.voice=availableVoices[vIdx];
+    window._persistedUtterance=utterance;
+    window.speechSynthesis.speak(utterance);
+    $('audioBadge').textContent=availableVoices.length?'Paced Narration: Voice + Visual Sync':'Paced Narration: Visual Timer Active';
+    $('audioBadge').classList.add('active');
+  }catch(_err){
+    $('audioBadge').textContent='Paced Narration: Silent Visual Timer';
+    $('audioBadge').classList.toggle('active',playing);
+  }
+}
+
+function updateChapterVisibility(){
+  document.querySelectorAll('.chapter').forEach((c,i)=>{
+    c.classList.toggle('active-chapter',i===activeIndex);
+    c.classList.toggle('hidden',guided&&i!==activeIndex);
+  });
+  document.querySelectorAll('.chapter-pill-btn').forEach((b,i)=>{
+    b.classList.toggle('active',i===activeIndex);
+    b.setAttribute('aria-pressed',String(i===activeIndex));
+  });
+  $('activeChapterBadge').textContent=`Chapter ${activeIndex+1} of 6 · ${guided?'Guided Tour':'Explore Mode'}`;
+  $('prevChapterBtn').disabled=activeIndex<=0;
+  $('nextChapterBtn').disabled=activeIndex>=5;
+}
+
+function activateBeat(beatIdx,autoScroll=false){
+  const clamped=Math.max(0,Math.min(beats.length-1,beatIdx));
+  const beat=beats[clamped];
+  const chapterChanged=beat.ch!==activeIndex;
+  const beatChanged=clamped!==activeBeatIndex;
+  activeIndex=beat.ch;
+  activeBeatIndex=clamped;
+  updateChapterVisibility();
+  $('narrationBeatTitle').textContent=beat.title;
+  $('narrationBeatStep').textContent=`Beat ${clamped+1} of ${beats.length}`;
+  $('captions').textContent=beat.text;
+  $('beatProgressFill').style.width=Math.round(((clamped+1)/beats.length)*100)+'%';
+  if(autoScroll&&chapterChanged){
+    const target=document.getElementById(chapterIds[activeIndex]);
+    if(target)target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  if(playing&&beatChanged&&(audioFailed||audio.readyState===0)){
+    speakBeat(beat);
+  }
+}
+
+function seek(value,autoScroll=false){
+  const v=Math.max(0,Math.min(270,Number(value)||0));
+  timeline.value=v;
+  $('elapsed').textContent=Math.floor(v/60)+':'+String(Math.floor(v%60)).padStart(2,'0');
+  const beatIdx=Math.min(beats.length-1,Math.floor(v/15));
+  activateBeat(beatIdx,autoScroll);
+  if(audio.readyState>0&&Math.abs(audio.currentTime-v)>1)audio.currentTime=v;
+}
+
+function goChapter(chIdx,autoScroll=true){
+  const targetCh=Math.max(0,Math.min(5,Number(chIdx)||0));
+  seek(targetCh*45,autoScroll);
+}
+
+function frame(ts){
+  if(!playing)return;
+  if(!lastTs)lastTs=ts;
+  const prevBeat=Math.floor(Number(timeline.value)/15);
+  const next=Number(timeline.value)+((ts-lastTs)/1000)*speed;
+  lastTs=ts;
+  seek(next,Math.floor(next/15)!==prevBeat);
+  if(next>=270){pause();return}
+  raf=requestAnimationFrame(frame);
+}
+
+function play(){
+  playing=true;
+  lastTs=0;
+  $('playPause').textContent='❚❚ Pause';
+  $('audioBadge').classList.add('active');
+  audio.playbackRate=speed;
+  if(audio.readyState>=2){
+    const playPromise=audio.play();
+    if(playPromise&&typeof playPromise.catch==='function'){
+      playPromise.catch(()=>{audioFailed=true;speakBeat(beats[Math.max(0,activeBeatIndex)])});
+    }
+  }else{
+    audioFailed=true;
+    speakBeat(beats[Math.max(0,activeBeatIndex)]);
+  }
+  raf=requestAnimationFrame(frame);
+}
+
+function pause(){
+  playing=false;
+  cancelAnimationFrame(raf);
+  try{audio.pause()}catch(_e){}
+  if('speechSynthesis' in window)window.speechSynthesis.cancel();
+  $('playPause').textContent='▶ Play';
+  $('audioBadge').textContent='Paced Narration: Paused';
+  $('audioBadge').classList.remove('active');
+}
+
+$('playPause').onclick=()=>playing?pause():play();
+$('prevBeatBtn').onclick=()=>seek(Math.max(0,(Math.max(0,activeBeatIndex)-1)*15),true);
+$('nextBeatBtn').onclick=()=>seek(Math.min(255,(Math.max(0,activeBeatIndex)+1)*15),true);
+$('rewind').onclick=()=>seek(Number(timeline.value)-10,true);
+$('forward').onclick=()=>seek(Number(timeline.value)+10,true);
+timeline.oninput=()=>seek(timeline.value,true);
+$('prevChapterBtn').onclick=()=>goChapter(activeIndex-1,true);
+$('nextChapterBtn').onclick=()=>goChapter(activeIndex+1,true);
+document.querySelectorAll('.chapter-pill-btn').forEach(btn=>{
+  btn.onclick=()=>goChapter(Number(btn.dataset.chapterIdx)||0,true);
+});
+document.querySelectorAll('.speed').forEach(b=>b.onclick=()=>{
+  speed=Number(b.dataset.speed)||1;
+  document.querySelectorAll('.speed').forEach(x=>x.classList.toggle('active',x===b));
+  audio.playbackRate=speed;
+  if(playing&&(audioFailed||audio.readyState===0))speakBeat(beats[Math.max(0,activeBeatIndex)]);
+});
+$('mute').onclick=()=>{
+  muted=!muted;
+  $('mute').setAttribute('aria-pressed',String(muted));
+  $('mute').textContent=muted?'🔇 Unmute':'🔊 Mute';
+  audio.muted=muted;
+  if(muted&&'speechSynthesis' in window)window.speechSynthesis.cancel();
+  else if(playing&&(audioFailed||audio.readyState===0))speakBeat(beats[Math.max(0,activeBeatIndex)]);
+};
+/* Clicking Guided Step-by-Step ALWAYS starts cleanly at Chapter 1 (never stuck on Chapter 6) */
+$('guidedMode').onclick=()=>{
+  guided=true;
+  $('guidedMode').classList.add('active');
+  $('exploreMode').classList.remove('active');
+  seek(0,false);
+};
+$('exploreMode').onclick=()=>{
+  guided=false;
+  $('exploreMode').classList.add('active');
+  $('guidedMode').classList.remove('active');
+  updateChapterVisibility();
+};
+$('jumpChapter6Btn').onclick=()=>goChapter(5,true);
+
+/* Canonical Manual Reader (Degree Colleges / Syllabi) */
+function escapeHtml(str){
+  return String(str).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+}
+function renderMarkdown(markdown,manualName){
+  const lines=markdown.split('\n');
+  const titleLine=lines.find(l=>l.startsWith('# '))||('# '+manualName);
+  const cleanTitle=titleLine.replace(/^#\s+/,'').trim();
+  $('manualReaderTitle').textContent=cleanTitle;
+  let html=`<h2>${escapeHtml(cleanTitle)}</h2>`;
+  let section=[],heading='Overview';
+  const flush=()=>{
+    if(!section.length)return;
+    const safe=escapeHtml(section.join('\n').trim());
+    if(safe)html+=`<details open><summary>${escapeHtml(heading)}</summary><pre>${safe}</pre></details>`;
+    section=[];
+  };
+  lines.slice(1).forEach(line=>{
+    if(/^#{2,3}\s+/.test(line)){flush();heading=line.replace(/^#+\s+/,'').trim()}
+    else section.push(line);
+  });
+  flush();
+  $('manual-reader-container').innerHTML=html;
+}
+
+async function loadManualByName(requestedName,shouldScroll=true){
+  const name=requestedName||$('manualSelect').value||'USER_QUICKSTART.md';
+  $('manualSelect').value=name;
+  document.querySelectorAll('.manual-card').forEach(card=>{
+    card.classList.toggle('active-manual',card.getAttribute('data-manual-card')===name);
+  });
+  const panel=$('manual-reader-panel');
+  panel.classList.remove('hidden');
+  $('manualReaderTitle').textContent='Loading '+name+'…';
+  $('manualReaderStatus').textContent='Fetching verified local manual from /api/v1/portal/companion/manual/…';
+  $('manual-reader-container').innerHTML='<p>Loading local canonical manual…</p>';
+  if(shouldScroll){
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  try{
+    const response=await fetch(`/api/v1/portal/companion/manual/${encodeURIComponent(name)}`);
+    if(!response.ok)throw new Error(`Manual unavailable (HTTP ${response.status})`);
+    const md=await response.text();
+    renderMarkdown(md,name);
+    $('manualReaderStatus').textContent=`Loaded ${name} · ${md.length.toLocaleString()} characters · Ready to read or print`;
+  }catch(error){
+    $('manualReaderTitle').textContent='Manual Load Error';
+    $('manualReaderStatus').textContent='Unable to load '+name;
+    $('manual-reader-container').innerHTML=`<p role="alert">${escapeHtml(error.message)}. The repository manual remains available in docs/manuals.</p>`;
+  }
+}
+
+$('loadManual').onclick=()=>loadManualByName($('manualSelect').value,true);
+$('manualSelect').onchange=()=>loadManualByName($('manualSelect').value,false);
+$('closeManualReaderBtn').onclick=()=>{
+  $('manual-reader-panel').classList.add('hidden');
+  $('manualReaderStatus').textContent='Reader closed. Click Load Manual on any card above to reopen.';
+};
+$('printManual').onclick=()=>{
+  $('printManual').textContent='Print dialog opened';
+  window.print();
+  setTimeout(()=>$('printManual').textContent='Print / Save PDF',1500);
+};
+document.querySelectorAll('.tab').forEach(tab=>tab.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.setAttribute('aria-selected',String(x===tab)));
+  ['simulator','colleges'].forEach(id=>$(id).classList.toggle('hidden',id!==tab.dataset.panel));
+  if(tab.dataset.panel==='colleges')loadManualByName($('manualSelect').value,false);
+});
+
+window.PDEUECompanion={goChapter,loadManualByName,seek};
+
+/* Always start cleanly at Chapter 1 unless explicitly deep-linked to Chapter 6 certification gate */
+const startAtCertGate=urlParams.get('chapter')==='6'||urlParams.get('certify')==='1';
+seek(startAtCertGate?225:0,false);
 })();
 </script>
-
-<script>
-function downloadActiveManual() {
-  const sel = document.getElementById("manual-select") || document.getElementById("syllabus-select");
-  const key = sel ? sel.value : "USER_QUICKSTART";
-  const manualContent = (window.EMBEDDED_MANUALS && window.EMBEDDED_MANUALS[key]) 
-    ? window.EMBEDDED_MANUALS[key] 
-    : (document.getElementById("manual-content") ? document.getElementById("manual-content").innerText : "# PDEUE Manual");
-  
-  const blob = new Blob([manualContent], { type: "text/markdown;charset=utf-8" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = key + ".md";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
-
-// Fix Chromium SpeechSynthesis garbage-collection and boundary triggers
-window._persistedUtterance = null;
-function speakTranscriptSafely(text, rate) {
-  if (!('speechSynthesis' in window)) return;
-  window.speechSynthesis.cancel();
-  if (!text || text.trim() === '') return;
-  
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.rate = rate || 1.0;
-  utter.pitch = 1.0;
-  window._persistedUtterance = utter;
-  window.speechSynthesis.speak(utter);
-}
-</script>
-
 <script src="/static/js/senior_a11y.js"></script>
-</body></html>
+</body>
+</html>

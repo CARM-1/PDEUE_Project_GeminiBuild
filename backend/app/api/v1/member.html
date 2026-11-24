@@ -181,37 +181,56 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
     <span id="supervisoryLensMeta" class="supervisory-lens-meta">INSPECTOR: CHIEF_ADMIN · MUTATIONS LOCKED</span>
   </div>
 </div>
-<nav class="shell portal-nav">
-  <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;min-width:0;">
-    <a href="/community/heritage" class="brand-lockup" data-plane-doorway="heritage" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Heritage">
-      <span class="brand-crests">
-        <img class="brand-crest" src="/static/assets/crests/carmichael_crest.svg" alt="Carmichael Family Crest" width="40" height="46" loading="eager">
-        <span class="brand-crest-divider" aria-hidden="true"></span>
-        <img class="brand-crest" src="/static/assets/crests/mccormick_crest.svg" alt="McCormick Family Crest" width="40" height="46" loading="eager">
-      </span>
-      <span class="brand-stack">
-        <span class="brand-title">FUTURE · CARMICHAEL — McCORMICK</span>
-        <span class="brand-motto">Generational Love, Harmony, Resilience, and Wealth</span>
-      </span>
-    </a>
-    <div><strong id="activeHatNavLabel"><abbr class="pdeue-term" tabindex="0" data-term="active-hat-r06" data-tooltip="One role at a time. Even if a family leader holds two jobs—like personal member and platform steward—they must intentionally switch hats so personal money and leadership tools never mix by accident.">Active Hat: MEMBER_USER<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></strong> · <a href="/companion" class="nav-link campus-link" id="navCompanionLink">🎓 PDEUE University</a></div>
-  </div>
-  <div class="currency-toggle senior-a11y-controls" aria-label="Navigation, alerts, text size, and currency display">
-    <a id="backToHomeBtn" class="back-home-btn" href="/home" data-plane-doorway="home">← Back to Home</a>
-    <button id="familyAlertsBtn" type="button" class="alerts-bell-btn" aria-expanded="false" aria-controls="familyAlertsDrawer" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.toggleAlerts()">🔔 Family Alerts <span id="familyAlertsCount" class="alerts-count-pill">3</span></button>
-    <div id="textScaleGroup" class="text-scale-group" role="group" aria-label="Text size controls">
-      <button type="button" class="text-scale-btn active" data-scale="standard" aria-pressed="true" aria-label="Standard text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('standard')">A</button>
-      <button type="button" class="text-scale-btn" data-scale="large" aria-pressed="false" aria-label="Large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('large')">A+</button>
-      <button type="button" class="text-scale-btn" data-scale="xlarge" aria-pressed="false" aria-label="Extra large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('xlarge')">A++</button>
-    </div>
-    <button id="openGlossaryBtn" type="button" class="curr-btn" onclick="openGlossaryDrawer()">📖 Lexicon v0.5</button>
-    <button id="memberSwitchHatBtn" type="button" class="curr-btn" hidden onclick="openMemberHatSwitchModal()">Switch Active Hat</button>
-    <button id="currBtnClean" class="curr-btn active" onclick="setCurrencyMode('clean')">$ USD (Clean)</button>
-    <button id="currBtnExact" class="curr-btn" onclick="setCurrencyMode('exact')">$ USD.¢¢ (Exact Cents)</button>
-  </div>
-</nav>
 <main class="shell">
-<header class="topbar"><div><div class="eyebrow">Private <abbr class="pdeue-term" tabindex="0" data-term="scma" data-tooltip="Your own private, walled-off family account. Your money grows inside your personal box, and if a trade ever loses money, that loss stays strictly inside your own account and never touches anyone else's savings.">SCMA<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> · Member workspace</div><h1>My Wealth Desktop</h1><div id="identity" class="fine">Loading your account…</div></div><div class="header-actions"><span id="memberRoleBadge" class="badge-pill sky">CLASS M: MEMBER_USER</span><span id="memberStatusBadge" class="badge-pill green">ACTIVE</span></div></header>
+<div class="portal-header-shell" role="banner">
+  <nav class="shell portal-nav" aria-label="Member portal navigation" style="max-width:none;margin:0;padding:0;background:transparent;border:0;display:block;">
+    <div class="portal-header-row1">
+      <a href="/community/heritage" class="brand-lockup" data-plane-doorway="heritage" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Heritage">
+        <span class="brand-crests">
+          <img class="brand-crest" src="/static/assets/crests/carmichael_crest.svg" alt="Carmichael Family Crest" width="40" height="46" loading="eager">
+          <span class="brand-crest-divider" aria-hidden="true"></span>
+          <img class="brand-crest" src="/static/assets/crests/mccormick_crest.svg" alt="McCormick Family Crest" width="40" height="46" loading="eager">
+        </span>
+        <span class="brand-stack">
+          <span class="brand-title">FUTURE · CARMICHAEL — McCORMICK</span>
+          <span class="brand-motto">Generational Love, Harmony, Resilience, and Wealth</span>
+        </span>
+      </a>
+      <div class="senior-a11y-controls">
+        <a id="backToHomeBtn" class="back-home-btn" href="/home" data-plane-doorway="home">← Back to Home</a>
+        <div id="textScaleGroup" class="text-scale-group" role="group" aria-label="Text size controls">
+          <button type="button" class="text-scale-btn active" data-scale="standard" aria-pressed="true" aria-label="Standard text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('standard')">A</button>
+          <button type="button" class="text-scale-btn" data-scale="large" aria-pressed="false" aria-label="Large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('large')">A+</button>
+          <button type="button" class="text-scale-btn" data-scale="xlarge" aria-pressed="false" aria-label="Extra large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('xlarge')">A++</button>
+        </div>
+      </div>
+    </div>
+    <div class="portal-header-row2">
+      <div class="portal-hub-pills">
+        <strong id="activeHatNavLabel" class="portal-hub-pill active"><abbr class="pdeue-term" tabindex="0" data-term="active-hat-r06" data-tooltip="One role at a time. Even if a family leader holds two jobs—like personal member and platform steward—they must intentionally switch hats so personal money and leadership tools never mix by accident.">Active Hat: MEMBER_USER<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></strong>
+        <a href="/companion" class="nav-link campus-link" id="navCompanionLink">🎓 PDEUE University</a>
+      </div>
+      <div class="currency-toggle portal-utility-group" aria-label="Glossary, hat switch, and currency display">
+        <button id="openGlossaryBtn" type="button" class="curr-btn" onclick="openGlossaryDrawer()">📖 Glossary (v0.6)</button>
+        <button id="memberSwitchHatBtn" type="button" class="curr-btn" hidden onclick="openMemberHatSwitchModal()">Switch Active Hat</button>
+        <button id="currBtnClean" class="curr-btn active" onclick="setCurrencyMode('clean')">$ USD (Clean)</button>
+        <button id="currBtnExact" class="curr-btn" onclick="setCurrencyMode('exact')">$ USD.¢¢ (Exact Cents)</button>
+      </div>
+    </div>
+  </nav>
+  <header class="portal-header-row3 topbar">
+    <div class="portal-title-block">
+      <div class="eyebrow">Private <abbr class="pdeue-term" tabindex="0" data-term="scma" data-tooltip="Your own private, walled-off family account. Your money grows inside your personal box, and if a trade ever loses money, that loss stays strictly inside your own account and never touches anyone else's savings.">SCMA<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> · Member workspace</div>
+      <h1>My Wealth Desktop</h1>
+      <div id="identity" class="fine">Loading your account…</div>
+    </div>
+    <div class="header-actions portal-action-strip">
+      <button id="familyAlertsBtn" type="button" class="alerts-bell-btn" aria-expanded="false" aria-controls="familyAlertsDrawer" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.toggleAlerts()">🔔 Family Alerts <span id="familyAlertsCount" class="alerts-count-pill">3</span></button>
+      <span id="memberRoleBadge" class="badge-pill sky">CLASS M: MEMBER_USER</span>
+      <span id="memberStatusBadge" class="badge-pill green">ACTIVE</span>
+    </div>
+  </header>
+</div>
 
 <section id="readModelStatusBanner" class="rm-banner rm-qualification_pending" hidden role="status" aria-live="assertive" data-rm-status="OK">
   <div>
@@ -485,7 +504,7 @@ function renderOnboardingStatus(state){
   onboardingStatusCard.hidden=!pending;
   certifiedBanner.hidden=!certified;
   if(pending){
-    startCertificationLink.href=`/companion?scma_id=${encodeURIComponent(state.scma_id)}`;
+    startCertificationLink.href=`/companion?scma_id=${encodeURIComponent(state.scma_id)}&chapter=6`;
     stepChipActivate.textContent=state.invite_activated_at?'2. 48h Invite Activated ✓':'2. 48h Invite Pending';
     if(!orientationDefaultApplied){orientationDefaultApplied=true;switchMemberView('orientation')}
   }

@@ -121,32 +121,47 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
 </div>
 <main class="shell" id="workspace">
 <div style="display:none" id="legacyPortalHub">PDEUE PORTAL HUB</div>
-<nav class="nav">
-  <div class="row" style="gap:14px;">
-    <a href="/community/heritage" class="brand-lockup" data-plane-doorway="heritage" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Heritage">
-      <span class="brand-crests">
-        <img class="brand-crest" src="/static/assets/crests/carmichael_crest.svg" alt="Carmichael Family Crest" width="40" height="46" loading="eager">
-        <span class="brand-crest-divider" aria-hidden="true"></span>
-        <img class="brand-crest" src="/static/assets/crests/mccormick_crest.svg" alt="McCormick Family Crest" width="40" height="46" loading="eager">
-      </span>
-      <span class="brand-stack">
-        <span class="brand-title">FUTURE · CARMICHAEL — McCORMICK</span>
-        <span class="brand-motto">Generational Love, Harmony, Resilience, and Wealth</span>
-      </span>
-    </a>
-    <strong>Lineal Advisory &amp; Trusts</strong>
-  </div>
-  <div class="senior-a11y-controls">
-    <a id="backToHomeBtn" class="back-home-btn" href="/home" data-plane-doorway="home">← Back to Home</a>
-    <a href="/companion" class="nav-link campus-link" id="navCompanionLink">🎓 PDEUE University</a>
-    <div id="textScaleGroup" class="text-scale-group" role="group" aria-label="Text size controls">
-      <button type="button" class="text-scale-btn active" data-scale="standard" aria-pressed="true" aria-label="Standard text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('standard')">A</button>
-      <button type="button" class="text-scale-btn" data-scale="large" aria-pressed="false" aria-label="Large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('large')">A+</button>
-      <button type="button" class="text-scale-btn" data-scale="xlarge" aria-pressed="false" aria-label="Extra large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('xlarge')">A++</button>
+<div class="portal-header-shell" role="banner">
+  <nav aria-label="Class F Advisory navigation">
+    <div class="portal-header-row1">
+      <a href="/community/heritage" class="brand-lockup" data-plane-doorway="heritage" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Heritage">
+        <span class="brand-crests">
+          <img class="brand-crest" src="/static/assets/crests/carmichael_crest.svg" alt="Carmichael Family Crest" width="40" height="46" loading="eager">
+          <span class="brand-crest-divider" aria-hidden="true"></span>
+          <img class="brand-crest" src="/static/assets/crests/mccormick_crest.svg" alt="McCormick Family Crest" width="40" height="46" loading="eager">
+        </span>
+        <span class="brand-stack">
+          <span class="brand-title">FUTURE · CARMICHAEL — McCORMICK</span>
+          <span class="brand-motto">Generational Love, Harmony, Resilience, and Wealth</span>
+        </span>
+      </a>
+      <div class="senior-a11y-controls">
+        <a id="backToHomeBtn" class="back-home-btn" href="/home" data-plane-doorway="home">← Back to Home</a>
+        <div id="textScaleGroup" class="text-scale-group" role="group" aria-label="Text size controls">
+          <button type="button" class="text-scale-btn active" data-scale="standard" aria-pressed="true" aria-label="Standard text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('standard')">A</button>
+          <button type="button" class="text-scale-btn" data-scale="large" aria-pressed="false" aria-label="Large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('large')">A+</button>
+          <button type="button" class="text-scale-btn" data-scale="xlarge" aria-pressed="false" aria-label="Extra large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('xlarge')">A++</button>
+        </div>
+      </div>
     </div>
-  </div>
-</nav>
-<header class="hero" id="role-banner"><div><p class="eyebrow">Household-scoped advisory plane · <abbr class="pdeue-term" tabindex="0" data-term="active-hat-r06" data-tooltip="One role at a time. Even if a family leader holds two jobs—like personal member and platform steward—they must intentionally switch hats so personal money and leadership tools never mix by accident.">Active-Hat / R-06<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></p><h1>Financial Advisor Workspace</h1><p class="muted">Lineage oversight, distribution review, and point-in-time evidence under <abbr class="pdeue-term" tabindex="0" data-term="directive-r12-masking" data-tooltip="Privacy blinds for technical helpers. Engineers and house secretaries can keep systems healthy without seeing anyone's real dollar balances or account names—those numbers appear hidden as stars.">Directive R-12<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> and <abbr class="pdeue-term" tabindex="0" data-term="quarter-kelly" data-tooltip="A cautious bet-sizing rule that uses only one-quarter of what pure math says you could wager. It gives your account a wide safety cushion against surprises so a bad streak stays small.">Quarter-Kelly<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> risk bounds.</p></div><span class="badge" id="active-hat"><span class="badge-dot"></span><span id="active-hat-text">Active Hat: FINANCIAL_ADVISOR (F2-H_HOUSEHOLD_HEAD)</span></span></header>
+    <div class="portal-header-row2">
+      <div class="portal-hub-pills">
+        <strong class="portal-hub-pill active">Lineal Advisory &amp; Trusts</strong>
+        <a href="/companion" class="nav-link campus-link" id="navCompanionLink">🎓 PDEUE University</a>
+      </div>
+    </div>
+  </nav>
+  <header class="portal-header-row3 hero" id="role-banner" style="margin-top:0;border:none;background:transparent;box-shadow:none;padding:10px 0 2px;">
+    <div class="portal-title-block">
+      <p class="eyebrow" style="margin:0;">Household-scoped advisory plane · <abbr class="pdeue-term" tabindex="0" data-term="active-hat-r06" data-tooltip="One role at a time. Even if a family leader holds two jobs—like personal member and platform steward—they must intentionally switch hats so personal money and leadership tools never mix by accident.">Active-Hat / R-06<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></p>
+      <h1>Financial Advisor Workspace</h1>
+      <p class="muted" style="margin:0;">Lineage oversight, distribution review, and point-in-time evidence under <abbr class="pdeue-term" tabindex="0" data-term="directive-r12-masking" data-tooltip="Privacy blinds for technical helpers. Engineers and house secretaries can keep systems healthy without seeing anyone's real dollar balances or account names—those numbers appear hidden as stars.">Directive R-12<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> and <abbr class="pdeue-term" tabindex="0" data-term="quarter-kelly" data-tooltip="A cautious bet-sizing rule that uses only one-quarter of what pure math says you could wager. It gives your account a wide safety cushion against surprises so a bad streak stays small.">Quarter-Kelly<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> risk bounds.</p>
+    </div>
+    <div class="portal-action-strip">
+      <span class="badge" id="active-hat"><span class="badge-dot"></span><span id="active-hat-text">Active Hat: FINANCIAL_ADVISOR (F2-H_HOUSEHOLD_HEAD)</span></span>
+    </div>
+  </header>
+</div>
 <section id="readModelStatusBanner" class="rm-banner rm-qualification_pending" hidden role="status" aria-live="assertive" data-rm-status="OK">
   <div>
     <span id="readModelStatusCode" class="rm-pill">QUALIFICATION_PENDING</span>

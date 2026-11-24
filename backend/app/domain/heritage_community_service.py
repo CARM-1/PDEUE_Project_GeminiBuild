@@ -78,6 +78,122 @@ def make_surname_slug(surname: str) -> str:
     return clean[:64]
 
 
+# Two-scale heraldic metadata per House (emblem, achievement, lineage descent, and Scottish bordure differencing)
+HOUSE_HERALDRY_META: Dict[int, Dict[str, Any]] = {
+    1: {
+        "lineage_descent": "Carmichael Line — Descending from Eldest McCormick Daughter",
+        "is_bordure_differenced": False,
+        "border_style": "Wreathed Fess & Hyndford Eagle",
+        "tincture": "Azure, Gules & Gold/Black/Green Ribbon",
+        "blazon_note": (
+            "Hyndford eagle bearing the Carmichael blue-and-crimson wreathed inescutcheon, armored arm with "
+            "broken spear, TOUJOURS PREST scroll, knight and crowned golden African lion supporters, Scottish thistles, "
+            "and gold/black/green heritage accent ribbon."
+        ),
+        "emblem_asset_path": "/static/assets/crests/carmichael_crest.svg",
+        "achievement_asset_path": "/static/assets/crests/carmichael_achievement.svg",
+    },
+    2: {
+        "lineage_descent": "Foundational McCormick Stock — Senior Cadency (House 02)",
+        "is_bordure_differenced": True,
+        "border_style": "Engrailed",
+        "tincture": "Sable (Black)",
+        "blazon_note": "Foundational McCormick core (three royal-blue eagles & crimson zigzag fess dancetté) within a Bordure engrailed Sable.",
+        "emblem_asset_path": "/static/assets/crests/house_02_mccormick_bordure.svg",
+        "achievement_asset_path": "/static/assets/crests/mccormick_achievement.svg",
+    },
+    3: {
+        "lineage_descent": "Foundational McCormick Stock — Scottish Bordure Differencing (House 03)",
+        "is_bordure_differenced": True,
+        "border_style": "Indented",
+        "tincture": "Or (Gold)",
+        "blazon_note": "Foundational McCormick shield core differenced by a Bordure indented Or (Gold).",
+        "emblem_asset_path": "/static/assets/crests/house_03_mccormick_bordure.svg",
+        "achievement_asset_path": "/static/assets/crests/house_03_mccormick_bordure.svg",
+    },
+    4: {
+        "lineage_descent": "Foundational McCormick Stock — Scottish Bordure Differencing (House 04)",
+        "is_bordure_differenced": True,
+        "border_style": "Wavy",
+        "tincture": "Azure (Royal Blue)",
+        "blazon_note": "Foundational McCormick shield core differenced by a Bordure wavy Azure (Royal Blue).",
+        "emblem_asset_path": "/static/assets/crests/house_04_mccormick_bordure.svg",
+        "achievement_asset_path": "/static/assets/crests/house_04_mccormick_bordure.svg",
+    },
+    5: {
+        "lineage_descent": "Foundational McCormick Stock — Scottish Bordure Differencing (House 05)",
+        "is_bordure_differenced": True,
+        "border_style": "Invected",
+        "tincture": "Vert (Forest Green)",
+        "blazon_note": "Foundational McCormick shield core differenced by a Bordure invected Vert (Forest Green).",
+        "emblem_asset_path": "/static/assets/crests/house_05_mccormick_bordure.svg",
+        "achievement_asset_path": "/static/assets/crests/house_05_mccormick_bordure.svg",
+    },
+    6: {
+        "lineage_descent": "Foundational McCormick Stock — Scottish Bordure Differencing (House 06)",
+        "is_bordure_differenced": True,
+        "border_style": "Embattled",
+        "tincture": "Gules (Crimson)",
+        "blazon_note": "Foundational McCormick shield core differenced by a Bordure embattled Gules (Crimson).",
+        "emblem_asset_path": "/static/assets/crests/house_06_mccormick_bordure.svg",
+        "achievement_asset_path": "/static/assets/crests/house_06_mccormick_bordure.svg",
+    },
+    7: {
+        "lineage_descent": "Foundational McCormick Stock — Scottish Bordure Differencing (House 07)",
+        "is_bordure_differenced": True,
+        "border_style": "Compony",
+        "tincture": "Or & Vert (Gold/Green)",
+        "blazon_note": "Foundational McCormick shield core differenced by a Bordure compony Or and Vert (Gold & Green).",
+        "emblem_asset_path": "/static/assets/crests/house_07_mccormick_bordure.svg",
+        "achievement_asset_path": "/static/assets/crests/house_07_mccormick_bordure.svg",
+    },
+    8: {
+        "lineage_descent": "Foundational McCormick Stock — Scottish Bordure Differencing (House 08)",
+        "is_bordure_differenced": True,
+        "border_style": "Engrailed Fimbriated",
+        "tincture": "Azure & Or (Blue/Gold)",
+        "blazon_note": "Foundational McCormick shield core differenced by a Bordure engrailed Azure fimbriated Or.",
+        "emblem_asset_path": "/static/assets/crests/house_08_mccormick_bordure.svg",
+        "achievement_asset_path": "/static/assets/crests/house_08_mccormick_bordure.svg",
+    },
+    9: {
+        "lineage_descent": "Foundational McCormick Stock — Scottish Bordure Differencing (House 09)",
+        "is_bordure_differenced": True,
+        "border_style": "Indented",
+        "tincture": "Gules (Crimson)",
+        "blazon_note": "Foundational McCormick shield core differenced by a Bordure indented Gules (Crimson).",
+        "emblem_asset_path": "/static/assets/crests/house_09_mccormick_bordure.svg",
+        "achievement_asset_path": "/static/assets/crests/house_09_mccormick_bordure.svg",
+    },
+    10: {
+        "lineage_descent": "Foundational McCormick Stock — Scottish Bordure Differencing (House 10)",
+        "is_bordure_differenced": True,
+        "border_style": "Embattled Fimbriated",
+        "tincture": "Sable & Or (Black/Gold)",
+        "blazon_note": "Foundational McCormick shield core differenced by a Bordure embattled Sable fimbriated Or.",
+        "emblem_asset_path": "/static/assets/crests/house_10_mccormick_bordure.svg",
+        "achievement_asset_path": "/static/assets/crests/house_10_mccormick_bordure.svg",
+    },
+    11: {
+        "lineage_descent": "Foundational McCormick Stock — Scottish Bordure Differencing (House 11)",
+        "is_bordure_differenced": True,
+        "border_style": "Wavy",
+        "tincture": "Vert (Highland Green)",
+        "blazon_note": "Foundational McCormick shield core differenced by a Bordure wavy Vert (Highland Green).",
+        "emblem_asset_path": "/static/assets/crests/house_11_mccormick_bordure.svg",
+        "achievement_asset_path": "/static/assets/crests/house_11_mccormick_bordure.svg",
+    },
+    12: {
+        "lineage_descent": "Foundational McCormick Stock — Scottish Bordure Differencing (House 12)",
+        "is_bordure_differenced": True,
+        "border_style": "Invected",
+        "tincture": "Or (Burnished Gold)",
+        "blazon_note": "Foundational McCormick shield core differenced by a Bordure invected Or (Burnished Gold).",
+        "emblem_asset_path": "/static/assets/crests/house_12_mccormick_bordure.svg",
+        "achievement_asset_path": "/static/assets/crests/house_12_mccormick_bordure.svg",
+    },
+}
+
 # Canonical seed catalog for all 12 Houses (strictly heritage/lineage data, zero financial data)
 SEEDED_HOUSES: Tuple[Dict[str, Any], ...] = (
     {
@@ -86,14 +202,14 @@ SEEDED_HOUSES: Tuple[Dict[str, Any], ...] = (
         "house_name": "House of Carmichael Prime",
         "motto": "Toujours Prest — Always Ready in Stewardship",
         "crest_asset_path": "/static/assets/crests/carmichael_crest.svg",
-        "founding_branch": "Carmichael Founding Pillar",
+        "founding_branch": "Carmichael Line — Descending from Eldest McCormick Daughter",
         "history_body": (
-            "Anchored by the Carmichael founding covenant, House 01 preserves the family charter of "
-            "generational love, harmony, resilience, and shared stewardship. Elders and younger relatives "
-            "gather here to chronicle reunion stories, mentorship traditions, and service milestones."
+            "Descending from the eldest McCormick daughter and anchored by the Carmichael covenant, House 01 "
+            "preserves the family charter of generational love, harmony, resilience, and shared stewardship. "
+            "Elders and younger relatives gather here to chronicle reunion stories, mentorship traditions, and service milestones."
         ),
         "milestones": [
-            "Founding Charter ratified under the FUTURE Carmichael — McCormick banner",
+            "Founding Charter ratified uniting the eldest McCormick daughter's Carmichael line with Houses 02–12",
             "First multi-generational oral history archive opened for House Genealogists",
         ],
     },
@@ -102,14 +218,15 @@ SEEDED_HOUSES: Tuple[Dict[str, Any], ...] = (
         "lineage_code": "HOUSE-02",
         "house_name": "House of McCormick Prime",
         "motto": "Sine Timore — Steadfast Without Fear",
-        "crest_asset_path": "/static/assets/crests/mccormick_crest.svg",
-        "founding_branch": "McCormick Founding Pillar",
+        "crest_asset_path": "/static/assets/crests/house_02_mccormick_bordure.svg",
+        "founding_branch": "McCormick Foundational Stock · Bordure Engrailed Sable",
         "history_body": (
-            "Carrying the McCormick founding heritage of steadfast courage and hospitality, House 02 "
-            "bridges generations through family education, mentoring circles, and annual lineage gatherings."
+            "Carrying the foundational McCormick arms (three royal-blue eagles, crimson zigzag fess dancetté, and "
+            "black engrailed border), House 02 anchors the eleven McCormick-stock Houses through family education, "
+            "mentoring circles, and annual lineage gatherings."
         ),
         "milestones": [
-            "Co-founding twin crest dedication uniting Carmichael and McCormick lines",
+            "Co-founding twin crest dedication uniting Carmichael and foundational McCormick lines",
             "Apprentice fellowship reading circle launched for younger family branches",
         ],
     },
@@ -118,11 +235,11 @@ SEEDED_HOUSES: Tuple[Dict[str, Any], ...] = (
         "lineage_code": "HOUSE-03",
         "house_name": "House of the Highland Hearth",
         "motto": "Warmth Kept for Every Generation",
-        "crest_asset_path": "/static/assets/crests/house_crest_frame.svg",
-        "founding_branch": "Carmichael — McCormick Allied Branch",
+        "crest_asset_path": "/static/assets/crests/house_03_mccormick_bordure.svg",
+        "founding_branch": "McCormick Stock · Bordure Indented Or (Gold)",
         "history_body": (
-            "Named for the welcoming kitchen tables and holiday gatherings that knit cousins together across states, "
-            "House 03 stewards family hospitality, reunion planning, and elder storytelling."
+            "Descending from the foundational McCormick stock with a Scottish indented gold bordure, House 03 "
+            "honors the welcoming kitchen tables and holiday gatherings that knit cousins together across states."
         ),
         "milestones": ["Autumn lineage reunion hosting rotation established"],
     },
@@ -131,11 +248,11 @@ SEEDED_HOUSES: Tuple[Dict[str, Any], ...] = (
         "lineage_code": "HOUSE-04",
         "house_name": "House of the Riverbend",
         "motto": "Steady Current, Deep Roots",
-        "crest_asset_path": "/static/assets/crests/house_crest_frame.svg",
-        "founding_branch": "Carmichael — McCormick Allied Branch",
+        "crest_asset_path": "/static/assets/crests/house_04_mccormick_bordure.svg",
+        "founding_branch": "McCormick Stock · Bordure Wavy Azure (Blue)",
         "history_body": (
-            "Honoring the tradespeople, teachers, and builders of the mid-century family diaspora, House 04 "
-            "documents craftsmanship, vocational apprenticeships, and family milestones."
+            "Bearing the foundational McCormick eagles and crimson zigzag framed by a wavy royal-blue bordure, "
+            "House 04 honors the tradespeople, teachers, and builders of the mid-century family diaspora."
         ),
         "milestones": ["Craft & mentorship directory opened for cousins entering trades and engineering"],
     },
@@ -144,11 +261,11 @@ SEEDED_HOUSES: Tuple[Dict[str, Any], ...] = (
         "lineage_code": "HOUSE-05",
         "house_name": "House of the Oak & Compass",
         "motto": "Guided by Wisdom, Grounded in Kin",
-        "crest_asset_path": "/static/assets/crests/house_crest_frame.svg",
-        "founding_branch": "Carmichael — McCormick Allied Branch",
+        "crest_asset_path": "/static/assets/crests/house_05_mccormick_bordure.svg",
+        "founding_branch": "McCormick Stock · Bordure Invected Vert (Green)",
         "history_body": (
-            "House 05 celebrates lifelong learning, plain-English financial literacy, and steady long-term planning "
-            "passed calmly from grandparents to grandchildren."
+            "Distinguished by a forest-green invected bordure around the foundational McCormick shield, House 05 "
+            "celebrates lifelong learning, plain-English financial literacy, and calm long-term planning."
         ),
         "milestones": ["Completed 12 consecutive weeks of family learning seminars"],
     },
@@ -157,11 +274,11 @@ SEEDED_HOUSES: Tuple[Dict[str, Any], ...] = (
         "lineage_code": "HOUSE-06",
         "house_name": "House of the Watchtower",
         "motto": "Vigilant Care for Those We Love",
-        "crest_asset_path": "/static/assets/crests/house_crest_frame.svg",
-        "founding_branch": "Carmichael — McCormick Allied Branch",
+        "crest_asset_path": "/static/assets/crests/house_06_mccormick_bordure.svg",
+        "founding_branch": "McCormick Stock · Bordure Embattled Gules (Crimson)",
         "history_body": (
-            "Dedicated to community readiness, elder wellness check-ins, and mutual aid, House 06 ensures "
-            "no relative stands alone during life's unexpected storms."
+            "Bearing a crimson embattled bordure around the foundational McCormick shield, House 06 is dedicated "
+            "to community readiness, elder wellness check-ins, and mutual aid so no relative stands alone."
         ),
         "milestones": ["Established quarterly senior check-in and tech-help phone tree"],
     },
@@ -170,11 +287,11 @@ SEEDED_HOUSES: Tuple[Dict[str, Any], ...] = (
         "lineage_code": "HOUSE-07",
         "house_name": "House of the Cedar Grove",
         "motto": "Patience Builds What Storms Cannot Shake",
-        "crest_asset_path": "/static/assets/crests/house_crest_frame.svg",
-        "founding_branch": "Carmichael — McCormick Allied Branch",
+        "crest_asset_path": "/static/assets/crests/house_07_mccormick_bordure.svg",
+        "founding_branch": "McCormick Stock · Bordure Compony Or & Vert",
         "history_body": (
-            "House 07 preserves homestead memories, family recipes, and letters exchanged across generations, "
-            "maintaining a living record of perseverance and gratitude."
+            "Framed by an alternating gold-and-green compony bordure around the McCormick stock core, House 07 "
+            "preserves homestead memories, family recipes, and letters exchanged across generations."
         ),
         "milestones": ["Digitized 40+ heirloom family photographs and reunion letters"],
     },
@@ -183,11 +300,11 @@ SEEDED_HOUSES: Tuple[Dict[str, Any], ...] = (
         "lineage_code": "HOUSE-08",
         "house_name": "House of the Silver Loom",
         "motto": "Many Threads, One Unbroken Fabric",
-        "crest_asset_path": "/static/assets/crests/house_crest_frame.svg",
-        "founding_branch": "Carmichael — McCormick Allied Branch",
+        "crest_asset_path": "/static/assets/crests/house_08_mccormick_bordure.svg",
+        "founding_branch": "McCormick Stock · Bordure Engrailed Azure & Or",
         "history_body": (
-            "Celebrating the married-in families and allied lines that enriched the enclave, House 08 weaves "
-            "diverse regional traditions into a single harmonious family tapestry."
+            "Wearing a royal-blue engrailed bordure fimbriated in gold around the foundational McCormick arms, "
+            "House 08 weaves married-in families and regional traditions into one harmonious family tapestry."
         ),
         "milestones": ["Allied surname welcome charter published in Hall of Arms"],
     },
@@ -196,11 +313,11 @@ SEEDED_HOUSES: Tuple[Dict[str, Any], ...] = (
         "lineage_code": "HOUSE-09",
         "house_name": "House of the Lantern Bearers",
         "motto": "Light the Path for the Next Footstep",
-        "crest_asset_path": "/static/assets/crests/house_crest_frame.svg",
-        "founding_branch": "Carmichael — McCormick Allied Branch",
+        "crest_asset_path": "/static/assets/crests/house_09_mccormick_bordure.svg",
+        "founding_branch": "McCormick Stock · Bordure Indented Gules (Crimson)",
         "history_body": (
-            "Focused on youth scholarships, graduation milestones, and first-generation mentorship, House 09 "
-            "champions the Pay-it-Forward spirit across the extended family."
+            "Differenced with a crimson indented bordure around the foundational McCormick shield, House 09 "
+            "champions youth scholarships, graduation milestones, and the Pay-it-Forward spirit."
         ),
         "milestones": ["Five learners earned PDEUE University Foundations badges"],
     },
@@ -209,11 +326,11 @@ SEEDED_HOUSES: Tuple[Dict[str, Any], ...] = (
         "lineage_code": "HOUSE-10",
         "house_name": "House of the Stone Bridge",
         "motto": "Built to Carry Our Grandchildren",
-        "crest_asset_path": "/static/assets/crests/house_crest_frame.svg",
-        "founding_branch": "Carmichael — McCormick Allied Branch",
+        "crest_asset_path": "/static/assets/crests/house_10_mccormick_bordure.svg",
+        "founding_branch": "McCormick Stock · Bordure Embattled Sable & Or",
         "history_body": (
-            "House 10 remembers the engineers, nurses, and civic volunteers in the lineage who built lasting "
-            "bridges between generations and neighboring communities."
+            "Framed in a black-and-gold embattled bordure around the foundational McCormick core, House 10 "
+            "remembers the engineers, nurses, and civic volunteers who built lasting bridges between generations."
         ),
         "milestones": ["Recorded oral histories from three senior family elders"],
     },
@@ -222,11 +339,11 @@ SEEDED_HOUSES: Tuple[Dict[str, Any], ...] = (
         "lineage_code": "HOUSE-11",
         "house_name": "House of the Southern Star",
         "motto": "True North in Every Season",
-        "crest_asset_path": "/static/assets/crests/house_crest_frame.svg",
-        "founding_branch": "Carmichael — McCormick Allied Branch",
+        "crest_asset_path": "/static/assets/crests/house_11_mccormick_bordure.svg",
+        "founding_branch": "McCormick Stock · Bordure Wavy Vert (Green)",
         "history_body": (
-            "Representing branches settled across the southern and coastal corridors, House 11 connects far-flung "
-            "cousins through regular video seminars and holiday broadcasts."
+            "Differenced by a Highland-green wavy bordure around the foundational McCormick arms, House 11 "
+            "connects far-flung cousins across southern and coastal corridors through video seminars and broadcasts."
         ),
         "milestones": ["Hosted inaugural cross-time-zone Family Assembly video gathering"],
     },
@@ -235,11 +352,11 @@ SEEDED_HOUSES: Tuple[Dict[str, Any], ...] = (
         "lineage_code": "HOUSE-12",
         "house_name": "House of the Harvest Table",
         "motto": "Gratitude Shared Multiplies the Blessing",
-        "crest_asset_path": "/static/assets/crests/house_crest_frame.svg",
-        "founding_branch": "Carmichael — McCormick Allied Branch",
+        "crest_asset_path": "/static/assets/crests/house_12_mccormick_bordure.svg",
+        "founding_branch": "McCormick Stock · Bordure Invected Or (Gold)",
         "history_body": (
-            "Completing the circle of twelve Houses, House 12 stewards thanksgiving traditions, family milestone "
-            "celebrations, and welcoming ceremonies for newborn and newly married kin."
+            "Completing the circle of twelve Houses with a burnished-gold invected bordure around the foundational "
+            "McCormick shield, House 12 stewards thanksgiving traditions and welcoming ceremonies for newborn and newly married kin."
         ),
         "milestones": ["Welcomed the newest generation of enclave children in the Hearth book"],
     },
@@ -445,7 +562,7 @@ class HeritageCommunityService:
 
     def _seed_defaults(self, db: Session) -> None:
         now = _utc_now()
-        # Idempotently seed all 12 Houses
+        # Idempotently seed all 12 Houses (and upgrade unmodified legacy SYSTEM_SEED placeholders to bordure SVGs)
         for h in SEEDED_HOUSES:
             existing = db.get(HeritageHouseProfileModel, h["house_id"])
             if existing is None:
@@ -463,6 +580,13 @@ class HeritageCommunityService:
                         updated_at_utc=now,
                     )
                 )
+            elif existing.updated_by == "SYSTEM_SEED" and existing.crest_asset_path in {
+                "/static/assets/crests/house_crest_frame.svg",
+                "/static/assets/crests/mccormick_crest.svg",
+            }:
+                existing.crest_asset_path = h["crest_asset_path"]
+                existing.founding_branch = h["founding_branch"]
+                existing.history_body = h["history_body"]
 
         db.flush()
 
@@ -598,13 +722,24 @@ class HeritageCommunityService:
             milestones = json.loads(row.milestones_json or "[]")
         except Exception:
             milestones = []
+        hid = int(row.house_id)
+        heraldry = HOUSE_HERALDRY_META.get(hid, {})
         item: Dict[str, Any] = {
-            "house_id": int(row.house_id),
+            "house_id": hid,
             "lineage_code": row.lineage_code,
             "house_name": row.house_name,
             "motto": row.motto,
             "crest_asset_path": row.crest_asset_path,
+            "emblem_asset_path": heraldry.get("emblem_asset_path", row.crest_asset_path),
+            "achievement_asset_path": heraldry.get("achievement_asset_path", row.crest_asset_path),
             "founding_branch": row.founding_branch,
+            "lineage_descent": heraldry.get("lineage_descent", row.founding_branch),
+            "bordure_differencing": {
+                "is_bordure_differenced": bool(heraldry.get("is_bordure_differenced", hid >= 2)),
+                "border_style": heraldry.get("border_style", "Standard"),
+                "tincture": heraldry.get("tincture", "Gold"),
+                "blazon_note": heraldry.get("blazon_note", ""),
+            },
             "history_body": row.history_body,
             "milestones": milestones,
             "updated_by": row.updated_by,
@@ -618,6 +753,11 @@ class HeritageCommunityService:
 
     @staticmethod
     def _serialize_surname(row: HeritageSurnameRecordModel) -> Dict[str, Any]:
+        achievement_path = row.crest_asset_path
+        if row.slug == "carmichael":
+            achievement_path = "/static/assets/crests/carmichael_achievement.svg"
+        elif row.slug == "mccormick":
+            achievement_path = "/static/assets/crests/mccormick_achievement.svg"
         return {
             "slug": row.slug,
             "surname": row.surname,
@@ -625,6 +765,8 @@ class HeritageCommunityService:
             "house_id": int(row.house_id),
             "lineage_code": f"HOUSE-{int(row.house_id):02d}",
             "crest_asset_path": row.crest_asset_path,
+            "emblem_asset_path": row.crest_asset_path,
+            "achievement_asset_path": achievement_path,
             "origin_summary": row.origin_summary,
             "history_body": row.history_body,
             "updated_by": row.updated_by,
@@ -665,12 +807,16 @@ class HeritageCommunityService:
                     continue
                 serialized_h = self._serialize_house(h, surnames_by_house.get(int(h.house_id), []))
                 if needle:
+                    bordure = serialized_h.get("bordure_differencing", {})
                     hay = " ".join(
                         [
                             serialized_h["lineage_code"],
                             serialized_h["house_name"],
                             serialized_h["motto"],
                             serialized_h["history_body"],
+                            serialized_h.get("lineage_descent", ""),
+                            bordure.get("border_style", ""),
+                            bordure.get("tincture", ""),
                             " ".join(s["surname"] for s in serialized_h["surnames"]),
                         ]
                     ).lower()
@@ -708,6 +854,19 @@ class HeritageCommunityService:
                 "total_houses": len(houses_rows),
                 "total_surnames": len(surnames_rows),
                 "allied_surname_count": sum(1 for s in surnames_rows if not s.is_founding),
+                "two_scale_heraldry": {
+                    "emblem_assets": {
+                        "carmichael": "/static/assets/crests/carmichael_crest.svg",
+                        "mccormick": "/static/assets/crests/mccormick_crest.svg",
+                    },
+                    "achievement_assets": {
+                        "carmichael": "/static/assets/crests/carmichael_achievement.svg",
+                        "mccormick": "/static/assets/crests/mccormick_achievement.svg",
+                    },
+                    "house_1_descent": "Carmichael Line — Descending from Eldest McCormick Daughter",
+                    "bordure_differenced_house_ids": list(range(2, 13)),
+                    "bordure_differenced_house_count": 11,
+                },
             }
 
     def get_house_history(self, house_id: int) -> Dict[str, Any]:
@@ -1212,10 +1371,13 @@ class HeritageCommunityService:
 
 
 _SHARED_HERITAGE_COMMUNITY_SERVICE: Optional[HeritageCommunityService] = None
+_SERVICE_INIT_LOCK = RLock()
 
 
 def get_heritage_community_service() -> HeritageCommunityService:
     global _SHARED_HERITAGE_COMMUNITY_SERVICE
     if _SHARED_HERITAGE_COMMUNITY_SERVICE is None:
-        _SHARED_HERITAGE_COMMUNITY_SERVICE = HeritageCommunityService()
+        with _SERVICE_INIT_LOCK:
+            if _SHARED_HERITAGE_COMMUNITY_SERVICE is None:
+                _SHARED_HERITAGE_COMMUNITY_SERVICE = HeritageCommunityService()
     return _SHARED_HERITAGE_COMMUNITY_SERVICE
