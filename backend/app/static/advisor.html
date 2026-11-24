@@ -75,8 +75,23 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
 .rm-headline{font-weight:800;color:var(--text-primary);font-size:.92rem;margin-top:4px}
 .rm-reason{color:var(--text-secondary);font-size:.82rem;margin-top:2px}
 .rm-meta{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.74rem;color:var(--text-muted)}
-@media(max-width:800px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.wide{grid-column:span 2}.role-switcher{grid-template-columns:repeat(2,minmax(0,1fr))}.hero{align-items:flex-start;flex-direction:column}}
-@media(max-width:520px){.grid{grid-template-columns:minmax(0,1fr)}.wide{grid-column:auto}.role-switcher{grid-template-columns:minmax(0,1fr)}.shell{padding:14px}}
+.copilot-meta-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0 8px}
+.copilot-pill{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border-subtle);border-radius:999px;padding:3px 9px;font-size:.72rem;font-weight:800;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;background:var(--bg-surface);color:var(--text-primary)}
+.copilot-pill.sky{border-color:var(--accent-sky);color:var(--accent-sky);background:rgba(56,189,248,.12)}
+.copilot-pill.green{border-color:var(--status-green);color:#6EE7B7;background:rgba(5,150,105,.18)}
+.copilot-pill.amber{border-color:var(--status-amber);color:#FCD34D;background:rgba(217,119,6,.18)}
+.copilot-pill.red{border-color:var(--status-red);color:#FCA5A5;background:rgba(220,38,38,.2)}
+.whatif-card{background:var(--bg-canvas);border:1px solid var(--accent-sky);border-left:4px solid var(--status-amber);border-radius:10px;padding:12px 14px;margin-top:12px}
+.whatif-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px}
+.whatif-tile{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:8px;padding:8px 10px}
+.whatif-val{display:block;font-weight:850;font-size:.98rem;font-variant-numeric:tabular-nums;color:var(--text-primary);margin-top:3px}
+.advisor-action-card{background:var(--bg-canvas);border:1px solid var(--border-subtle);border-left:4px solid var(--accent-sky);border-radius:9px;padding:11px 13px;margin-top:10px}
+.advisor-action-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.advisor-action-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}
+.btn-stage{background:var(--accent-sky-deep);border:1px solid var(--accent-sky);color:var(--text-primary);border-radius:7px;padding:7px 11px;cursor:pointer;font-weight:750;font-size:.78rem}
+.btn-stage:hover{background:#0369A1}
+@media(max-width:800px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.wide{grid-column:span 2}.role-switcher{grid-template-columns:repeat(2,minmax(0,1fr))}.hero{align-items:flex-start;flex-direction:column}.whatif-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.grid{grid-template-columns:minmax(0,1fr)}.wide{grid-column:auto}.role-switcher{grid-template-columns:minmax(0,1fr)}.shell{padding:14px}.whatif-grid{grid-template-columns:minmax(0,1fr)}}
 </style>
 </head>
 <body>
@@ -123,7 +138,7 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
 <section class="card"><div class="label">Subordinate <abbr class="pdeue-term" tabindex="0" data-term="scma" data-tooltip="Self-Contained Member Account: tenant-partitioned member sub-ledger in exact integer cents. Losses remain 100% isolated inside the executing SCMA.">SCMA<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> Accounts</div><div class="table-wrap table-card"><table><thead><tr><th>Member</th><th>Account (<abbr class="pdeue-term" tabindex="0" data-term="scma" data-tooltip="Self-Contained Member Account: tenant-partitioned member sub-ledger in exact integer cents.">SCMA<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>)</th><th>Equity</th><th>Lineage status</th><th>Risk controls</th></tr></thead><tbody id="roster"></tbody></table></div></section>
 <section class="grid" id="operations"><div id="distribution-slot"></div><article class="card wide" id="audit-card"><div class="label">PIT Decision Audit</div><div id="telemetry"></div><div id="pit"></div></article></section>
 <section class="card" id="proposal-queue" hidden><div class="label">Fiduciary Supervisory Queue</div><div id="proposals"></div></section>
-<section class="card"><div class="label">Fiduciary Copilot</div><label for="advisor-query">Educational or trade question</label><input id="advisor-query" placeholder="Explain this trade rationale"><button class="action" type="button" id="consult-copilot">Consult Copilot</button><button id="clearAdvisorCopilotBtn" type="button" class="btn-clear" aria-label="Clear displayed guidance and input" onclick="clearAdvisorCopilot()">Clear answer</button><div id="copilot-output" aria-live="polite"><p class="placeholder-text">Your educational answer will appear here.</p></div></section>
+<section class="card" id="advisorCopilotCard"><div class="row"><div class="label">Fiduciary Copilot (Class F)</div><span id="advisorCopilotInvariantBadge" class="copilot-pill green">UNILATERAL EXECUTION: OFF · AUTH-01–AUTH-04</span></div><label for="advisor-query">Educational, What-If risk modeling, or dual-control audit question</label><input id="advisor-query" placeholder="Model a What-If risk scenario or explain trade rationale"><div class="row" style="justify-content:flex-start"><button class="action" type="button" id="consult-copilot">Consult Copilot</button><button id="clearAdvisorCopilotBtn" type="button" class="btn-clear" aria-label="Clear displayed guidance and input" onclick="clearAdvisorCopilot()">Clear answer</button></div><div id="copilot-output" aria-live="polite"><p class="placeholder-text">Your educational answer will appear here.</p></div></section>
 </main>
 <div class="modal" id="cosign-modal" hidden role="dialog" aria-modal="true"><div class="modal-box"><h2>Confirm F2-H Co-Signature</h2><p>This stages the distribution under dual control and records your active role.</p><div class="row"><button class="action" type="button" id="confirm-cosign">Confirm &amp; Co-Sign</button><button class="role-tab" type="button" id="cancel-cosign">Cancel</button></div></div></div>
 <div class="modal" id="proposal-modal" hidden role="dialog" aria-modal="true"><form class="modal-box" id="proposal-form"><h2>Stage Advisory Proposal</h2><label>Target SCMA<input id="proposal-target" required value="SCMA-JULIAN_-A1F98B21"></label><label>Proposed risk dial<input id="proposal-dial" required type="number" min="0" max="100" step="0.01" value="1.25"></label><label>Fiduciary justification<textarea id="proposal-justification" required></textarea></label><div class="row"><button class="action" type="submit">Submit Pending Proposal</button><button class="role-tab" id="cancel-proposal" type="button">Cancel</button></div></form></div>
@@ -141,7 +156,7 @@ const roles={
  'F2-A':{hat:'F2-A_LINEAGE_ADVISOR',accent:'#f59e0b',rgb:'245,158,11',alert:'FIDUCIARY AUDIT MODE — Point-in-time read-only inspection (mutations blocked HTTP 403).'},
  F3:{hat:'F3_CRO_RISK',accent:'#e11d48',rgb:'225,29,72',alert:'CRO GOVERNANCE — Platform-wide risk analytics, Directive R-04 Emergency Halt, and dual-signature submission (CA-only resumption).'}
 };
-let activeRole=qs.get('role')||'F2-H',data,pendingId,requestNumber=0,controller,activeHousehold='HOUSEHOLD-ALPHA';
+let activeRole=qs.get('role')||'F2-H',data,pendingId,requestNumber=0,controller,activeHousehold='HOUSEHOLD-ALPHA',lastAdvisorActionCards=[];
 if(!roles[activeRole])activeRole='F2-H';
 function applyRoleChrome(){
   const cfg=roles[activeRole];
@@ -203,8 +218,39 @@ $('submit-dual-sig-btn').addEventListener('click',()=>{if(!isSupervisoryLens)$('
 $('cancel-dual-sig').addEventListener('click',()=>$('dual-sig-modal').hidden=true);
 $('dual-sig-form').addEventListener('submit',async e=>{e.preventDefault();if(isSupervisoryLens)return;const r=await fetch('/api/v1/portal/advisor/dual-signature-override?role=F3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target_scope:$('dual-sig-scope').value,action:$('dual-sig-action').value,justification:$('dual-sig-justification').value,actor_role:'F3'})});const res=await r.json();$('dual-sig-modal').hidden=true;$('cro-r04-feedback').textContent=r.ok?`Staged dual-signature override ${res.override_id} — awaiting Chief Administrator counter-signature.`:`Override rejected: ${res.detail||r.status}`;await renderCro()});
 $('confirm-cosign').addEventListener('click',async()=>{if(isSupervisoryLens)return;const r=await fetch('/api/v1/portal/advisor/co-sign',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request_id:pendingId,actor_role:activeRole})});if(r.ok){$('cosign-modal').hidden=true;await loadRole()}});
-function clearAdvisorCopilot(){$('advisor-query').value='';$('copilot-output').innerHTML='<p class="placeholder-text">Your educational answer will appear here.</p>';$('advisor-query').focus()}
-$('consult-copilot').addEventListener('click',async()=>{const query=$('advisor-query').value.trim();if(!query)return;const r=await fetch('/api/v1/portal/advisor/copilot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query,context_scope:activeRole})}),result=await r.json();$('copilot-output').innerHTML=result.cards.map(c=>`<article class="copilot-card"><strong>${esc(c.title)}</strong><p>${esc(c.body)}</p><small>${esc(c.classification)}</small></article>`).join('')});
+function stageAdvisorAction(idx){
+  const card=lastAdvisorActionCards[idx];
+  if(!card)return;
+  const target=card.ui_target?$(card.ui_target):null;
+  if(target&&target.classList.contains('modal')&&!isSupervisoryLens){target.hidden=false;return}
+  if(target){target.scrollIntoView({behavior:'smooth',block:'center'})}
+}
+window.stageAdvisorAction=stageAdvisorAction;
+function renderAdvisorWhatIf(sim){
+  if(!sim)return '';
+  const d=sim.display||{};
+  if(sim.simulation_type==='F3_MACRO_EXPOSURE_STRESS'){
+    return `<section id="advisorWhatIfCard" class="whatif-card" data-mutated="false" data-unilateral-execution="false"><div class="row"><strong style="color:#FCD34D;">WHAT-IF MACRO STRESS SIMULATION (${esc(sim.shock_pct_display||'15.00%')}) · ADR-008 EXACT CENTS</strong><span class="copilot-pill green">ZERO MUTATION</span></div><div class="whatif-grid"><div class="whatif-tile"><span class="label">Cross-House Margin</span><span class="whatif-val">${esc(d.cross_house_gross_margin||'—')}</span></div><div class="whatif-tile"><span class="label">Stressed Margin</span><span class="whatif-val">${esc(d.stressed_gross_margin||'—')}</span></div><div class="whatif-tile"><span class="label">Stressed 99% VaR</span><span class="whatif-val">${esc(d.stressed_var_99_24h||'—')}</span></div></div></section>`;
+  }
+  return `<section id="advisorWhatIfCard" class="whatif-card" data-mutated="false" data-unilateral-execution="false"><div class="row"><strong style="color:#FCD34D;">WHAT-IF DOMESTIC RISK SIMULATION (${esc(sim.household_id||activeHousehold)}) · ADR-008 EXACT CENTS</strong><span class="copilot-pill green">ZERO MUTATION</span></div><div class="whatif-grid"><div class="whatif-tile"><span class="label">Equity Before</span><span class="whatif-val">${esc(d.household_equity_before||'—')}</span></div><div class="whatif-tile"><span class="label">Equity After</span><span class="whatif-val">${esc(d.household_equity_after||'—')}</span></div><div class="whatif-tile"><span class="label">40% Dry-Powder After</span><span class="whatif-val">${esc(d.dry_powder_floor_after||'—')}</span></div></div></section>`;
+}
+function renderAdvisorAudit(audit){
+  if(!audit)return '';
+  return `<section id="advisorAuditSummaryCard" class="whatif-card" data-mutated="false" data-unilateral-execution="false"><div class="row"><strong style="color:#38BDF8;">READ-ONLY MULTI-BRANCH AUDIT TRANSCRIPTION</strong><span class="copilot-pill amber">READ-ONLY · F2-A</span></div><p class="muted" style="margin:6px 0 0;">Audited Branches: ${esc((audit.branches_audited||[]).length)} · Combined Equity: ${esc(audit.combined_audited_equity_display||'—')} · Pending F2-H Co-Signs: ${esc(audit.pending_f2h_signatures_count??0)}</p></section>`;
+}
+function clearAdvisorCopilot(){$('advisor-query').value='';lastAdvisorActionCards=[];$('copilot-output').innerHTML='<p class="placeholder-text">Your educational answer will appear here.</p>';$('advisor-query').focus()}
+$('consult-copilot').addEventListener('click',async()=>{
+  const query=$('advisor-query').value.trim();
+  if(!query)return;
+  const r=await fetch('/api/v1/portal/advisor/copilot',{method:'POST',headers:{'Content-Type':'application/json','X-Household-ID':activeHousehold},body:JSON.stringify({query,context_scope:activeRole,role:activeRole,household_id:activeHousehold})});
+  const result=await r.json();
+  if(!r.ok){$('copilot-output').innerHTML=`<article class="copilot-card"><strong>Access Restricted (${r.status})</strong><p>${esc(result.detail||'Request denied')}</p></article>`;return}
+  lastAdvisorActionCards=result.action_cards||[];
+  const meta=`<div class="copilot-meta-bar"><span class="copilot-pill sky">PROVIDER: ${esc(result.provider_used||'mock')}</span><span class="copilot-pill green">TIER: ${esc(result.tier||activeRole)}</span><span class="copilot-pill sky">${esc(result.auth_tier||'AUTH-01')} · UNILATERAL=FALSE</span>${result.guard_blocked?`<span id="advisorGuardPill" class="copilot-pill red">GUARDRAIL REFUSAL: ${esc(result.guard_category||'BLOCKED')}</span>`:''}</div>`;
+  const bodyCards=(result.cards||[]).map(c=>`<article class="copilot-card"><strong>${esc(c.title)}</strong><p>${esc(c.body)}</p><small>${esc(c.classification)}</small></article>`).join('');
+  const actionHtml=lastAdvisorActionCards.map((c,idx)=>`<article class="advisor-action-card" data-auth-tier="${esc(c.auth_tier||'AUTH-01')}" data-executed="false" data-unilateral-execution="false"><div class="advisor-action-head"><strong>${esc(c.title||'Staged Action')}</strong><div><span class="copilot-pill amber">${esc(c.auth_tier||'AUTH-01')}</span> <span class="copilot-pill green">STAGED · NOT EXECUTED</span></div></div><p class="muted" style="margin:6px 0 0;">${esc(c.description||'')}</p><div class="advisor-action-foot"><small class="muted">${esc(c.confirmation_notice||'Requires explicit human confirmation.')}</small><button type="button" class="btn-stage" onclick="stageAdvisorAction(${idx})">Stage Control (No Auto-Exec)</button></div></article>`).join('');
+  $('copilot-output').innerHTML=meta+bodyCards+renderAdvisorWhatIf(result.what_if_simulation)+renderAdvisorAudit(result.audit_summary)+actionHtml;
+});
 applyRoleChrome();loadRole();
 </script>
 </body>

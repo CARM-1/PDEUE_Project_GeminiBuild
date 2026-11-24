@@ -87,6 +87,22 @@
     .copilot-clear-btn { background:#0f172a; color:var(--accent-sky); border:1px solid #64748B; border-radius:4px; padding:8px 12px; font-weight:700; cursor:pointer; }
     .copilot-clear-btn:hover, .copilot-clear-btn:focus-visible { border-color:var(--accent-sky); background:var(--bg-surface); }
     .copilot-card-label { color:var(--accent-sky); font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; margin-bottom:5px; }
+    .chancellor-meta-bar { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
+    .chancellor-pill { display:inline-block; font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; font-size:10px; font-weight:800; padding:2px 7px; border-radius:999px; border:1px solid var(--border-subtle); background:var(--bg-surface); color:var(--text-primary); }
+    .chancellor-pill.sky { border-color:var(--accent-sky); color:var(--accent-sky); background:rgba(56,189,248,.12); }
+    .chancellor-pill.green { border-color:var(--status-green); color:#6EE7B7; background:rgba(5,150,105,.18); }
+    .chancellor-pill.amber { border-color:var(--status-amber); color:#FCD34D; background:rgba(217,119,6,.18); }
+    .chancellor-pill.red { border-color:var(--status-red); color:#FCA5A5; background:rgba(220,38,38,.2); }
+    .policy-matrix { background:#0B132B; border:1px solid var(--accent-sky); border-left:4px solid var(--accent-sky); border-radius:7px; padding:10px; margin:8px 0; }
+    .matrix-option { background:#111c3a; border:1px solid var(--border-subtle); border-radius:6px; padding:8px; margin-top:6px; font-size:12px; }
+    .matrix-option.recommended { border-color:var(--status-green); }
+    .matrix-option.blocked { border-color:var(--status-red); background:rgba(220,38,38,.12); }
+    .invariant-grid { display:grid; grid-template-columns:1fr; gap:5px; margin-top:8px; }
+    .invariant-row { display:flex; justify-content:space-between; align-items:center; gap:8px; background:#0f172a; border:1px solid var(--border-subtle); border-radius:5px; padding:5px 8px; font-size:11px; }
+    .chancellor-action-card { background:#0B132B; border:1px solid var(--border-subtle); border-left:3px solid var(--accent-sky); border-radius:6px; padding:8px 10px; margin-top:6px; font-size:12px; }
+    .chancellor-stage-btn { margin-top:6px; background:var(--accent-sky-deep); color:#F8FAFC; border:1px solid var(--accent-sky); border-radius:4px; padding:5px 9px; font-size:11px; font-weight:800; cursor:pointer; }
+    .chancellor-stage-btn:hover { background:#0369A1; }
+    #stage2-copilot-drawer[hidden] { display: none !important; }
     .telemetry-badge { display:inline-block; background:#172554; border:1px solid #3b82f6; border-radius:12px; padding:3px 7px; margin:2px; font-size:11px; }
     .info-tip { position:relative; display:inline-block; color:var(--accent-sky); cursor:help; font-size:14px; }
     .info-tip:hover::after, .info-tip:focus::after { content:attr(data-tooltip); position:absolute; z-index:30; left:50%; bottom:calc(100% + 8px); transform:translateX(-50%); width:260px; padding:9px 11px; border:1px solid var(--accent-sky); border-radius:5px; background:var(--bg-surface); color:var(--text-primary); font-size:12px; line-height:1.4; text-transform:none; box-shadow:0 8px 20px #000; }
@@ -1909,19 +1925,26 @@
     });
   </script>
 
-  <!-- Stage 2 Copilot slide-out; guidance only, never autonomous execution. -->
-  <button id="stage2-copilot-toggle" type="button" aria-controls="stage2-copilot-drawer" aria-expanded="false" onclick="toggleStage2Copilot()" style="position:fixed;right:20px;bottom:20px;z-index:10001;background:#0284c7;color:white;border:0;border-radius:22px;padding:10px 16px;font-weight:700;cursor:pointer;">AI Copilot</button>
-  <aside id="stage2-copilot-drawer" aria-label="AI Copilot" hidden style="position:fixed;right:20px;bottom:72px;z-index:10000;width:min(470px,calc(100vw - 40px));background:#0f172a;border:1px solid #38bdf8;border-radius:8px;padding:16px;box-shadow:0 12px 30px rgba(0,0,0,.55);">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><strong>AI Copilot</strong><button type="button" onclick="toggleStage2Copilot()" aria-label="Close Copilot">Close</button></div>
-    <div id="stage2-copilot-output" role="status" aria-live="polite" style="min-height:54px;color:#cbd5e1;font-size:13px;margin-bottom:10px;">PDEUE Governance Copilot online. Ask a question regarding risk envelopes, settlement mechanics, or decision packets.</div>
-    <form onsubmit="submitStage2Copilot(event)" style="display:flex;gap:8px;">
-      <input id="stage2-copilot-prompt" aria-label="Copilot prompt" required maxlength="8000" style="min-width:0;flex:1;padding:8px;background:#020617;color:white;border:1px solid #475569;border-radius:4px;" placeholder="Ask Copilot...">
-      <button type="submit" style="padding:8px 12px;background:#38bdf8;border:0;border-radius:4px;font-weight:700;">Send</button>
+  <!-- Chief Administrator AI Chancellor Coach slide-out; guidance & pre-staging only, never autonomous execution. -->
+  <button id="stage2-copilot-toggle" type="button" aria-controls="stage2-copilot-drawer" aria-expanded="false" onclick="toggleStage2Copilot()" style="position:fixed;right:20px;bottom:20px;z-index:10001;background:#0284c7;color:white;border:0;border-radius:22px;padding:10px 16px;font-weight:700;cursor:pointer;">AI Chancellor Coach</button>
+  <aside id="stage2-copilot-drawer" aria-label="AI Chancellor Coach" hidden style="position:fixed;right:20px;bottom:72px;z-index:10000;width:min(520px,calc(100vw - 28px));max-height:78vh;display:flex;flex-direction:column;background:#0f172a;border:1px solid #38bdf8;border-radius:8px;padding:14px;box-shadow:0 12px 30px rgba(0,0,0,.55);">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+      <div>
+        <strong>AI Chancellor Coach (Chief Admin)</strong>
+        <div><span id="chancellorInvariantBadge" class="chancellor-pill green">UNILATERAL EXECUTION: OFF · AUTH-01–AUTH-04</span></div>
+      </div>
+      <button id="closeChancellorDrawerBtn" type="button" onclick="toggleStage2Copilot()" aria-label="Close Copilot" style="background:#1E293B;color:#F8FAFC;border:1px solid #475569;border-radius:4px;padding:5px 10px;cursor:pointer;font-weight:700;">Close</button>
+    </div>
+    <div id="stage2-copilot-output" role="status" aria-live="polite" style="min-height:54px;max-height:52vh;overflow-y:auto;color:#cbd5e1;font-size:13px;margin-bottom:10px;padding-right:4px;">PDEUE Governance Copilot online. Ask a question regarding risk envelopes, settlement mechanics, or decision packets.</div>
+    <form onsubmit="submitStage2Copilot(event)" style="display:flex;gap:8px;flex-wrap:wrap;">
+      <input id="stage2-copilot-prompt" aria-label="Copilot prompt" required maxlength="8000" style="min-width:140px;flex:1;padding:8px;background:#020617;color:white;border:1px solid #475569;border-radius:4px;" placeholder="Ask AI Chancellor Coach (policy matrix, SHTF, governance)...">
+      <button id="sendChancellorPromptBtn" type="submit" style="padding:8px 12px;background:#38bdf8;color:#0B132B;border:0;border-radius:4px;font-weight:800;cursor:pointer;">Send</button>
       <button id="clearCopilotBtn" type="button" class="copilot-clear-btn" aria-label="Clear current conversation and reset prompt" onclick="clearCopilotChat()">Clear answer</button>
     </form>
   </aside>
   <script>
     const stage2CopilotRole = 'OPERATOR';
+    let lastChancellorActionCards = [];
     function toggleStage2Copilot() {
       const drawer = document.getElementById('stage2-copilot-drawer');
       const button = document.getElementById('stage2-copilot-toggle');
@@ -1931,6 +1954,7 @@
     }
     function clearCopilotChat() {
       const prompt = document.getElementById('stage2-copilot-prompt');
+      lastChancellorActionCards = [];
       document.getElementById('stage2-copilot-output').textContent = 'PDEUE Governance Copilot online. Ask a question regarding risk envelopes, settlement mechanics, or decision packets.';
       prompt.value = '';
       prompt.focus();
@@ -1938,11 +1962,46 @@
     function escapeCopilot(value) {
       const node = document.createElement('span'); node.textContent = String(value ?? ''); return node.innerHTML;
     }
+    function stageChancellorAction(idx) {
+      const card = lastChancellorActionCards[idx];
+      if (!card) return;
+      const targetId = card.ui_target || '';
+      if (targetId === 'tab-btn-1') switchTab(1);
+      else if (targetId === 'tab-btn-2') switchTab(2);
+      else if (targetId === 'tab-btn-3') switchTab(3);
+      else if (targetId === 'tab-btn-4' || targetId === 'btn-shtf-snapback') switchTab(4);
+      const targetEl = targetId ? document.getElementById(targetId) : null;
+      if (targetEl && typeof targetEl.scrollIntoView === 'function') {
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      const statusEl = document.getElementById('chancellorStageStatus');
+      if (statusEl) {
+        statusEl.textContent = `Pre-staged "${card.title}" (${card.auth_tier || 'AUTH-01'}) — unilateral_execution = false; confirm manually in the cockpit.`;
+      }
+    }
+    function renderPolicyMatrix(matrix) {
+      if (!matrix) return '';
+      const posture = matrix.governance_posture || {};
+      const optionsHtml = (matrix.options || []).map(opt => {
+        const cls = opt.invariant_status === 'BLOCKED_IMMUTABLE_CORE' ? 'blocked' : (opt.recommended ? 'recommended' : '');
+        const tag = opt.invariant_status === 'BLOCKED_IMMUTABLE_CORE'
+          ? '<span class="chancellor-pill red">BLOCKED</span>'
+          : (opt.recommended ? '<span class="chancellor-pill green">RECOMMENDED</span>' : '<span class="chancellor-pill sky">OPTION</span>');
+        return `<div class="matrix-option ${cls}"><div style="display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;align-items:center;"><strong>${escapeCopilot(opt.option_id)}: ${escapeCopilot(opt.label)}</strong><div><span class="chancellor-pill amber">${escapeCopilot(opt.auth_tier || 'AUTH-01')}</span> ${tag}</div></div><div style="color:#CBD5E1;margin-top:4px;">${escapeCopilot(opt.summary)}</div></div>`;
+      }).join('');
+      const invHtml = (matrix.invariant_checks || []).map(chk => {
+        const pass = chk.status === 'PASS';
+        return `<div class="invariant-row"><span>${escapeCopilot(chk.label)}</span><span class="chancellor-pill ${pass ? 'green' : 'red'}">${escapeCopilot(chk.status)}</span></div>`;
+      }).join('');
+      return `<section id="chancellorPolicyMatrix" class="policy-matrix" data-mutated="false" data-unilateral-execution="false"><div class="copilot-card-label">Constrained Policy Decision Matrix · ${escapeCopilot(matrix.topic || 'EXECUTIVE_POLICY')}</div><div class="chancellor-meta-bar"><span class="chancellor-pill sky">MODE: ${escapeCopilot(posture.governance_mode || 'EXECUTIVE_COMMAND')}</span><span class="chancellor-pill ${posture.directive_r04_status === 'HALTED' ? 'red' : 'green'}">R-04: ${escapeCopilot(posture.directive_r04_status || 'NORMAL')}</span><span class="chancellor-pill amber">GATE G1: ${escapeCopilot(posture.gate_g1_status || 'HOLD_OBSERVATIONS_ONLY')}</span></div>${optionsHtml}<div class="copilot-card-label" style="margin-top:8px;">Constitutional Invariant Impact Check</div><div class="invariant-grid">${invHtml}</div></section>`;
+    }
     function renderCopilotResponse(result) {
+      lastChancellorActionCards = result.action_cards || [];
+      const meta = `<div class="chancellor-meta-bar"><span class="chancellor-pill sky">PROVIDER: ${escapeCopilot(result.provider_used || 'mock')}</span><span class="chancellor-pill amber">${escapeCopilot(result.auth_tier || 'AUTH-01')}</span><span class="chancellor-pill green">UNILATERAL=FALSE</span>${result.guard_blocked ? `<span id="chancellorGuardPill" class="chancellor-pill red">GUARDRAIL REFUSAL: ${escapeCopilot(result.guard_category || 'BLOCKED')}</span>` : ''}</div>`;
       const citations = (result.citations || []).map(item => `<li>${escapeCopilot(item)}</li>`).join('') || '<span style="color:#64748b">No citations returned.</span>';
-      const actions = (result.action_cards || []).map(item => `<div style="margin-top:5px"><b>${escapeCopilot(item.title)}</b><span style="color:#94a3b8"> · approval ${item.requires_settlor_approval ? 'required' : 'not required'}</span></div>`).join('') || '<span style="color:#64748b">No action proposals.</span>';
+      const actions = lastChancellorActionCards.map((item, idx) => `<article class="chancellor-action-card" data-auth-tier="${escapeCopilot(item.auth_tier || 'AUTH-01')}" data-executed="false" data-unilateral-execution="false"><div style="display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;align-items:center;"><b>${escapeCopilot(item.title)}</b><div><span class="chancellor-pill amber">${escapeCopilot(item.auth_tier || 'AUTH-01')}</span> <span class="chancellor-pill green">STAGED · NOT EXECUTED</span></div></div><div style="color:#94a3b8;margin-top:4px;">${escapeCopilot(item.description || 'Pre-staged administrative proposal requiring explicit human confirmation.')}</div><button type="button" class="chancellor-stage-btn" onclick="stageChancellorAction(${idx})">Pre-Stage in Cockpit (No Auto-Exec)</button></article>`).join('') || '<span style="color:#64748b">No action proposals.</span>';
       const telemetry = result.risk_telemetry || {};
-      return `<section class="copilot-card"><div class="copilot-card-label">Answer Text</div>${escapeCopilot(result.answer_text)}</section><section class="copilot-card"><div class="copilot-card-label">Citations</div><ul style="padding-left:18px">${citations}</ul></section><section class="copilot-card"><div class="copilot-card-label">Action Proposals</div>${actions}</section><section class="copilot-card"><div class="copilot-card-label">Telemetry</div><span class="telemetry-badge">Risk ${Number(telemetry.current_risk_pct || 0).toFixed(1)}%</span><span class="telemetry-badge">Dry Powder ${money(telemetry.dry_powder_cents || 0)}</span><span class="telemetry-badge">${telemetry.downward_only_locked ? 'Downward-only locked' : 'Unlocked'}</span></section>`;
+      return `${meta}<section class="copilot-card"><div class="copilot-card-label">Answer Text</div>${escapeCopilot(result.answer_text)}</section>${renderPolicyMatrix(result.policy_decision_matrix)}<section class="copilot-card"><div class="copilot-card-label">Pre-Staged Action Cards (AUTH-01–AUTH-04)</div>${actions}<div id="chancellorStageStatus" style="margin-top:6px;color:#38BDF8;font-size:11px;"></div></section><section class="copilot-card"><div class="copilot-card-label">Citations</div><ul style="padding-left:18px;margin:4px 0;">${citations}</ul></section><section class="copilot-card"><div class="copilot-card-label">Telemetry</div><span class="telemetry-badge">Risk ${Number(telemetry.current_risk_pct || 0).toFixed(1)}%</span><span class="telemetry-badge">Dry Powder ${money(telemetry.dry_powder_cents || 0)}</span><span class="telemetry-badge">${telemetry.downward_only_locked ? 'Downward-only locked' : 'Unlocked'}</span></section>`;
     }
     async function submitStage2Copilot(event) {
       event.preventDefault();

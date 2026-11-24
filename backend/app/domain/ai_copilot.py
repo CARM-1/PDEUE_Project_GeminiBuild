@@ -1,7 +1,7 @@
 import re
 from typing import Dict, Any, Optional
 
-from app.domain.ai_clients import BaseLLMClient, inspect_user_input
+from app.domain.ai_clients import BaseLLMClient, get_llm_client, inspect_user_input, sanitize_action_cards
 
 class AICopilotEngine:
     """Deterministic AI Copilot Engine enforcing AUTH-01/02 point-in-time governance."""
@@ -186,11 +186,12 @@ class AICopilotEngine:
             return {
                 "response_text": "Circuit breaker protocol triggered under AUTH-01 dual control. Ready to halt active maker daemons.",
                 "unilateral_execution": False,
-                "lineage_context": {"emergency_triggered": True, "auth_tier": "AUTH-01", "model_prob": 0.27},
-                "action_cards": [
+                "lineage_context": {"emergency_triggered": True, "auth_tier": "AUTH-04", "model_prob": 0.27},
+                "action_cards": sanitize_action_cards([
                     {
                         "action_id": "ACT-EMERGENCY-KILL",
                         "action_type": "EMERGENCY_STOP",
+                        "auth_tier": "AUTH-04",
                         "destructive": True,
                         "title": "Trip Emergency Kill Switch",
                         "description": "Instantly freeze trading loop and abort resting maker orders.",
@@ -198,7 +199,7 @@ class AICopilotEngine:
                         "method": "POST",
                         "payload": {"actor_id": actor_hat or "Chief Administrator", "reason": "Copilot Circuit Breaker Trip"}
                     }
-                ]
+                ], actor_role=str(actor_hat or "Chief Administrator")),
             }
 
         # 2. Risk & Waterfall Audits (SCMA 87% requirement)
@@ -207,17 +208,18 @@ class AICopilotEngine:
                 "response_text": "Portfolio audit under AUTH-01: Founder SCMA Operating Compounding allocated at 87%, CFCP Capital Floor Shield at 10%, FAEP at 3%.",
                 "unilateral_execution": False,
                 "lineage_context": {"waterfall_compliant": True, "auth_tier": "AUTH-01", "model_prob": 0.27},
-                "action_cards": [
+                "action_cards": sanitize_action_cards([
                     {
                         "action_id": "ACT-REFRESH-001",
                         "action_type": "TELEMETRY_REFRESH",
+                        "auth_tier": "AUTH-01",
                         "title": "Refresh Telemetry",
                         "description": "Synchronize portfolio balances across all lineal sub-ledgers.",
                         "endpoint": "/api/v1/operator/workspace-state",
                         "method": "GET",
                         "payload": {}
                     }
-                ]
+                ], actor_role=str(actor_hat or "Chief Administrator")),
             }
 
         # 3. Specific Contract Lineage & Explanation
@@ -228,17 +230,18 @@ class AICopilotEngine:
                 "response_text": f"Point-in-Time analysis for contract {target_cid}: edge verified under Strategy D inside-maker rules.",
                 "unilateral_execution": False,
                 "lineage_context": {"contract_id": target_cid, "model_prob": 0.27, "inside_maker_spread": 0.01},
-                "action_cards": [
+                "action_cards": sanitize_action_cards([
                     {
                         "action_id": f"ACT-EXPLAIN-{target_cid}",
                         "action_type": "INSPECT_CONTRACT",
+                        "auth_tier": "AUTH-01",
                         "title": f"Inspect Contract: {target_cid}",
                         "description": f"View execution depth and order ladder for {target_cid}",
                         "endpoint": f"/api/v1/operator/contract/{target_cid}",
                         "method": "GET",
                         "payload": {"contract_id": target_cid}
                     }
-                ]
+                ], actor_role=str(actor_hat or "Chief Administrator")),
             }
 
         # 4. Opportunity Research Center (ORC) Hypotheses
@@ -247,22 +250,24 @@ class AICopilotEngine:
                 "response_text": "Opportunity Research Center (ORC): Evaluating hypothesis against Point-in-Time market data and active contract ladders.",
                 "unilateral_execution": False,
                 "lineage_context": {"model_prob": 0.315, "net_edge": 0.285, "venue": "KALSHI"},
-                "action_cards": [
+                "action_cards": sanitize_action_cards([
                     {
                         "action_id": "ACT-ORC-001",
                         "action_type": "ORC_INSPECT",
+                        "auth_tier": "AUTH-01",
                         "title": "Open Opportunity Research Dossier",
                         "description": "Launch ORC hypothesis evaluation drawer.",
                         "endpoint": "/api/v1/operator/orc/dossier",
                         "method": "GET",
                         "payload": {"query": query}
                     }
-                ]
+                ], actor_role=str(actor_hat or "Chief Administrator")),
             }
 
-        # 5. Default Mock / Fallback Handler
-        if isinstance(self.llm_client, BaseLLMClient):
-            llm_resp = self.llm_client.generate_safe_response(
+        # 5. Default BaseLLMClient / Fallback Handler
+        active_client = self.llm_client if self.llm_client is not None else get_llm_client()
+        if isinstance(active_client, BaseLLMClient):
+            llm_resp = active_client.generate_safe_response(
                 system_prompt="PDEUE AI Copilot Engine (AUTH-01–AUTH-04, unilateral_execution=False).",
                 user_query=query,
                 context=workspace_state or {},
@@ -277,7 +282,7 @@ class AICopilotEngine:
                 "lineage_context": {"query_echo": query, "model_prob": 0.27},
                 "action_cards": llm_resp.action_cards,
             }
-        resp_text = self.llm_client.generate(query) if (self.llm_client and hasattr(self.llm_client, "generate")) else f"Mock LLM Response for: {query}"
+        resp_text = active_client.generate(query) if hasattr(active_client, "generate") else f"Mock LLM Response for: {query}"
         return {
             "response_text": resp_text,
             "unilateral_execution": False,

@@ -15,7 +15,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import logging
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 import uuid
 
 from app.domain.authority_tiers import get_governance_audit_log
@@ -46,6 +46,59 @@ _FORBIDDEN_MEMBER_ACTION_TYPES: frozenset[str] = frozenset({
     "MUTATE_RISK_DIAL",
     "PROMOTE_GOVERNANCE_STAGE",
     "QUARANTINE_HOUSE",
+})
+
+# Class T technical operators have ZERO financial, House, or Chief Admin authority.
+_FORBIDDEN_CLASS_T_ENDPOINT_PREFIXES: Tuple[str, ...] = (
+    "/api/v1/portal/advisor/",
+    "/api/v1/lineage/",
+    "/api/v1/accounting/",
+    "/api/v1/operator/emergency-stop",
+    "/api/v1/admin/governance",
+    "/api/v1/portal/member/distribution",
+)
+
+_FORBIDDEN_CLASS_T_ACTION_TYPES: frozenset[str] = frozenset({
+    "STAGE_COSIGN_DISTRIBUTION",
+    "APPROVE_DISTRIBUTION",
+    "STAGE_DIRECTIVE_R04_HALT",
+    "STAGE_DUAL_SIG_OVERRIDE",
+    "STAGE_GOVERNANCE_MODE_TRANSITION",
+    "STAGE_SHTF_SNAPBACK",
+    "EMERGENCY_STOP",
+    "UNILATERAL_TRADE",
+    "UNILATERAL_WITHDRAWAL",
+    "QUARANTINE_HOUSE",
+    "PROMOTE_GOVERNANCE_STAGE",
+})
+
+# Read-only Class T tiers (T1, T2-HOUSEHOLD) must never receive global daemon/settlement trigger cards.
+_FORBIDDEN_READONLY_CLASS_T_ACTION_TYPES: frozenset[str] = frozenset({
+    "STAGE_DAEMON_CYCLE",
+    "STAGE_SETTLEMENT_RECONCILE",
+    "STAGE_CA_OVERRIDE",
+})
+
+# Class F1 (Mentee-only Peer Guide) must never receive household mutation/co-sign/halt cards.
+_FORBIDDEN_F1_ACTION_TYPES: frozenset[str] = frozenset({
+    "STAGE_COSIGN_DISTRIBUTION",
+    "STAGE_CUSTODIAL_RISK_REVIEW",
+    "STAGE_ADVISORY_PROPOSAL",
+    "STAGE_DIRECTIVE_R04_HALT",
+    "STAGE_DUAL_SIG_OVERRIDE",
+    "EMERGENCY_STOP",
+    "STAGE_GOVERNANCE_MODE_TRANSITION",
+    "STAGE_SHTF_SNAPBACK",
+})
+
+# Class F2-A (Lineage Advisor) is read-only audit + proposal staging only (no direct co-sign or halt).
+_FORBIDDEN_F2A_ACTION_TYPES: frozenset[str] = frozenset({
+    "STAGE_COSIGN_DISTRIBUTION",
+    "STAGE_DIRECTIVE_R04_HALT",
+    "STAGE_DUAL_SIG_OVERRIDE",
+    "EMERGENCY_STOP",
+    "STAGE_GOVERNANCE_MODE_TRANSITION",
+    "STAGE_SHTF_SNAPBACK",
 })
 
 # Canonical lineage member first names used to detect cross-member balance probes
@@ -88,7 +141,7 @@ _PROMPT_INJECTION_PATTERNS: Tuple[re.Pattern[str], ...] = (
     ),
 )
 
-_ROLE_ESCALATION_PATTERNS: Tuple[re.Pattern[str], ...] = (
+_ROLE_ESCALATION_CORE_PATTERNS: Tuple[re.Pattern[str], ...] = (
     re.compile(
         r"\b(?:switch|elevate|promote|grant|escalate|change)\s+(?:me|my\s+(?:role|hat|session|privileges?|access))\s+(?:to|into)\s+(?:chief[ _-]?admin(?:istrator)?|founder|f3|t3|cro|cto|class\s*[tfh]|operator|admin)\b",
         re.IGNORECASE,
@@ -101,10 +154,11 @@ _ROLE_ESCALATION_PATTERNS: Tuple[re.Pattern[str], ...] = (
         r"\b(?:bypass|override|skip|ignore)\s+(?:http\s*403|directive\s*r-06|active[ -]hat|role\s*(?:isolation|siloing|boundary)|portal\s*boundary)\b",
         re.IGNORECASE,
     ),
-    re.compile(
-        r"\b(?:show|give|dump|list|reveal|export)\s+(?:me\s+)?(?:the\s+)?(?:admin|operator|tech|devops|class\s*t|fleet|orderbook|all\s+houses?)\s+(?:telemetry|logs?|audit\s+logs?|state|positions?|depth|secrets?|dashboard)\b",
-        re.IGNORECASE,
-    ),
+)
+
+_MEMBER_ADMIN_DUMP_PATTERN = re.compile(
+    r"\b(?:show|give|dump|list|reveal|export)\s+(?:me\s+)?(?:the\s+)?(?:admin|operator|tech|devops|class\s*t|fleet|orderbook|all\s+houses?)\s+(?:telemetry|logs?|audit\s+logs?|state|positions?|depth|secrets?|dashboard)\b",
+    re.IGNORECASE,
 )
 
 _SECRET_EXFIL_PATTERNS: Tuple[re.Pattern[str], ...] = (
@@ -133,24 +187,79 @@ _CROSS_MEMBER_EXFIL_PATTERNS: Tuple[re.Pattern[str], ...] = (
     ),
 )
 
-_UNILATERAL_EXECUTION_DEMAND_PATTERNS: Tuple[re.Pattern[str], ...] = (
+_CLASS_T_FINANCIAL_OR_HOUSE_PATTERNS: Tuple[re.Pattern[str], ...] = (
     re.compile(
-        r"\b(?:force|bypass\s+confirmation|without\s+(?:confirmation|approval|asking)|override\s+auth-0[1-4]|unilaterally)\b.*\b(?:execute|trade|buy|sell|withdraw|sweep|transfer|mutate|halt|change|order)\b",
+        r"\b(?:financial\s+distributions?|member\s+distributions?|pending\s+distributions?|withdrawal\s+requests?|payouts?|co[- ]?sign\s+distribution|approve\s+distribution)\b",
         re.IGNORECASE,
     ),
     re.compile(
-        r"\b(?:execute|dispatch|fire|force)\b.*\b(?:order|trade|buy|sell|sweep|wire|ach|withdrawal)\b.*\b(?:unilaterally|without\s+(?:confirmation|approval)|skipping\s+(?:review|confirmation))\b",
+        r"\b(?:house\s+votes?|bicameral\s+votes?|council\s+votes?|voting\s+tall(?:y|ies)|house\s+petitions?|lineage\s+votes?|cast\s+a?\s*vote|house\s+quorum|vote\s+results?)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:unmask|reveal|bypass|disable|remove|show|tell|give|list|dump|print|what\s+(?:is|are)|how\s+much)\b.*\b(?:unmasked\s+(?:member\s+)?balances?|member\s+balances?|scma\s+balances?|household\s+equity|total\s+equity|member\s+cash|net\s+worth|eleanor'?s\s+balance|julian'?s\s+balance|founder'?s\s+balance|directive\s*r-12|\$\*{4}\.\*\*)\b",
+        re.IGNORECASE,
+    ),
+)
+
+_F1_HOUSEHOLD_EQUITY_PATTERNS: Tuple[re.Pattern[str], ...] = (
+    re.compile(
+        r"\b(?:total\s+(?:household|family)\s+equity|household\s+equity|family\s+equity|available\s+liquidity|household\s+balance|adult\s+balances?|all\s+accounts?\s+balances?|eleanor'?s\s+(?:balance|equity|scma)|founder'?s\s+(?:balance|equity|scma)|morgan'?s\s+(?:balance|equity|scma))\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:show|tell|give|reveal|list|dump|what\s+is|how\s+much)\b.*\b(?:household\s+(?:total|cash|funds|wealth|balance|equity)|family\s+treasury\s+balance|other\s+households?)\b",
+        re.IGNORECASE,
+    ),
+)
+
+_UNILATERAL_EXECUTION_DEMAND_PATTERNS: Tuple[re.Pattern[str], ...] = (
+    re.compile(
+        r"\b(?:force|bypass\s+confirmation|without\s+(?:confirmation|approval|asking)|override\s+auth-0[1-4]|unilaterally)\b.*\b(?:execute|trade|buy|sell|withdraw|sweep|transfer|mutate|halt|change|order|approve|switch)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:execute|dispatch|fire|force)\b.*\b(?:order|trade|buy|sell|sweep|wire|ach|withdrawal|halt|mode\s+switch)\b.*\b(?:unilaterally|without\s+(?:confirmation|approval)|skipping\s+(?:review|confirmation))\b",
         re.IGNORECASE,
     ),
 )
 
 _SCMA_TOKEN_RE = re.compile(r"\bSCMA[-_][A-Z0-9_-]{3,}\b", re.IGNORECASE)
+_SCMA_OUTPUT_TOKEN_RE = re.compile(r"\bSCMA[-_][A-Z0-9_*-]{3,}", re.IGNORECASE)
+_HOUSEHOLD_TOKEN_RE = re.compile(r"\bHOUSEHOLD[-_][A-Z0-9_-]{2,}\b", re.IGNORECASE)
+_DOLLAR_AMOUNT_OUTPUT_RE = re.compile(r"(?<![A-Za-z0-9])-?\$\d[\d,]*(?:\.\d{1,2})?")
 _SECRET_OUTPUT_PATTERNS: Tuple[Tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"\bsk-[A-Za-z0-9_-]{12,}\b"), "[REDACTED_API_KEY]"),
     (re.compile(r"\bAIza[A-Za-z0-9_-]{16,}\b"), "[REDACTED_API_KEY]"),
     (re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/-]{8,}=*"), "Bearer [REDACTED]"),
     (re.compile(r"(?is)<script[^>]*>.*?</script>"), ""),
 )
+
+
+def classify_actor_role(actor_role: Optional[str]) -> Tuple[str, str]:
+    """Classify an actor role token into ``(family, canonical_role)``."""
+    raw = str(actor_role or "MEMBER").strip().upper().replace("_", "-").replace(" ", "-")
+    if raw in {"MEMBER", "MEMBER-USER", "PERSONAL-SCMA", "CLASS-M"}:
+        return ("MEMBER", "MEMBER")
+    if raw in {"T1", "T1-MONITOR"}:
+        return ("CLASS_T", "T1")
+    if raw in {"T2", "T2-ENGINEER"}:
+        return ("CLASS_T", "T2")
+    if raw in {"T2-HOUSEHOLD", "T2-HOUSEHOLD-SCOPED"}:
+        return ("CLASS_T", "T2-HOUSEHOLD")
+    if raw in {"T3", "T3-CTO", "T3-SYSTEM-ADMIN", "TECH", "TECHNICAL-OPERATOR", "DEVOPS-COPILOT"}:
+        return ("CLASS_T", "T3")
+    if raw in {"F1", "F1-PEER-GUIDE"}:
+        return ("CLASS_F", "F1")
+    if raw in {"F2-H", "F2-H-HOUSEHOLD-HEAD", "F2", "F2-ADVISOR", "F2-FINANCIAL-ADVISOR", "FINANCIAL-ADVISOR", "ADVISOR", "FIDUCIARY-COPILOT"}:
+        return ("CLASS_F", "F2-H")
+    if raw in {"F2-A", "F2-A-LINEAGE-ADVISOR"}:
+        return ("CLASS_F", "F2-A")
+    if raw in {"F3", "F3-CRO", "F3-CRO-RISK", "F3-FINANCIAL-ADVISOR"}:
+        return ("CLASS_F", "F3")
+    if raw in {"CHIEF-ADMINISTRATOR", "CHIEF-ADMIN", "FOUNDER", "OPERATOR", "CHANCELLOR", "CHANCELLOR-COACH"}:
+        return ("CHIEF_ADMIN", "CHIEF_ADMINISTRATOR")
+    return ("OTHER", raw or "UNKNOWN")
 
 
 @dataclass
@@ -208,7 +317,8 @@ def _cross_member_probe_detected(
     allowed_scma_id: Optional[str],
     member_name: Optional[str],
 ) -> Optional[str]:
-    if actor_role.upper() != "MEMBER":
+    family, _ = classify_actor_role(actor_role)
+    if family != "MEMBER":
         return None
 
     for pattern in _CROSS_MEMBER_EXFIL_PATTERNS:
@@ -243,6 +353,131 @@ def _cross_member_probe_detected(
     return None
 
 
+def _class_t_policy_violation(
+    text: str,
+    *,
+    canonical_role: str,
+    assigned_household_id: Optional[str],
+    r12_unredacted: bool,
+) -> Optional[Tuple[str, str, str]]:
+    """Enforce Directive R-12 masking & zero financial/House authority for Class T."""
+    # T2-Household cross-household boundary check.
+    if canonical_role == "T2-HOUSEHOLD" and assigned_household_id:
+        assigned_norm = assigned_household_id.strip().upper()
+        for match in _HOUSEHOLD_TOKEN_RE.finditer(text):
+            mentioned = match.group(0).strip().upper().replace("_", "-")
+            if mentioned != assigned_norm:
+                return (
+                    "CROSS_HOUSEHOLD_EXFILTRATION",
+                    f"T2-Household scoped to {assigned_norm} attempted to query foreign household {mentioned}.",
+                    (
+                        f"Access denied under Directive R-06 & X-Household-ID boundary: this T2-Household "
+                        f"telemetry session is strictly scoped to `{assigned_norm}` and cannot inspect `{mentioned}`."
+                    ),
+                )
+        if re.search(r"\b(?:all\s+households?|other\s+households?|foreign\s+households?|cross[- ]?household)\b", text, re.IGNORECASE):
+            return (
+                "CROSS_HOUSEHOLD_EXFILTRATION",
+                f"T2-Household scoped to {assigned_norm} attempted cross-household query.",
+                (
+                    f"Access denied under X-Household-ID boundary: T2-Household is strictly scoped to "
+                    f"`{assigned_norm}` telemetry and cannot query other households."
+                ),
+            )
+
+    # Financial distributions & House votes are ALWAYS prohibited for ALL Class T tiers (even with T3 override).
+    if _CLASS_T_FINANCIAL_OR_HOUSE_PATTERNS[0].search(text) or _CLASS_T_FINANCIAL_OR_HOUSE_PATTERNS[1].search(text):
+        return (
+            "CLASS_T_FINANCIAL_PROHIBITION",
+            f"Class T ({canonical_role}) attempted to query financial distributions or House governance votes.",
+            (
+                "Refused under Directive R-12 & Role Siloing (Zero Financial / House Authority): "
+                "Class T DevOps Telemetry Copilots have zero access to financial distributions, "
+                "House votes, or lineage governance petitions. Financial figures remain masked (`$****.**` / `SCMA-MEM-****`)."
+            ),
+        )
+
+    # Unmasked balance / R-12 bypass probes.
+    if _CLASS_T_FINANCIAL_OR_HOUSE_PATTERNS[2].search(text):
+        if not (canonical_role == "T3" and r12_unredacted):
+            return (
+                "DIRECTIVE_R12_VIOLATION",
+                f"Class T ({canonical_role}) attempted to query unmasked member balances or bypass Directive R-12 masking.",
+                (
+                    "Refused under Directive R-12 (Least-Privilege Financial Masking): member balances "
+                    "(`$****.**`) and SCMA identifiers (`SCMA-MEM-****`) remain strictly masked for "
+                    f"{canonical_role}. Only an active, time-bounded, audited Chief Administrator Override "
+                    "grant on T3 CTO may temporarily unredact order-ladder diagnostics."
+                ),
+            )
+
+    # Explicit non-redacted SCMA ID probe by masked Class T operator.
+    if not (canonical_role == "T3" and r12_unredacted):
+        for match in _SCMA_TOKEN_RE.finditer(text):
+            mentioned = match.group(0).strip().upper()
+            if mentioned not in {"SCMA-MEM-****"}:
+                return (
+                    "DIRECTIVE_R12_VIOLATION",
+                    f"Class T ({canonical_role}) queried explicit member SCMA identifier ({mentioned}) without active T3 CA override.",
+                    (
+                        "Refused under Directive R-12: specific member SCMA identifiers are masked as "
+                        "`SCMA-MEM-****` and balances as `$****.**` in Class T telemetry consoles."
+                    ),
+                )
+
+    return None
+
+
+def _class_f_policy_violation(
+    text: str,
+    *,
+    canonical_role: str,
+    assigned_household_id: Optional[str],
+    forbidden_scma_ids: Optional[Iterable[str]] = None,
+) -> Optional[Tuple[str, str, str]]:
+    """Enforce Class F sub-tier isolation (F1 mentee-only, F2-H domestic boundary)."""
+    if canonical_role == "F1":
+        for pat in _F1_HOUSEHOLD_EQUITY_PATTERNS:
+            if pat.search(text):
+                return (
+                    "F1_SCOPE_VIOLATION",
+                    "Class F1 Peer Guide attempted to query household equity totals or adult SCMA balances.",
+                    (
+                        "Refused under Class F1 Peer Guide scope (Directive R-12): F1 provides mentee-only "
+                        "educational guidance with zero visibility into household equity totals or adult "
+                        "SCMA balances (`$****.**`)."
+                    ),
+                )
+        forbidden = {s.strip().upper() for s in (forbidden_scma_ids or ()) if s}
+        for match in _SCMA_TOKEN_RE.finditer(text):
+            mentioned = match.group(0).strip().upper()
+            if mentioned in forbidden:
+                return (
+                    "F1_SCOPE_VIOLATION",
+                    f"Class F1 Peer Guide queried out-of-scope adult SCMA ({mentioned}).",
+                    (
+                        "Refused under Class F1 Peer Guide scope: F1 mentorship is restricted strictly to "
+                        "assigned custodial apprentice guidance with zero adult SCMA visibility."
+                    ),
+                )
+
+    if canonical_role == "F2-H" and assigned_household_id:
+        assigned_norm = assigned_household_id.strip().upper()
+        for match in _HOUSEHOLD_TOKEN_RE.finditer(text):
+            mentioned = match.group(0).strip().upper().replace("_", "-")
+            if mentioned != assigned_norm:
+                return (
+                    "CROSS_HOUSEHOLD_EXFILTRATION",
+                    f"Class F2-H scoped to {assigned_norm} attempted to query foreign household {mentioned}.",
+                    (
+                        f"Refused under domestic household boundary (`X-Household-ID`): your F2-H Head of "
+                        f"Household workspace is scoped strictly to `{assigned_norm}` and cannot access `{mentioned}`."
+                    ),
+                )
+
+    return None
+
+
 def inspect_user_input(
     user_query: str,
     *,
@@ -250,11 +485,15 @@ def inspect_user_input(
     actor_id: str = "member_user",
     allowed_scma_id: Optional[str] = None,
     member_name: Optional[str] = None,
+    assigned_household_id: Optional[str] = None,
+    r12_unredacted: bool = False,
+    forbidden_scma_ids: Optional[Iterable[str]] = None,
 ) -> GuardVerdict:
     """Inspect and sanitize an incoming prompt before it reaches any LLM adapter."""
     raw = (user_query or "").strip()
     sanitized = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", raw)
-    role_norm = (actor_role or "MEMBER").upper().strip()
+    family, canonical_role = classify_actor_role(actor_role)
+    role_norm = canonical_role if family != "OTHER" else (actor_role or "MEMBER").upper().strip()
 
     checks: List[Tuple[str, Optional[str], str]] = []
 
@@ -266,25 +505,39 @@ def inspect_user_input(
                 (
                     "I cannot override PDEUE's constitutional safety rules, reveal internal prompts, "
                     "or enable unilateral execution (`unilateral_execution = False` is permanently locked "
-                    "under AUTH-01 through AUTH-04). I'm glad to explain your own SCMA concepts, "
-                    "Lexicon v0.5 terms, or illustrative compounding impact in plain English."
+                    "under AUTH-01 through AUTH-04). I'm glad to assist strictly within your active "
+                    "authority tier and PDEUE Lexicon v0.5."
                 ),
             ))
             break
 
     if not checks:
-        for pat in _ROLE_ESCALATION_PATTERNS:
+        for idx, pat in enumerate(_ROLE_ESCALATION_CORE_PATTERNS):
+            # Chief Admin cannot "escalate" to Chief Admin, though bypassing R-06/HTTP 403 is always blocked.
+            if family == "CHIEF_ADMIN" and idx in (0, 1):
+                continue
             if pat.search(sanitized):
                 checks.append((
                     "ROLE_ESCALATION",
                     "Detected attempt to escalate role scope or bypass Directive R-06 Active-Hat isolation.",
                     (
-                        "I cannot switch roles, bypass HTTP 403 portal boundaries, or access Chief Administrator, "
-                        "Class F, or Class T telemetry from this workspace. Under Directive R-06 (Active-Hat Isolation), "
+                        "I cannot switch roles, bypass HTTP 403 portal boundaries, or access restricted "
+                        "telemetry outside your active workspace. Under Directive R-06 (Active-Hat Isolation), "
                         "each portal remains strictly scoped to its active authority tier."
                     ),
                 ))
                 break
+
+    if not checks and family == "MEMBER" and _MEMBER_ADMIN_DUMP_PATTERN.search(sanitized):
+        checks.append((
+            "ROLE_ESCALATION",
+            "Detected Class M attempt to access admin, Class T, or cross-house telemetry.",
+            (
+                "I cannot switch roles, bypass HTTP 403 portal boundaries, or access Chief Administrator, "
+                "Class F, or Class T telemetry from this workspace. Under Directive R-06 (Active-Hat Isolation), "
+                "each portal remains strictly scoped to its active authority tier."
+            ),
+        ))
 
     if not checks:
         for pat in _SECRET_EXFIL_PATTERNS:
@@ -301,7 +554,7 @@ def inspect_user_input(
                 ))
                 break
 
-    if not checks:
+    if not checks and family == "MEMBER":
         cross_reason = _cross_member_probe_detected(
             sanitized,
             actor_role=role_norm,
@@ -318,6 +571,26 @@ def inspect_user_input(
                     "balances, SCMA identifiers, and private records are strictly inaccessible here."
                 ),
             ))
+
+    if not checks and family == "CLASS_T":
+        t_violation = _class_t_policy_violation(
+            sanitized,
+            canonical_role=canonical_role,
+            assigned_household_id=assigned_household_id,
+            r12_unredacted=r12_unredacted,
+        )
+        if t_violation:
+            checks.append(t_violation)
+
+    if not checks and family == "CLASS_F":
+        f_violation = _class_f_policy_violation(
+            sanitized,
+            canonical_role=canonical_role,
+            assigned_household_id=assigned_household_id,
+            forbidden_scma_ids=forbidden_scma_ids,
+        )
+        if f_violation:
+            checks.append(f_violation)
 
     if not checks:
         for pat in _UNILATERAL_EXECUTION_DEMAND_PATTERNS:
@@ -340,7 +613,7 @@ def inspect_user_input(
             reason=reason or category,
             actor_id=actor_id,
             actor_role=role_norm,
-            scma_id=allowed_scma_id,
+            scma_id=allowed_scma_id or assigned_household_id,
             query_preview=sanitized,
         )
         return GuardVerdict(
@@ -360,13 +633,17 @@ def sanitize_output_text(
     *,
     actor_role: str = "MEMBER",
     allowed_scma_id: Optional[str] = None,
+    r12_unredacted: bool = False,
+    forbidden_scma_ids: Optional[Iterable[str]] = None,
 ) -> str:
-    """Scrub secrets, unsafe markup, and foreign SCMA IDs from model output."""
+    """Scrub secrets, unsafe markup, Directive R-12 figures, and foreign SCMA IDs from model output."""
     cleaned = str(text or "")
     for pattern, replacement in _SECRET_OUTPUT_PATTERNS:
         cleaned = pattern.sub(replacement, cleaned)
 
-    if (actor_role or "").upper().strip() == "MEMBER":
+    family, canonical_role = classify_actor_role(actor_role)
+
+    if family == "MEMBER":
         allowed_norm = (allowed_scma_id or "").strip().upper()
 
         def _mask_foreign_scma(match: re.Match[str]) -> str:
@@ -376,6 +653,19 @@ def sanitize_output_text(
             return "SCMA-MEM-****"
 
         cleaned = _SCMA_TOKEN_RE.sub(_mask_foreign_scma, cleaned)
+
+    elif family == "CLASS_T" and not (canonical_role == "T3" and r12_unredacted):
+        cleaned = _SCMA_OUTPUT_TOKEN_RE.sub("SCMA-MEM-****", cleaned)
+        cleaned = _DOLLAR_AMOUNT_OUTPUT_RE.sub("$****.**", cleaned)
+
+    elif family == "CLASS_F" and canonical_role == "F1":
+        forbidden = {s.strip().upper() for s in (forbidden_scma_ids or ()) if s}
+        if forbidden:
+            def _mask_f1_forbidden(match: re.Match[str]) -> str:
+                token = match.group(0)
+                return "SCMA-MEM-****" if token.upper() in forbidden else token
+
+            cleaned = _SCMA_TOKEN_RE.sub(_mask_f1_forbidden, cleaned)
 
     return cleaned.strip()
 
@@ -389,14 +679,26 @@ def enforce_constitutional_action_card(
     if not isinstance(card, dict):
         return None
 
-    role_norm = (actor_role or "MEMBER").upper().strip()
+    family, canonical_role = classify_actor_role(actor_role)
     action_type = str(card.get("action_type") or "EDUCATIONAL_REVIEW").upper().strip()
     endpoint = str(card.get("endpoint") or "").strip()
 
-    if role_norm == "MEMBER":
+    if family == "MEMBER":
         if action_type in _FORBIDDEN_MEMBER_ACTION_TYPES:
             return None
         if endpoint and any(endpoint.startswith(prefix) for prefix in _FORBIDDEN_MEMBER_ENDPOINT_PREFIXES):
+            return None
+    elif family == "CLASS_T":
+        if action_type in _FORBIDDEN_CLASS_T_ACTION_TYPES:
+            return None
+        if endpoint and any(endpoint.startswith(prefix) for prefix in _FORBIDDEN_CLASS_T_ENDPOINT_PREFIXES):
+            return None
+        if canonical_role in {"T1", "T2-HOUSEHOLD"} and action_type in _FORBIDDEN_READONLY_CLASS_T_ACTION_TYPES:
+            return None
+    elif family == "CLASS_F":
+        if canonical_role == "F1" and action_type in _FORBIDDEN_F1_ACTION_TYPES:
+            return None
+        if canonical_role == "F2-A" and action_type in _FORBIDDEN_F2A_ACTION_TYPES:
             return None
 
     auth_tier = str(card.get("auth_tier") or "AUTH-01").upper().strip()
@@ -410,9 +712,10 @@ def enforce_constitutional_action_card(
     normalized["unilateral_execution"] = False
     normalized["executed"] = False
     normalized["requires_human_confirmation"] = True
+    normalized.setdefault("requires_settlor_approval", auth_tier in {"AUTH-03", "AUTH-04"})
     normalized.setdefault(
         "confirmation_notice",
-        "Non-executing proposal under AUTH-01–AUTH-04: explicit human confirmation is required.",
+        f"Non-executing {auth_tier} proposal under AUTH-01–AUTH-04: explicit human confirmation is required.",
     )
     return normalized
 

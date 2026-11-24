@@ -438,6 +438,17 @@ def operator_ai_chat(payload: Dict[str, Any]):
         workspace_state=_service.get_workspace_state(),
     )
 
+
+@workspace_router.post("/api/v1/operator/chancellor/query")
+def operator_chancellor_query(payload: Dict[str, Any]):
+    from app.domain.chancellor_coach import ChiefAdminChancellorCoach
+
+    query_text = str(payload.get("prompt") or payload.get("query") or "").strip()
+    actor_id = str(payload.get("user_id") or payload.get("actor_id") or "Chief Administrator")
+    coach = ChiefAdminChancellorCoach()
+    return coach.advise(query_text, actor_id=actor_id, live_context=_service.get_workspace_state())
+
+
 @workspace_router.get("/api/v1/operator/contract/{contract_id}")
 def inspect_contract_alias(contract_id: str):
     return inspect_operator_position(contract_id)
@@ -464,7 +475,6 @@ def stop_scan_daemon():
 
 @workspace_router.post("/api/v1/operator/copilot/chat")
 @workspace_router.post("/operator/copilot/chat")
-@workspace_router.post("/api/v1/operator/ai-chat")
 def operator_copilot_chat(payload: Any = None):
     text = "Nominal operational envelope; 87% reinvestment waterfall active."
     return {"reply": text, "response_text": text, "unilateral_execution": False, "intent": "STATUS_INQUIRY"}

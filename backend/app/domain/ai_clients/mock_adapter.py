@@ -33,6 +33,9 @@ class MockLLMClient(BaseLLMClient):
         allowed_scma_id = ctx.get("allowed_scma_id") or ctx.get("scma_id")
         member_name = ctx.get("member_name") or ctx.get("name")
         actor_id = str(ctx.get("actor_id") or allowed_scma_id or actor_role.lower())
+        assigned_household_id = ctx.get("assigned_household_id")
+        r12_unredacted = bool(ctx.get("r12_unredacted", False))
+        forbidden_scma_ids = ctx.get("forbidden_scma_ids")
 
         # Enforce prompt-injection / exfiltration guard even on direct calls.
         verdict = inspect_user_input(
@@ -41,6 +44,9 @@ class MockLLMClient(BaseLLMClient):
             actor_id=actor_id,
             allowed_scma_id=allowed_scma_id,
             member_name=member_name,
+            assigned_household_id=assigned_household_id,
+            r12_unredacted=r12_unredacted,
+            forbidden_scma_ids=forbidden_scma_ids,
         )
         if verdict.blocked:
             return LLMResponse(
@@ -56,15 +62,19 @@ class MockLLMClient(BaseLLMClient):
                 audit_event_id=verdict.audit_event_id,
             )
 
-        # Grounded Class M Member Tutor draft passthrough (deterministic, isolated).
-        if actor_role == "MEMBER" and isinstance(ctx.get("tutor_draft"), dict):
-            draft = ctx["tutor_draft"]
+        # Grounded role-scoped draft passthrough (Member Tutor, Class F/T Copilots, Chief Admin Chancellor Coach).
+        draft = ctx.get("copilot_draft") if isinstance(ctx.get("copilot_draft"), dict) else (
+            ctx.get("tutor_draft") if (actor_role == "MEMBER" and isinstance(ctx.get("tutor_draft"), dict)) else None
+        )
+        if isinstance(draft, dict):
             content = sanitize_output_text(
                 str(draft.get("content") or self.default_response or ""),
-                actor_role="MEMBER",
+                actor_role=actor_role,
                 allowed_scma_id=allowed_scma_id,
+                r12_unredacted=r12_unredacted,
+                forbidden_scma_ids=forbidden_scma_ids,
             )
-            cards = sanitize_action_cards(list(draft.get("action_cards") or []), actor_role="MEMBER")
+            cards = sanitize_action_cards(list(draft.get("action_cards") or []), actor_role=actor_role)
             return LLMResponse(
                 content=content,
                 action_cards=cards,
@@ -74,6 +84,7 @@ class MockLLMClient(BaseLLMClient):
                 auth_tier=str(draft.get("auth_tier") or "AUTH-01"),
                 impact_card=draft.get("impact_card"),
                 citations=list(draft.get("citations") or []),
+                structured_data=draft.get("structured_data"),
             )
 
         q = verdict.sanitized_text.lower()
@@ -120,7 +131,13 @@ class MockLLMClient(BaseLLMClient):
             content = self.default_response or f"Mock LLM Response for: {verdict.sanitized_text}"
 
         return LLMResponse(
-            content=sanitize_output_text(content, actor_role=actor_role, allowed_scma_id=allowed_scma_id),
+            content=sanitize_output_text(
+                content,
+                actor_role=actor_role,
+                allowed_scma_id=allowed_scma_id,
+                r12_unredacted=r12_unredacted,
+                forbidden_scma_ids=forbidden_scma_ids,
+            ),
             action_cards=sanitize_action_cards(action_cards, actor_role=actor_role),
             provider=self.provider_name,
             model=self.model_name,

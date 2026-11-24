@@ -4,6 +4,7 @@ from .gemini_adapter import GeminiLLMClient
 from .guardrails import (
     VALID_AUTH_TIERS,
     GuardVerdict,
+    classify_actor_role,
     enforce_constitutional_action_card,
     inspect_user_input,
     sanitize_action_cards,
@@ -21,6 +22,7 @@ __all__ = [
     "get_llm_client",
     "VALID_AUTH_TIERS",
     "GuardVerdict",
+    "classify_actor_role",
     "inspect_user_input",
     "sanitize_output_text",
     "sanitize_action_cards",

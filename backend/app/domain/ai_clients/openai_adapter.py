@@ -67,6 +67,7 @@ class OpenAILLMClient(BaseLLMClient):
             requested_provider=self.provider_name,
             impact_card=mock_resp.impact_card,
             citations=list(mock_resp.citations),
+            structured_data=mock_resp.structured_data,
         )
 
     def generate_response(
@@ -81,6 +82,9 @@ class OpenAILLMClient(BaseLLMClient):
         allowed_scma_id = ctx.get("allowed_scma_id") or ctx.get("scma_id")
         member_name = ctx.get("member_name") or ctx.get("name")
         actor_id = str(ctx.get("actor_id") or allowed_scma_id or actor_role.lower())
+        assigned_household_id = ctx.get("assigned_household_id")
+        r12_unredacted = bool(ctx.get("r12_unredacted", False))
+        forbidden_scma_ids = ctx.get("forbidden_scma_ids")
 
         # Always guard BEFORE checking credentials or issuing network requests.
         verdict = inspect_user_input(
@@ -89,6 +93,9 @@ class OpenAILLMClient(BaseLLMClient):
             actor_id=actor_id,
             allowed_scma_id=allowed_scma_id,
             member_name=member_name,
+            assigned_household_id=assigned_household_id,
+            r12_unredacted=r12_unredacted,
+            forbidden_scma_ids=forbidden_scma_ids,
         )
         if verdict.blocked:
             return LLMResponse(
@@ -115,7 +122,7 @@ class OpenAILLMClient(BaseLLMClient):
                 notice="OpenAI API key not configured. Set OPENAI_API_KEY environment variable (fail-closed fallback to MockLLMClient).",
             )
 
-        safe_ctx = {k: v for k, v in ctx.items() if k != "tutor_draft"}
+        safe_ctx = {k: v for k, v in ctx.items() if k not in {"tutor_draft", "copilot_draft"}}
         msgs = [{"role": "system", "content": system_prompt}]
         if safe_ctx:
             msgs.append({
@@ -171,11 +178,21 @@ class OpenAILLMClient(BaseLLMClient):
                         "unilateral_execution": False,
                         "executed": False,
                     })
-                draft = ctx.get("tutor_draft") if isinstance(ctx.get("tutor_draft"), dict) else {}
+                draft = (
+                    ctx.get("copilot_draft")
+                    if isinstance(ctx.get("copilot_draft"), dict)
+                    else (ctx.get("tutor_draft") if isinstance(ctx.get("tutor_draft"), dict) else {})
+                )
                 if draft.get("action_cards"):
                     action_cards.extend(list(draft["action_cards"]))
                 return LLMResponse(
-                    content=sanitize_output_text(content, actor_role=actor_role, allowed_scma_id=allowed_scma_id),
+                    content=sanitize_output_text(
+                        content,
+                        actor_role=actor_role,
+                        allowed_scma_id=allowed_scma_id,
+                        r12_unredacted=r12_unredacted,
+                        forbidden_scma_ids=forbidden_scma_ids,
+                    ),
                     action_cards=sanitize_action_cards(action_cards, actor_role=actor_role),
                     tool_calls=tool_calls if actor_role != "MEMBER" else [],
                     provider=self.provider_name,
@@ -185,6 +202,7 @@ class OpenAILLMClient(BaseLLMClient):
                     auth_tier=str(draft.get("auth_tier") or "AUTH-01"),
                     impact_card=draft.get("impact_card"),
                     citations=list(draft.get("citations") or []),
+                    structured_data=draft.get("structured_data"),
                 )
         except (urllib.error.HTTPError, urllib.error.URLError, Exception) as exc:
             return self._fail_closed_fallback(
