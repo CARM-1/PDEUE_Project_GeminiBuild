@@ -38,6 +38,7 @@ from app.domain.authority_tiers import (
     normalize_tech_tier,
 )
 from app.domain.lexicon_v05 import get_lexicon_payload, render_term_abbr
+from app.domain.member_tutor import MemberLiteracyTutor
 from app.schemas.read_model import ReadModelEnvelope, build_read_model_envelope
 
 router = APIRouter(tags=['Portals'])
@@ -45,6 +46,7 @@ portal_router = router
 _lineage_service = get_lineage_service()
 _enclave_gov = get_enclave_governance_service()
 _advisor_copilot_engine = AICopilotEngine()
+_member_literacy_tutor = MemberLiteracyTutor()
 
 LINEAGE_DATA: Dict[str, Any] = {
     "HOUSEHOLD-ALPHA": {
@@ -140,6 +142,7 @@ class AssistantQuery(BaseModel):
     query: Optional[str] = None
     question: Optional[str] = None
     context_scope: Optional[str] = "GENERAL"
+    scma_id: Optional[str] = None
 
 class CAOverrideRequest(BaseModel):
     token: str
@@ -2310,19 +2313,16 @@ def co_sign_distribution(
 
 # --- Scoped Copilots ---
 @router.post("/api/v1/portal/member/ai-tutor")
-def member_ai_tutor(query: AssistantQuery):
+def member_ai_tutor(query: AssistantQuery, scma_id: Optional[str] = Query(None)):
     prompt = query.query or query.question or ""
-    ans = _advisor_copilot_engine.ask(
-        prompt,
-        user_role="MEMBER",
-        context={"context_scope": query.context_scope},
-    )
-    return {"role": "MEMBER_TUTOR", "query": prompt, "response": ans, "answer": ans}
+    target_scma_id = (query.scma_id or scma_id or "").strip() or None
+    member_state = get_member_state(user_id=None, scma_id=target_scma_id)
+    return _member_literacy_tutor.answer_member_query(prompt, member_state=member_state)
 
 @router.post("/api/v1/portal/member/tutor")
-def member_tutor(query: AssistantQuery):
+def member_tutor(query: AssistantQuery, scma_id: Optional[str] = Query(None)):
     """Stable novice-facing alias used by the Member Desktop."""
-    return member_ai_tutor(query)
+    return member_ai_tutor(query, scma_id=scma_id)
 
 @router.post("/api/v1/portal/advisor/copilot")
 def advisor_copilot(query: AssistantQuery):
