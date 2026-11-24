@@ -212,6 +212,12 @@
       .brand-title { font-size: 11px; }
       .brand-motto { font-size: 10px; }
     }
+    .custodial-lookup-bar { background: var(--bg-card); border: 1px solid var(--border-subtle); border-left: 4px solid var(--accent-sky); border-radius: 10px; padding: 13px 16px; margin-bottom: 16px; }
+    .custodial-lookup-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
+    .custodial-lookup-form input { flex: 1; min-width: 180px; background: var(--bg-canvas); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px 11px; font-size: 13px; }
+    .custodial-lookup-drawer { margin-top: 10px; background: var(--bg-canvas); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 10px; display: grid; gap: 8px; }
+    .custodial-lookup-drawer[hidden] { display: none !important; }
+    .custodial-lookup-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 9px 11px; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -261,6 +267,20 @@
   </section>
 
   <details class="qualification-drawer"><summary>Engine Qualification Telemetry</summary><div class="qualification-grid"><span data-bind="capital.data.total_equity_cents">Lineage equity feed: qualification pending</span><span data-bind="capital.data.dry_powder_policy_status">Dry-powder policy: qualification pending</span><span data-bind="capital.data.cfcp_balance_cents">CFCP feed: qualification pending</span><span data-bind="capital.data.faep_balance_cents">FAEP feed: qualification pending</span><span data-bind="governance.system_halt">System halt: armed</span><span data-bind="governance.pending_dual_control">Dual-control queue: qualification pending</span><span data-bind="personal.data.principal_cents">Principal feed: qualification pending</span><span data-bind="personal.data.unreserved_cash_cents">Available cash feed: qualification pending</span><span>Four-domain scanner: NOT AVAILABLE - QUALIFICATION PENDING</span></div></details>
+
+  <section id="custodial-lookup-bar" class="custodial-lookup-bar" aria-label="Enclave-Wide Scoped Custodial Lookup">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+      <div class="card-title" style="margin:0;color:#38bdf8;">SCOPED CUSTODIAL MEMBER &amp; ACCOUNT LOOKUP (ENCLAVE-WIDE · CHIEF_ADMIN)</div>
+      <span id="lookup-scope-badge" class="badge-mode" style="font-size:10px;padding:3px 9px;">SCOPE: ENCLAVE_WIDE</span>
+    </div>
+    <div class="custodial-lookup-form">
+      <input id="custodial-lookup-input" type="search" aria-label="Search enclave family members, member IDs, SCMA IDs, or House codes" placeholder="Search any family member, member ID, SCMA ID, or HOUSE-01..12...">
+      <button id="custodial-lookup-btn" type="button" class="btn-onboard" onclick="runDashboardCustodialLookup()">Lookup Member</button>
+      <button id="custodial-lookup-clear" type="button" class="btn-batch" onclick="clearDashboardCustodialLookup()">Clear</button>
+    </div>
+    <div id="custodial-lookup-drawer" class="custodial-lookup-drawer" hidden role="region" aria-live="polite"></div>
+  </section>
+
   <div class="tabs">
     <button id="tab-btn-1" class="tab-btn active" onclick="switchTab(1)">1. Lineage Executive Overview</button>
     <button id="tab-btn-2" class="tab-btn" onclick="switchTab(2)">2. Family Lineal Pools &amp; Sub-Ledgers</button>
@@ -576,6 +596,119 @@
           </thead>
           <tbody id="enclave-seats-tbody">
             <tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 12px;">Loading voter seats...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PR #81: MULTI-USER ROLE PROVISIONING, ATOMIC PROMOTE/DEMOTE & ANTI-TRIBALISM CUSTODY -->
+    <div id="role-custody-governance-card" class="card" style="margin-bottom: 20px; border-color: #334155;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+        <div class="card-title" style="color: #38bdf8; margin: 0;">
+          MULTI-USER ROLE PROVISIONING &amp; <abbr class="pdeue-term" tabindex="0" data-term="anti-tribalism-custody" data-tooltip="An optional family-unity setting where guides and mentors are intentionally paired across different Houses instead of only within their own branch, preventing cliques and favoritism as the family grows.">ANTI-TRIBALISM CUSTODY<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> ENGINE
+        </div>
+        <span id="custody-mode-badge" class="badge-mode" style="font-size:11px;padding:4px 10px;">CUSTODY MODE: INTRA_HOUSE</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:16px;margin-bottom:16px;">
+        <div style="background:#0b132b;border:1px solid #334155;border-radius:8px;padding:14px;">
+          <div style="font-size:12px;font-weight:700;color:#f8fafc;margin-bottom:8px;">Role Provisioning &amp; Atomic Promote / Demote</div>
+          <p style="font-size:11.5px;color:#94a3b8;margin-bottom:8px;">Strict single-seat uniqueness on <code>CHIEF_ADMIN</code>, <code>T3</code> (CTO), and <code>F3</code> (CRO); multi-seat on all other tiers including <abbr class="pdeue-term" tabindex="0" data-term="house-genealogist" data-tooltip="A trusted family historian assigned to help verify how new relatives connect to the family tree and prepare welcome paperwork—without ever moving money or activating accounts on their own.">House Genealogist<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>.</p>
+          <div style="display:grid;gap:8px;">
+            <input id="role-member-id" type="text" aria-label="Target member ID for role provisioning" placeholder="Member ID (e.g., MEM-STEWARD-01)" style="padding:8px;border-radius:6px;border:1px solid #334155;background:#1c2541;color:#f8fafc;font-size:13px;">
+            <div style="display:grid;grid-template-columns:1fr 110px;gap:8px;">
+              <select id="role-token-select" aria-label="Target role token" style="padding:8px;border-radius:6px;border:1px solid #334155;background:#1c2541;color:#f8fafc;font-size:13px;">
+                <option value="F1">F1 (Peer Guide)</option>
+                <option value="F2-H">F2-H (Head of Household)</option>
+                <option value="F2-A">F2-A (Lineage Advisor)</option>
+                <option value="F3">F3 (CRO — Single Seat)</option>
+                <option value="T1">T1 (Monitor)</option>
+                <option value="T2">T2 (Engineer)</option>
+                <option value="T2-HOUSEHOLD">T2-HOUSEHOLD (Scoped)</option>
+                <option value="T3">T3 (CTO — Single Seat)</option>
+                <option value="H1">H1 (House Secretary)</option>
+                <option value="H2">H2 (House Leader)</option>
+                <option value="HOUSE_GENEALOGIST">HOUSE_GENEALOGIST</option>
+                <option value="MEMBER_USER">MEMBER_USER</option>
+              </select>
+              <input id="role-house-id" type="number" min="1" max="12" value="1" aria-label="Assigned House number (1 to 12)" style="padding:8px;border-radius:6px;border:1px solid #334155;background:#1c2541;color:#f8fafc;font-size:13px;">
+            </div>
+            <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#cbd5e1;cursor:pointer;">
+              <input id="role-succession-check" type="checkbox" aria-label="Explicit atomic succession handoff for single-seat roles"> Explicit Atomic Succession Handoff (Single-Seat Roles)
+            </label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button id="btn-assign-role" type="button" onclick="submitRoleRegistryAction('assign')" style="background:#0284c7;color:#f8fafc;border:none;padding:7px 12px;border-radius:6px;cursor:pointer;font-weight:700;font-size:12px;">Assign Role</button>
+              <button id="btn-promote-role" type="button" onclick="submitRoleRegistryAction('promote')" style="background:#059669;color:#f8fafc;border:none;padding:7px 12px;border-radius:6px;cursor:pointer;font-weight:700;font-size:12px;">Promote</button>
+              <button id="btn-demote-role" type="button" onclick="submitRoleRegistryAction('demote')" style="background:#d97706;color:#0b132b;border:none;padding:7px 12px;border-radius:6px;cursor:pointer;font-weight:700;font-size:12px;">Demote (Reassign Charges)</button>
+            </div>
+            <div id="role-registry-status" role="status" aria-live="polite" style="font-size:12px;color:#38bdf8;min-height:16px;"></div>
+          </div>
+        </div>
+
+        <div style="background:#0b132b;border:1px solid #334155;border-radius:8px;padding:14px;">
+          <div style="font-size:12px;font-weight:700;color:#f8fafc;margin-bottom:8px;">Custodial Pairing Mode &amp; Single-Seat Occupancy</div>
+          <p style="font-size:11.5px;color:#94a3b8;margin-bottom:10px;">Toggle between <code>INTRA_HOUSE</code> (early launch) and <code>CROSS_HOUSE_ANTI_TRIBAL</code> to pair F1/F2-A mentors across distinct Houses and mitigate tribalism.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+            <button id="btn-custody-intra" type="button" onclick="setCustodyMode('INTRA_HOUSE')" style="background:#1e293b;color:#38bdf8;border:1px solid #38bdf8;padding:7px 12px;border-radius:6px;cursor:pointer;font-weight:700;font-size:12px;">INTRA_HOUSE (Default)</button>
+            <button id="btn-custody-cross" type="button" onclick="setCustodyMode('CROSS_HOUSE_ANTI_TRIBAL')" style="background:#059669;color:#f8fafc;border:none;padding:7px 12px;border-radius:6px;cursor:pointer;font-weight:700;font-size:12px;">CROSS_HOUSE_ANTI_TRIBAL</button>
+          </div>
+          <div id="custody-mode-status" role="status" aria-live="polite" style="font-size:12px;color:#38bdf8;min-height:16px;margin-bottom:8px;"></div>
+          <div id="single-seat-summary" style="display:grid;gap:6px;font-size:12px;color:#cbd5e1;"></div>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <table style="width:100%;border-collapse:collapse;display:table;">
+          <thead>
+            <tr><th>ASSIGNMENT ID</th><th>MEMBER ID</th><th>ROLE TOKEN</th><th>SEAT CLASS</th><th>LINEAGE</th><th>STATUS</th></tr>
+          </thead>
+          <tbody id="role-assignments-tbody">
+            <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:10px;">Loading role assignments...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PR #81: 3-STAGE DELEGATED ONBOARDING & GENEALOGICAL RATIFICATION -->
+    <div id="delegated-onboarding-card" class="card" style="margin-bottom: 20px; border-color: #334155;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+        <div class="card-title" style="color:#38bdf8;margin:0;">
+          3-STAGE <abbr class="pdeue-term" tabindex="0" data-term="delegated-onboarding" data-tooltip="A Chief-Admin-controlled helper mode where trusted House leaders and genealogists can collect a new family member's welcome dossier ahead of time—waiting safely in review until leadership gives final approval.">DELEGATED ONBOARDING<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> &amp; <abbr class="pdeue-term" tabindex="0" data-term="genealogical-ratification" data-tooltip="The formal final approval step after family kinship is checked. Once approved by leadership, the new relative's personal account, House home, mentor, and separate bookkeeping notice are all created together automatically.">GENEALOGICAL RATIFICATION<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>
+        </div>
+        <span id="delegation-scope-badge" class="badge-mode" style="font-size:11px;padding:4px 10px;">SCOPE: ADMIN_ONLY</span>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;background:#0b132b;border:1px solid #334155;border-radius:8px;padding:12px;margin-bottom:12px;">
+        <label style="font-size:12px;color:#cbd5e1;display:inline-flex;align-items:center;gap:6px;">
+          Delegation Scope
+          <select id="delegation-scope-select" aria-label="Delegated onboarding intake scope" style="padding:6px 8px;border-radius:6px;border:1px solid #334155;background:#1c2541;color:#f8fafc;font-size:12px;">
+            <option value="ADMIN_ONLY">ADMIN_ONLY (Fail-Closed Default)</option>
+            <option value="PER_HOUSE">PER_HOUSE (Selected Houses)</option>
+            <option value="ENCLAVE_WIDE">ENCLAVE_WIDE (All Ranked Officers)</option>
+          </select>
+        </label>
+        <label style="font-size:12px;color:#cbd5e1;display:inline-flex;align-items:center;gap:6px;">
+          House Flag
+          <select id="house-delegation-house-select" aria-label="Target House for per-House delegation flag" style="padding:6px 8px;border-radius:6px;border:1px solid #334155;background:#1c2541;color:#f8fafc;font-size:12px;">
+            <option value="1">HOUSE-01</option><option value="2">HOUSE-02</option><option value="3">HOUSE-03</option><option value="4">HOUSE-04</option>
+            <option value="5">HOUSE-05</option><option value="6">HOUSE-06</option><option value="7">HOUSE-07</option><option value="8">HOUSE-08</option>
+            <option value="9">HOUSE-09</option><option value="10">HOUSE-10</option><option value="11">HOUSE-11</option><option value="12">HOUSE-12</option>
+          </select>
+        </label>
+        <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#cbd5e1;cursor:pointer;">
+          <input id="house-delegation-enabled-check" type="checkbox" aria-label="Enable delegated intake for selected House"> Enable House Intake
+        </label>
+        <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#cbd5e1;cursor:pointer;">
+          <input id="genealogical-board-toggle" type="checkbox" aria-label="Enable Genealogical Admissions Board voting"> Genealogical Admissions Board Vote
+        </label>
+        <button id="btn-save-delegation-config" type="button" onclick="saveDelegationConfig()" style="background:#0284c7;color:#f8fafc;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;font-weight:700;font-size:12px;">Save Delegation Policy</button>
+      </div>
+      <div id="delegation-config-status" role="status" aria-live="polite" style="font-size:12px;color:#38bdf8;min-height:16px;margin-bottom:8px;"></div>
+      <div class="table-card">
+        <table style="width:100%;border-collapse:collapse;display:table;">
+          <thead>
+            <tr><th>DOSSIER ID</th><th>APPLICANT &amp; KINSHIP</th><th>HOUSE &amp; SEED</th><th>SUBMITTER</th><th>STATUS &amp; IFAS EVENT</th><th>RATIFICATION ACTIONS</th></tr>
+          </thead>
+          <tbody id="onboarding-dossiers-tbody">
+            <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:12px;">No delegated admission dossiers submitted yet.</td></tr>
           </tbody>
         </table>
       </div>
@@ -1950,12 +2083,236 @@
       }
     }
 
+    async function runDashboardCustodialLookup() {
+      const input = document.getElementById("custodial-lookup-input");
+      const drawer = document.getElementById("custodial-lookup-drawer");
+      if (!drawer) return;
+      const q = input ? input.value.trim() : "";
+      drawer.hidden = false;
+      drawer.innerHTML = '<div style="font-size:12px;color:#94a3b8;">Searching enclave-wide directory...</div>';
+      try {
+        const res = await fetch(`/api/v1/portal/custodial/lookup?q=${encodeURIComponent(q)}&role=CHIEF_ADMIN`, {
+          headers: CHIEF_ADMIN_HEADERS
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          drawer.innerHTML = `<div style="font-size:12px;color:#fca5a5;">Lookup blocked (HTTP ${res.status}): ${_escGov(data.detail || "Forbidden")}</div>`;
+          return;
+        }
+        const items = data.results || [];
+        if (!items.length) {
+          drawer.innerHTML = '<div style="font-size:12px;color:#94a3b8;">No family members matched your search.</div>';
+          return;
+        }
+        drawer.innerHTML = items.slice(0, 15).map(m => `
+          <div class="custodial-lookup-item">
+            <div>
+              <strong>${_escGov(m.full_name)}</strong>
+              <span style="font-family:monospace;color:#38bdf8;margin-left:6px;">${_escGov(m.scma_id)}</span>
+              <div style="font-size:11px;color:#94a3b8;margin-top:2px;">
+                ${_escGov(m.member_id)} · ${_escGov(m.lineage_code)} · Roles: ${_escGov((m.active_roles || [m.role_tier]).join(", "))} · Status: ${_escGov(m.status)}
+              </div>
+            </div>
+            <div style="font-variant-numeric:tabular-nums;font-weight:700;color:#4ade80;">${_escGov(m.balance_display)}</div>
+          </div>
+        `).join("");
+      } catch (err) {
+        drawer.innerHTML = `<div style="font-size:12px;color:#fca5a5;">Lookup error: ${_escGov(err.message)}</div>`;
+      }
+    }
+
+    function clearDashboardCustodialLookup() {
+      const input = document.getElementById("custodial-lookup-input");
+      const drawer = document.getElementById("custodial-lookup-drawer");
+      if (input) { input.value = ""; input.focus(); }
+      if (drawer) { drawer.hidden = true; drawer.innerHTML = ""; }
+    }
+
+    async function loadRoleCustodyAndDelegationState() {
+      try {
+        const [rolesRes, policyRes, dossiersRes] = await Promise.all([
+          fetch("/api/v1/governance/roles"),
+          fetch("/api/v1/onboarding/delegation-config"),
+          fetch("/api/v1/onboarding/dossiers")
+        ]);
+        if (rolesRes.ok) {
+          const rolesData = await rolesRes.json();
+          const seats = rolesData.single_seat_holders || {};
+          const seatBox = document.getElementById("single-seat-summary");
+          if (seatBox) {
+            seatBox.innerHTML = ["CHIEF_ADMIN", "T3", "F3"].map(seat => {
+              const holder = seats[seat];
+              return `<div style="background:#1c2541;border:1px solid #334155;border-radius:6px;padding:6px 9px;display:flex;justify-content:space-between;gap:8px;">
+                <strong style="color:#38bdf8;">${seat} (Single Seat)</strong>
+                <span style="font-family:monospace;color:${holder ? "#4ade80" : "#94a3b8"};">${holder ? _escGov(holder.member_id) : "VACANT"}</span>
+              </div>`;
+            }).join("");
+          }
+          const tbody = document.getElementById("role-assignments-tbody");
+          const rows = rolesData.assignments || [];
+          if (tbody) {
+            tbody.innerHTML = rows.length ? rows.slice(0, 20).map(r => `
+              <tr>
+                <td style="font-family:monospace;font-size:11px;color:#38bdf8;">${_escGov(r.assignment_id)}</td>
+                <td style="font-family:monospace;font-size:12px;">${_escGov(r.member_id)}</td>
+                <td><b>${_escGov(r.role_token)}</b></td>
+                <td><span style="font-size:11px;color:${r.seat_class === "SINGLE_SEAT" ? "#fbbf24" : "#cbd5e1"};">${_escGov(r.seat_class)}</span></td>
+                <td>${_escGov(r.lineage_code)}</td>
+                <td><span style="font-weight:700;color:${r.status === "ACTIVE" ? "#34d399" : "#94a3b8"};">${_escGov(r.status)}</span></td>
+              </tr>
+            `).join("") : '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:10px;">No role assignments found.</td></tr>';
+          }
+        }
+        if (policyRes.ok) {
+          const policy = await policyRes.json();
+          const cBadge = document.getElementById("custody-mode-badge");
+          if (cBadge) cBadge.textContent = `CUSTODY MODE: ${policy.custody_assignment_mode || "INTRA_HOUSE"}`;
+          const dBadge = document.getElementById("delegation-scope-badge");
+          if (dBadge) dBadge.textContent = `SCOPE: ${policy.delegated_onboarding_scope || "ADMIN_ONLY"}${policy.genealogical_board_enabled ? " · BOARD ON" : ""}`;
+          const scopeSel = document.getElementById("delegation-scope-select");
+          if (scopeSel && policy.delegated_onboarding_scope) scopeSel.value = policy.delegated_onboarding_scope;
+          const boardChk = document.getElementById("genealogical-board-toggle");
+          if (boardChk) boardChk.checked = Boolean(policy.genealogical_board_enabled);
+          const houseSel = document.getElementById("house-delegation-house-select");
+          const houseChk = document.getElementById("house-delegation-enabled-check");
+          if (houseSel && houseChk && policy.house_delegation_flags) {
+            houseChk.checked = Boolean(policy.house_delegation_flags[String(houseSel.value)]);
+          }
+        }
+        if (dossiersRes.ok) {
+          const dData = await dossiersRes.json();
+          const dossiers = dData.dossiers || [];
+          const tbody = document.getElementById("onboarding-dossiers-tbody");
+          if (tbody) {
+            tbody.innerHTML = dossiers.length ? dossiers.map(d => {
+              const canRatify = d.status !== "RATIFIED_PROVISIONED" && d.status !== "REJECTED";
+              return `<tr>
+                <td style="font-family:monospace;color:#38bdf8;font-size:11px;">${_escGov(d.dossier_id)}</td>
+                <td><b>${_escGov(d.applicant_full_name)}</b><br><span style="font-size:11px;color:#94a3b8;">${_escGov(d.kinship_verification)} · ${_escGov(d.custodial_status)}${d.pay_it_forward_sponsored ? " · Pay-it-Forward" : ""}</span></td>
+                <td>${_escGov(d.lineage_code)}<br><span style="font-variant-numeric:tabular-nums;color:#4ade80;">${_escGov(d.seed_formatted)}</span></td>
+                <td>${_escGov(d.submitted_by_member_id)}<br><span style="font-size:11px;color:#94a3b8;">${_escGov(d.submitted_by_role)}</span></td>
+                <td><b>${_escGov(d.status)}</b>${d.ifas_outbox_event_id ? `<br><span style="font-family:monospace;font-size:11px;color:#38bdf8;">IFAS: ${_escGov(d.ifas_outbox_event_id)}</span>` : ""}</td>
+                <td>${canRatify ? `
+                  <div style="display:flex;gap:5px;flex-wrap:wrap;">
+                    <button type="button" onclick="adjudicateOnboardingDossier('${_escGov(d.dossier_id)}','ratify')" style="background:#059669;color:#f8fafc;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;">Ratify &amp; Provision</button>
+                    <button type="button" onclick="adjudicateOnboardingDossier('${_escGov(d.dossier_id)}','request-proof')" style="background:#d97706;color:#0b132b;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;">Request Proof</button>
+                    <button type="button" onclick="adjudicateOnboardingDossier('${_escGov(d.dossier_id)}','reject')" style="background:#dc2626;color:#f8fafc;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;">Reject</button>
+                  </div>` : `<span style="font-size:11px;color:#94a3b8;">${_escGov(d.provisioned_scma_id || d.status)}</span>`}</td>
+              </tr>`;
+            }).join("") : '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:12px;">No delegated admission dossiers submitted yet.</td></tr>';
+          }
+        }
+      } catch (err) {
+        console.error("Role/custody/delegation poll error:", err);
+      }
+    }
+
+    async function submitRoleRegistryAction(action) {
+      const statusEl = document.getElementById("role-registry-status");
+      const memberId = (document.getElementById("role-member-id")?.value || "").trim();
+      const roleToken = document.getElementById("role-token-select")?.value || "F1";
+      const houseId = Number(document.getElementById("role-house-id")?.value || 1);
+      const succession = Boolean(document.getElementById("role-succession-check")?.checked);
+      if (!memberId) {
+        if (statusEl) statusEl.textContent = "Enter a target member_id first.";
+        return;
+      }
+      const endpoint = action === "promote" ? "/api/v1/governance/roles/promote"
+        : (action === "demote" ? "/api/v1/governance/roles/demote" : "/api/v1/governance/roles/assign");
+      const body = action === "assign"
+        ? { member_id: memberId, role_token: roleToken, house_id: houseId, atomic_succession: succession }
+        : { member_id: memberId, to_role: roleToken, house_id: houseId, atomic_succession: succession };
+      try {
+        const res = await fetch(endpoint, { method: "POST", headers: CHIEF_ADMIN_HEADERS, body: JSON.stringify(body) });
+        const data = await res.json();
+        if (res.ok) {
+          if (statusEl) statusEl.textContent = `${data.status}: ${memberId} -> ${roleToken} (Audit ${data.audit_event_id})`;
+          await loadRoleCustodyAndDelegationState();
+        } else if (statusEl) {
+          statusEl.textContent = `Role action rejected (HTTP ${res.status}): ${data.detail || "Error"}`;
+        }
+      } catch (err) {
+        if (statusEl) statusEl.textContent = `Role action error: ${err.message}`;
+      }
+    }
+
+    async function setCustodyMode(mode) {
+      const statusEl = document.getElementById("custody-mode-status");
+      try {
+        const res = await fetch("/api/v1/governance/custody-mode", {
+          method: "POST",
+          headers: CHIEF_ADMIN_HEADERS,
+          body: JSON.stringify({ custody_assignment_mode: mode, reason: `Chief Admin selected ${mode} via Tab 4` })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          const cBadge = document.getElementById("custody-mode-badge");
+          if (cBadge) cBadge.textContent = `CUSTODY MODE: ${data.custody_assignment_mode || mode}`;
+          if (statusEl) statusEl.textContent = `Custody mode switched: ${data.previous_mode} -> ${data.custody_assignment_mode} (Audit ${data.audit_event_id})`;
+        } else if (statusEl) {
+          statusEl.textContent = `Custody mode switch rejected (HTTP ${res.status}): ${data.detail || "Forbidden"}`;
+        }
+      } catch (err) {
+        if (statusEl) statusEl.textContent = `Custody mode error: ${err.message}`;
+      }
+    }
+
+    async function saveDelegationConfig() {
+      const statusEl = document.getElementById("delegation-config-status");
+      const scope = document.getElementById("delegation-scope-select")?.value || "ADMIN_ONLY";
+      const houseId = document.getElementById("house-delegation-house-select")?.value || "1";
+      const houseEnabled = Boolean(document.getElementById("house-delegation-enabled-check")?.checked);
+      const boardEnabled = Boolean(document.getElementById("genealogical-board-toggle")?.checked);
+      try {
+        const res = await fetch("/api/v1/onboarding/delegation-config", {
+          method: "POST",
+          headers: CHIEF_ADMIN_HEADERS,
+          body: JSON.stringify({
+            delegated_onboarding_scope: scope,
+            house_delegation_flags: { [houseId]: houseEnabled },
+            genealogical_board_enabled: boardEnabled,
+            reason: "Chief Admin updated delegated onboarding controls on Tab 4"
+          })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          if (statusEl) statusEl.textContent = `Delegation policy saved: scope=${data.delegated_onboarding_scope}, board=${data.genealogical_board_enabled ? "ENABLED" : "OFF"} (Audit ${data.audit_event_id})`;
+          await loadRoleCustodyAndDelegationState();
+        } else if (statusEl) {
+          statusEl.textContent = `Delegation policy rejected (HTTP ${res.status}): ${data.detail || "Error"}`;
+        }
+      } catch (err) {
+        if (statusEl) statusEl.textContent = `Delegation policy error: ${err.message}`;
+      }
+    }
+
+    async function adjudicateOnboardingDossier(dossierId, action) {
+      const statusEl = document.getElementById("delegation-config-status");
+      try {
+        const res = await fetch(`/api/v1/onboarding/dossiers/${encodeURIComponent(dossierId)}/${action}`, {
+          method: "POST",
+          headers: CHIEF_ADMIN_HEADERS,
+          body: JSON.stringify({ decision_notes: `Chief Admin executed ${action} via Tab 4` })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          if (statusEl) statusEl.textContent = `Dossier ${dossierId} -> ${data.status}${data.ifas_outbox_event ? ` (IFAS ${data.ifas_outbox_event.event_id})` : ""}`;
+          await loadRoleCustodyAndDelegationState();
+        } else if (statusEl) {
+          statusEl.textContent = `Dossier action rejected (HTTP ${res.status}): ${data.detail || "Error"}`;
+        }
+      } catch (err) {
+        if (statusEl) statusEl.textContent = `Dossier action error: ${err.message}`;
+      }
+    }
+
     window.addEventListener("DOMContentLoaded", () => {
       setCurrencyMode(currencyMode);
       renderChart();
       preloadGlossary();
       loadWorkspaceState();
       loadGovernanceState();
+      loadRoleCustodyAndDelegationState();
       setInterval(loadWorkspaceState, 4000);
     });
   </script>

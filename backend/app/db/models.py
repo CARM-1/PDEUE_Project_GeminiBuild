@@ -324,3 +324,102 @@ class GovernanceVoteModel(Base):
     petition = relationship('GovernancePetitionModel', back_populates='votes')
 
 
+class AccountingOutboxEventModel(Base):
+    """ADR-011 persistent HMAC-SHA256 signed JSON-LD outbox table (created in migration 001)."""
+    __tablename__ = 'accounting_outbox_events'
+    event_id = Column(String, primary_key=True, index=True)
+    sequence_id = Column(Integer, nullable=False, unique=True, index=True)
+    event_type = Column(String, nullable=False, index=True)
+    payload_json = Column(Text, nullable=False)
+    signature_hmac_sha256 = Column(String, nullable=False)
+    status = Column(String, nullable=False, default='EMITTED')
+    created_at = Column(String, nullable=False, default=_now)
+
+
+class UserRoleAssignmentModel(Base):
+    """PR #81: Persistent relational multi-user role & authority provisioning registry."""
+    __tablename__ = 'user_role_assignments'
+    assignment_id = Column(String, primary_key=True, index=True)
+    member_id = Column(String, nullable=False, index=True)
+    role_token = Column(String, nullable=False, index=True)
+    house_id = Column(Integer, nullable=True, index=True)
+    status = Column(String, nullable=False, default='ACTIVE', index=True)
+    assigned_by = Column(String, nullable=False, default='CHIEF_ADMINISTRATOR')
+    assigned_at_utc = Column(String, nullable=False, default=_now)
+    revoked_at_utc = Column(String, nullable=True)
+    reason = Column(Text, nullable=True, default='')
+
+
+class CustodialAssignmentModel(Base):
+    """PR #81: Custodial officer-to-charge assignments supporting INTRA_HOUSE and CROSS_HOUSE_ANTI_TRIBAL modes."""
+    __tablename__ = 'custodial_assignments'
+    custody_id = Column(String, primary_key=True, index=True)
+    custodian_member_id = Column(String, nullable=False, index=True)
+    custodian_role = Column(String, nullable=False, index=True)
+    charge_member_id = Column(String, nullable=False, index=True)
+    charge_scma_id = Column(String, nullable=False, index=True)
+    charge_house_id = Column(Integer, nullable=False, index=True)
+    assignment_mode = Column(String, nullable=False, default='INTRA_HOUSE')
+    active = Column(Integer, nullable=False, default=1, index=True)
+    assigned_by = Column(String, nullable=False, default='SYSTEM_INIT')
+    assigned_at_utc = Column(String, nullable=False, default=_now)
+    ended_at_utc = Column(String, nullable=True)
+    reason = Column(Text, nullable=True, default='')
+
+
+class EnclavePolicyControlModel(Base):
+    """PR #81: Enclave-level custody anti-tribalism & delegated onboarding governance toggles."""
+    __tablename__ = 'enclave_policy_controls'
+    config_id = Column(String, primary_key=True, default='GLOBAL')
+    custody_assignment_mode = Column(String, nullable=False, default='INTRA_HOUSE')
+    delegated_onboarding_scope = Column(String, nullable=False, default='ADMIN_ONLY')
+    genealogical_board_enabled = Column(Integer, nullable=False, default=0)
+    genealogical_board_quorum = Column(Integer, nullable=False, default=2)
+    house_delegation_flags_json = Column(Text, nullable=False, default='{}')
+    updated_by = Column(String, nullable=False, default='SYSTEM_INIT')
+    updated_at_utc = Column(String, nullable=False, default=_now)
+    reason = Column(Text, nullable=True, default='')
+
+
+class DelegatedOnboardingDossierModel(Base):
+    """PR #81: 3-Stage Delegated Onboarding & Genealogical Ratification dossier ledger."""
+    __tablename__ = 'delegated_onboarding_dossiers'
+    dossier_id = Column(String, primary_key=True, index=True)
+    applicant_full_name = Column(String, nullable=False)
+    applicant_member_id = Column(String, nullable=True, index=True)
+    target_house_id = Column(Integer, nullable=False, index=True)
+    lineage_code = Column(String, nullable=False, index=True)
+    kinship_verification = Column(Text, nullable=False)
+    custodial_status = Column(String, nullable=False, default='ADULT')
+    is_custodial = Column(Integer, nullable=False, default=0)
+    pay_it_forward_sponsored = Column(Integer, nullable=False, default=0)
+    sponsor_member_id = Column(String, nullable=True)
+    seed_cents = Column(BigInteger, nullable=False, default=0)
+    risk_dial_bps = Column(Integer, nullable=False, default=150)
+    bank_ref_token = Column(String, nullable=False)
+    due_diligence_attestation = Column(Text, nullable=False)
+    attestation_signature = Column(String, nullable=False)
+    submitted_by_member_id = Column(String, nullable=False, index=True)
+    submitted_by_role = Column(String, nullable=False)
+    submitted_by_house_id = Column(Integer, nullable=True)
+    status = Column(String, nullable=False, default='PENDING_RATIFICATION', index=True)
+    board_votes_json = Column(Text, nullable=False, default='[]')
+    ratified_by = Column(String, nullable=True)
+    ratified_at_utc = Column(String, nullable=True)
+    decision_notes = Column(Text, nullable=True, default='')
+    provisioned_member_id = Column(String, nullable=True)
+    provisioned_scma_id = Column(String, nullable=True)
+    assigned_custodian_member_id = Column(String, nullable=True)
+    ifas_outbox_event_id = Column(String, nullable=True)
+    created_at_utc = Column(String, nullable=False, default=_now)
+    updated_at_utc = Column(String, nullable=False, default=_now)
+
+
+UserRoleAssignment = UserRoleAssignmentModel
+CustodialAssignment = CustodialAssignmentModel
+EnclavePolicyControl = EnclavePolicyControlModel
+DelegatedOnboardingDossier = DelegatedOnboardingDossierModel
+AccountingOutboxEvent = AccountingOutboxEventModel
+
+
+

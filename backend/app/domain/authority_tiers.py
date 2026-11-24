@@ -64,7 +64,7 @@ CLASS_F_ROLES: Set[str] = {
     "FINANCIAL_ADVISOR",
 }
 
-CLASS_H_ROLES: Set[str] = {"H1", "H2", "CLASS_H_LEADER"}
+CLASS_H_ROLES: Set[str] = {"H1", "H2", "CLASS_H_LEADER", "HOUSE_GENEALOGIST"}
 
 CLASS_M_ROLES: Set[str] = {"MEMBER_USER", "PERSONAL_SCMA", "MEMBER", "CLASS_M"}
 
@@ -82,6 +82,7 @@ HAT_WORKSPACES: Dict[str, str] = {
     "F3": "/advisor?role=F3",
     "H1": "/lineage/house/1?role=H1",
     "H2": "/lineage/house/1?role=H2",
+    "HOUSE_GENEALOGIST": "/lineage/house/1?role=H2",
 }
 
 PRINCIPAL_HAT_ENTITLEMENTS: Dict[str, Set[str]] = {
@@ -110,6 +111,7 @@ ROLE_DEFAULT_HATS: Dict[str, Set[str]] = {
     "F3": {"F3"},
     "H1": {"H1"},
     "H2": {"H2", "MEMBER_USER", "PERSONAL_SCMA"},
+    "HOUSE_GENEALOGIST": {"HOUSE_GENEALOGIST", "MEMBER_USER", "PERSONAL_SCMA"},
     "MEMBER_USER": {"MEMBER_USER", "PERSONAL_SCMA"},
     "PERSONAL_SCMA": {"MEMBER_USER", "PERSONAL_SCMA"},
 }
@@ -137,10 +139,13 @@ def normalize_role_token(raw: Optional[str]) -> str:
         "F3-CRO-RISK": "F3",
         "F3-FINANCIAL-ADVISOR": "F3",
         "MEMBER-USER": "MEMBER_USER",
+        "MEMBER": "MEMBER_USER",
         "PERSONAL-SCMA": "PERSONAL_SCMA",
         "CLASS-M": "MEMBER_USER",
         "HOUSE-ASSISTANT": "H1",
         "HOUSE-LEADER": "H2",
+        "HOUSE-GENEALOGIST": "HOUSE_GENEALOGIST",
+        "GENEALOGIST": "HOUSE_GENEALOGIST",
     }
     return aliases.get(token, token)
 
@@ -253,6 +258,21 @@ class ActiveHatGateway:
         self._lock = RLock()
         self._active_sessions: Dict[str, Dict[str, Any]] = {}
         self._current_by_principal: Dict[str, str] = {}
+        self._dynamic_role_provider: Optional[Any] = None
+
+    def set_dynamic_role_provider(self, provider: Any) -> None:
+        """Attach a callback returning active relational roles for a principal_id."""
+        with self._lock:
+            self._dynamic_role_provider = provider
+
+    def revoke_principal_sessions(self, principal_id: str) -> bool:
+        """Immediately invalidate any active Active-Hat session for a principal after demotion/revocation."""
+        with self._lock:
+            old_sid = self._current_by_principal.pop(principal_id, None)
+            if old_sid:
+                self._active_sessions.pop(old_sid, None)
+                return True
+            return False
 
     def entitled_hats(
         self,
@@ -261,6 +281,21 @@ class ActiveHatGateway:
         claims: Optional[Dict[str, Any]] = None,
     ) -> Set[str]:
         hats: Set[str] = set()
+        db_roles: Optional[List[str]] = None
+        provider = self._dynamic_role_provider
+        if provider is not None:
+            try:
+                db_roles = provider(principal_id)
+            except Exception:
+                db_roles = None
+        if db_roles is not None and len(db_roles) > 0:
+            for raw in db_roles:
+                norm = normalize_role_token(raw)
+                if norm in ROLE_DEFAULT_HATS:
+                    hats |= set(ROLE_DEFAULT_HATS[norm])
+                elif norm in HAT_WORKSPACES:
+                    hats.add(norm)
+            return hats
         if principal_id in PRINCIPAL_HAT_ENTITLEMENTS:
             hats |= set(PRINCIPAL_HAT_ENTITLEMENTS[principal_id])
         norm_role = normalize_role_token(principal_role)

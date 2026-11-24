@@ -1136,3 +1136,196 @@ def adjudicate_governance_petition(
         reason=str(payload.get("reason") or ""),
     )
 
+
+# =============================================================================
+# MILESTONE PR #81 — MULTI-USER ROLE PROVISIONING & ANTI-TRIBALISM CUSTODY API
+# =============================================================================
+
+from app.domain.role_custody_service import get_role_custody_service
+
+
+@lineage_router.get("/api/v1/governance/roles")
+def list_governance_role_assignments(
+    active_only: bool = Query(False),
+    role_token: Optional[str] = Query(None),
+    member_id: Optional[str] = Query(None),
+):
+    """List single-seat occupancy (CHIEF_ADMIN, T3, F3) and multi-seat assignments."""
+    return get_role_custody_service().list_role_assignments(
+        active_only=active_only,
+        role_token=role_token,
+        member_id=member_id,
+    )
+
+
+@lineage_router.post("/api/v1/governance/roles/assign", status_code=201)
+def assign_governance_role(
+    payload: Dict[str, Any],
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+):
+    """Assign a single-seat or multi-seat role with strict HTTP 409 single-seat uniqueness."""
+    actor_role, actor_id = _resolve_actor_context(
+        x_actor_role=x_actor_role,
+        x_actor_id=x_actor_id,
+        authorization=authorization,
+        payload=payload,
+    )
+    return get_role_custody_service().assign_role(
+        member_id=str(payload.get("member_id") or ""),
+        role_token=str(payload.get("role_token") or ""),
+        house_id=payload.get("house_id"),
+        atomic_succession=bool(payload.get("atomic_succession", False)),
+        reason=str(payload.get("reason") or ""),
+        actor_role=actor_role,
+        actor_id=actor_id,
+    )
+
+
+@lineage_router.post("/api/v1/governance/roles/revoke")
+def revoke_governance_role(
+    payload: Dict[str, Any],
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+):
+    """Revoke an active role and atomically reassign displaced custodial charges."""
+    actor_role, actor_id = _resolve_actor_context(
+        x_actor_role=x_actor_role,
+        x_actor_id=x_actor_id,
+        authorization=authorization,
+        payload=payload,
+    )
+    return get_role_custody_service().revoke_role(
+        member_id=str(payload.get("member_id") or ""),
+        role_token=str(payload.get("role_token") or ""),
+        reason=str(payload.get("reason") or ""),
+        actor_role=actor_role,
+        actor_id=actor_id,
+    )
+
+
+@lineage_router.post("/api/v1/governance/roles/promote")
+def promote_governance_member(
+    payload: Dict[str, Any],
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+):
+    """Atomically promote a member's tier while preserving single-seat uniqueness and zero orphans."""
+    actor_role, actor_id = _resolve_actor_context(
+        x_actor_role=x_actor_role,
+        x_actor_id=x_actor_id,
+        authorization=authorization,
+        payload=payload,
+    )
+    return get_role_custody_service().promote_member(
+        member_id=str(payload.get("member_id") or ""),
+        to_role=str(payload.get("to_role") or payload.get("role_token") or ""),
+        house_id=payload.get("house_id"),
+        from_role=payload.get("from_role"),
+        atomic_succession=bool(payload.get("atomic_succession", False)),
+        reason=str(payload.get("reason") or ""),
+        actor_role=actor_role,
+        actor_id=actor_id,
+    )
+
+
+@lineage_router.post("/api/v1/governance/roles/demote")
+def demote_governance_member(
+    payload: Dict[str, Any],
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+):
+    """Atomically demote a member and reassign all displaced custodial charges (0 orphans, 0 lingering access)."""
+    actor_role, actor_id = _resolve_actor_context(
+        x_actor_role=x_actor_role,
+        x_actor_id=x_actor_id,
+        authorization=authorization,
+        payload=payload,
+    )
+    return get_role_custody_service().demote_member(
+        member_id=str(payload.get("member_id") or ""),
+        to_role=str(payload.get("to_role") or payload.get("role_token") or "MEMBER_USER"),
+        house_id=payload.get("house_id"),
+        from_role=payload.get("from_role"),
+        reason=str(payload.get("reason") or ""),
+        actor_role=actor_role,
+        actor_id=actor_id,
+    )
+
+
+@lineage_router.get("/api/v1/governance/custody-mode")
+def get_custody_assignment_mode():
+    """Return active enclave custody mode (INTRA_HOUSE default vs CROSS_HOUSE_ANTI_TRIBAL)."""
+    return get_role_custody_service().get_policy_controls()
+
+
+@lineage_router.post("/api/v1/governance/custody-mode")
+def set_custody_assignment_mode(
+    payload: Dict[str, Any],
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+):
+    """Chief Administrator toggle between INTRA_HOUSE and CROSS_HOUSE_ANTI_TRIBAL custody pairing."""
+    actor_role, actor_id = _resolve_actor_context(
+        x_actor_role=x_actor_role,
+        x_actor_id=x_actor_id,
+        authorization=authorization,
+        payload=payload,
+    )
+    return get_role_custody_service().set_custody_assignment_mode(
+        custody_assignment_mode=str(payload.get("custody_assignment_mode") or ""),
+        reason=str(payload.get("reason") or ""),
+        actor_role=actor_role,
+        actor_id=actor_id,
+    )
+
+
+@lineage_router.get("/api/v1/governance/custody/assignments")
+def list_custodial_assignments(
+    custodian_member_id: Optional[str] = Query(None),
+    charge_member_id: Optional[str] = Query(None),
+    active_only: bool = Query(True),
+):
+    """List custodial officer-to-charge assignments and active anti-tribalism policy."""
+    svc = get_role_custody_service()
+    return {
+        "policy": svc.get_policy_controls(),
+        "assignments": svc.list_custodial_assignments(
+            custodian_member_id=custodian_member_id,
+            charge_member_id=charge_member_id,
+            active_only=active_only,
+        ),
+    }
+
+
+@lineage_router.post("/api/v1/governance/custody/assign", status_code=201)
+def assign_custodial_mentor(
+    payload: Dict[str, Any],
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+):
+    """Assign or auto-pair a custodian to a charge honoring active custody_assignment_mode."""
+    actor_role, actor_id = _resolve_actor_context(
+        x_actor_role=x_actor_role,
+        x_actor_id=x_actor_id,
+        authorization=authorization,
+        payload=payload,
+    )
+    return get_role_custody_service().assign_custodian(
+        charge_member_id=str(payload.get("charge_member_id") or ""),
+        charge_scma_id=str(payload.get("charge_scma_id") or ""),
+        charge_house_id=int(payload.get("charge_house_id") or 1),
+        custodian_member_id=payload.get("custodian_member_id"),
+        custodian_role=payload.get("custodian_role"),
+        reason=str(payload.get("reason") or ""),
+        actor_role=actor_role,
+        actor_id=actor_id,
+    )
+
+

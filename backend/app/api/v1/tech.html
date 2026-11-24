@@ -78,6 +78,11 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
 .pdeue-colophon{margin-top:28px;padding:12px 4px;border-top:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;color:var(--text-muted);font-size:.76rem}
 .colophon-attr{color:var(--text-muted);letter-spacing:.02em}
 .colophon-mode-badge{display:inline-flex;align-items:center;gap:6px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.7rem;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--bg-surface);border:1px solid var(--border-subtle);color:var(--text-secondary)}
+.custodial-lookup-bar{background:var(--bg-card);border:1px solid var(--border-subtle);border-left:4px solid var(--status-amber);border-radius:10px;padding:13px 15px;margin:14px 0}
+.custodial-lookup-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.custodial-lookup-form input{flex:1;min-width:180px;background:var(--bg-canvas);color:var(--text-primary);border:1px solid var(--border-subtle);border-radius:7px;padding:9px 11px}
+.custodial-lookup-drawer{margin-top:10px;background:var(--bg-canvas);border:1px solid var(--border-subtle);border-radius:8px;padding:10px;display:grid;gap:8px}
+.custodial-lookup-item{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:7px;padding:9px 11px;font-size:.82rem}
 @media(max-width:850px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){.grid{grid-template-columns:minmax(0,1fr)}.shell{padding:14px}.brand-lockup{gap:8px}.brand-title{font-size:.72rem}.brand-motto{font-size:.66rem}}
 </style></head><body>
@@ -137,6 +142,20 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
 </div>
 <!-- CHIEF_ADMIN_TIER_SWITCHER_END -->
 <div id="tier-scope-banner" class="tier-banner" role="status" aria-live="polite">T3 CTO scope: full technical daemon controls + audited CA Override modal; zero financial distribution, House, or household authority.</div>
+<section id="custodial-lookup-bar" class="custodial-lookup-bar" aria-label="Scoped Technical Node Relay Lookup">
+  <div class="row">
+    <div>
+      <div class="label">Scoped Technical Node &amp; Relay Lookup · Directive R-12 Masked</div>
+      <div class="muted" style="font-size:.78rem;">Technical relay telemetry only — balances (<code>$****.**</code>) and account IDs (<code>SCMA-MEM-****</code>) remain strictly masked server-side.</div>
+    </div>
+  </div>
+  <div class="custodial-lookup-form">
+    <input id="custodial-lookup-input" type="search" aria-label="Search technical relay nodes by House code or relay ID" placeholder="Search relay node or House code (e.g., HOUSE-01, RELAY)...">
+    <button id="custodial-lookup-btn" type="button" onclick="runTechRelayLookup()">Lookup Relay</button>
+    <button id="custodial-lookup-clear" type="button" class="btn-clear" onclick="clearTechRelayLookup()">Clear</button>
+  </div>
+  <div id="custodial-lookup-drawer" class="custodial-lookup-drawer" hidden role="region" aria-live="polite"></div>
+</section>
 <section id="household-scope-card" class="card" hidden aria-label="Household-scoped telemetry boundary">
   <div class="label">T2-Household Boundary</div>
   <h2>Assigned Household Telemetry: <span id="assigned-household-label">HOUSEHOLD-ALPHA</span></h2>
@@ -321,5 +340,30 @@ $('run-diagnostic').addEventListener('click',async()=>{
   const actions=lastTechActionCards.map((c,idx)=>`<article class="tech-action-card" data-auth-tier="${esc(c.auth_tier||'AUTH-01')}" data-executed="false" data-unilateral-execution="false"><div class="tech-action-head"><strong>${esc(c.title||'Staged Action')}</strong><div><span class="copilot-pill amber">${esc(c.auth_tier||'AUTH-01')}</span> <span class="copilot-pill green">STAGED · NOT EXECUTED</span></div></div><p class="muted" style="margin:6px 0 0;">${esc(c.description||'')}</p><div class="tech-action-foot"><small class="muted">${esc(c.confirmation_notice||'Requires manual operator action.')}</small><button type="button" onclick="stageTechAction(${idx})">Focus Control (No Auto-Exec)</button></div></article>`).join('');
   $('diagnostic-output').innerHTML=`${meta}<article class="analysis"><strong>${esc(d.role)}${activeTier==='T1'?' · READ-ONLY TELEMETRY':''}</strong><p>${esc(d.response)}</p><small>Cycle ${esc(d.telemetry?.cycle_count??0)} · Scope ${esc(d.telemetry_scope||'CLASS_T_OPERATIONAL')}</small></article>${actions}`;
 });
+async function runTechRelayLookup(){
+  const input=$('custodial-lookup-input'),drawer=$('custodial-lookup-drawer');
+  if(!drawer)return;
+  const q=input?input.value.trim():'';
+  drawer.hidden=false;
+  drawer.innerHTML='<div class="muted" style="font-size:.8rem;">Querying R-12 redacted relay directory...</div>';
+  try{
+    const headers={'X-Actor-Role':activeTier};
+    if(activeTier==='T2-HOUSEHOLD')headers['X-Household-ID']=assignedHousehold;
+    const r=await fetch(`/api/v1/portal/custodial/lookup?q=${encodeURIComponent(q)}&role=${encodeURIComponent(activeTier)}&household_id=${encodeURIComponent(assignedHousehold)}`,{headers});
+    const d=await r.json();
+    if(!r.ok){drawer.innerHTML=`<div class="masked">Lookup blocked (HTTP ${r.status}): ${esc(d.detail||'Forbidden')}</div>`;return}
+    const items=d.results||[];
+    if(!items.length){drawer.innerHTML='<div class="muted" style="font-size:.8rem;">No matching technical relays found.</div>';return}
+    drawer.innerHTML=items.slice(0,12).map(n=>`<div class="custodial-lookup-item"><div><strong>${esc(n.relay_node_id)}</strong> <span class="masked" style="margin-left:6px;">${esc(n.scma_id)}</span><div class="muted" style="font-size:.75rem;">${esc(n.lineage_code)} · Worker: ${esc(n.worker_status)} · Latency: ${esc(n.latency_ms)}ms</div></div><div class="masked">${esc(n.balance_display)} (R-12)</div></div>`).join('');
+  }catch(_err){
+    drawer.innerHTML='<div class="masked">Relay lookup unavailable — engine unreachable.</div>';
+  }
+}
+function clearTechRelayLookup(){
+  const input=$('custodial-lookup-input'),drawer=$('custodial-lookup-drawer');
+  if(input){input.value='';input.focus()}
+  if(drawer){drawer.hidden=true;drawer.innerHTML=''}
+}
+window.runTechRelayLookup=runTechRelayLookup;window.clearTechRelayLookup=clearTechRelayLookup;
 applyTier();refresh();
 </script></body></html>

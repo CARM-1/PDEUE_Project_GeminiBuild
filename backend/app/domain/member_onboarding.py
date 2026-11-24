@@ -45,6 +45,7 @@ ALLOWED_ROLE_TIERS: Tuple[str, ...] = (
     "T3",
     "H1",
     "H2",
+    "HOUSE_GENEALOGIST",
 )
 ALLOWED_ROLE_TIER_SET = frozenset(ALLOWED_ROLE_TIERS)
 
@@ -61,6 +62,7 @@ _OPAQUE_BANK_REF_RE = re.compile(r"^EXT-REF-[A-Z0-9][A-Z0-9_-]{1,31}-\*{4}[0-9]{
 # Reject any contiguous sequence of 5+ digits (catches raw routing or bank account numbers).
 _RAW_LONG_DIGITS_RE = re.compile(r"\d{5,}")
 _RAW_ROUTING_HINT_RE = re.compile(r"(?i)\b(?:aba|routing|swift|iban|acct|account[\s_-]*no)\b")
+_RAW_SSN_RE = re.compile(r"\b\d{3}-\d{2}-\d{4}\b")
 
 FORBIDDEN_BANKING_KEYS = frozenset(
     {
@@ -77,6 +79,11 @@ FORBIDDEN_BANKING_KEYS = frozenset(
         "bank_password",
         "bank_pin",
         "plaid_access_token",
+        "ssn",
+        "social_security_number",
+        "tax_id",
+        "tin",
+        "itin",
     }
 )
 

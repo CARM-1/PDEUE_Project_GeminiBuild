@@ -274,6 +274,14 @@
     footer.pdeue-colophon { padding: 15px 5vw; color: var(--text-muted); font-size: 0.78rem; border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
     .colophon-attr { color: var(--text-muted); letter-spacing: 0.02em; }
     .colophon-mode-badge { display: inline-flex; align-items: center; gap: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.7rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: var(--bg-surface); border: 1px solid var(--border-subtle); color: var(--text-secondary); }
+    .custodial-lookup-bar { background: var(--bg-card); border: 1px solid var(--border-subtle); border-left: 4px solid var(--accent-sky); border-radius: 10px; padding: 14px 16px; margin-bottom: 20px; }
+    .custodial-lookup-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
+    .custodial-lookup-form input { flex: 1; min-width: 180px; background: var(--bg-canvas); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 9px 11px; font-size: 0.9rem; }
+    .btn-lookup { background: var(--accent-sky-deep); color: var(--text-primary); border: 1px solid var(--accent-sky); margin: 0; }
+    .btn-lookup-clear { background: var(--bg-surface); color: var(--text-secondary); border: 1px solid var(--border-subtle); margin: 0; }
+    .custodial-lookup-drawer { margin-top: 10px; background: var(--bg-canvas); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 10px; display: grid; gap: 8px; }
+    .custodial-lookup-drawer[hidden] { display: none !important; }
+    .custodial-lookup-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 9px 11px; font-size: 0.85rem; }
     @media (max-width: 640px) {
       header { padding: 16px; }
       .wrap { padding: 16px; }
@@ -316,6 +324,16 @@
       </div>
       <div id="readModelBannerTimestamp" class="rm-meta">Updated UTC: __RM_UPDATED_UTC__</div>
     </section>
+    <section id="custodial-lookup-bar" class="custodial-lookup-bar" aria-label="Scoped House Custodial Lookup">
+      <h2>Scoped House Custodial Lookup (__HOUSE_CODE__ · __ACTIVE_ROLE__)</h2>
+      <p class="muted-note" style="margin:0;">Strictly confined to __HOUSE_CODE__ members; cross-House requests are rejected server-side (H1 balances remain Directive R-12 masked).</p>
+      <div class="custodial-lookup-form">
+        <input id="custodial-lookup-input" type="search" aria-label="Search members within this House" placeholder="Search __HOUSE_CODE__ member name, member ID, or SCMA...">
+        <button id="custodial-lookup-btn" type="button" class="btn-lookup" onclick="runHouseCustodialLookup()">Lookup</button>
+        <button id="custodial-lookup-clear" type="button" class="btn-lookup-clear" onclick="clearHouseCustodialLookup()">Clear</button>
+      </div>
+      <div id="custodial-lookup-drawer" class="custodial-lookup-drawer" hidden role="region" aria-live="polite"></div>
+    </section>
     __ROLE_DESK__
   </main>
   <!-- DISCOVERY_CONTROLS_START --><div hidden><button id="lineage-freeze" onclick="openFreezeModal('SCMA')">Freeze Dial</button><button id="lineage-vote" onclick="castVote('AYE')">Aye</button></div><!-- DISCOVERY_CONTROLS_END -->
@@ -328,6 +346,52 @@
   <script>
     const houseId = __HOUSE_ID__;
     const activeRole = '__ACTIVE_ROLE__';
+    function _escHtml(v) {
+      const s = document.createElement('span');
+      s.textContent = String(v ?? '');
+      return s.innerHTML;
+    }
+    async function runHouseCustodialLookup() {
+      const input = document.getElementById('custodial-lookup-input');
+      const drawer = document.getElementById('custodial-lookup-drawer');
+      if (!drawer) return;
+      const q = input ? input.value.trim() : '';
+      drawer.hidden = false;
+      drawer.innerHTML = '<div class="muted-note" style="margin:0;">Searching scoped House directory...</div>';
+      try {
+        const res = await fetch(`/api/v1/portal/custodial/lookup?q=${encodeURIComponent(q)}&role=${encodeURIComponent(activeRole)}&house_id=${encodeURIComponent(houseId)}`, {
+          headers: { 'X-House-ID': String(houseId), 'X-Actor-Role': activeRole }
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          drawer.innerHTML = `<div class="muted-note" style="margin:0;color:#FCA5A5;">Lookup blocked (HTTP ${res.status}): ${_escHtml(data.detail || 'Forbidden')}</div>`;
+          return;
+        }
+        const rows = data.results || [];
+        if (!rows.length) {
+          drawer.innerHTML = '<div class="muted-note" style="margin:0;">No members within this House matched your query.</div>';
+          return;
+        }
+        drawer.innerHTML = rows.map(m => `
+          <div class="custodial-lookup-item">
+            <div>
+              <strong>${_escHtml(m.full_name)}</strong>
+              <span class="mono" style="margin-left:6px;">${_escHtml(m.scma_id)}</span>
+              <div class="muted-note" style="margin:2px 0 0;">${_escHtml(m.lineage_code)} · ${_escHtml(m.role_tier)} · Status: ${_escHtml(m.status)}</div>
+            </div>
+            <div class="num" style="font-weight:700;color:${m.r12_masked ? '#FCD34D' : '#6EE7B7'};">${_escHtml(m.balance_display)}</div>
+          </div>
+        `).join('');
+      } catch (_err) {
+        drawer.innerHTML = '<div class="muted-note" style="margin:0;color:#FCA5A5;">Lookup unavailable — engine unreachable.</div>';
+      }
+    }
+    function clearHouseCustodialLookup() {
+      const input = document.getElementById('custodial-lookup-input');
+      const drawer = document.getElementById('custodial-lookup-drawer');
+      if (input) { input.value = ''; input.focus(); }
+      if (drawer) { drawer.hidden = true; drawer.innerHTML = ''; }
+    }
     async function post(path, body) {
       return fetch(`/api/v1/portal/lineage/house/${houseId}/${path}?role=${activeRole}`, {
         method: 'POST',
