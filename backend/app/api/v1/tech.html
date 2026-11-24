@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PDEUE Technical Infrastructure Console</title>
+<link rel="stylesheet" href="/static/css/senior_a11y.css">
 <style>
 :root{color-scheme:dark;--bg-canvas:#0B132B;--bg-card:#1C2541;--bg-surface:#1E293B;--border-subtle:#334155;--text-primary:#F8FAFC;--text-secondary:#CBD5E1;--text-muted:#94A3B8;--accent-sky:#38BDF8;--accent-sky-deep:#0284C7;--status-green:#059669;--status-amber:#D97706;--status-red:#DC2626;--bg:#0B132B;--panel:#1C2541;--line:#334155;--green:#4ade80;--muted:#94A3B8}
 *{box-sizing:border-box}
@@ -96,7 +97,7 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
 <div style="display:none" id="legacyPortalHub">PDEUE PORTAL HUB</div>
 <nav class="nav">
   <div class="row" style="gap:14px;">
-    <a href="/community" class="brand-lockup" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Heritage">
+    <a href="/community/heritage" class="brand-lockup" data-plane-doorway="heritage" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Heritage">
       <span class="brand-crests">
         <img class="brand-crest" src="/static/assets/crests/carmichael_crest.svg" alt="Carmichael Family Crest" width="40" height="46" loading="eager">
         <span class="brand-crest-divider" aria-hidden="true"></span>
@@ -109,7 +110,15 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
     </a>
     <strong>Technical Console (Class T)</strong>
   </div>
-  <span><a href="/companion" class="nav-link campus-link" id="navCompanionLink">🎓 PDEUE University</a></span>
+  <div class="senior-a11y-controls">
+    <a id="backToHomeBtn" class="back-home-btn" href="/home" data-plane-doorway="home">← Back to Home</a>
+    <a href="/companion" class="nav-link campus-link" id="navCompanionLink">🎓 PDEUE University</a>
+    <div id="textScaleGroup" class="text-scale-group" role="group" aria-label="Text size controls">
+      <button type="button" class="text-scale-btn active" data-scale="standard" aria-pressed="true" aria-label="Standard text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('standard')">A</button>
+      <button type="button" class="text-scale-btn" data-scale="large" aria-pressed="false" aria-label="Large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('large')">A+</button>
+      <button type="button" class="text-scale-btn" data-scale="xlarge" aria-pressed="false" aria-label="Extra large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('xlarge')">A++</button>
+    </div>
+  </div>
 </nav>
 <header class="hero">
   <div>
@@ -366,4 +375,4 @@ function clearTechRelayLookup(){
 }
 window.runTechRelayLookup=runTechRelayLookup;window.clearTechRelayLookup=clearTechRelayLookup;
 applyTier();refresh();
-</script></body></html>
+</script><script>(function(){var K='pdeue_text_scale',V={standard:1,large:1,xlarge:1};function r(){try{var s=localStorage.getItem(K);if(s&&V[s])return s}catch(_e){}return 'standard'}function a(s){var c=V[s]?s:'standard';document.documentElement.setAttribute('data-text-scale',c);try{localStorage.setItem(K,c)}catch(_e){}document.querySelectorAll('#textScaleGroup button[data-scale]').forEach(function(b){var on=b.getAttribute('data-scale')===c;b.setAttribute('aria-pressed',on?'true':'false');b.classList.toggle('active',on)});return c}window.PDEUESeniorA11y={setScale:a,getScale:r};a(r());if(typeof fetch==='function'){fetch('/api/v1/portal/planes').then(function(x){return x.ok?x.json():null}).then(function(d){if(!d||!d.doorways)return;document.querySelectorAll('[data-plane-doorway]').forEach(function(el){var u=d.doorways[el.getAttribute('data-plane-doorway')];if(u&&el.tagName==='A')el.setAttribute('href',u)})}).catch(function(){})}})();</script></body></html>

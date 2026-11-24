@@ -1,4 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PDEUE Member User Desktop</title>
+<link rel="stylesheet" href="/static/css/senior_a11y.css">
 <style>
 :root{color-scheme:dark;--bg-canvas:#0B132B;--bg-card:#1C2541;--bg-surface:#1E293B;--border-subtle:#334155;--text-primary:#F8FAFC;--text-secondary:#CBD5E1;--text-muted:#94A3B8;--accent-sky:#38BDF8;--accent-sky-deep:#0284C7;--status-green:#059669;--status-amber:#D97706;--status-red:#DC2626;--bg:#0B132B;--panel:#1C2541;--line:#334155;--muted:#94A3B8;--blue:#38BDF8;--green:#4ade80;--amber:#fbbf24;--red:#f87171}
 *{box-sizing:border-box}
@@ -182,7 +183,7 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
 </div>
 <nav class="shell portal-nav">
   <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;min-width:0;">
-    <a href="/community" class="brand-lockup" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Heritage">
+    <a href="/community/heritage" class="brand-lockup" data-plane-doorway="heritage" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Heritage">
       <span class="brand-crests">
         <img class="brand-crest" src="/static/assets/crests/carmichael_crest.svg" alt="Carmichael Family Crest" width="40" height="46" loading="eager">
         <span class="brand-crest-divider" aria-hidden="true"></span>
@@ -195,7 +196,19 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
     </a>
     <div><strong id="activeHatNavLabel"><abbr class="pdeue-term" tabindex="0" data-term="active-hat-r06" data-tooltip="One role at a time. Even if a family leader holds two jobs—like personal member and platform steward—they must intentionally switch hats so personal money and leadership tools never mix by accident.">Active Hat: MEMBER_USER<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></strong> · <a href="/companion" class="nav-link campus-link" id="navCompanionLink">🎓 PDEUE University</a></div>
   </div>
-  <div class="currency-toggle" aria-label="Currency display precision and glossary"><button id="openGlossaryBtn" type="button" class="curr-btn" onclick="openGlossaryDrawer()">📖 Lexicon v0.5</button><button id="memberSwitchHatBtn" type="button" class="curr-btn" hidden onclick="openMemberHatSwitchModal()">Switch Active Hat</button><button id="currBtnClean" class="curr-btn active" onclick="setCurrencyMode('clean')">$ USD (Clean)</button><button id="currBtnExact" class="curr-btn" onclick="setCurrencyMode('exact')">$ USD.¢¢ (Exact Cents)</button></div>
+  <div class="currency-toggle senior-a11y-controls" aria-label="Navigation, alerts, text size, and currency display">
+    <a id="backToHomeBtn" class="back-home-btn" href="/home" data-plane-doorway="home">← Back to Home</a>
+    <button id="familyAlertsBtn" type="button" class="alerts-bell-btn" aria-expanded="false" aria-controls="familyAlertsDrawer" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.toggleAlerts()">🔔 Family Alerts <span id="familyAlertsCount" class="alerts-count-pill">3</span></button>
+    <div id="textScaleGroup" class="text-scale-group" role="group" aria-label="Text size controls">
+      <button type="button" class="text-scale-btn active" data-scale="standard" aria-pressed="true" aria-label="Standard text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('standard')">A</button>
+      <button type="button" class="text-scale-btn" data-scale="large" aria-pressed="false" aria-label="Large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('large')">A+</button>
+      <button type="button" class="text-scale-btn" data-scale="xlarge" aria-pressed="false" aria-label="Extra large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('xlarge')">A++</button>
+    </div>
+    <button id="openGlossaryBtn" type="button" class="curr-btn" onclick="openGlossaryDrawer()">📖 Lexicon v0.5</button>
+    <button id="memberSwitchHatBtn" type="button" class="curr-btn" hidden onclick="openMemberHatSwitchModal()">Switch Active Hat</button>
+    <button id="currBtnClean" class="curr-btn active" onclick="setCurrencyMode('clean')">$ USD (Clean)</button>
+    <button id="currBtnExact" class="curr-btn" onclick="setCurrencyMode('exact')">$ USD.¢¢ (Exact Cents)</button>
+  </div>
 </nav>
 <main class="shell">
 <header class="topbar"><div><div class="eyebrow">Private <abbr class="pdeue-term" tabindex="0" data-term="scma" data-tooltip="Your own private, walled-off family account. Your money grows inside your personal box, and if a trade ever loses money, that loss stays strictly inside your own account and never touches anyone else's savings.">SCMA<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> · Member workspace</div><h1>My Wealth Desktop</h1><div id="identity" class="fine">Loading your account…</div></div><div class="header-actions"><span id="memberRoleBadge" class="badge-pill sky">CLASS M: MEMBER_USER</span><span id="memberStatusBadge" class="badge-pill green">ACTIVE</span></div></header>
@@ -340,7 +353,14 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
     </div>
   </div>
   <p style="margin:8px 0 6px;"><strong>Security Reassurance (ADR-011):</strong> PDEUE never requests, stores, or transmits bank routing numbers, bank account numbers, SWIFT/IBAN codes, or banking login credentials. Only your opaque <code>EXT-REF-...</code> deposit memo token above is recorded inside PDEUE.</p>
-  <p class="fine" style="margin:0;color:#CBD5E1;"><strong>Live Bank Linking &amp; Custody Notice:</strong> All live bank linking, ACH/wire funding transfers, and fiduciary reconciliation route exclusively through the independent <abbr class="pdeue-term" tabindex="0" data-term="ifas" data-tooltip="Our separate, dedicated banking and bookkeeping home where real bank accounts, deposits, withdrawals, and tax records live. Keeping it apart from the trading engine protects every family member's banking details.">IFAS<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> portal at <code id="ifasPortalHost">accounting.narratix.io</code>.</p>
+  <p class="fine" style="margin:0 0 12px;color:#CBD5E1;"><strong>Live Bank Linking &amp; Custody Notice:</strong> All live bank linking, ACH/wire funding transfers, and fiduciary reconciliation route exclusively through the independent <abbr class="pdeue-term" tabindex="0" data-term="ifas" data-tooltip="Our separate, dedicated banking and bookkeeping home where real bank accounts, deposits, withdrawals, and tax records live. Keeping it apart from the trading engine protects every family member's banking details.">IFAS<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> portal at <code id="ifasPortalHost">narratixai.net</code>.</p>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <button id="ifasHandoffBtn" type="button" class="cta-link" style="min-height:48px;cursor:pointer;" onclick="openIfasHandoff()">🏦 Banking &amp; Tax Statements (IFAS) →</button>
+    <span class="fine" style="color:#94A3B8;">Opens the separate IFAS fiduciary plane (zero bank credentials stored in PDEUE).</span>
+  </div>
+  <div id="ifasAirGapNotice" class="disclosure-box" hidden role="status" aria-live="polite" style="margin-top:12px;">
+    <strong>ADR-011 Air-Gap Paper Mode Notice:</strong> The standalone IFAS Banking &amp; Tax Statements portal (<code>https://narratixai.net</code>) is not yet bound in this local paper/observation environment. For your protection under ADR-011, PDEUE never collects bank routing numbers, bank account numbers, or tax filings inside this trading vault.
+  </div>
 </article>
 <footer class="pdeue-colophon" role="contentinfo">
   <span class="colophon-attr">Powered by CARM Aerotech Corporation</span>
@@ -831,8 +851,34 @@ tutorForm.addEventListener('submit',async e=>{e.preventDefault();await submitTut
 // Legacy onboarding dismissal key retained for preference migration.
 localStorage.getItem('pdeue_welcome_dismissed');
 setCurrencyMode(currencyMode);
+function openIfasHandoff(){
+  const btn=document.getElementById('ifasHandoffBtn');
+  const notice=document.getElementById('ifasAirGapNotice');
+  const configuredUrl=(btn&&btn.getAttribute('data-ifas-url'))||'';
+  if(configuredUrl){
+    window.open(configuredUrl,'_blank','noopener,noreferrer');
+    return;
+  }
+  if(notice){
+    notice.hidden=false;
+  }
+}
+window.openIfasHandoff=openIfasHandoff;
 applySupervisoryLens(null);
 applyMultiRoleHatControls();
 switchMemberView(query.get('invite_token')?'orientation':(localStorage.getItem('pdeue_member_active_view')||'orientation'));
 (async()=>{await maybeActivateInvite();preloadGlossary();await loadState();setInterval(loadState, 3000)})();
-</script></body></html>
+</script>
+<aside id="familyAlertsDrawer" class="family-alerts-drawer" hidden role="dialog" aria-modal="false" aria-label="Family Alerts">
+  <div class="family-alerts-head">
+    <div>
+      <div style="font-size:0.74rem;font-weight:800;letter-spacing:0.08em;color:#FCD34D;">ISOLATED FAMILY ALERTS · NO BALANCES</div>
+      <strong style="font-size:1.1rem;">Family Announcements &amp; Reminders</strong>
+    </div>
+    <button id="closeFamilyAlertsBtn" type="button" class="family-alerts-close" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.toggleAlerts(false)">Close</button>
+  </div>
+  <div id="familyAlertsList" class="family-alerts-list" aria-live="polite">
+    <p>Loading family alerts…</p>
+  </div>
+</aside>
+<script src="/static/js/senior_a11y.js"></script></body></html>

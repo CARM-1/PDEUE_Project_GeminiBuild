@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120" width="100" height="120" role="img" aria-label="Allied Surname Heraldic Crest Frame">
+  <defs>
+    <linearGradient id="alliedBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1A352C"/>
+      <stop offset="100%" stop-color="#0B132B"/>
+    </linearGradient>
+    <linearGradient id="alliedGold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F6DE8D"/>
+      <stop offset="100%" stop-color="#B88930"/>
+    </linearGradient>
+  </defs>
+  <path d="M12 12 H88 V62 C88 89 67 104 50 112 C33 104 12 89 12 62 Z" fill="url(#alliedBg)" stroke="url(#alliedGold)" stroke-width="4"/>
+  <path d="M20 20 H80 V60 C80 82 63 95 50 102 C37 95 20 82 20 60 Z" fill="none" stroke="#79B88A" stroke-opacity="0.55" stroke-width="1.5"/>
+  <path d="M24 38 L50 64 L76 38" fill="none" stroke="url(#alliedGold)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="50" cy="34" r="6" fill="url(#alliedGold)"/>
+  <circle cx="36" cy="72" r="4.5" fill="#79B88A"/>
+  <circle cx="64" cy="72" r="4.5" fill="#79B88A"/>
+  <circle cx="50" cy="84" r="5" fill="url(#alliedGold)"/>
+</svg>

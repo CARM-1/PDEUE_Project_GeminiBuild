@@ -20,8 +20,8 @@ app = FastAPI(title="PDEUE Operator Workspace API", version="1.0.0")
 
 @app.get("/", include_in_schema=False)
 def root_redirect():
-    """Redirect bare root URL directly to the Lineage Community Hearth."""
-    return RedirectResponse(url="/community", status_code=302)
+    """Redirect bare root URL directly to the Central Family Home Hub."""
+    return RedirectResponse(url="/home", status_code=302)
 paper_manager = PaperSessionManager()
 packet_builder = DecisionPacketBuilder()
 
@@ -106,7 +106,9 @@ app.include_router(copilot_router)
 app.include_router(health_router)
 
 
-# Mount portal router and static templates
+# Mount air-gapped social/heritage/comms router, portal router, and static assets
+from app.api.v1.social_plane_router import social_plane_router
+app.include_router(social_plane_router)
 app.include_router(portal_router)
 static_path = pathlib.Path(__file__).parent / 'static'
 app.mount('/static', StaticFiles(directory=str(static_path)), name='static')

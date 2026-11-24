@@ -1020,69 +1020,8 @@ def get_tech_console(
     return HTMLResponse(page)
 
 
-# --- Class C Community Fellowship (strictly non-transactional) ---
-@router.get("/community", response_class=HTMLResponse)
-def get_community_portal():
-    return _load_html("community.html")
-
-
-@router.get("/api/v1/portal/community/feed")
-def get_community_feed() -> Dict[str, Any]:
-    return {
-        "announcements": list(_COMMUNITY_ANNOUNCEMENTS),
-        "milestones": list(_COMMUNITY_MILESTONES),
-        "messages": list(reversed(_COMMUNITY_MESSAGES[-50:])),
-        "scope": "COMMUNITY_EDUCATION_ONLY",
-    }
-
-
-@router.post("/api/v1/portal/community/message", status_code=201)
-def post_community_message(request: CommunityMessageRequest) -> Dict[str, str]:
-    message = {
-        "member_id": _community_text(request.member_id, field="member_id", maximum=80),
-        "author_name": _community_text(request.author_name, field="author_name", maximum=80),
-        "house_id": _community_text(request.house_id, field="house_id", maximum=80),
-        "message_text": _community_text(request.message_text, field="message_text", maximum=1000),
-        "posted_at": datetime.now(timezone.utc).isoformat(),
-    }
-    _COMMUNITY_MESSAGES.append(message)
-    return message
-
-
-@router.get("/api/v1/portal/community/academy/lessons")
-def get_community_lessons() -> Dict[str, Any]:
-    return {"lessons": list(_COMMUNITY_LESSONS), "curriculum_scope": "EDUCATIONAL_ONLY"}
-
-
-@router.post("/api/v1/portal/community/academy/ask-tutor")
-def ask_community_tutor(request: CommunityTutorRequest) -> Dict[str, str]:
-    query = _community_text(request.query, field="query", maximum=500)
-    member_id = _community_text(request.member_id, field="member_id", maximum=80)
-    lowered = html.unescape(query).lower()
-    mutation_phrases = (
-        "buy ", "sell ", "place an order", "execute", "submit a trade",
-        "make a trade", "cancel order", "transfer", "withdraw", "deposit",
-    )
-    balance_phrases = ("my balance", "account balance", "capital balance", "bank balance", "how much money")
-    if any(phrase in lowered for phrase in mutation_phrases + balance_phrases):
-        raise HTTPException(
-            status_code=403,
-            detail="The academy tutor is educational only and cannot access balances or perform transactions.",
-        )
-
-    if "quarter-kelly" in lowered or "quarter kelly" in lowered:
-        answer = "Quarter-Kelly uses one fourth of a model's Kelly-sized exposure. It keeps the idea of scaling with confidence while adding a large cushion for estimation error and uncertainty."
-        concept = "RISK_SIZING"
-    elif "binary" in lowered:
-        answer = "A binary contract has two possible settlement outcomes. Its quoted probability is a learning aid, not a promise; uncertainty and calibration still matter."
-        concept = "BINARY_CONTRACT_FOUNDATIONS"
-    elif "87/10/3" in lowered or "waterfall" in lowered:
-        answer = "The 87/10/3 lesson describes a stewardship safeguard: three defined portions help learners reason about compounding, family protection, and education support without directing a transaction."
-        concept = "WATERFALL_STEWARDSHIP"
-    else:
-        answer = "Start by naming the outcome, the uncertainty, and what evidence could change your view. Good risk literacy separates an educational estimate from a guaranteed result."
-        concept = "RISK_LITERACY"
-    return {"member_id": member_id, "query": query, "answer": answer, "concept": concept, "mode": "EDUCATIONAL_ONLY"}
+# Community Fellowship (/home, /community, /community/heritage, /api/v1/portal/community/*)
+# is served exclusively by the air-gapped social_plane_router.py (zero financial imports).
 
 # --- Member Workspace (Directive R-06 Split-Hat) ---
 # Twelve fixed slots make missing telemetry explicit instead of collapsing the rack.
