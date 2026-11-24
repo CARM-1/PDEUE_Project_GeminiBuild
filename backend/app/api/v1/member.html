@@ -96,9 +96,43 @@ code{background:#0B132B;color:var(--accent-sky);padding:2px 6px;border-radius:4p
 .hat-modal-box{width:min(480px,94vw);background:var(--bg-card);border:1px solid #D97706;border-radius:12px;padding:22px;box-shadow:0 16px 40px rgba(0,0,0,.6)}
 .hat-btn-amber{background:#D97706;color:#0B132B;border:1px solid #FCD34D;font-weight:800}
 .hat-btn-amber:hover{background:#F59E0B;color:#0B132B}
+abbr.pdeue-term{position:relative;display:inline-flex;align-items:baseline;gap:3px;text-decoration:underline dotted var(--accent-sky);text-underline-offset:3px;cursor:help;color:inherit}
+abbr.pdeue-term .pdeue-term-info{font-size:.78em;color:var(--accent-sky);font-style:normal;line-height:1;text-transform:none;user-select:none}
+abbr.pdeue-term::after{content:attr(data-tooltip);display:none;position:absolute;z-index:6000;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);width:max-content;max-width:min(280px,78vw);padding:9px 12px;border:1px solid var(--accent-sky);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:.78rem;font-weight:500;line-height:1.4;text-align:left;text-transform:none;letter-spacing:normal;white-space:normal;box-shadow:0 10px 24px rgba(0,0,0,.55);pointer-events:none;opacity:0;visibility:hidden}
+abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-visible::after{display:block;opacity:1;visibility:visible}
+.rm-banner{border-radius:10px;padding:13px 16px;margin:14px 0 16px;border:1px solid var(--border-subtle);background:var(--bg-card);display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px}
+.rm-banner.rm-qualification_pending{border-color:var(--status-amber);border-left:5px solid var(--status-amber);background:rgba(217,119,6,.14)}
+.rm-banner.rm-trading_halted{border-color:var(--status-red);border-left:5px solid var(--status-red);background:rgba(220,38,38,.18)}
+.rm-banner.rm-degraded_retrying{border-color:var(--status-red);border-left:5px solid var(--status-amber);background:rgba(220,38,38,.14)}
+.rm-pill{display:inline-block;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.74rem;font-weight:800;padding:3px 9px;border-radius:999px;background:var(--bg-surface);border:1px solid var(--border-subtle);color:var(--text-primary)}
+.rm-headline{font-weight:800;color:var(--text-primary);font-size:.94rem;margin-top:4px}
+.rm-reason{color:var(--text-secondary);font-size:.84rem;margin-top:2px}
+.rm-meta{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.74rem;color:var(--text-muted)}
+.rm-halt-overlay{border:2px solid var(--status-red);background:rgba(220,38,38,.14);border-radius:10px;padding:14px 16px;margin-bottom:16px;color:#FECACA}
+.rings-svg{display:block;width:100%;max-width:240px;height:auto;margin:6px auto}
+.rings-legend{display:grid;gap:6px;margin-top:8px;font-size:.78rem}
+.rings-legend-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 8px;background:#0B132B;border:1px solid var(--border-subtle);border-radius:6px;font-variant-numeric:tabular-nums}
+.rings-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;flex-shrink:0}
+.ring-center-val{fill:#F8FAFC;font:800 13px ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-variant-numeric:tabular-nums}
+.ring-center-sub{fill:#94A3B8;font:600 9px -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;text-transform:uppercase;letter-spacing:.06em}
+.glossary-drawer{position:fixed;top:0;right:0;width:min(460px,100vw);height:100vh;background:var(--bg-card);border-left:2px solid var(--accent-sky);box-shadow:-12px 0 36px rgba(0,0,0,.72);z-index:9500;display:flex;flex-direction:column;padding:18px;overflow:hidden}
+.glossary-header{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid var(--border-subtle);padding-bottom:12px;margin-bottom:12px}
+.glossary-cats{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.glossary-cat-btn{padding:5px 10px;font-size:.74rem;border-radius:999px;background:var(--bg-surface);border:1px solid var(--border-subtle);color:var(--text-secondary);cursor:pointer;font-weight:700}
+.glossary-cat-btn.active,.glossary-cat-btn:hover{background:var(--accent-sky-deep);border-color:var(--accent-sky);color:var(--text-primary)}
+.glossary-list{flex:1;overflow-y:auto;display:grid;gap:10px;padding-right:2px;margin-top:8px}
+.glossary-item{background:var(--bg-canvas);border:1px solid var(--border-subtle);border-radius:8px;padding:12px}
+.glossary-item-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap}
+.glossary-item h4{margin:0;font-size:.94rem;color:var(--accent-sky)}
+.glossary-item p{margin:6px 0 6px;font-size:.84rem;color:var(--text-secondary);line-height:1.45}
+.glossary-aliases{display:flex;flex-wrap:wrap;gap:5px}
+.glossary-alias{font-size:.7rem;padding:2px 7px;border-radius:999px;background:var(--bg-surface);color:var(--text-muted);border:1px solid var(--border-subtle)}
 [hidden]{display:none!important}
-@media(max-width:850px){.pillar-grid,.metrics,.future-grid,.funding-grid{grid-template-columns:1fr 1fr}.slot-rack{grid-template-columns:repeat(2,1fr)}.split{flex-direction:column;align-items:stretch}}
-@media(max-width:520px){.pillar-grid,.metrics,.future-grid,.funding-grid{grid-template-columns:1fr}.shell{padding:13px}.workspace-switcher{flex-direction:column;align-items:stretch}.proj-chart-shell{padding:12px}}
+.pillar-grid,.metrics,.future-grid,.funding-grid,.slot-rack{min-width:0}
+.pillar-grid>*,.metrics>*,.future-grid>*,.funding-grid>*,.slot-rack>*,.card{min-width:0}
+.currency-toggle,.header-actions{flex-wrap:wrap}
+@media(max-width:850px){.pillar-grid,.metrics,.future-grid,.funding-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.slot-rack{grid-template-columns:repeat(2,minmax(0,1fr))}.split{flex-direction:column;align-items:stretch}}
+@media(max-width:520px){.pillar-grid,.metrics,.future-grid,.funding-grid,.slot-rack{grid-template-columns:minmax(0,1fr)}.shell{padding:12px}.workspace-switcher{flex-direction:column;align-items:stretch}.proj-chart-shell{padding:10px}.curr-btn{padding:7px 10px;font-size:.78rem}}
 </style></head><body><div style="display:none" id="legacyPortalHub">PDEUE PORTAL HUB</div>
 <div id="supervisoryAuditLensBanner" class="supervisory-lens-banner" hidden role="region" aria-label="Supervisory Audit Lens">
   <div class="supervisory-lens-inner">
@@ -106,9 +140,18 @@ code{background:#0B132B;color:var(--accent-sky);padding:2px 6px;border-radius:4p
     <span id="supervisoryLensMeta" class="supervisory-lens-meta">INSPECTOR: CHIEF_ADMIN · MUTATIONS LOCKED</span>
   </div>
 </div>
-<nav class="shell portal-nav"><div><strong id="activeHatNavLabel">Active Hat: MEMBER_USER</strong> · <a href="/companion" class="nav-link campus-link" id="navCompanionLink">🎓 PDEUE University</a></div><div class="currency-toggle" aria-label="Currency display precision"><button id="memberSwitchHatBtn" type="button" class="curr-btn" hidden onclick="openMemberHatSwitchModal()">Switch Active Hat</button><button id="currBtnClean" class="curr-btn active" onclick="setCurrencyMode('clean')">$ USD (Clean)</button><button id="currBtnExact" class="curr-btn" onclick="setCurrencyMode('exact')">$ USD.¢¢ (Exact Cents)</button></div></nav>
+<nav class="shell portal-nav"><div><strong id="activeHatNavLabel"><abbr class="pdeue-term" tabindex="0" data-term="active-hat-r06" data-tooltip="Directive R-06 Split-Hat Role Mapping: multi-role operators explicitly switch between isolated role contexts. Privileges never blend across workspaces.">Active Hat: MEMBER_USER<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></strong> · <a href="/companion" class="nav-link campus-link" id="navCompanionLink">🎓 PDEUE University</a></div><div class="currency-toggle" aria-label="Currency display precision and glossary"><button id="openGlossaryBtn" type="button" class="curr-btn" onclick="openGlossaryDrawer()">📖 Lexicon v0.5</button><button id="memberSwitchHatBtn" type="button" class="curr-btn" hidden onclick="openMemberHatSwitchModal()">Switch Active Hat</button><button id="currBtnClean" class="curr-btn active" onclick="setCurrencyMode('clean')">$ USD (Clean)</button><button id="currBtnExact" class="curr-btn" onclick="setCurrencyMode('exact')">$ USD.¢¢ (Exact Cents)</button></div></nav>
 <main class="shell">
-<header class="topbar"><div><div class="eyebrow">Private SCMA · Member workspace</div><h1>My Wealth Desktop</h1><div id="identity" class="fine">Loading your account…</div></div><div class="header-actions"><span id="memberRoleBadge" class="badge-pill sky">CLASS M: MEMBER_USER</span><span id="memberStatusBadge" class="badge-pill green">ACTIVE</span></div></header>
+<header class="topbar"><div><div class="eyebrow">Private <abbr class="pdeue-term" tabindex="0" data-term="scma" data-tooltip="Self-Contained Member Account: tenant-partitioned member sub-ledger in exact integer cents. Losses remain 100% isolated inside the executing SCMA.">SCMA<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> · Member workspace</div><h1>My Wealth Desktop</h1><div id="identity" class="fine">Loading your account…</div></div><div class="header-actions"><span id="memberRoleBadge" class="badge-pill sky">CLASS M: MEMBER_USER</span><span id="memberStatusBadge" class="badge-pill green">ACTIVE</span></div></header>
+
+<section id="readModelStatusBanner" class="rm-banner rm-qualification_pending" hidden role="status" aria-live="assertive" data-rm-status="OK">
+  <div>
+    <span id="readModelStatusCode" class="rm-pill">QUALIFICATION_PENDING</span>
+    <div id="readModelBannerHeadline" class="rm-headline">NOT AVAILABLE — QUALIFICATION PENDING</div>
+    <div id="readModelBannerReason" class="rm-reason">Gate G1 is in HOLD_OBSERVATIONS_ONLY (paper observation mode).</div>
+  </div>
+  <div id="readModelBannerTimestamp" class="rm-meta"></div>
+</section>
 
 <section id="activationBanner" class="status-banner" hidden role="status" aria-live="polite"></section>
 
@@ -143,11 +186,11 @@ code{background:#0B132B;color:var(--accent-sky);padding:2px 6px;border-radius:4p
 <div class="workspace-switcher" role="tablist" aria-label="Primary member view"><button id="tabBtnOrientation" class="switch-btn active" role="tab" onclick="switchMemberView('orientation')">📘 Platform Orientation &amp; Lineage Covenant</button><button id="tabBtnEngine" class="switch-btn" role="tab" onclick="switchMemberView('engine')">⚡ Live Trading Engine</button></div>
 
 <section id="viewOrientation" role="tabpanel">
-<article id="welcomeCard" class="card hero"><div class="eyebrow">A BETTER FINANCIAL STARTING POINT</div><h2>Your capital works autonomously. Your covenant protects the family.</h2><p>PDEUE autonomously scans, underwrites, sizes, and executes qualified wholesale maker orders. <strong>You do not trade.</strong> Under <strong>Rule A14 (100% SCMA Loss Isolation)</strong>, all risk and any trading losses remain 100% contained inside your personal Segregated Compounding Member Account (SCMA); no sibling SCMA, CFCP reserve, or FAEP endowment ever absorbs an individual trading loss.</p><p>Under <strong>ADR-012 (Per-SCMA High-Water Mark)</strong>, the reconciled <strong>87/10/3 Transaction Profit Waterfall</strong> applies strictly to <em>net new realized profit above your account's prior High-Water Mark</em> (floor-truncated in exact integer cents under ADR-008, with residual cents routed to CFCP). Any profit earned while recovering from a drawdown stays 100% inside your SCMA ($0 to CFCP, $0 to FAEP)—eliminating the volatility tax, with $0 out-of-pocket platform bills.</p></article>
+<article id="welcomeCard" class="card hero"><div class="eyebrow">A BETTER FINANCIAL STARTING POINT</div><h2>Your capital works autonomously. Your covenant protects the family.</h2><p>PDEUE autonomously scans, underwrites, sizes, and executes qualified wholesale maker orders. <strong>You do not trade.</strong> Under <strong>Rule A14 (100% SCMA Loss Isolation)</strong>, all risk and any trading losses remain 100% contained inside your personal <abbr class="pdeue-term" tabindex="0" data-term="scma" data-tooltip="Self-Contained Member Account: tenant-partitioned member sub-ledger in exact integer cents. Losses remain 100% isolated inside the executing SCMA and never cross-collateralize sibling accounts.">SCMA<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> (Segregated Compounding Member Account); no sibling SCMA, <abbr class="pdeue-term" tabindex="0" data-term="cfcp" data-tooltip="Central Familial Common Pool: non-trading familial reserve receiving 10% (plus remainder cents) of eligible net new profit above High-Water Mark. Never absorbs individual trading losses.">CFCP<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> reserve, or <abbr class="pdeue-term" tabindex="0" data-term="faep" data-tooltip="Founder/Chief Administrator Endowment Pool: receives 3% of eligible net new profit above High-Water Mark for platform stewardship and infrastructure. $0 skim on loss or drawdown recovery.">FAEP<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> endowment ever absorbs an individual trading loss.</p><p>Under <strong><abbr class="pdeue-term" tabindex="0" data-term="high-water-mark-adr-012" data-tooltip="Per-SCMA High-Water Mark (ADR-012): the 87/10/3 waterfall applies strictly to net new profit above prior peak equity. Drawdown recovery stays 100% in SCMA ($0 CFCP/FAEP skim).">ADR-012 (Per-SCMA High-Water Mark)<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></strong>, the reconciled <strong>87/10/3 Transaction Profit Waterfall</strong> applies strictly to <em>net new realized profit above your account's prior High-Water Mark</em> (floor-truncated in exact integer cents under <abbr class="pdeue-term" tabindex="0" data-term="adr-008-exact-cents" data-tooltip="Exact-Cent Integer Accounting (ADR-008): all balances, order sizes, reservations, and waterfall splits use 64-bit integer cents. Floating-point currency math is strictly prohibited.">ADR-008<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>, with residual cents routed to CFCP). Any profit earned while recovering from a drawdown stays 100% inside your SCMA ($0 to CFCP, $0 to FAEP)—eliminating the volatility tax, with $0 out-of-pocket platform bills.</p></article>
 
-<section class="pillar-grid" aria-label="87 10 3 covenant"><article class="pillar"><strong>87%</strong><h3>Personal Compounding</h3><p>Retained in your SCMA above High-Water Mark to compound future positions (100% kept during drawdown recovery).</p></article><article class="pillar"><strong>10%</strong><h3>Familial Treasury · Familial Common Treasury</h3><p>CFCP emergency shield, FSAP toxic-debt relief, and shared lineage resilience—funded strictly from new net profit above HWM.</p></article><article class="pillar"><strong>3%</strong><h3>System Stewardship · Infrastructure</h3><p>Cloud servers and verified public data feeds, strictly from net profit above HWM: $0 on loss, $0 out-of-pocket.</p></article></section>
+<section class="pillar-grid" aria-label="87 10 3 covenant"><article class="pillar"><strong>87%</strong><h3>Personal Compounding (<abbr class="pdeue-term" tabindex="0" data-term="scma" data-tooltip="Self-Contained Member Account: tenant-partitioned member sub-ledger in exact integer cents.">SCMA<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>)</h3><p>Retained in your SCMA above High-Water Mark to compound future positions (100% kept during drawdown recovery).</p></article><article class="pillar"><strong>10%</strong><h3>Familial Treasury · <abbr class="pdeue-term" tabindex="0" data-term="cfcp" data-tooltip="Central Familial Common Pool: non-trading familial reserve receiving 10% (plus remainder cents) of eligible net new profit above High-Water Mark.">CFCP<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></h3><p>CFCP emergency shield, FSAP toxic-debt relief, and shared lineage resilience—funded strictly from new net profit above HWM.</p></article><article class="pillar"><strong>3%</strong><h3>System Stewardship · <abbr class="pdeue-term" tabindex="0" data-term="faep" data-tooltip="Founder/Chief Administrator Endowment Pool: receives 3% of eligible net new profit above High-Water Mark for platform stewardship.">FAEP<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></h3><p>Cloud servers and verified public data feeds, strictly from net profit above HWM: $0 on loss, $0 out-of-pocket.</p></article></section>
 
-<article class="card"><div class="label">N=12 production standard · illustrative, not guaranteed</div><h2>Dual-Seed 12-Month Numerical Projections ($100 vs $1,000)</h2><p class="fine">Complete schedules: $100.00 Starting Seed and $1,000.00 Starting Seed.</p><div class="disclosure-box"><strong>Explicit Non-Guarantee Disclosure:</strong> All $100 and $1,000 compounding scenarios below are illustrative mathematical simulations only—not a promise or guarantee of future returns. Actual live outcomes vary with market liquidity, fill quality, and drawdown cycles, and capital placed in event contracts is at risk of loss.</div><p>Each schedule separates capital working on-venue from cash swept into commercial-bank custody. Active float is hard-capped at <strong>$25,000</strong> to reduce order-book slippage; excess gains sweep off-venue and earn an illustrative <strong>4.5% APY</strong>.</p>
+<article class="card"><div class="label">N=12 production standard · illustrative, not guaranteed</div><h2>Dual-Seed 12-Month Numerical Projections ($100 vs $1,000)</h2><p class="fine">Complete schedules: $100.00 Starting Seed and $1,000.00 Starting Seed.</p><div class="disclosure-box"><strong>Explicit Non-Guarantee Disclosure:</strong> All $100 and $1,000 compounding scenarios below are illustrative mathematical simulations only—not a promise or guarantee of future returns. Actual live outcomes vary with market liquidity, fill quality, and drawdown cycles, and capital placed in event contracts is at risk of loss.</div><p>Each schedule separates capital working on-venue from cash swept into commercial-bank custody. Active float is hard-capped at <strong>$25,000</strong> to reduce order-book slippage while preserving the <abbr class="pdeue-term" tabindex="0" data-term="dry-powder-floor-40" data-tooltip="Uncommitted cash shield: every dispatch batch must leave at least 40% of pre-dispatch total equity uncommitted (integer-cent ceiling). Priority eviction drops weaker intents rather than breaching it.">40% Dry-Powder Floor<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>; excess gains sweep off-venue and earn an illustrative <strong>4.5% APY</strong>.</p>
 <div id="unifiedProjectionChart" class="proj-chart-shell">
   <div class="proj-header">
     <div>
@@ -173,12 +216,13 @@ code{background:#0B132B;color:var(--accent-sky);padding:2px 6px;border-radius:4p
 </section>
 
 <section id="viewEngine" role="tabpanel" hidden><div id="quarantineBanner" class="card red" hidden><b>House quarantine active.</b> New exposure is paused.</div>
+<div id="memberHaltOverlay" class="rm-halt-overlay" hidden role="alert"><strong>TRADING HALTED — EXECUTIVE OVERRIDE</strong><div id="memberHaltOverlayDetail" class="fine" style="color:#FECACA;margin-top:4px;">TRADING HALTED: DIRECTIVE R-04 ENGAGED. Live execution telemetry and risk mutations are paused fail-closed until Chief Administrator resumption.</div></div>
 <section class="metrics"><article class="card"><div class="label">Cumulative Wealth</div><div class="run-rate" id="totalWealth">$0</div></article><article class="card"><div class="label">Active Float</div><h2 id="activeFloat">$0</h2><div class="fine">Hard cap $25,000</div></article><article class="card"><div class="label">Swept Bank Cash</div><h2 id="sweptCash">$0</h2></article><article class="card"><div class="label">4.5% Yield</div><h2 id="passiveYield">$0</h2></article></section>
-<article class="card"><div class="label">Performance ratios</div><h2>My Trajectory</h2><canvas id="trajectory-canvas" width="1" height="1" hidden></canvas><div class="future-grid"><div><b>Win / Loss Rate</b><p>74.2% (89W / 31L)</p></div><div><b>Profit Factor</b><p>2.84x</p></div><div><b>Sizing Model</b><p>Quarter-Kelly (0.25f*)</p></div><div><b>Max Drawdown</b><p>Defensive Ceiling: 5.0%</p></div></div>
+<article class="card"><div class="label">Performance ratios</div><h2>My Trajectory</h2><canvas id="trajectory-canvas" width="1" height="1" hidden></canvas><div class="future-grid"><div><b>Win / Loss Rate</b><p>74.2% (89W / 31L)</p></div><div><b>Profit Factor</b><p>2.84x</p></div><div><b>Sizing Model</b><p><abbr class="pdeue-term" tabindex="0" data-term="quarter-kelly" data-tooltip="Canonical sizing ceiling at 0.25 of full-Kelly. Final stake is the minimum of Quarter-Kelly, member risk dial, Tier-1 ceilings, liquidity, and the 40% Dry-Powder Floor.">Quarter-Kelly (0.25f*)<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></p></div><div><b>Max Drawdown</b><p>Defensive Ceiling: 5.0%</p></div></div>
 <div class="future-grid" aria-label="Member performance visualizations">
-<section id="asset-rings-view" class="market"><h3>Asset Engine Rings</h3><svg viewBox="0 0 240 180" role="img" aria-labelledby="asset-rings-title asset-rings-desc"><title id="asset-rings-title">Concentric asset engine allocation rings</title><desc id="asset-rings-desc">Three rings show active float, swept reserve, and passive yield.</desc><circle cx="120" cy="90" r="64" fill="none" stroke="#29405f" stroke-width="12"/><circle cx="120" cy="90" r="48" fill="none" stroke="#42b8ef" stroke-width="10" stroke-dasharray="238 302" transform="rotate(-90 120 90)"/><circle cx="120" cy="90" r="32" fill="none" stroke="#4ade80" stroke-width="10" stroke-dasharray="141 201" transform="rotate(-90 120 90)"/></svg></section>
-<section id="trajectory-view" class="market"><h3>My Trajectory</h3><svg viewBox="0 0 240 180" role="img" aria-labelledby="trajectory-title trajectory-desc"><title id="trajectory-title">Member balance trajectory</title><desc id="trajectory-desc">An upward path represents growth from seed capital through the high-watermark sweep.</desc><defs><linearGradient id="trajectory-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#38bdf8" stop-opacity=".35"/><stop offset="1" stop-color="#38bdf8" stop-opacity="0"/></linearGradient></defs><path d="M16 154 C55 145 72 128 102 119 S154 75 224 30 L224 164 L16 164 Z" fill="url(#trajectory-fill)"/><path d="M16 154 C55 145 72 128 102 119 S154 75 224 30" fill="none" stroke="#38bdf8" stroke-width="5" stroke-linecap="round"/></svg></section>
-<section id="radar-view" class="market"><h3>High-Yield Radar</h3><svg viewBox="0 0 240 180" role="img" aria-labelledby="radar-title radar-desc"><title id="radar-title">Eighty-seven ten three distribution radar</title><desc id="radar-desc">The radar compares personal compounding, family shield, and platform operations allocations.</desc><polygon points="120,18 218,154 22,154" fill="none" stroke="#29405f" stroke-width="2"/><polygon points="120,30 181,145 91,116" fill="#42b8ef" fill-opacity=".22" stroke="#42b8ef" stroke-width="3"/><text id="wf87" x="120" y="15" font-size="11" fill="#eef6ff" text-anchor="middle">87% SCMA</text><text id="wf10" x="234" y="172" font-size="11" fill="#eef6ff" text-anchor="end">10% Family Shield</text><text id="wf3" x="6" y="172" font-size="11" fill="#eef6ff">3% Platform Ops</text></svg></section>
+<section id="asset-rings-view" class="market"><h3><abbr class="pdeue-term" tabindex="0" data-term="concentric-asset-rings" data-tooltip="Canonical PDEUE HUD visualization showing nested rings for Active Working Margin, the 40% Dry-Powder Floor Shield, and the 87/10/3 SCMA/CFCP/FAEP waterfall split with accessible numeric legends.">Asset Engine Rings<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></h3><svg id="member-asset-rings-svg" class="rings-svg" viewBox="0 0 240 200" role="img" aria-labelledby="asset-rings-title asset-rings-desc"><title id="asset-rings-title">Concentric asset engine allocation rings</title><desc id="asset-rings-desc">Concentric rings show active working margin, mandatory 40% dry-powder floor shield, and 87/10/3 SCMA/CFCP/FAEP waterfall split.</desc><circle cx="120" cy="100" r="76" fill="none" stroke="#1E293B" stroke-width="11"/><circle id="memberRingMargin" cx="120" cy="100" r="76" fill="none" stroke="#38BDF8" stroke-width="11" stroke-linecap="round" stroke-dasharray="140 478" transform="rotate(-90 120 100)"/><circle cx="120" cy="100" r="58" fill="none" stroke="#1E293B" stroke-width="11"/><circle id="memberRingShield" cx="120" cy="100" r="58" fill="none" stroke="#059669" stroke-width="11" stroke-linecap="round" stroke-dasharray="146 365" transform="rotate(-90 120 100)"/><circle cx="120" cy="100" r="40" fill="none" stroke="#1E293B" stroke-width="10"/><circle id="memberRingWfScma" cx="120" cy="100" r="40" fill="none" stroke="#38BDF8" stroke-width="10" stroke-dasharray="218.7 251.3" transform="rotate(-90 120 100)"/><circle id="memberRingWfCfcp" cx="120" cy="100" r="40" fill="none" stroke="#059669" stroke-width="10" stroke-dasharray="25.1 251.3" stroke-dashoffset="-218.7" transform="rotate(-90 120 100)"/><circle id="memberRingWfFaep" cx="120" cy="100" r="40" fill="none" stroke="#D97706" stroke-width="10" stroke-dasharray="7.5 251.3" stroke-dashoffset="-243.8" transform="rotate(-90 120 100)"/><text id="memberRingCenterVal" class="ring-center-val" x="120" y="98" text-anchor="middle">40% SHIELD</text><text id="memberRingCenterSub" class="ring-center-sub" x="120" y="113" text-anchor="middle">87/10/3 HWM</text></svg><div id="memberRingsLegend" class="rings-legend"><div class="rings-legend-row"><span><i class="rings-dot" style="background:#38BDF8"></i>Working Margin</span><strong id="legendWorkingMargin">—</strong></div><div class="rings-legend-row"><span><i class="rings-dot" style="background:#059669"></i>40% Dry-Powder Shield</span><strong id="legendDryPowder">—</strong></div><div class="rings-legend-row"><span><i class="rings-dot" style="background:#D97706"></i>Waterfall (SCMA/CFCP/FAEP)</span><strong id="legendWaterfall">87% / 10% / 3%</strong></div></div></section>
+<section id="trajectory-view" class="market"><h3>My Trajectory</h3><svg id="member-trajectory-svg" viewBox="0 0 240 180" role="img" aria-labelledby="trajectory-title trajectory-desc"><title id="trajectory-title">Member balance trajectory</title><desc id="trajectory-desc">An upward path represents growth from seed capital through the high-watermark sweep.</desc><defs><linearGradient id="trajectory-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#38bdf8" stop-opacity=".35"/><stop offset="1" stop-color="#38bdf8" stop-opacity="0"/></linearGradient></defs><path id="memberTrajectoryArea" d="M16 154 C55 145 72 128 102 119 S154 75 224 30 L224 164 L16 164 Z" fill="url(#trajectory-fill)"/><path id="memberTrajectoryLine" d="M16 154 C55 145 72 128 102 119 S154 75 224 30" fill="none" stroke="#38bdf8" stroke-width="5" stroke-linecap="round"/></svg><div id="memberTrajectoryMeta" class="fine" style="margin-top:6px;">Seed Capital → 40% Shield → High-Watermark Sweep</div></section>
+<section id="radar-view" class="market"><h3>High-Yield Radar</h3><svg viewBox="0 0 240 180" role="img" aria-labelledby="radar-title radar-desc"><title id="radar-title">Eighty-seven ten three distribution radar</title><desc id="radar-desc">The radar compares personal compounding, family shield, and platform operations allocations.</desc><polygon points="120,18 218,154 22,154" fill="none" stroke="#29405f" stroke-width="2"/><polygon points="120,30 181,145 91,116" fill="#42b8ef" fill-opacity=".22" stroke="#42b8ef" stroke-width="3"/><text id="wf87" x="120" y="15" font-size="11" fill="#eef6ff" text-anchor="middle">87% SCMA</text><text id="wf10" x="234" y="172" font-size="11" fill="#eef6ff" text-anchor="end">10% Family Shield</text><text id="wf3" x="6" y="172" font-size="11" fill="#eef6ff">3% Platform Ops</text></svg><div class="fine" style="margin-top:6px;">Applies strictly above <abbr class="pdeue-term" tabindex="0" data-term="high-water-mark-adr-012" data-tooltip="Per-SCMA High-Water Mark (ADR-012): 87/10/3 applies strictly to net new realized profit above prior peak equity.">ADR-012 HWM<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>.</div></section>
 </div></article>
 <article class="card"><div class="label">Live transparency layer</div><h2>Glass Engine · 12-Slot Concurrency Rack</h2><p class="fine"><span title="Strategy D places inside-maker orders and never pays retail taker pricing.">Strategy D wholesale maker ⓘ</span></p><div id="slotRack" class="slot-rack"><article class="slot" data-slot-id="1"><div class="slot-id">SLOT 01</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="2"><div class="slot-id">SLOT 02</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="3"><div class="slot-id">SLOT 03</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="4"><div class="slot-id">SLOT 04</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="5"><div class="slot-id">SLOT 05</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="6"><div class="slot-id">SLOT 06</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="7"><div class="slot-id">SLOT 07</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="8"><div class="slot-id">SLOT 08</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="9"><div class="slot-id">SLOT 09</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="10"><div class="slot-id">SLOT 10</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="11"><div class="slot-id">SLOT 11</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="12"><div class="slot-id">SLOT 12</div><div class="slot-domain">Slot Available</div></article></div></article><div hidden aria-hidden="true"><button class="regime">Traditional Index (~9%)</button><button class="regime">Steady Pace</button><button class="regime">Standard Pace</button></div>
 <div class="split"><article class="card"><div class="label">Downward-Only Risk Governor</div><h2>Choose less exposure</h2><p>Members may reduce risk from 2.00% to 0.50%. Restoration is locked to the F2-H Head of Household.</p><div class="range-row"><input id="riskSlider" type="range" min="50" max="200" value="100" aria-label="Risk dial percent"><b id="riskValue">1.00%</b></div><button id="saveRiskBtn" onclick="saveRiskDial()">Apply reduction</button><div id="riskStatus" class="fine"></div></article><article class="card"><div class="label">3-Tier Distribution Request Drawer</div><h2>Request personal cash</h2><div class="tier-key"><b class="green">● Green</b><b class="yellow">● Yellow</b><b class="red">● Red</b></div><input id="distributionAmount" type="text" placeholder="Amount in dollars" aria-label="Distribution amount in dollars"><button id="distributionBtn">Review request</button><p id="distributionStatus" class="fine"></p></article></div>
@@ -188,7 +232,7 @@ code{background:#0B132B;color:var(--accent-sky);padding:2px 6px;border-radius:4p
 <article id="fundingInstructionsCard" class="card funding-card" aria-label="Funding Instructions">
   <div class="status-row">
     <div>
-      <div class="eyebrow" style="color:#38BDF8;">STAGE 5 · ADR-011 ZERO-CREDENTIAL BANKING ISOLATION</div>
+      <div class="eyebrow" style="color:#38BDF8;">STAGE 5 · <abbr class="pdeue-term" tabindex="0" data-term="adr-011-air-gap" data-tooltip="Zero Banking Credentials &amp; Signed Outbox (ADR-011): PDEUE never stores bank routing, account, SWIFT, or login credentials. External accounts use opaque EXT-REF tokens and HMAC-SHA256 signed events to IFAS.">ADR-011 Air-Gap<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> ZERO-CREDENTIAL BANKING ISOLATION</div>
       <h2 style="margin-bottom:4px;">Funding Instructions</h2>
     </div>
     <span class="badge-pill green">🔒 ADR-011 ZERO CREDENTIALS STORED</span>
@@ -211,6 +255,26 @@ code{background:#0B132B;color:var(--accent-sky);padding:2px 6px;border-radius:4p
   <p class="fine" style="margin:0;color:#CBD5E1;"><strong>Live Bank Linking &amp; Custody Notice:</strong> All live bank linking, ACH/wire funding transfers, and fiduciary reconciliation route exclusively through the independent IFAS portal at <code id="ifasPortalHost">accounting.narratix.io</code>.</p>
 </article>
 </main>
+<aside id="glossaryDrawer" class="glossary-drawer" hidden role="dialog" aria-modal="false" aria-label="PDEUE Lexicon v0.5 Glossary and Thesaurus">
+  <div class="glossary-header">
+    <div>
+      <div class="eyebrow" style="color:#38BDF8;">LEXICON v0.5 · CANONICAL GLOSSARY</div>
+      <strong style="color:#F8FAFC;font-size:1.05rem;">Glossary &amp; Thesaurus</strong>
+    </div>
+    <button id="closeGlossaryBtn" type="button" onclick="closeGlossaryDrawer()">Close</button>
+  </div>
+  <input id="glossarySearchInput" type="text" placeholder="Search terms or aliases (e.g. SCMA, HWM, R-12, shield)…" aria-label="Search Lexicon v0.5 glossary" oninput="renderGlossaryList()">
+  <div id="glossaryCategoryBar" class="glossary-cats" role="group" aria-label="Filter glossary by category">
+    <button type="button" class="glossary-cat-btn active" data-glossary-cat="all" onclick="setGlossaryCategory('all')">All</button>
+    <button type="button" class="glossary-cat-btn" data-glossary-cat="Capital &amp; Pools" onclick="setGlossaryCategory('Capital & Pools')">Capital &amp; Pools</button>
+    <button type="button" class="glossary-cat-btn" data-glossary-cat="Risk &amp; Sizing" onclick="setGlossaryCategory('Risk & Sizing')">Risk &amp; Sizing</button>
+    <button type="button" class="glossary-cat-btn" data-glossary-cat="Governance &amp; Roles" onclick="setGlossaryCategory('Governance & Roles')">Governance</button>
+    <button type="button" class="glossary-cat-btn" data-glossary-cat="Accounting &amp; Air-Gap" onclick="setGlossaryCategory('Accounting & Air-Gap')">Accounting</button>
+    <button type="button" class="glossary-cat-btn" data-glossary-cat="Security &amp; Privacy" onclick="setGlossaryCategory('Security & Privacy')">Security</button>
+  </div>
+  <div id="glossaryMatchCount" class="fine" aria-live="polite">Loading Lexicon v0.5…</div>
+  <div id="glossaryResultsList" class="glossary-list"></div>
+</aside>
 <div id="member-hat-switch-modal" class="hat-modal-backdrop" hidden role="dialog" aria-modal="true" aria-labelledby="memberHatSwitchTitle">
   <div class="hat-modal-box">
     <div class="status-row" style="margin-bottom:12px;">
@@ -407,21 +471,174 @@ async function confirmReturnToChiefAdminHat(){
   }catch(err){errEl.textContent=`Switch failed: ${err.message}`}
   finally{btn.disabled=false;btn.textContent='Confirm & Switch to Chief Admin'}
 }
+function renderConcentricAssetRings(state){
+  if(!state||!state.allocation)return;
+  const alloc=state.allocation;
+  const cap=Math.max(1,Number(alloc.cap_cents||2500000));
+  const activeFloatCents=Math.max(0,Number(alloc.active_float_cents||0));
+  const workingMarginCents=Math.max(0,Number(alloc.working_margin_cents ?? state.reserved_cents ?? 0));
+  const floorCents=Math.max(0,Number(alloc.reserve_floor_cents||0));
+  const floorPct=Math.min(100,Math.max(0,Number(alloc.reserve_floor_bps||4000)/100));
+  const marginRatio=activeFloatCents>0?Math.min(1,Math.max(0.08,workingMarginCents/activeFloatCents)):0.08;
+  const circOuter=2*Math.PI*76;
+  const circMid=2*Math.PI*58;
+  const circInner=2*Math.PI*40;
+  const marginArc=(circOuter*marginRatio).toFixed(1);
+  const shieldArc=(circMid*(floorPct/100)).toFixed(1);
+  const wf=alloc.waterfall_split_bps||{scma:8700,cfcp:1000,faep:300};
+  const wfScmaArc=(circInner*(wf.scma/10000)).toFixed(1);
+  const wfCfcpArc=(circInner*(wf.cfcp/10000)).toFixed(1);
+  const wfFaepArc=(circInner*(wf.faep/10000)).toFixed(1);
+  const mRing=document.getElementById('memberRingMargin');
+  const sRing=document.getElementById('memberRingShield');
+  const w1=document.getElementById('memberRingWfScma');
+  const w2=document.getElementById('memberRingWfCfcp');
+  const w3=document.getElementById('memberRingWfFaep');
+  if(mRing)mRing.setAttribute('stroke-dasharray',`${marginArc} ${circOuter.toFixed(1)}`);
+  if(sRing)sRing.setAttribute('stroke-dasharray',`${shieldArc} ${circMid.toFixed(1)}`);
+  if(w1)w1.setAttribute('stroke-dasharray',`${wfScmaArc} ${circInner.toFixed(1)}`);
+  if(w2){w2.setAttribute('stroke-dasharray',`${wfCfcpArc} ${circInner.toFixed(1)}`);w2.setAttribute('stroke-dashoffset',`-${wfScmaArc}`)}
+  if(w3){w3.setAttribute('stroke-dasharray',`${wfFaepArc} ${circInner.toFixed(1)}`);w3.setAttribute('stroke-dashoffset',`-${(Number(wfScmaArc)+Number(wfCfcpArc)).toFixed(1)}`)}
+  const cVal=document.getElementById('memberRingCenterVal');
+  if(cVal)cVal.textContent=`${floorPct.toFixed(0)}% SHIELD`;
+  const lMargin=document.getElementById('legendWorkingMargin');
+  const lDry=document.getElementById('legendDryPowder');
+  const lWf=document.getElementById('legendWaterfall');
+  if(lMargin)lMargin.textContent=`${dollars(workingMarginCents)} / ${dollars(cap)}`;
+  if(lDry)lDry.textContent=`${dollars(floorCents)} (${floorPct.toFixed(0)}%)`;
+  if(lWf)lWf.textContent=`${(wf.scma/100).toFixed(0)}% / ${(wf.cfcp/100).toFixed(0)}% / ${(wf.faep/100).toFixed(0)}%`;
+  const pts=state.trajectory_points||[];
+  if(pts.length>=2){
+    const vals=pts.map(p=>Number(p.balance_cents||0));
+    const lo=Math.min(...vals),hi=Math.max(lo+1,...vals);
+    const coords=pts.map((p,idx)=>{
+      const x=16+(idx/(pts.length-1))*208;
+      const y=154-((Number(p.balance_cents||0)-lo)/(hi-lo))*122;
+      return `${x.toFixed(1)} ${y.toFixed(1)}`;
+    });
+    const lineD=coords.map((c,i)=>`${i?'L':'M'}${c}`).join(' ');
+    const areaD=`${lineD} L224 164 L16 164 Z`;
+    const lEl=document.getElementById('memberTrajectoryLine');
+    const aEl=document.getElementById('memberTrajectoryArea');
+    if(lEl)lEl.setAttribute('d',lineD);
+    if(aEl)aEl.setAttribute('d',areaD);
+  }
+}
+let glossaryTermsCache=[];
+let glossaryActiveCategory='all';
+function escHtml(v){const s=document.createElement('span');s.textContent=String(v??'');return s.innerHTML}
+async function preloadGlossary(){
+  try{
+    const resp=await fetch('/api/v1/portal/glossary');
+    if(resp.ok){
+      const payload=await resp.json();
+      glossaryTermsCache=Array.isArray(payload.terms)?payload.terms:[];
+    }
+  }catch(_e){}
+  if(!glossaryTermsCache.length){
+    glossaryTermsCache=[
+      {id:'scma',term:'SCMA (Self-Contained Member Account)',category:'Capital & Pools',authority_ref:'Lexicon v0.5 §2',definition:'Tenant-partitioned member ledger in exact integer cents with 100% loss isolation.',aliases:['member account','sub-ledger']},
+      {id:'cfcp',term:'CFCP (Central Familial Common Pool)',category:'Capital & Pools',authority_ref:'Lexicon v0.5 §2',definition:'Non-trading familial reserve receiving 10% (+ remainder cents) of eligible net new profit above HWM.',aliases:['family pool','10% pool']},
+      {id:'faep',term:'FAEP (Founder/Chief Administrator Endowment Pool)',category:'Capital & Pools',authority_ref:'Lexicon v0.5 §2',definition:'Endowment receiving 3% of eligible net new profit above HWM; $0 on loss.',aliases:['founder pool','3% pool']},
+      {id:'high-water-mark-adr-012',term:'High-Water Mark / ADR-012',category:'Accounting & Air-Gap',authority_ref:'ADR-012 · Rule A14',definition:'87/10/3 waterfall applies strictly to net new profit above prior SCMA High-Water Mark.',aliases:['hwm','adr-012']}
+    ];
+  }
+  renderGlossaryList();
+}
+function openGlossaryDrawer(){
+  const drawer=document.getElementById('glossaryDrawer');
+  if(!drawer)return;
+  drawer.hidden=false;
+  renderGlossaryList();
+  const input=document.getElementById('glossarySearchInput');
+  if(input)input.focus();
+}
+function closeGlossaryDrawer(){
+  const drawer=document.getElementById('glossaryDrawer');
+  if(drawer)drawer.hidden=true;
+}
+function setGlossaryCategory(cat){
+  glossaryActiveCategory=cat||'all';
+  document.querySelectorAll('[data-glossary-cat]').forEach(btn=>btn.classList.toggle('active',btn.dataset.glossaryCat===glossaryActiveCategory));
+  renderGlossaryList();
+}
+function renderGlossaryList(){
+  const listEl=document.getElementById('glossaryResultsList');
+  const countEl=document.getElementById('glossaryMatchCount');
+  const qEl=document.getElementById('glossarySearchInput');
+  if(!listEl||!countEl)return;
+  const q=(qEl?qEl.value:'').trim().toLowerCase();
+  const matches=glossaryTermsCache.filter(item=>{
+    if(glossaryActiveCategory!=='all'&&item.category!==glossaryActiveCategory)return false;
+    if(!q)return true;
+    const hay=[item.id,item.term,item.short_label,item.category,item.authority_ref,item.tooltip,item.definition,...(item.aliases||[])].join(' ').toLowerCase();
+    return hay.includes(q);
+  });
+  countEl.textContent=`Showing ${matches.length} of ${glossaryTermsCache.length} Lexicon v0.5 terms`;
+  listEl.innerHTML=matches.length?matches.map(item=>`<article class="glossary-item" data-term-id="${escHtml(item.id)}"><div class="glossary-item-head"><h4>${escHtml(item.term)}</h4><span class="badge-pill sky">${escHtml(item.category)}</span></div><div class="fine" style="margin-top:3px;font-family:ui-monospace,monospace;">${escHtml(item.authority_ref||'Lexicon v0.5')}</div><p>${escHtml(item.definition||item.tooltip)}</p><div class="glossary-aliases">${(item.aliases||[]).map(a=>`<span class="glossary-alias">${escHtml(a)}</span>`).join('')}</div></article>`).join(''):'<div class="glossary-item"><p style="margin:0;">No Lexicon v0.5 terms matched your filter.</p></div>';
+}
+function renderMemberReadModelEnvelope(env){
+  const banner=document.getElementById('readModelStatusBanner');
+  const haltOverlay=document.getElementById('memberHaltOverlay');
+  if(!banner)return;
+  const st=(env&&env.status)?String(env.status).toUpperCase():'OK';
+  banner.dataset.rmStatus=st;
+  if(st==='OK'){
+    banner.hidden=true;
+    if(haltOverlay)haltOverlay.hidden=true;
+    return;
+  }
+  banner.hidden=false;
+  banner.className='rm-banner rm-'+st.toLowerCase();
+  document.getElementById('readModelStatusCode').textContent=st;
+  document.getElementById('readModelBannerHeadline').textContent=env.banner_headline||(st==='TRADING_HALTED'?'TRADING HALTED — EXECUTIVE OVERRIDE':(st==='DEGRADED_RETRYING'?'UNAVAILABLE — ENGINE UNREACHABLE':'NOT AVAILABLE — QUALIFICATION PENDING'));
+  document.getElementById('readModelBannerReason').textContent=env.banner_detail||env.reason||'Fail-closed read model active.';
+  document.getElementById('readModelBannerTimestamp').textContent=env.updated_at_utc?`Updated UTC: ${env.updated_at_utc}`:'';
+  const haltedOrDegraded=st==='TRADING_HALTED'||st==='DEGRADED_RETRYING';
+  if(haltOverlay){
+    haltOverlay.hidden=st!=='TRADING_HALTED';
+    const detailEl=document.getElementById('memberHaltOverlayDetail');
+    if(detailEl&&st==='TRADING_HALTED')detailEl.textContent=env.banner_detail||env.reason||'TRADING HALTED: DIRECTIVE R-04 ENGAGED.';
+  }
+  if(haltedOrDegraded){
+    const label=st==='TRADING_HALTED'?'HALTED':'UNAVAILABLE';
+    totalWealth.textContent=label;
+    activeFloat.textContent=label;
+    sweptCash.textContent=label;
+    passiveYield.textContent=label;
+    ['legendWorkingMargin','legendDryPowder','memberRingCenterVal'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=label});
+    slotRack.innerHTML=`<article class="slot" style="grid-column:1/-1;border-color:#DC2626;"><div class="slot-id">${st}</div><div class="slot-domain">${escHtml(env.banner_headline||label)}</div><div class="fine">${escHtml(env.banner_detail||env.reason||'Live telemetry withheld fail-closed.')}</div></article>`;
+    saveRiskBtn.disabled=true;
+    distributionBtn.disabled=true;
+  }else if(!isSupervisoryLens){
+    saveRiskBtn.disabled=false;
+    distributionBtn.disabled=false;
+  }
+}
 async function loadState(){
   const suffix=activeScmaId?`?scma_id=${encodeURIComponent(activeScmaId)}`:'';
-  const response=await fetch('/api/v1/portal/member/state'+suffix);
-  if(!response.ok)return;
-  memberState=await response.json();
-  identity.textContent=`${memberState.name} • ${memberState.scma_id} • ${memberState.lineage_code||'HOUSE-01'}`;
-  renderOnboardingStatus(memberState);
-  renderBalances();
-  renderSlots(memberState.concurrency_slots||[]);
-  quarantineBanner.hidden=!(memberState.quarantined||memberState.parent_house_quarantined);
-  const bps=Math.round(memberState.risk_dial_pct*100);
-  riskSlider.max=Math.min(200,Math.max(50,bps));
-  riskSlider.value=Math.max(50,bps);
-  showRisk();
-  applySupervisoryLens(memberState);
+  try{
+    const response=await fetch('/api/v1/portal/member/state'+suffix);
+    if(!response.ok){
+      renderMemberReadModelEnvelope({status:'DEGRADED_RETRYING',banner_headline:'UNAVAILABLE — ENGINE UNREACHABLE',banner_detail:`Member state endpoint returned HTTP ${response.status}; retrying fail-closed without placeholder figures.`,updated_at_utc:new Date().toISOString()});
+      return;
+    }
+    memberState=await response.json();
+    identity.textContent=`${memberState.name} • ${memberState.scma_id} • ${memberState.lineage_code||'HOUSE-01'}`;
+    renderOnboardingStatus(memberState);
+    renderBalances();
+    renderConcentricAssetRings(memberState);
+    renderSlots(memberState.concurrency_slots||[]);
+    quarantineBanner.hidden=!(memberState.quarantined||memberState.parent_house_quarantined);
+    const bps=Math.round(memberState.risk_dial_pct*100);
+    riskSlider.max=Math.min(200,Math.max(50,bps));
+    riskSlider.value=Math.max(50,bps);
+    showRisk();
+    applySupervisoryLens(memberState);
+    renderMemberReadModelEnvelope(memberState.read_model_envelope);
+  }catch(_err){
+    renderMemberReadModelEnvelope({status:'DEGRADED_RETRYING',banner_headline:'UNAVAILABLE — ENGINE UNREACHABLE',banner_detail:'Unable to reach PDEUE engine read model; retrying fail-closed with zero placeholder numbers.',updated_at_utc:new Date().toISOString()});
+  }
 }
 function showRisk(){riskValue.textContent=(Number(riskSlider.value)/100).toFixed(2)+'%'}
 riskSlider.addEventListener('input',showRisk);
@@ -436,5 +653,5 @@ setCurrencyMode(currencyMode);
 applySupervisoryLens(null);
 applyMultiRoleHatControls();
 switchMemberView(query.get('invite_token')?'orientation':(localStorage.getItem('pdeue_member_active_view')||'orientation'));
-(async()=>{await maybeActivateInvite();await loadState();setInterval(loadState, 3000)})();
+(async()=>{await maybeActivateInvite();preloadGlossary();await loadState();setInterval(loadState, 3000)})();
 </script></body></html>
