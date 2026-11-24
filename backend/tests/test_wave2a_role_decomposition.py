@@ -21,12 +21,15 @@ def test_advisor_role_pages_expose_dynamic_workspace_contract(role, structural_m
     page = CLIENT.get(f"/advisor?role={role}")
     assert page.status_code == 200
     assert structural_marker in page.text
-    assert 'id="role-switcher"' in page.text
+    assert 'id="role-switcher"' not in page.text
     assert 'id="role-alert"' in page.text
     assert 'id="distribution-slot"' in page.text
     assert '<div style="display:none" id="legacyPortalHub">' in page.text
     assert "history.replaceState" in page.text
     assert "/api/v1/portal/advisor/household-tree?role=" in page.text
+    admin_page = CLIENT.get(f"/advisor?role={role}", headers={"X-Actor-Role": "CHIEF_ADMIN"})
+    assert admin_page.status_code == 200
+    assert 'id="role-switcher"' in admin_page.text
 
 
 def test_tech_console_t1_strips_triggers_and_override():

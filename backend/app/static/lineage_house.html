@@ -263,21 +263,45 @@
     .rm-headline { font-weight: 800; color: var(--text-primary); font-size: 0.94rem; margin-top: 4px; }
     .rm-reason { color: var(--text-secondary); font-size: 0.84rem; margin-top: 2px; }
     .rm-meta { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.74rem; color: var(--text-muted); }
-    footer { padding: 15px 5vw; color: var(--text-muted); font-size: 0.85rem; border-top: 1px solid var(--border-subtle); }
+    .brand-lockup { display: inline-flex; align-items: center; gap: 11px; text-decoration: none; color: inherit; min-width: 0; max-width: 100%; margin-bottom: 8px; }
+    .brand-lockup:hover .brand-title { color: #F6DE8D; }
+    .brand-crests { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .brand-crest { width: 40px; height: 46px; aspect-ratio: 5 / 6; object-fit: contain; border: 1px solid rgba(212, 175, 55, 0.6); border-radius: 5px; background: rgba(11, 19, 43, 0.88); padding: 2px; display: block; flex-shrink: 0; }
+    .brand-crest-divider { width: 1px; height: 34px; background: linear-gradient(180deg, transparent, rgba(212, 175, 55, 0.78), transparent); flex-shrink: 0; }
+    .brand-stack { display: flex; flex-direction: column; min-width: 0; line-height: 1.22; }
+    .brand-title { font-size: 0.78rem; font-weight: 800; letter-spacing: 0.08em; color: #F8FAFC; white-space: normal; }
+    .brand-motto { font-size: 0.71rem; font-style: italic; color: #D8C48B; white-space: normal; }
+    footer.pdeue-colophon { padding: 15px 5vw; color: var(--text-muted); font-size: 0.78rem; border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .colophon-attr { color: var(--text-muted); letter-spacing: 0.02em; }
+    .colophon-mode-badge { display: inline-flex; align-items: center; gap: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.7rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: var(--bg-surface); border: 1px solid var(--border-subtle); color: var(--text-secondary); }
     @media (max-width: 640px) {
       header { padding: 16px; }
       .wrap { padding: 16px; }
       .metrics, .secretarial { grid-template-columns: 1fr; }
       section, article { min-width: 0; }
+      .brand-lockup { gap: 8px; }
+      .brand-title { font-size: 0.72rem; }
+      .brand-motto { font-size: 0.66rem; }
     }
   </style>
 </head>
 <body>
   <header>
     <div>
+      <a href="/community" class="brand-lockup" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Heritage">
+        <span class="brand-crests">
+          <img class="brand-crest" src="/static/assets/crests/carmichael_crest.svg" alt="Carmichael Family Crest" width="40" height="46" loading="eager">
+          <span class="brand-crest-divider" aria-hidden="true"></span>
+          <img class="brand-crest" src="/static/assets/crests/mccormick_crest.svg" alt="McCormick Family Crest" width="40" height="46" loading="eager">
+        </span>
+        <span class="brand-stack">
+          <span class="brand-title">FUTURE · CARMICHAEL — McCORMICK</span>
+          <span class="brand-motto">Generational Love, Harmony, Resilience, and Wealth</span>
+        </span>
+      </a>
       <h1>CLASS H SOVEREIGN DESK — HOUSE __HOUSE_ID__: __HOUSE_NAME__</h1>
       <div class="hat-row">
-        <span class="hat"><abbr class="pdeue-term" tabindex="0" data-term="active-hat-r06" data-tooltip="Directive R-06 Split-Hat Role Mapping: multi-role operators explicitly switch between isolated role contexts. Privileges never blend across workspaces.">Active Hat: __ACTIVE_HAT__<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></span>
+        <span class="hat"><abbr class="pdeue-term" tabindex="0" data-term="active-hat-r06" data-tooltip="One role at a time. Even if a family leader holds two jobs—like personal member and platform steward—they must intentionally switch hats so personal money and leadership tools never mix by accident.">Active Hat: __ACTIVE_HAT__<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></span>
         <span class="house-pill">__HOUSE_CODE__ · __HOUSE_STATUS__</span>
       </div>
     </div>
@@ -296,7 +320,11 @@
   </main>
   <!-- DISCOVERY_CONTROLS_START --><div hidden><button id="lineage-freeze" onclick="openFreezeModal('SCMA')">Freeze Dial</button><button id="lineage-vote" onclick="castVote('AYE')">Aye</button></div><!-- DISCOVERY_CONTROLS_END -->
   <div style="display:none" id="legacyPortalHub">PDEUE PORTAL HUB</div>
-  <footer>__HOUSE_CODE__ · branch-confined sovereign operations · <abbr class="pdeue-term" tabindex="0" data-term="adr-008-exact-cents" data-tooltip="Exact-Cent Integer Accounting (ADR-008): all balances, order sizes, reservations, and waterfall splits use 64-bit integer cents. Floating-point currency math is strictly prohibited.">ADR-008<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> exact-cent accounting · <abbr class="pdeue-term" tabindex="0" data-term="directive-r12-masking" data-tooltip="Least-Privilege Financial Masking (R-12): Class T and H1 desks redact balances ($****.**) and SCMA IDs (SCMA-MEM-****) server-side.">Directive R-12<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> compliant</footer>
+  <footer class="pdeue-colophon" role="contentinfo">
+    <span>__HOUSE_CODE__ · branch-confined sovereign operations · <abbr class="pdeue-term" tabindex="0" data-term="adr-008-exact-cents" data-tooltip="Every single penny is counted as a whole cent—never rounded loosely with messy decimals—so not even one penny can ever disappear or be invented when profits are split.">ADR-008<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> exact-cent accounting · <abbr class="pdeue-term" tabindex="0" data-term="directive-r12-masking" data-tooltip="Privacy blinds for technical helpers. Engineers and house secretaries can keep systems healthy without seeing anyone's real dollar balances or account names—those numbers appear hidden as stars.">Directive R-12<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> compliant</span>
+    <span class="colophon-attr">Powered by CARM Aerotech Corporation</span>
+    <span class="colophon-mode-badge">FAIL-CLOSED · PAPER / OBSERVATION MODE · GATE G1</span>
+  </footer>
   <script>
     const houseId = __HOUSE_ID__;
     const activeRole = '__ACTIVE_ROLE__';

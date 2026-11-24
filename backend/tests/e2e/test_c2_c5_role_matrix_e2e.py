@@ -313,11 +313,13 @@ def test_c4_class_t_role_matrix_and_r12_masking_e2e(
     context, page, diagnostics = _create_monitored_page(browser, live_server, vp_size)
     forbidden = ("/dashboard", "/member", "/advisor", "/lineage/house")
     try:
-        # T1: Read-only; daemon triggers & CA override hidden; R-12 masked
+        # T1: Read-only; daemon triggers, CA override & cross-tier jump pills stripped; R-12 masked
         resp = page.goto(f"{live_server}/admin/tech?tier=T1", wait_until="networkidle")
         assert resp is not None and resp.status == 200
         page.wait_for_timeout(250)
         assert "T1_MONITOR" in page.locator("#active-hat").inner_text()
+        assert page.locator("#tier-switcher").count() == 0
+        assert page.locator("button[data-tier]").count() == 0
         assert not page.locator("#trigger-daemon").is_visible()
         assert not page.locator("#trigger-settlement").is_visible()
         assert not page.locator("#grant").is_visible()
@@ -326,10 +328,12 @@ def test_c4_class_t_role_matrix_and_r12_masking_e2e(
         assert "SCMA-ELEANOR" not in orders_t1
         _assert_hygiene_and_siloing(page, diagnostics, forbidden_href_prefixes=forbidden)
 
-        # T2: Daemon triggers visible; CA override hidden; R-12 masked
-        page.locator('button[data-tier="T2"]').click()
+        # T2: Daemon triggers visible; CA override & cross-tier jump pills stripped; R-12 masked
+        resp_t2 = page.goto(f"{live_server}/admin/tech?tier=T2", wait_until="networkidle")
+        assert resp_t2 is not None and resp_t2.status == 200
         page.wait_for_timeout(250)
         assert "T2_ENGINEER" in page.locator("#active-hat").inner_text()
+        assert page.locator("button[data-tier]").count() == 0
         assert page.locator("#trigger-daemon").is_visible()
         assert page.locator("#trigger-settlement").is_visible()
         assert not page.locator("#grant").is_visible()
@@ -337,7 +341,8 @@ def test_c4_class_t_role_matrix_and_r12_masking_e2e(
         assert "SCMA-MEM-****" in orders_t2 and "$****.**" in orders_t2
 
         # T2-Household: Household scope card visible; global triggers & CA override hidden; R-12 masked
-        page.locator('button[data-tier="T2-HOUSEHOLD"]').click()
+        resp_t2h = page.goto(f"{live_server}/admin/tech?tier=T2-HOUSEHOLD", wait_until="networkidle")
+        assert resp_t2h is not None and resp_t2h.status == 200
         page.wait_for_timeout(250)
         assert "T2_HOUSEHOLD_SCOPED" in page.locator("#active-hat").inner_text()
         assert page.locator("#household-scope-card").is_visible()
@@ -350,9 +355,11 @@ def test_c4_class_t_role_matrix_and_r12_masking_e2e(
         page.screenshot(path=str(SCREENSHOTS_DIR / f"c4_tech_t2_household_{vp_name}.png"), full_page=True)
 
         # T3: Full tech triggers + CA Override modal + time-bounded unmask + revoke remasks
-        page.locator('button[data-tier="T3"]').click()
+        resp_t3 = page.goto(f"{live_server}/admin/tech?tier=T3", wait_until="networkidle")
+        assert resp_t3 is not None and resp_t3.status == 200
         page.wait_for_timeout(250)
         assert "T3_CTO" in page.locator("#active-hat").inner_text()
+        assert page.locator("button[data-tier]").count() == 0
         assert page.locator("#trigger-daemon").is_visible()
         assert page.locator("#grant").is_visible()
         assert page.locator("#zero-fin-badge").is_visible()
@@ -387,20 +394,24 @@ def test_c5_class_f_role_matrix_and_dual_control_e2e(
     context, page, diagnostics = _create_monitored_page(browser, live_server, vp_size)
     forbidden = ("/dashboard", "/member", "/admin/tech", "/lineage/house")
     try:
-        # F1: Mentee guidance only; equity redacted; co-sign queue absent
+        # F1: Mentee guidance only; equity redacted; co-sign queue & cross-tier jump pills absent
         resp = page.goto(f"{live_server}/advisor?role=F1", wait_until="networkidle")
         assert resp is not None and resp.status == 200
         page.wait_for_timeout(300)
         assert "F1_PEER_GUIDE" in page.locator("#active-hat-text").inner_text()
+        assert page.locator("#role-switcher").count() == 0
+        assert page.locator("button[data-role]").count() == 0
         assert "EQUITY REDACTED ($****.**)" in page.locator("#equity").inner_text()
         assert page.locator("#distribution-card").count() == 0
         assert not page.locator("#cro-emergency-controls").is_visible()
         _assert_hygiene_and_siloing(page, diagnostics, forbidden_href_prefixes=forbidden)
 
         # F2-H: Domestic equity visible; custodial minor risk locks; Co-Sign button visible
-        page.locator('button[data-role="F2-H"]').click()
+        resp_f2h = page.goto(f"{live_server}/advisor?role=F2-H", wait_until="networkidle")
+        assert resp_f2h is not None and resp_f2h.status == 200
         page.wait_for_timeout(300)
         assert "F2-H_HOUSEHOLD_HEAD" in page.locator("#active-hat-text").inner_text()
+        assert page.locator("button[data-role]").count() == 0
         assert "$5,850.00" in page.locator("#equity").inner_text()
         roster_text = page.locator("#roster").inner_text()
         assert "CUSTODIAL APPRENTICE" in roster_text
@@ -410,18 +421,22 @@ def test_c5_class_f_role_matrix_and_dual_control_e2e(
         page.screenshot(path=str(SCREENSHOTS_DIR / f"c5_advisor_f2h_{vp_name}.png"), full_page=True)
 
         # F2-A: Read-only audit queue; no Co-Sign buttons; household selector visible
-        page.locator('button[data-role="F2-A"]').click()
+        resp_f2a = page.goto(f"{live_server}/advisor?role=F2-A", wait_until="networkidle")
+        assert resp_f2a is not None and resp_f2a.status == 200
         page.wait_for_timeout(300)
         assert "F2-A_LINEAGE_ADVISOR" in page.locator("#active-hat-text").inner_text()
+        assert page.locator("button[data-role]").count() == 0
         assert page.locator("#household-selector").is_visible()
         assert page.locator("[data-cosign]").count() == 0
         assert "READ-ONLY AUDIT: F2-H SIGNATURE REQUIRED" in page.locator("#distribution-slot").inner_text()
         assert not page.locator("#cro-emergency-controls").is_visible()
 
         # F3: Platform risk analytics + Directive R-04 Emergency Halt + Dual-Sig Override (CA-only resume)
-        page.locator('button[data-role="F3"]').click()
+        resp_f3 = page.goto(f"{live_server}/advisor?role=F3", wait_until="networkidle")
+        assert resp_f3 is not None and resp_f3.status == 200
         page.wait_for_timeout(350)
         assert "F3_CRO_RISK" in page.locator("#active-hat-text").inner_text()
+        assert page.locator("button[data-role]").count() == 0
         assert not page.locator("#metrics").is_visible()
         assert page.locator("#macro-risk").is_visible()
         assert page.locator("#cro-emergency-controls").is_visible()

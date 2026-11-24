@@ -189,10 +189,28 @@
       .onboard-hint { font-size: 10px; }
       .house-header { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
+    .glossary-tech-details { margin-top: 8px; border: 1px solid var(--border-subtle); border-radius: 6px; background: var(--bg-surface); padding: 6px 10px; }
+    .glossary-tech-details summary { cursor: pointer; font-size: 11.5px; font-weight: 700; color: var(--accent-sky); user-select: none; }
+    .glossary-tech-ref { font-size: 10.5px; color: var(--text-muted); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; margin-top: 6px; }
+    .glossary-tech-body { margin: 5px 0 2px; font-size: 12px; color: var(--text-secondary); line-height: 1.45; }
+    .brand-lockup { display: inline-flex; align-items: center; gap: 11px; text-decoration: none; color: inherit; min-width: 0; max-width: 100%; }
+    .brand-lockup:hover .brand-title { color: #F6DE8D; }
+    .brand-crests { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .brand-crest { width: 40px; height: 46px; aspect-ratio: 5 / 6; object-fit: contain; border: 1px solid rgba(212, 175, 55, 0.6); border-radius: 5px; background: rgba(11, 19, 43, 0.88); padding: 2px; display: block; flex-shrink: 0; }
+    .brand-crest-divider { width: 1px; height: 34px; background: linear-gradient(180deg, transparent, rgba(212, 175, 55, 0.78), transparent); flex-shrink: 0; }
+    .brand-stack { display: flex; flex-direction: column; min-width: 0; line-height: 1.22; }
+    .brand-title { font-size: 12px; font-weight: 800; letter-spacing: 0.08em; color: #F8FAFC; white-space: normal; }
+    .brand-motto { font-size: 11px; font-style: italic; color: #D8C48B; white-space: normal; }
+    .pdeue-colophon { margin-top: 28px; padding: 12px 4px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; color: var(--text-muted); font-size: 12px; }
+    .colophon-attr { color: var(--text-muted); letter-spacing: 0.02em; }
+    .colophon-mode-badge { display: inline-flex; align-items: center; gap: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: var(--bg-surface); border: 1px solid var(--border-subtle); color: var(--text-secondary); }
     @media (max-width: 520px) {
       .grid-4 { grid-template-columns: minmax(0, 1fr); }
       .house-header { grid-template-columns: minmax(0, 1fr); }
       .tab-btn { width: 100%; text-align: left; }
+      .brand-lockup { gap: 8px; }
+      .brand-title { font-size: 11px; }
+      .brand-motto { font-size: 10px; }
     }
 </style>
 </head>
@@ -200,19 +218,30 @@
 <div style="display:none" id="legacyPortalHub">PDEUE PORTAL HUB</div>
 
   <div class="hub-ribbon">
-    <div class="hub-ribbon-left">
+    <div class="hub-ribbon-left" style="flex-wrap:wrap;gap:12px;">
+      <a href="/community" class="brand-lockup" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Heritage">
+        <span class="brand-crests">
+          <img class="brand-crest" src="/static/assets/crests/carmichael_crest.svg" alt="Carmichael Family Crest" width="40" height="46" loading="eager">
+          <span class="brand-crest-divider" aria-hidden="true"></span>
+          <img class="brand-crest" src="/static/assets/crests/mccormick_crest.svg" alt="McCormick Family Crest" width="40" height="46" loading="eager">
+        </span>
+        <span class="brand-stack">
+          <span class="brand-title">FUTURE · CARMICHAEL — McCORMICK</span>
+          <span class="brand-motto">Generational Love, Harmony, Resilience, and Wealth</span>
+        </span>
+      </a>
       <span style="font-weight: bold; font-size: 12px; color: #38bdf8;">PDEUE PORTAL HUB:</span>
       <div class="hub-links">
         <a href="/dashboard" class="hub-btn active">Chief Admin Cockpit</a>
-        <a href="/admin/tech" class="hub-btn inactive">Technical Console (Class T)</a>
-        <a href="/advisor" class="hub-btn inactive">Lineal Advisory (Class F)</a>
+        <a href="/admin/tech?supervisory=1&amp;inspector=CHIEF_ADMIN" class="hub-btn inactive">Technical Console (Class T)</a>
+        <a href="/advisor?supervisory=1&amp;inspector=CHIEF_ADMIN" class="hub-btn inactive">Lineal Advisory (Class F)</a>
         <a href="/member" class="hub-btn inactive" id="hubMemberLink" onclick="return openHatSwitchModalFromLink(event)">Member Desktop (Class M)</a>
         <a href="/companion" class="nav-link campus-link" id="navCompanionLink">🎓 PDEUE University</a>
       </div>
     </div>
     <div class="currency-toggle" aria-label="Currency display precision and glossary"><button id="openGlossaryBtn" type="button" class="curr-btn" onclick="openGlossaryDrawer()">📖 Lexicon v0.5</button><button id="currBtnClean" class="curr-btn active" onclick="setCurrencyMode('clean')">$ USD (Clean)</button><button id="currBtnExact" class="curr-btn" onclick="setCurrencyMode('exact')">$ USD.¢¢ (Exact Cents)</button></div>
   </div>
-  <header class="header"><div><div style="color:#38bdf8;font-size:11px;font-weight:800;letter-spacing:.08em;">SOVEREIGN SETTLOR JURISDICTION · <abbr class="pdeue-term" tabindex="0" data-term="executive-command-mode" data-tooltip="Stage 1 fail-closed governance mode: House voting and bicameral veto controls remain dormant (HTTP 403) until promoted by the Chief Administrator, with instant 1-click SHTF snap-back and Absolute Founder Veto.">EXECUTIVE COMMAND MODE<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></div><h1>Chief Administrator Cockpit</h1><div style="color:#94a3b8;font-size:12px;">FOUNDER VETO: ACTIVE · IMMUTABLE <abbr class="pdeue-term" tabindex="0" data-term="tpw-waterfall" data-tooltip="Transaction Profit Waterfall: eligible realized net new profit above HWM splits 87% SCMA, 10% CFCP (+ floor remainder cents), and 3% FAEP with exact-cent conservation.">87 / 10 / 3 WATERFALL<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> (<abbr class="pdeue-term" tabindex="0" data-term="high-water-mark-adr-012" data-tooltip="Per-SCMA High-Water Mark (ADR-012): the 87/10/3 waterfall applies strictly to net new profit above prior peak equity. Drawdown recovery stays 100% in SCMA ($0 CFCP/FAEP skim).">ADR-012 HWM<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>)</div></div><div class="header-controls"><span id="activeHatBadge" class="badge-mode" style="background:#1E293B;color:#F8FAFC;border-color:#38BDF8;"><abbr class="pdeue-term" tabindex="0" data-term="active-hat-r06" data-tooltip="Directive R-06 Split-Hat Role Mapping: multi-role operators explicitly switch between isolated role contexts. Privileges never blend across workspaces.">Active Hat: CHIEF_ADMIN<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></span><button id="openHatSwitchBtn" type="button" class="btn-batch" onclick="openHatSwitchModal()">Switch Active Hat</button><span class="badge-mode">MODE: PAPER</span><button id="emergencyKillSwitchBtn" class="btn-kill" type="button" onclick="confirmKillSwitch()">EMERGENCY KILL SWITCH</button></div></header>
+  <header class="header"><div><div style="color:#38bdf8;font-size:11px;font-weight:800;letter-spacing:.08em;">SOVEREIGN SETTLOR JURISDICTION · <abbr class="pdeue-term" tabindex="0" data-term="executive-command-mode" data-tooltip="Our protective starter mode while the family learns together. House voting buttons stay safely tucked away until the Founder opens later stages—and can snap back instantly during an emergency.">EXECUTIVE COMMAND MODE<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></div><h1>Chief Administrator Cockpit</h1><div style="color:#94a3b8;font-size:12px;">FOUNDER VETO: ACTIVE · IMMUTABLE <abbr class="pdeue-term" tabindex="0" data-term="tpw-waterfall" data-tooltip="How brand-new profits are shared: 87% stays in your personal account to grow, 10% builds the shared family safety net, and 3% keeps the system running. Nothing is shared until you pass your own previous peak.">87 / 10 / 3 WATERFALL<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> (<abbr class="pdeue-term" tabindex="0" data-term="high-water-mark-adr-012" data-tooltip="Your account's personal all-time high balance. If your account dips and then climbs back up, you keep 100% of every recovery dollar—profit sharing only resumes once you earn genuinely new gains above your old peak.">ADR-012 HWM<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>)</div></div><div class="header-controls"><span id="activeHatBadge" class="badge-mode" style="background:#1E293B;color:#F8FAFC;border-color:#38BDF8;"><abbr class="pdeue-term" tabindex="0" data-term="active-hat-r06" data-tooltip="One role at a time. Even if a family leader holds two jobs—like personal member and platform steward—they must intentionally switch hats so personal money and leadership tools never mix by accident.">Active Hat: CHIEF_ADMIN<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></span><button id="openHatSwitchBtn" type="button" class="btn-batch" onclick="openHatSwitchModal()">Switch Active Hat</button><span class="badge-mode">MODE: PAPER</span><button id="emergencyKillSwitchBtn" class="btn-kill" type="button" onclick="confirmKillSwitch()">EMERGENCY KILL SWITCH</button></div></header>
 
   <section id="readModelStatusBanner" class="rm-banner rm-qualification_pending" hidden role="status" aria-live="assertive" data-rm-status="OK">
     <div>
@@ -243,12 +272,12 @@
   <div id="tab-panel-1" style="display: block;">
     <div class="grid-4">
       <div class="card">
-        <div class="card-title">LINEAGE TOTAL EQUITY (<abbr class="pdeue-term" tabindex="0" data-term="adr-008-exact-cents" data-tooltip="Exact-Cent Integer Accounting (ADR-008): all balances, order sizes, reservations, and waterfall splits use 64-bit integer cents.">ADR-008<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>)</div>
+        <div class="card-title">LINEAGE TOTAL EQUITY (<abbr class="pdeue-term" tabindex="0" data-term="adr-008-exact-cents" data-tooltip="Every single penny is counted as a whole cent—never rounded loosely with messy decimals—so not even one penny can ever disappear or be invented when profits are split.">ADR-008<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>)</div>
         <div class="card-value" id="fnd-balance">$4,250.00</div>
         <div class="card-sub">Active Reservation: <span id="fnd-reserved" style="color: #38bdf8;">$0.00</span></div>
       </div>
       <div class="card">
-        <div class="card-title">COMMITTED MARGIN (<abbr class="pdeue-term" tabindex="0" data-term="quarter-kelly" data-tooltip="Canonical sizing ceiling at 0.25 of full-Kelly. Final stake is clamped by risk dial, Tier-1 ceilings, liquidity, and the 40% Dry-Powder Floor.">QUARTER-KELLY<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>)</div>
+        <div class="card-title">COMMITTED MARGIN (<abbr class="pdeue-term" tabindex="0" data-term="quarter-kelly" data-tooltip="A cautious bet-sizing rule that uses only one-quarter of what pure math says you could wager. It gives your account a wide safety cushion against surprises so a bad streak stays small.">QUARTER-KELLY<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>)</div>
         <div class="card-value" id="fnd-committed" style="color: #38bdf8;">$118.75</div>
         <div class="card-sub">Active Resting Exposure</div>
       </div>
@@ -258,7 +287,7 @@
         <div class="card-sub">Exact-Cent Reconciled</div>
       </div>
       <div class="card">
-        <div class="card-title">MAX DRAWDOWN · <abbr class="pdeue-term" tabindex="0" data-term="dry-powder-floor-40" data-tooltip="Uncommitted cash shield: every dispatch batch must leave at least 40% of pre-dispatch total equity uncommitted (integer-cent ceiling).">40% SHIELD<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></div>
+        <div class="card-title">MAX DRAWDOWN · <abbr class="pdeue-term" tabindex="0" data-term="dry-powder-floor-40" data-tooltip="A permanent cash reserve rule that keeps at least 40% of your account safely on the sidelines in cash at all times, so you are never overextended and always ready for better opportunities.">40% SHIELD<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></div>
         <div class="card-value" style="color: #f87171;">-1.85%</div>
         <div class="card-sub">Tier-1 Ceiling: 5.0%</div>
       </div>
@@ -266,7 +295,7 @@
 
     <div class="viz-grid-2">
       <div id="dashboard-asset-rings-card" class="card">
-        <div class="card-title" style="color: #38bdf8;"><abbr class="pdeue-term" tabindex="0" data-term="concentric-asset-rings" data-tooltip="Canonical PDEUE HUD visualization showing nested rings for Active Working Margin, the 40% Dry-Powder Floor Shield, and the 87/10/3 SCMA/CFCP/FAEP waterfall split with accessible numeric legends.">CONCENTRIC ASSET ENGINE RINGS<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></div>
+        <div class="card-title" style="color: #38bdf8;"><abbr class="pdeue-term" tabindex="0" data-term="concentric-asset-rings" data-tooltip="A simple target-style ring picture of your money at a glance: the outer ring shows active working capital, the middle ring shows your 40% cash safety shield, and the inner ring shows the 87/10/3 profit-sharing split.">CONCENTRIC ASSET ENGINE RINGS<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></div>
         <div class="card-sub" style="margin-bottom:6px;">Working Margin vs. 40% Dry-Powder Shield vs. 87/10/3 Waterfall</div>
         <div class="rings-layout">
           <svg id="dashboard-asset-rings-svg" class="rings-svg" viewBox="0 0 220 220" role="img" aria-labelledby="dash-rings-title dash-rings-desc">
@@ -319,19 +348,19 @@
   <div id="tab-panel-2" style="display: none;">
     <div class="grid-4">
       <div class="card">
-        <div class="card-title"><abbr class="pdeue-term" tabindex="0" data-term="cfcp" data-tooltip="Central Familial Common Pool: non-trading familial reserve receiving 10% (plus remainder cents) of eligible net new profit above High-Water Mark. Never absorbs individual trading losses.">CFCP<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> Family Pool (10%)</div>
+        <div class="card-title"><abbr class="pdeue-term" tabindex="0" data-term="cfcp" data-tooltip="The family's shared safety net and blessing fund. It receives 10% of brand-new profits above each member's personal record high to help relatives with emergencies and debt relief—and it is never risked on trades.">CFCP<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> Family Pool (10%)</div>
         <div class="card-value" id="cfcp-balance" style="color: #4ade80;">$500.00</div>
         <div class="card-sub">Central Lineage Growth</div>
       </div>
       <div class="card">
-        <div class="card-title">Founder <abbr class="pdeue-term" tabindex="0" data-term="faep" data-tooltip="Founder/Chief Administrator Endowment Pool: receives 3% of eligible net new profit above High-Water Mark for platform stewardship and infrastructure. $0 skim on loss or drawdown recovery.">FAEP<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> Pool (3%)</div>
+        <div class="card-title">Founder <abbr class="pdeue-term" tabindex="0" data-term="faep" data-tooltip="A 3% slice of brand-new profits that pays for servers, data feeds, and caring for the platform—so family members never get hit with monthly software bills or fees during a downturn.">FAEP<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> Pool (3%)</div>
         <div class="card-value" id="faep-balance" style="color: #38bdf8;">$150.00</div>
         <div class="card-sub">Endowment Growth</div>
       </div>
       <div class="card">
         <div class="card-title">Waterfall Distribution <span class="info-tip" tabindex="0" data-tooltip="Realized gains allocate 87% to SCMA compounding, 10% to the CFCP lineage shield, and 3% to FAEP endowment.">ⓘ</span></div>
         <div class="card-value">87 / 10 / 3</div>
-        <div class="card-sub"><abbr class="pdeue-term" tabindex="0" data-term="scma" data-tooltip="Self-Contained Member Account: tenant-partitioned member sub-ledger in exact integer cents. Losses remain 100% isolated inside the executing SCMA.">SCMA<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> / CFCP / FAEP</div>
+        <div class="card-sub"><abbr class="pdeue-term" tabindex="0" data-term="scma" data-tooltip="Your own private, walled-off family account. Your money grows inside your personal box, and if a trade ever loses money, that loss stays strictly inside your own account and never touches anyone else's savings.">SCMA<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> / CFCP / FAEP</div>
       </div>
       <div class="card">
         <div class="card-title">Tribal Houses <span class="info-tip" tabindex="0" data-tooltip="12-House partitioning contains mutiny or operational risk within one lineage branch without spreading it across the family.">ⓘ</span></div>
@@ -472,13 +501,13 @@
         </div>
         <div style="background: #0b132b; padding: 12px; border-radius: 6px; border: 1px solid #1e293b;">
           <div style="font-size: 11px; color: #94a3b8;">Risk &amp; Custody Air-Gap</div>
-          <div style="font-size: 16px; font-weight: bold; color: #fbbf24; margin-top: 2px;">Quarter-Kelly + <abbr class="pdeue-term" tabindex="0" data-term="adr-011-air-gap" data-tooltip="Zero Banking Credentials &amp; Signed Outbox (ADR-011): PDEUE never stores bank routing, account, SWIFT, or login credentials.">ADR-011<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></div>
+          <div style="font-size: 16px; font-weight: bold; color: #fbbf24; margin-top: 2px;">Quarter-Kelly + <abbr class="pdeue-term" tabindex="0" data-term="adr-011-air-gap" data-tooltip="A strict safety wall between trading software and your bank. This platform never asks for or stores bank account numbers, routing numbers, or bank logins—it only uses a harmless reference code to coordinate with IFAS.">ADR-011<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></div>
           <div style="font-size: 11px; color: #64748b;">5% Ceiling &amp; Zero Bank Creds</div>
         </div>
         <div style="background: #0b132b; padding: 12px; border-radius: 6px; border: 1px solid #1e293b;">
           <div style="font-size: 11px; color: #94a3b8;">Emergency Stop &amp; SHTF</div>
           <div style="font-size: 16px; font-weight: bold; color: #ef4444; margin-top: 2px;">Founder Unilateral</div>
-          <div style="font-size: 11px; color: #64748b;"><abbr class="pdeue-term" tabindex="0" data-term="directive-r04-halt" data-tooltip="Emergency Financial Halt (R-04): immediately stops new financial commitments and surfaces a fail-closed TRADING HALTED banner across portals. Resumption is strictly reserved to the Chief Administrator.">Directive R-04<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> Zero-Committee Override</div>
+          <div style="font-size: 11px; color: #64748b;"><abbr class="pdeue-term" tabindex="0" data-term="directive-r04-halt" data-tooltip="The big red emergency brake. If anything looks wrong, leadership can pause all new trades across the entire platform in one step, and only the Chief Administrator can safely turn things back on.">Directive R-04<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> Zero-Committee Override</div>
         </div>
       </div>
     </div>
@@ -566,6 +595,11 @@
       </table></div>
     </div>
   </div>
+
+  <footer class="pdeue-colophon" role="contentinfo">
+    <span class="colophon-attr">Powered by CARM Aerotech Corporation</span>
+    <span class="colophon-mode-badge">FAIL-CLOSED · PAPER / OBSERVATION MODE · GATE G1</span>
+  </footer>
 
   <!-- ORDER DISPATCH MODAL -->
   <div id="dispatch-modal" class="modal-backdrop">
@@ -1033,10 +1067,11 @@
       } catch (_e) {}
       if (!glossaryTermsCache.length) {
         glossaryTermsCache = [
-          { id: "scma", term: "SCMA (Self-Contained Member Account)", category: "Capital & Pools", authority_ref: "Lexicon v0.5 §2", definition: "Tenant-partitioned member ledger in exact integer cents with 100% loss isolation.", aliases: ["member account", "sub-ledger"] },
-          { id: "cfcp", term: "CFCP (Central Familial Common Pool)", category: "Capital & Pools", authority_ref: "Lexicon v0.5 §2", definition: "Non-trading familial reserve receiving 10% (+ remainder cents) of eligible net new profit above HWM.", aliases: ["family pool", "10% pool"] },
-          { id: "faep", term: "FAEP (Founder/Chief Administrator Endowment Pool)", category: "Capital & Pools", authority_ref: "Lexicon v0.5 §2", definition: "Endowment receiving 3% of eligible net new profit above HWM; $0 on loss.", aliases: ["founder pool", "3% pool"] },
-          { id: "executive-command-mode", term: "Executive Command Mode", category: "Governance & Roles", authority_ref: "Milestone C6", definition: "Stage 1 fail-closed governance mode; House voting dormant until promoted.", aliases: ["stage 1", "shtf snap-back"] }
+          { id: "scma", term: "SCMA (Self-Contained Member Account)", category: "Capital & Pools", authority_ref: "Lexicon v0.5 §2", plain_english: "Your own private, walled-off family account. Your money grows inside your personal box, and any loss stays strictly inside your own account.", technical_spec: "Tenant-partitioned member sub-ledger in exact integer cents with 100% Rule A14 loss isolation.", aliases: ["member account", "sub-ledger"] },
+          { id: "cfcp", term: "CFCP (Central Familial Common Pool)", category: "Capital & Pools", authority_ref: "Lexicon v0.5 §2", plain_english: "The family's shared safety net and blessing fund receiving 10% of brand-new profits above each member's personal record high.", technical_spec: "Non-trading familial reserve receiving 10% (+ remainder cents) of eligible net new profit above HWM.", aliases: ["family pool", "10% pool"] },
+          { id: "faep", term: "FAEP (Founder/Chief Administrator Endowment Pool)", category: "Capital & Pools", authority_ref: "Lexicon v0.5 §2", plain_english: "A 3% slice of brand-new profits that pays for servers, data feeds, and caring for the platform so members pay $0 out-of-pocket.", technical_spec: "Endowment receiving 3% of eligible net new profit above HWM; $0 on loss or drawdown recovery.", aliases: ["founder pool", "3% pool"] },
+          { id: "ifas", term: "IFAS (Independent Financial Accounting System)", category: "Accounting & Air-Gap", authority_ref: "ADR-011 · accounting.narratix.io", plain_english: "Our separate, dedicated banking and bookkeeping home where real bank accounts, deposits, withdrawals, and tax records live.", technical_spec: "Standalone fiduciary custody service at accounting.narratix.io communicating solely via signed ADR-011 outbox events.", aliases: ["accounting system", "bank custody", "ifas"] },
+          { id: "executive-command-mode", term: "Executive Command Mode", category: "Governance & Roles", authority_ref: "Milestone C6", plain_english: "Our protective starter mode while the family learns together; House voting buttons stay tucked away until leadership opens later stages.", technical_spec: "Stage 1 fail-closed governance mode; House voting dormant until promoted.", aliases: ["stage 1", "shtf snap-back"] }
         ];
       }
       renderGlossaryList();
@@ -1073,19 +1108,19 @@
       const matches = glossaryTermsCache.filter(item => {
         if (glossaryActiveCategory !== "all" && item.category !== glossaryActiveCategory) return false;
         if (!q) return true;
-        const hay = [item.id, item.term, item.short_label, item.category, item.authority_ref, item.tooltip, item.definition, ...(item.aliases || [])].join(" ").toLowerCase();
+        const hay = [item.id, item.term, item.short_label, item.category, item.authority_ref, item.plain_english, item.technical_spec, item.tooltip, item.definition, ...(item.aliases || [])].join(" ").toLowerCase();
         return hay.includes(q);
       });
-      countEl.textContent = `Showing ${matches.length} of ${glossaryTermsCache.length} Lexicon v0.5 terms`;
+      countEl.textContent = `Showing ${matches.length} of ${glossaryTermsCache.length} Lexicon v0.5 terms (Plain-English v0.6)`;
       listEl.innerHTML = matches.length ? matches.map(item => `
         <article class="glossary-item" data-term-id="${_escGov(item.id)}">
           <div class="glossary-item-head">
             <h4>${_escGov(item.term)}</h4>
             <span class="rm-pill" style="color:#38BDF8;border-color:#38BDF8;">${_escGov(item.category)}</span>
           </div>
-          <div style="font-size:11px;color:#94A3B8;font-family:ui-monospace,monospace;margin-top:3px;">${_escGov(item.authority_ref || "Lexicon v0.5")}</div>
-          <p>${_escGov(item.definition || item.tooltip)}</p>
-          <div class="glossary-aliases">${(item.aliases || []).map(a => `<span class="glossary-alias">${_escGov(a)}</span>`).join("")}</div>
+          <p class="glossary-plain-english">${_escGov(item.plain_english || item.definition || item.tooltip)}</p>
+          ${item.technical_spec ? `<details class="glossary-tech-details"><summary>Technical &amp; Governance Spec</summary><div class="glossary-tech-ref">${_escGov(item.authority_ref || "Lexicon v0.5")}</div><p class="glossary-tech-body">${_escGov(item.technical_spec)}</p></details>` : ""}
+          <div class="glossary-aliases" style="margin-top:8px;">${(item.aliases || []).map(a => `<span class="glossary-alias">${_escGov(a)}</span>`).join("")}</div>
         </article>
       `).join("") : '<div class="glossary-item"><p style="margin:0;">No Lexicon v0.5 terms matched your filter.</p></div>';
     }
