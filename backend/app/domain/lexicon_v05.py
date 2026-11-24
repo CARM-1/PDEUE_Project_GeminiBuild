@@ -335,6 +335,74 @@ LEXICON_TERMS: List[Dict[str, Any]] = [
         ),
         "aliases": ["pay it forward", "pay-it-forward", "lccf", "fsap", "toxic debt", "debt relief", "family blessing"],
     },
+    {
+        "id": "house-genealogist",
+        "term": "House Genealogist",
+        "short_label": "House Genealogist",
+        "category": "Governance & Roles",
+        "authority_ref": "PR #81 · Lineage & Delegated Admissions",
+        "plain_english": (
+            "A trusted family historian assigned to help verify how new relatives connect to the family tree "
+            "and prepare welcome paperwork—without ever moving money or activating accounts on their own."
+        ),
+        "technical_spec": (
+            "Multi-seat relational role token (HOUSE_GENEALOGIST) in user_role_assignments. Authorized to submit "
+            "Stage 1 delegated admission dossiers (when enabled by Chief Administrator) and cast advisory Stage 2 "
+            "Genealogical Admissions Board votes, while barred from unilateral SCMA activation or financial mutations (HTTP 403)."
+        ),
+        "aliases": ["genealogist", "house_genealogist", "family historian", "lineage verifier", "admissions board"],
+    },
+    {
+        "id": "anti-tribalism-custody",
+        "term": "Anti-Tribalism Custody",
+        "short_label": "Anti-Tribalism Custody",
+        "category": "Governance & Roles",
+        "authority_ref": "PR #81 · Custodial Pairing Policy",
+        "plain_english": (
+            "An optional family-unity setting where guides and mentors are intentionally paired across different "
+            "Houses instead of only within their own branch, preventing cliques and favoritism as the family grows."
+        ),
+        "technical_spec": (
+            "Enclave-level custody_assignment_mode toggle (INTRA_HOUSE default vs CROSS_HOUSE_ANTI_TRIBAL) persisted in "
+            "enclave_policy_controls and enforced on custodial_assignments. In CROSS_HOUSE_ANTI_TRIBAL mode, F1/F2-A "
+            "mentors are paired across distinct Houses (charge_house_id != custodian house_id) with Chief Admin fallback to guarantee zero orphaned accounts."
+        ),
+        "aliases": ["cross-house custody", "cross_house_anti_tribal", "intra_house", "mentor pairing", "anti-sect"],
+    },
+    {
+        "id": "delegated-onboarding",
+        "term": "Delegated Onboarding",
+        "short_label": "Delegated Onboarding",
+        "category": "Governance & Roles",
+        "authority_ref": "PR #81 · 3-Stage Delegated Intake",
+        "plain_english": (
+            "A Chief-Admin-controlled helper mode where trusted House leaders and genealogists can collect a new "
+            "family member's welcome dossier ahead of time—waiting safely in review until leadership gives final approval."
+        ),
+        "technical_spec": (
+            "Stage 1 of the 3-Stage Delegated Onboarding pipeline. Defaults fail-closed to ADMIN_ONLY (HTTP 403 for "
+            "subordinate submitters) and can be toggled to PER_HOUSE or ENCLAVE_WIDE by Chief Administrator. Submitted "
+            "dossiers land strictly in PENDING_RATIFICATION with signed due-diligence attestations and zero SCMA creation or banking PII."
+        ),
+        "aliases": ["delegated intake", "admin_only", "per_house", "enclave_wide", "pending_ratification", "admission dossier"],
+    },
+    {
+        "id": "genealogical-ratification",
+        "term": "Genealogical Ratification",
+        "short_label": "Genealogical Ratification",
+        "category": "Governance & Roles",
+        "authority_ref": "PR #81 · Stage 2 & Stage 3 Dual-Plane Provisioning",
+        "plain_english": (
+            "The formal final approval step after family kinship is checked. Once approved by leadership, the new "
+            "relative's personal account, House home, mentor, and separate bookkeeping notice are all created together automatically."
+        ),
+        "technical_spec": (
+            "Stage 2/Stage 3 ratification gate (Chief Admin direct EXECUTIVE_COMMAND ratification plus optional Genealogical "
+            "Admissions Board vote). Atomically provisions SCMA, House lineage, MEMBER_USER role, and initial custodial mentor, "
+            "and emits a monotonic HMAC-SHA256 signed JSON-LD MEMBER_ADMISSION_RATIFIED event to the ADR-011 accounting outbox for IFAS."
+        ),
+        "aliases": ["admissions ratification", "genealogical admissions board", "dual-plane provisioning", "member_admission_ratified"],
+    },
 ]
 
 # Populate backward-compatible tooltip & definition fields directly from plain_english
@@ -362,6 +430,10 @@ REQUIRED_CANONICAL_TERM_IDS: tuple[str, ...] = (
     "gate-g1-qualification",
     "concentric-asset-rings",
     "pay-it-forward-lccf",
+    "house-genealogist",
+    "anti-tribalism-custody",
+    "delegated-onboarding",
+    "genealogical-ratification",
 )
 
 

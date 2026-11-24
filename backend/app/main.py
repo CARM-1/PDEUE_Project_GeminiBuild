@@ -9,12 +9,19 @@ from app.api.v1.health_router import health_router
 from app.api.v1.accounting_router import router as accounting_router
 from app.api.v1.copilot_router import router as copilot_router
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from typing import Dict, Any, List
 from app.domain.paper_session import PaperSessionManager
 from app.domain.decision_packet import DecisionPacketBuilder
 
 app = FastAPI(title="PDEUE Operator Workspace API", version="1.0.0")
+
+
+@app.get("/", include_in_schema=False)
+def root_redirect():
+    """Redirect bare root URL directly to the Lineage Community Hearth."""
+    return RedirectResponse(url="/community", status_code=302)
 paper_manager = PaperSessionManager()
 packet_builder = DecisionPacketBuilder()
 

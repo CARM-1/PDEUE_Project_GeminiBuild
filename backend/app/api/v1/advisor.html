@@ -101,6 +101,12 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
 .pdeue-colophon{margin-top:28px;padding:12px 4px;border-top:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;color:var(--text-muted);font-size:.76rem}
 .colophon-attr{color:var(--text-muted);letter-spacing:.02em}
 .colophon-mode-badge{display:inline-flex;align-items:center;gap:6px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.7rem;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--bg-surface);border:1px solid var(--border-subtle);color:var(--text-secondary)}
+.custodial-lookup-bar{background:var(--bg-card);border:1px solid var(--border-subtle);border-left:4px solid var(--accent-sky);border-radius:10px;padding:13px 15px;margin:14px 0}
+.custodial-lookup-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.custodial-lookup-form input{flex:1;min-width:180px;margin:0;padding:9px 11px;background:var(--bg-canvas);color:var(--text-primary);border:1px solid var(--border-subtle);border-radius:7px}
+.custodial-lookup-drawer{margin-top:10px;background:var(--bg-canvas);border:1px solid var(--border-subtle);border-radius:8px;padding:11px;display:grid;gap:8px}
+.custodial-lookup-item{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:7px;padding:9px 11px;font-size:.84rem}
+.custodial-detail-card{background:var(--bg-surface);border:1px solid var(--accent-sky);border-radius:7px;padding:10px 12px;font-size:.82rem}
 @media(max-width:800px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.wide{grid-column:span 2}.role-switcher{grid-template-columns:repeat(2,minmax(0,1fr))}.hero{align-items:flex-start;flex-direction:column}.whatif-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){.grid{grid-template-columns:minmax(0,1fr)}.wide{grid-column:auto}.role-switcher{grid-template-columns:minmax(0,1fr)}.shell{padding:14px}.whatif-grid{grid-template-columns:minmax(0,1fr)}.brand-lockup{gap:8px}.brand-title{font-size:.72rem}.brand-motto{font-size:.66rem}}
 </style>
@@ -144,6 +150,20 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
 <nav class="role-switcher" id="role-switcher" aria-label="Chief Admin multi-tier inspection"><button class="role-tab" type="button" data-role="F1">F1 (Peer Guide)</button><button class="role-tab active" type="button" data-role="F2-H">F2-H (Head of Household)</button><button class="role-tab" type="button" data-role="F2-A">F2-A (Lineage Advisor)</button><button class="role-tab" type="button" data-role="F3">F3 (CRO)</button></nav>
 <!-- CHIEF_ADMIN_ROLE_SWITCHER_END -->
 <div class="role-alert" id="role-alert" role="status" aria-live="polite"></div>
+<section id="custodial-lookup-bar" class="custodial-lookup-bar" aria-label="Scoped Custodial Lookup">
+  <div class="row">
+    <div>
+      <div class="label">Scoped Custodial Member Lookup (<span id="lookup-scope-badge">CLASS F SCOPED</span>)</div>
+      <div class="muted" style="font-size:.78rem;">Server-enforced custodial scope: F1/F2-H/F2-A see assigned charges only (out-of-scope blocked); F3 holds enclave-wide macro risk scope.</div>
+    </div>
+  </div>
+  <div class="custodial-lookup-form">
+    <input id="custodial-lookup-input" type="search" aria-label="Search scoped family members or SCMA accounts" placeholder="Search assigned family member name, member ID, or SCMA...">
+    <button id="custodial-lookup-btn" type="button" class="btn-stage" onclick="runCustodialLookup()">Lookup</button>
+    <button id="custodial-lookup-clear" type="button" class="btn-clear" onclick="clearCustodialLookup()">Clear</button>
+  </div>
+  <div id="custodial-lookup-drawer" class="custodial-lookup-drawer" hidden role="region" aria-live="polite"></div>
+</section>
 <section class="scope-control card" id="branch-scope" hidden><label class="label" for="household-selector">Assigned Household</label><select id="household-selector"><option>HOUSEHOLD-ALPHA</option><option>HOUSEHOLD-BETA</option></select></section>
 <div class="row" id="advisor-actions" hidden style="margin-bottom:14px;"><button class="action" id="stage-proposal" type="button">Stage Advisory Proposal</button></div>
 <section class="card" id="cro-emergency-controls" hidden aria-label="F3 CRO Directive R-04 and Dual-Signature Controls">
@@ -284,6 +304,31 @@ $('consult-copilot').addEventListener('click',async()=>{
   const actionHtml=lastAdvisorActionCards.map((c,idx)=>`<article class="advisor-action-card" data-auth-tier="${esc(c.auth_tier||'AUTH-01')}" data-executed="false" data-unilateral-execution="false"><div class="advisor-action-head"><strong>${esc(c.title||'Staged Action')}</strong><div><span class="copilot-pill amber">${esc(c.auth_tier||'AUTH-01')}</span> <span class="copilot-pill green">STAGED · NOT EXECUTED</span></div></div><p class="muted" style="margin:6px 0 0;">${esc(c.description||'')}</p><div class="advisor-action-foot"><small class="muted">${esc(c.confirmation_notice||'Requires explicit human confirmation.')}</small><button type="button" class="btn-stage" onclick="stageAdvisorAction(${idx})">Stage Control (No Auto-Exec)</button></div></article>`).join('');
   $('copilot-output').innerHTML=meta+bodyCards+renderAdvisorWhatIf(result.what_if_simulation)+renderAdvisorAudit(result.audit_summary)+actionHtml;
 });
+async function runCustodialLookup(){
+  const input=$('custodial-lookup-input'),drawer=$('custodial-lookup-drawer');
+  if(!drawer)return;
+  const q=input?input.value.trim():'';
+  const badge=$('lookup-scope-badge');
+  if(badge)badge.textContent=activeRole==='F3'?'F3 ENCLAVE MACRO RISK':`${activeRole} · ${activeHousehold}`;
+  drawer.hidden=false;
+  drawer.innerHTML='<div class="muted" style="font-size:.8rem;">Searching scoped custodial records...</div>';
+  try{
+    const r=await fetch(`/api/v1/portal/custodial/lookup?q=${encodeURIComponent(q)}&role=${encodeURIComponent(activeRole)}&household_id=${encodeURIComponent(activeHousehold)}`,{headers:{'X-Household-ID':activeHousehold,'X-Actor-Role':activeRole}});
+    const d=await r.json();
+    if(!r.ok){drawer.innerHTML=`<div class="error" style="font-size:.82rem;">Lookup blocked (HTTP ${r.status}): ${esc(d.detail||'Forbidden')}</div>`;return}
+    const items=d.results||[];
+    if(!items.length){drawer.innerHTML='<div class="muted" style="font-size:.82rem;">No in-scope members matched your search.</div>';return}
+    drawer.innerHTML=items.map(m=>`<div class="custodial-lookup-item"><div><strong>${esc(m.full_name)}</strong> <span style="font-family:monospace;color:var(--accent-sky);">${esc(m.scma_id)}</span><div class="muted" style="font-size:.76rem;">${esc(m.lineage_code)} · ${esc(m.role_tier||'MEMBER_USER')} · Status: ${esc(m.status)}</div></div><div style="font-variant-numeric:tabular-nums;font-weight:700;color:${m.r12_masked?'#FCD34D':'#6EE7B7'};">${esc(m.balance_display||m.macro_exposure_display||'$****.**')}</div></div>`).join('');
+  }catch(_err){
+    drawer.innerHTML='<div class="error" style="font-size:.82rem;">Lookup unavailable — engine unreachable.</div>';
+  }
+}
+function clearCustodialLookup(){
+  const input=$('custodial-lookup-input'),drawer=$('custodial-lookup-drawer');
+  if(input){input.value='';input.focus()}
+  if(drawer){drawer.hidden=true;drawer.innerHTML=''}
+}
+window.runCustodialLookup=runCustodialLookup;window.clearCustodialLookup=clearCustodialLookup;
 applyRoleChrome();loadRole();
 </script>
 </body>

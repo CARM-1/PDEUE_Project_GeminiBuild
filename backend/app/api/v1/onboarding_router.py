@@ -12,9 +12,10 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Union
 
-from fastapi import APIRouter, Body, HTTPException
+from fastapi import APIRouter, Body, Header, HTTPException, Query
 from pydantic import BaseModel
 
+from app.domain.authority_tiers import get_active_hat_gateway, normalize_role_token
 from app.domain.member_onboarding import (
     ALLOWED_HOUSES,
     ALLOWED_ROLE_TIERS,
@@ -22,6 +23,7 @@ from app.domain.member_onboarding import (
     OnboardingValidationError,
     get_onboarding_service,
 )
+from app.domain.role_custody_service import get_role_custody_service
 
 onboarding_router = APIRouter(prefix="/api/v1/onboarding", tags=["Onboarding"])
 
@@ -37,6 +39,38 @@ class CertifyMemberRequest(BaseModel):
     quiz_passed: bool = False
     correct_answers: int = 0
     total_questions: int = 3
+
+
+def _resolve_onboarding_actor(
+    *,
+    x_actor_role: Optional[str],
+    x_actor_id: Optional[str],
+    x_house_id: Optional[str],
+    authorization: Optional[str],
+    payload: Optional[Dict[str, Any]] = None,
+) -> tuple[str, str, Optional[int]]:
+    role = x_actor_role or (str(payload.get("actor_role") or "") if isinstance(payload, dict) else "")
+    actor_id = x_actor_id or (str(payload.get("actor_id") or "") if isinstance(payload, dict) else "")
+    if authorization and authorization.lower().startswith("bearer "):
+        from app.core.security import decode_access_token
+
+        token = authorization.split(" ", 1)[1].strip()
+        claims = decode_access_token(token)
+        if not claims:
+            raise HTTPException(status_code=403, detail="INVALID_OR_EXPIRED_ACTIVE_HAT_TOKEN")
+        hat = normalize_role_token(claims.get("active_hat") or claims.get("role"))
+        if claims.get("session_id"):
+            get_active_hat_gateway().verify_token(token, required_hats={hat}, action="ONBOARDING_DELEGATION")
+        role = hat
+        actor_id = str(claims.get("sub") or claims.get("user_id") or actor_id or "jwt_principal")
+    actor_house: Optional[int] = None
+    raw_h = x_house_id or (payload.get("actor_house_id") if isinstance(payload, dict) else None)
+    if raw_h is not None and raw_h != "":
+        try:
+            actor_house = int(str(raw_h).strip().upper().replace("HOUSE-", ""))
+        except ValueError as err:
+            raise HTTPException(status_code=403, detail="Invalid X-House-ID header") from err
+    return normalize_role_token(role), (actor_id or normalize_role_token(role) or "anonymous"), actor_house
 
 
 @onboarding_router.get("/schema")
@@ -139,3 +173,186 @@ def certify_member_stewardship(req: CertifyMemberRequest) -> Dict[str, Any]:
         )
     except OnboardingValidationError as exc:
         raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+
+
+# =============================================================================
+# PR #81 — 3-STAGE DELEGATED ONBOARDING & GENEALOGICAL RATIFICATION ENDPOINTS
+# =============================================================================
+
+
+@onboarding_router.get("/delegation-config")
+def get_delegated_onboarding_config() -> Dict[str, Any]:
+    """Return Chief Admin delegation scope (ADMIN_ONLY default), per-House flags, and Genealogical Board state."""
+    return get_role_custody_service().get_policy_controls()
+
+
+@onboarding_router.post("/delegation-config")
+def update_delegated_onboarding_config(
+    payload: Dict[str, Any] = Body(...),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+) -> Dict[str, Any]:
+    """Chief Administrator controls for delegated intake scope, per-House toggles, and Genealogical Board."""
+    actor_role, actor_id, _ = _resolve_onboarding_actor(
+        x_actor_role=x_actor_role,
+        x_actor_id=x_actor_id,
+        x_house_id=x_house_id,
+        authorization=authorization,
+        payload=payload,
+    )
+    return get_role_custody_service().update_delegation_config(
+        delegated_onboarding_scope=payload.get("delegated_onboarding_scope"),
+        house_delegation_flags=payload.get("house_delegation_flags"),
+        genealogical_board_enabled=payload.get("genealogical_board_enabled"),
+        genealogical_board_quorum=payload.get("genealogical_board_quorum"),
+        reason=str(payload.get("reason") or ""),
+        actor_role=actor_role,
+        actor_id=actor_id,
+    )
+
+
+@onboarding_router.post("/delegated-submit", status_code=201)
+def submit_delegated_onboarding_dossier(
+    payload: Dict[str, Any] = Body(...),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+) -> Dict[str, Any]:
+    """Stage 1: Authorized ranked officer submits admission dossier strictly into PENDING_RATIFICATION."""
+    actor_role, actor_id, actor_house = _resolve_onboarding_actor(
+        x_actor_role=x_actor_role,
+        x_actor_id=x_actor_id,
+        x_house_id=x_house_id,
+        authorization=authorization,
+        payload=payload,
+    )
+    return get_role_custody_service().submit_delegated_dossier(
+        payload,
+        actor_role=actor_role,
+        actor_id=actor_id,
+        actor_house_id=actor_house,
+    )
+
+
+@onboarding_router.get("/dossiers")
+def list_onboarding_dossiers(
+    status: Optional[str] = Query(None),
+    house_id: Optional[int] = Query(None),
+) -> Dict[str, Any]:
+    """List submitted delegated onboarding dossiers."""
+    dossiers = get_role_custody_service().list_dossiers(status=status, house_id=house_id)
+    return {"count": len(dossiers), "dossiers": dossiers}
+
+
+@onboarding_router.get("/dossiers/{dossier_id}")
+def get_onboarding_dossier(dossier_id: str) -> Dict[str, Any]:
+    """Fetch one delegated onboarding dossier by ID."""
+    return {"dossier": get_role_custody_service().get_dossier(dossier_id)}
+
+
+@onboarding_router.post("/dossiers/{dossier_id}/board-vote")
+def cast_genealogical_board_vote(
+    dossier_id: str,
+    payload: Dict[str, Any] = Body(...),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+) -> Dict[str, Any]:
+    """Stage 2 (Optional): Genealogical Admissions Board vote by HOUSE_GENEALOGIST / H2."""
+    actor_role, actor_id, _ = _resolve_onboarding_actor(
+        x_actor_role=x_actor_role,
+        x_actor_id=x_actor_id,
+        x_house_id=x_house_id,
+        authorization=authorization,
+        payload=payload,
+    )
+    return get_role_custody_service().cast_board_vote(
+        dossier_id=dossier_id,
+        vote=str(payload.get("vote") or ""),
+        rationale=str(payload.get("rationale") or ""),
+        actor_role=actor_role,
+        actor_id=actor_id,
+    )
+
+
+@onboarding_router.post("/dossiers/{dossier_id}/ratify")
+def ratify_onboarding_dossier(
+    dossier_id: str,
+    payload: Optional[Dict[str, Any]] = Body(default=None),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+) -> Dict[str, Any]:
+    """Stage 2 -> Stage 3: Chief Admin ratification + dual-plane PDEUE SCMA + signed IFAS outbox handoff."""
+    body = payload or {}
+    actor_role, actor_id, _ = _resolve_onboarding_actor(
+        x_actor_role=x_actor_role,
+        x_actor_id=x_actor_id,
+        x_house_id=x_house_id,
+        authorization=authorization,
+        payload=body,
+    )
+    return get_role_custody_service().ratify_dossier(
+        dossier_id=dossier_id,
+        decision_notes=str(body.get("decision_notes") or body.get("reason") or ""),
+        actor_role=actor_role,
+        actor_id=actor_id,
+    )
+
+
+@onboarding_router.post("/dossiers/{dossier_id}/reject")
+def reject_onboarding_dossier(
+    dossier_id: str,
+    payload: Optional[Dict[str, Any]] = Body(default=None),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+) -> Dict[str, Any]:
+    """Chief Admin rejection of an onboarding dossier."""
+    body = payload or {}
+    actor_role, actor_id, _ = _resolve_onboarding_actor(
+        x_actor_role=x_actor_role,
+        x_actor_id=x_actor_id,
+        x_house_id=x_house_id,
+        authorization=authorization,
+        payload=body,
+    )
+    return get_role_custody_service().reject_dossier(
+        dossier_id=dossier_id,
+        reason=str(body.get("reason") or body.get("decision_notes") or ""),
+        actor_role=actor_role,
+        actor_id=actor_id,
+    )
+
+
+@onboarding_router.post("/dossiers/{dossier_id}/request-proof")
+def request_onboarding_dossier_proof(
+    dossier_id: str,
+    payload: Optional[Dict[str, Any]] = Body(default=None),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+) -> Dict[str, Any]:
+    """Request additional genealogical/kinship proof on an onboarding dossier."""
+    body = payload or {}
+    actor_role, actor_id, _ = _resolve_onboarding_actor(
+        x_actor_role=x_actor_role,
+        x_actor_id=x_actor_id,
+        x_house_id=x_house_id,
+        authorization=authorization,
+        payload=body,
+    )
+    return get_role_custody_service().request_dossier_proof(
+        dossier_id=dossier_id,
+        proof_request=str(body.get("proof_request") or body.get("reason") or ""),
+        actor_role=actor_role,
+        actor_id=actor_id,
+    )
+

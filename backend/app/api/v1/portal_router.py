@@ -2722,3 +2722,118 @@ def get_portal_read_model_envelope(
         directive_r04_snapshot=r04_snapshot,
         degraded=degraded,
     )
+
+
+def _resolve_custodial_lookup_headers(
+    *,
+    role: Optional[str],
+    actor_id: Optional[str],
+    house_id: Optional[int],
+    x_actor_role: Optional[str],
+    x_actor_id: Optional[str],
+    x_active_hat: Optional[str],
+    x_house_id: Optional[str],
+    authorization: Optional[str],
+) -> tuple[Optional[str], Optional[str], Optional[int]]:
+    eff_role = x_active_hat or x_actor_role or role
+    eff_actor = x_actor_id or actor_id
+    if authorization and authorization.lower().startswith("bearer "):
+        from app.core.security import decode_access_token
+
+        token = authorization.split(" ", 1)[1].strip()
+        claims = decode_access_token(token)
+        if not claims:
+            raise HTTPException(status_code=403, detail="INVALID_OR_EXPIRED_ACTIVE_HAT_TOKEN")
+        hat = normalize_role_token(claims.get("active_hat") or claims.get("role"))
+        if claims.get("session_id"):
+            get_active_hat_gateway().verify_token(token, required_hats={hat}, action="CUSTODIAL_LOOKUP")
+        eff_role = hat
+        eff_actor = str(claims.get("sub") or claims.get("user_id") or eff_actor or "")
+
+    eff_house = house_id
+    if eff_house is None and x_house_id:
+        try:
+            eff_house = int(str(x_house_id).strip().upper().replace("HOUSE-", ""))
+        except ValueError as err:
+            raise HTTPException(status_code=403, detail="Invalid X-House-ID claim") from err
+    elif eff_house is not None and x_house_id:
+        try:
+            claimed_house = int(str(x_house_id).strip().upper().replace("HOUSE-", ""))
+        except ValueError as err:
+            raise HTTPException(status_code=403, detail="Invalid X-House-ID claim") from err
+        if claimed_house != int(eff_house) and not is_chief_admin_role(eff_role):
+            raise HTTPException(status_code=403, detail="Cross-House custodial lookup forbidden")
+    return eff_role, eff_actor, eff_house
+
+
+@portal_router.get("/api/v1/portal/custodial/lookup")
+def custodial_member_lookup(
+    q: str = Query("", description="Search query (name, member_id, SCMA, house code, or relay node)"),
+    role: Optional[str] = Query(None),
+    actor_id: Optional[str] = Query(None),
+    house_id: Optional[int] = Query(None),
+    household_id: Optional[str] = Query(None),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+    x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
+    x_household_id: Optional[str] = Header(None, alias="X-Household-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+) -> Dict[str, Any]:
+    """Server-side scoped custodial lookup across all custodial portals with Directive R-12 Class T masking."""
+    from app.domain.role_custody_service import get_role_custody_service
+
+    eff_role, eff_actor, eff_house = _resolve_custodial_lookup_headers(
+        role=role,
+        actor_id=actor_id,
+        house_id=house_id,
+        x_actor_role=x_actor_role,
+        x_actor_id=x_actor_id,
+        x_active_hat=x_active_hat,
+        x_house_id=x_house_id,
+        authorization=authorization,
+    )
+    return get_role_custody_service().custodial_lookup(
+        q=q,
+        actor_role=eff_role,
+        actor_id=eff_actor,
+        house_id=eff_house,
+        household_id=x_household_id or household_id,
+    )
+
+
+@portal_router.get("/api/v1/portal/custodial/member/{member_id}")
+def custodial_member_detail(
+    member_id: str,
+    role: Optional[str] = Query(None),
+    actor_id: Optional[str] = Query(None),
+    house_id: Optional[int] = Query(None),
+    household_id: Optional[str] = Query(None),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+    x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
+    x_household_id: Optional[str] = Header(None, alias="X-Household-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+) -> Dict[str, Any]:
+    """Fetch a single member record strictly within caller's server-side custodial scope (HTTP 403 otherwise)."""
+    from app.domain.role_custody_service import get_role_custody_service
+
+    eff_role, eff_actor, eff_house = _resolve_custodial_lookup_headers(
+        role=role,
+        actor_id=actor_id,
+        house_id=house_id,
+        x_actor_role=x_actor_role,
+        x_actor_id=x_actor_id,
+        x_active_hat=x_active_hat,
+        x_house_id=x_house_id,
+        authorization=authorization,
+    )
+    return get_role_custody_service().custodial_member_detail(
+        target_member_id=member_id,
+        actor_role=eff_role,
+        actor_id=eff_actor,
+        house_id=eff_house,
+        household_id=x_household_id or household_id,
+    )
+
