@@ -59,6 +59,8 @@ CANONICAL_CONCEPT_PATTERNS: dict[str, tuple[str, ...]] = {
     "family-home-hub": (r"Family Home Hub",),
     "hall-of-arms": (r"Hall of Arms",),
     "lineage-hearth": (r"Lineage Hearth", r"Lineage Community Hearth"),
+    "bordure-differencing": (r"Bordure Differencing", r"bordure differencing"),
+    "guided-tour": (r"Guided Tour", r"Guided Step-by-Step"),
 }
 
 

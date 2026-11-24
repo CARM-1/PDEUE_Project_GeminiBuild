@@ -48,6 +48,8 @@ input,select{min-width:0;min-height:46px;background:#101812;border:1px solid #56
 form.post-form input{flex:1 1 220px}
 button.action{min-height:46px;border:0;border-radius:10px;padding:11px 18px;background:var(--leaf);color:#0d1b11;font-weight:800;cursor:pointer}
 button.action:hover{background:#94cfa4}
+button.action-clear{min-height:46px;border:1px solid #649071;border-radius:10px;padding:11px 16px;background:#101812;color:#dff5e4;font-weight:800;cursor:pointer}
+button.action-clear:hover,button.action-clear:focus-visible{border-color:var(--gold);background:#1b2d21;color:#fff}
 .preset-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:14px 0}
 .preset-card{background:#122017;border:1px solid #496a56;border-radius:14px;padding:16px;display:flex;flex-direction:column;justify-content:space-between;gap:10px}
 .preset-card.active-room{border-color:var(--gold);box-shadow:0 0 16px rgba(228,187,99,.25)}
@@ -78,45 +80,58 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
 </head>
 <body><div style="display:none" id="legacyPortalHub">PDEUE PORTAL HUB</div>
 <main class="shell">
-<div class="top-brand-bar">
-  <a href="/community/heritage" class="brand-lockup" data-plane-doorway="heritage" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Hall of Arms">
-    <span class="brand-crests">
-      <img class="brand-crest" src="/static/assets/crests/carmichael_crest.svg" alt="Carmichael Family Crest" width="40" height="46" loading="eager">
-      <span class="brand-crest-divider" aria-hidden="true"></span>
-      <img class="brand-crest" src="/static/assets/crests/mccormick_crest.svg" alt="McCormick Family Crest" width="40" height="46" loading="eager">
-    </span>
-    <span class="brand-stack">
-      <span class="brand-title">FUTURE · CARMICHAEL — McCORMICK</span>
-      <span class="brand-motto">Generational Love, Harmony, Resilience, and Wealth</span>
-    </span>
-  </a>
-  <div class="senior-a11y-controls">
-    <a id="backToHomeBtn" class="back-home-btn" href="/home" data-plane-doorway="home">← Back to Home</a>
-    <button id="familyAlertsBtn" type="button" class="alerts-bell-btn" aria-expanded="false" aria-controls="familyAlertsDrawer" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.toggleAlerts()">
-      🔔 Family Alerts <span id="familyAlertsCount" class="alerts-count-pill">3</span>
-    </button>
-    <div id="textScaleGroup" class="text-scale-group" role="group" aria-label="Text size controls">
-      <button type="button" class="text-scale-btn active" data-scale="standard" aria-pressed="true" aria-label="Standard text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('standard')">A</button>
-      <button type="button" class="text-scale-btn" data-scale="large" aria-pressed="false" aria-label="Large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('large')">A+</button>
-      <button type="button" class="text-scale-btn" data-scale="xlarge" aria-pressed="false" aria-label="Extra large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('xlarge')">A++</button>
+<div class="portal-header-shell" role="banner" style="background:rgba(20,34,25,0.94);border-color:var(--line);">
+  <nav aria-label="Community portal navigation">
+    <div class="portal-header-row1" style="border-bottom-color:var(--line);">
+      <a href="/community/heritage" class="brand-lockup" data-plane-doorway="heritage" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Hall of Arms">
+        <span class="brand-crests">
+          <img class="brand-crest" src="/static/assets/crests/carmichael_crest.svg" alt="Carmichael Family Crest" width="40" height="46" loading="eager">
+          <span class="brand-crest-divider" aria-hidden="true"></span>
+          <img class="brand-crest" src="/static/assets/crests/mccormick_crest.svg" alt="McCormick Family Crest" width="40" height="46" loading="eager">
+        </span>
+        <span class="brand-stack">
+          <span class="brand-title">FUTURE · CARMICHAEL — McCORMICK</span>
+          <span class="brand-motto">Generational Love, Harmony, Resilience, and Wealth</span>
+        </span>
+      </a>
+      <div class="senior-a11y-controls">
+        <a id="backToHomeBtn" class="back-home-btn" href="/home" data-plane-doorway="home">← Back to Home</a>
+        <div id="textScaleGroup" class="text-scale-group" role="group" aria-label="Text size controls">
+          <button type="button" class="text-scale-btn active" data-scale="standard" aria-pressed="true" aria-label="Standard text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('standard')">A</button>
+          <button type="button" class="text-scale-btn" data-scale="large" aria-pressed="false" aria-label="Large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('large')">A+</button>
+          <button type="button" class="text-scale-btn" data-scale="xlarge" aria-pressed="false" aria-label="Extra large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('xlarge')">A++</button>
+        </div>
+      </div>
     </div>
-  </div>
+    <div class="portal-header-row2" style="border-bottom-color:var(--line);">
+      <div class="portal-hub-pills">
+        <span class="portal-hub-label" style="color:var(--gold);">FAMILY SPACE:</span>
+        <a href="/community" class="portal-hub-pill active" data-plane-doorway="community" aria-current="page">🔥 Lineage Hearth</a>
+        <a href="/community/heritage" class="portal-hub-pill" data-plane-doorway="heritage">🛡️ Hall of Arms (12 Houses)</a>
+        <a href="/companion" class="nav-link campus-link" id="navCompanionLink" data-plane-doorway="companion">🎓 PDEUE University</a>
+      </div>
+    </div>
+  </nav>
+  <header class="portal-header-row3">
+    <div class="portal-title-block">
+      <div class="eyebrow">Class C · <abbr class="pdeue-term" tabindex="0" data-term="lineage-hearth" data-tooltip="Our warm, private family living room for news, reunions, milestone celebrations, and video calls. It stays completely separate from trading software and bank accounts.">Lineage Hearth<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> · learning plane</div>
+      <h1 style="font:clamp(1.35rem,2.7vw,2.05rem)/1.16 Georgia,serif;margin:.25rem 0 .35rem;">LINEAGE COMMUNITY HEARTH &amp; EDUCATIONAL ACADEMY</h1>
+      <p style="margin:0;color:#ECE6D6;font-size:.94rem;">Shared family room celebrating lineage life, <abbr class="pdeue-term" tabindex="0" data-term="pay-it-forward-lccf" data-tooltip="Our family tradition of helping loved ones get out of high-interest debt and start building wealth. As early members grow, voluntary and common-pool support helps lift the next generation—who then pass that blessing forward.">Pay-it-Forward / LCCF<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> stewardship, and plain-English literacy. Zero balances or transactions.</p>
+    </div>
+    <div class="portal-action-strip">
+      <span class="badge">Active Hat: ALL_MEMBERS (COMMUNITY_FELLOWSHIP)</span>
+      <span class="badge">🏡 Family Social Space — No Financial Data</span>
+      <button id="familyAlertsBtn" type="button" class="alerts-bell-btn" aria-expanded="false" aria-controls="familyAlertsDrawer" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.toggleAlerts()">
+        🔔 Family Alerts <span id="familyAlertsCount" class="alerts-count-pill">3</span>
+      </button>
+    </div>
+  </header>
 </div>
 
-<header class="hero">
-  <div class="hero-badges">
-    <span class="badge">Active Hat: ALL_MEMBERS (COMMUNITY_FELLOWSHIP)</span>
-    <span class="badge">🏡 Family Social Space — No Financial Data</span>
-    <a class="heritage-cta-link" href="/community/heritage" data-plane-doorway="heritage">🛡️ Visit Hall of Arms (12 Houses) →</a>
-  </div>
-  <div class="eyebrow">Class C · <abbr class="pdeue-term" tabindex="0" data-term="lineage-hearth" data-tooltip="Our warm, private family living room for news, reunions, milestone celebrations, and video calls. It stays completely separate from trading software and bank accounts.">Lineage Hearth<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> · learning plane</div>
-  <h1>LINEAGE COMMUNITY HEARTH &amp; EDUCATIONAL ACADEMY</h1>
-  <p>This shared family room celebrates lineage life, <abbr class="pdeue-term" tabindex="0" data-term="pay-it-forward-lccf" data-tooltip="Our family tradition of helping loved ones get out of high-interest debt and start building wealth. As early members grow, voluntary and common-pool support helps lift the next generation—who then pass that blessing forward.">Pay-it-Forward / LCCF<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> stewardship, and plain-English literacy. It cannot view balances, store bank details, or perform transactions.</p>
-  <div id="benefactorWelcomeBanner" class="benefactor-banner" role="region" aria-label="Benefactor's Welcome and Dedication">
-    <h2>A Better Financial Starting Point — Benefactor's Welcome &amp; Dedication</h2>
-    <p>Welcome home to every Carmichael, McCormick, and allied relative. Whether you are joining for the first time or returning to check in with cousins, this Hearth was built so our family can learn calmly, celebrate milestones together, and pass down a stronger financial starting point to the generations that follow.</p>
-  </div>
-</header>
+<section id="benefactorWelcomeBanner" class="benefactor-banner" role="region" aria-label="Benefactor's Welcome and Dedication" style="margin-top:0;margin-bottom:16px;">
+  <h2>A Better Financial Starting Point — Benefactor's Welcome &amp; Dedication</h2>
+  <p>Welcome home to every Carmichael, McCormick, and allied relative. Whether you are joining for the first time or returning to check in with cousins, this Hearth was built so our family can learn calmly, celebrate milestones together, and pass down a stronger financial starting point to the generations that follow.</p>
+</section>
 
 <nav class="tabs" aria-label="Community sections">
   <button class="tab active" type="button" data-tab="hearth" onclick="switchCommunityTab('hearth')">Lineage Hearth &amp; Announcements</button>
@@ -250,8 +265,8 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
   <article class="card tutor">
     <h2>Interactive AI Literacy Tutor</h2>
     <div class="tutor-log" id="tutorLog" aria-live="polite"><p class="reply">Tutor: Ask me to explain a curriculum concept in plain English.</p></div>
-    <form id="tutorForm" class="post-form"><input id="tutorQuery" maxlength="500" required aria-label="Question for literacy tutor" placeholder="Why does Quarter-Kelly add a cushion?"><button class="action" type="submit">Ask tutor</button></form>
-    <p class="notice">Educational explanations only. Transaction requests and private account questions are refused.</p>
+    <form id="tutorForm" class="post-form"><input id="tutorQuery" maxlength="500" required aria-label="Question for literacy tutor" placeholder="Why does Quarter-Kelly add a cushion?"><button id="askCommunityTutorBtn" class="action" type="submit">Ask tutor</button><button id="clearCommunityTutorBtn" class="action-clear" type="button" aria-label="Clear tutor conversation and reset question input" onclick="clearCommunityTutor()">Clear</button></form>
+    <p class="notice" id="communityTutorStatus" role="status" aria-live="polite">Educational explanations only. Transaction requests and private account questions are refused.</p>
   </article>
 </section>
 
@@ -378,6 +393,25 @@ async function loadLessons(){
     card.lastChild.className='check';
     return card;
   }));
+}
+
+const COMMUNITY_TUTOR_GREETING='Tutor: Ask me to explain a curriculum concept in plain English.';
+function clearCommunityTutor(){
+  const input=$('tutorQuery');
+  const log=$('tutorLog');
+  const status=$('communityTutorStatus');
+  if(log){
+    const p=text('p',COMMUNITY_TUTOR_GREETING);
+    p.className='reply';
+    log.replaceChildren(p);
+  }
+  if(status){
+    status.textContent='Conversation cleared. Ask any curriculum question in plain English.';
+  }
+  if(input){
+    input.value='';
+    input.focus();
+  }
 }
 
 $('tutorForm').addEventListener('submit',async event=>{

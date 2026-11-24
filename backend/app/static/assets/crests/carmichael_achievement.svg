@@ -1,0 +1,154 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 320" width="360" height="320" role="img" aria-label="Full Heraldic Achievement of House Carmichael">
+  <title>Carmichael Full Heraldic Achievement</title>
+  <desc>Full Carmichael coat of arms featuring the Hyndford eagle with blue and crimson wreathed inescutcheon, armored arm holding a broken spear, TOUJOURS PREST scroll, knight supporter with warm medium-brown skin tone, crowned golden African lion supporter, Scottish thistles, and gold, black, and green heritage accent ribbon.</desc>
+  <defs>
+    <radialGradient id="carmHalo" cx="50%" cy="46%" r="54%">
+      <stop offset="0%" stop-color="#1E3566"/>
+      <stop offset="100%" stop-color="#0B132B"/>
+    </radialGradient>
+    <linearGradient id="goldGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFF0B3"/>
+      <stop offset="48%" stop-color="#D4AF37"/>
+      <stop offset="100%" stop-color="#9A721C"/>
+    </linearGradient>
+    <linearGradient id="steelGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#E2E8F0"/>
+      <stop offset="55%" stop-color="#94A3B8"/>
+      <stop offset="100%" stop-color="#475569"/>
+    </linearGradient>
+    <linearGradient id="skinWarm" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#A86E42"/>
+      <stop offset="100%" stop-color="#7B4B2A"/>
+    </linearGradient>
+    <linearGradient id="lionGold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FDE68A"/>
+      <stop offset="55%" stop-color="#D99B26"/>
+      <stop offset="100%" stop-color="#9A6414"/>
+    </linearGradient>
+    <clipPath id="carmMainShieldClip">
+      <path d="M134 128 H226 V185 C226 218 202 238 180 248 C158 238 134 218 134 185 Z"/>
+    </clipPath>
+    <clipPath id="inescClip">
+      <path d="M158 156 H202 V186 C202 202 191 211 180 216 C169 211 158 202 158 186 Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- Showcase Backdrop -->
+  <rect x="4" y="4" width="352" height="312" rx="18" fill="url(#carmHalo)" stroke="url(#goldGrad)" stroke-width="2.5"/>
+  <rect x="11" y="11" width="338" height="298" rx="13" fill="none" stroke="#D4AF37" stroke-opacity="0.35" stroke-width="1"/>
+
+  <!-- Top Motto Scroll: TOUJOURS PREST -->
+  <path d="M98 30 Q180 14 262 30 L254 48 Q180 34 106 48 Z" fill="#F8FAFC" stroke="url(#goldGrad)" stroke-width="1.8"/>
+  <text x="180" y="38" text-anchor="middle" font-family="Georgia, serif" font-size="11.5" font-weight="800" letter-spacing="1.6" fill="#0B132B">TOUJOURS PREST</text>
+
+  <!-- Mantling (Azure, Gules & Argent Flourishes) -->
+  <path d="M180 90 C142 84 114 100 108 134 C122 126 130 132 134 144 C138 122 156 112 180 112 Z" fill="#1D4ED8" stroke="#D4AF37" stroke-width="1"/>
+  <path d="M180 90 C218 84 246 100 252 134 C238 126 230 132 226 144 C222 122 204 112 180 112 Z" fill="#B91C1C" stroke="#D4AF37" stroke-width="1"/>
+  <path d="M126 112 C112 118 106 136 116 149 C125 140 132 138 136 132 Z" fill="#E2E8F0" opacity="0.9"/>
+  <path d="M234 112 C248 118 254 136 244 149 C235 140 228 138 224 132 Z" fill="#E2E8F0" opacity="0.9"/>
+
+  <!-- Crest: Armored Arm Holding a Broken Spear -->
+  <g id="carmichaelBrokenSpearCrest">
+    <!-- Armored Forearm -->
+    <path d="M174 86 L176 62 L188 54 L193 62 L185 70 L185 86 Z" fill="url(#steelGrad)" stroke="#1E293B" stroke-width="1.2"/>
+    <circle cx="179" cy="70" r="3" fill="url(#goldGrad)"/>
+    <!-- Gauntlet holding spear shaft -->
+    <rect x="184" y="51" width="9" height="9" rx="2.5" fill="url(#steelGrad)" stroke="#1E293B" stroke-width="1"/>
+    <!-- Broken Spear Shaft + Splintered Tip -->
+    <line x1="158" y1="74" x2="208" y2="48" stroke="#92400E" stroke-width="3.2" stroke-linecap="round"/>
+    <path d="M206 49 L219 42 L213 51 Z" fill="url(#steelGrad)" stroke="#1E293B" stroke-width="0.9"/>
+    <path d="M158 74 L147 82 L152 70 Z" fill="#B45309"/>
+  </g>
+
+  <!-- Torse (Wreath) & Knight Helm -->
+  <rect x="160" y="84" width="40" height="7" rx="3.5" fill="#1D4ED8" stroke="url(#goldGrad)" stroke-width="1"/>
+  <path d="M167 84 L173 91 M177 84 L183 91 M187 84 L193 91" stroke="#F8FAFC" stroke-width="3"/>
+  <path d="M162 92 H198 V112 C198 121 190 126 180 126 C170 126 162 121 162 112 Z" fill="url(#steelGrad)" stroke="#1E293B" stroke-width="1.4"/>
+  <line x1="168" y1="104" x2="192" y2="104" stroke="#0F172A" stroke-width="2.4"/>
+  <path d="M173 108 V118 M180 108 V120 M187 108 V118" stroke="url(#goldGrad)" stroke-width="1.5"/>
+
+  <!-- Dexter Supporter (Left): Armored Knight with Warm Medium-Brown Skin Tone -->
+  <g id="knightSupporter">
+    <!-- Lance held by knight -->
+    <line x1="48" y1="90" x2="54" y2="262" stroke="#92400E" stroke-width="3.5"/>
+    <polygon points="48,74 42,93 54,93" fill="url(#steelGrad)" stroke="#1E293B" stroke-width="1"/>
+    <!-- Knight Plume & Open-Visor Helmet -->
+    <path d="M78 104 C88 94 102 98 106 112 C96 110 88 112 82 116 Z" fill="#B91C1C"/>
+    <path d="M72 118 C72 106 94 106 94 118 V136 H72 Z" fill="url(#steelGrad)" stroke="#1E293B" stroke-width="1.2"/>
+    <!-- Warm Medium-Brown Face inside Open Visor -->
+    <ellipse cx="85" cy="127" rx="7.5" ry="8.5" fill="url(#skinWarm)" stroke="#4A2C18" stroke-width="0.9"/>
+    <circle cx="83" cy="125" r="1" fill="#1E130C"/>
+    <circle cx="88" cy="125" r="1" fill="#1E130C"/>
+    <path d="M83 130 Q85.5 132 88 130" fill="none" stroke="#3B2112" stroke-width="1"/>
+    <!-- Armored Torso, Surcoat & Greaves -->
+    <path d="M66 138 H102 L108 188 H62 Z" fill="url(#steelGrad)" stroke="#1E293B" stroke-width="1.3"/>
+    <path d="M72 142 H96 L99 182 H70 Z" fill="#1D4ED8" opacity="0.9"/>
+    <line x1="72" y1="162" x2="98" y2="162" stroke="url(#goldGrad)" stroke-width="3"/>
+    <!-- Knight Arms (left holding lance, right steadying shield) -->
+    <path d="M68 144 L52 162 L58 170 L72 156 Z" fill="url(#steelGrad)" stroke="#1E293B" stroke-width="1.1"/>
+    <path d="M100 146 L133 158 L131 168 L98 158 Z" fill="url(#steelGrad)" stroke="#1E293B" stroke-width="1.1"/>
+    <!-- Legs / Greaves -->
+    <rect x="68" y="188" width="13" height="62" rx="5" fill="url(#steelGrad)" stroke="#1E293B" stroke-width="1.2"/>
+    <rect x="86" y="188" width="13" height="62" rx="5" fill="url(#steelGrad)" stroke="#1E293B" stroke-width="1.2"/>
+    <ellipse cx="74" cy="252" rx="10" ry="5" fill="#475569"/>
+    <ellipse cx="94" cy="252" rx="10" ry="5" fill="#475569"/>
+  </g>
+
+  <!-- Sinister Supporter (Right): Crowned Golden African Lion Rampant -->
+  <g id="crownedLionSupporter">
+    <!-- Lion Tail -->
+    <path d="M294 202 C318 190 324 156 306 144" fill="none" stroke="url(#lionGold)" stroke-width="5" stroke-linecap="round"/>
+    <ellipse cx="305" cy="143" rx="6" ry="4" fill="#92400E"/>
+    <!-- Lion Hind & Body -->
+    <path d="M250 184 C264 158 292 162 296 196 C298 220 284 240 270 250 L256 248 C264 234 268 218 260 206 Z" fill="url(#lionGold)" stroke="#78350F" stroke-width="1.2"/>
+    <!-- Forepaws Steadying Shield -->
+    <path d="M258 164 L228 152 L226 161 L254 174 Z" fill="url(#lionGold)" stroke="#78350F" stroke-width="1.1"/>
+    <path d="M256 184 L228 182 L228 191 L256 194 Z" fill="url(#lionGold)" stroke="#78350F" stroke-width="1.1"/>
+    <!-- Full Mane & Lion Head -->
+    <circle cx="272" cy="144" r="22" fill="#B45309" stroke="#78350F" stroke-width="1.2"/>
+    <circle cx="268" cy="142" r="14" fill="url(#lionGold)" stroke="#78350F" stroke-width="1"/>
+    <circle cx="263" cy="139" r="1.8" fill="#1E130C"/>
+    <path d="M257 146 L264 148 L260 151 Z" fill="#991B1B"/>
+    <!-- Royal Golden Crown on Lion -->
+    <path d="M258 124 L261 114 L267 120 L272 112 L277 120 L283 114 L286 124 Z" fill="url(#goldGrad)" stroke="#FFF3C4" stroke-width="0.9"/>
+    <rect x="258" y="124" width="28" height="3.5" rx="1" fill="url(#goldGrad)"/>
+    <!-- Hind Paw -->
+    <path d="M266 220 L286 250 L274 254 L256 226 Z" fill="url(#lionGold)" stroke="#78350F" stroke-width="1.1"/>
+  </g>
+
+  <!-- Central Escutcheon: Hyndford Eagle + Blue/Crimson Wreathed Inescutcheon -->
+  <path d="M130 124 H230 V186 C230 222 204 244 180 255 C156 244 130 222 130 186 Z" fill="#0B132B" stroke="url(#goldGrad)" stroke-width="3.2"/>
+  <g clip-path="url(#carmMainShieldClip)">
+    <!-- Gold Field for Hyndford Eagle -->
+    <rect x="130" y="124" width="100" height="130" fill="#FDE68A"/>
+    <!-- Hyndford Black Eagle Displayed -->
+    <path d="M180 135 L186 144 L214 141 L222 154 L208 162 L218 175 L202 180 L194 176 L204 224 L188 214 L180 236 L172 214 L156 224 L166 176 L158 180 L142 175 L152 162 L138 154 L146 141 L174 144 Z" fill="#111827" stroke="#0F172A" stroke-width="1"/>
+    <!-- Carmichael Inescutcheon (Silver + Blue/Crimson Wreathed Fess) -->
+    <path d="M158 156 H202 V186 C202 202 191 211 180 216 C169 211 158 202 158 186 Z" fill="#FFFFFF" stroke="url(#goldGrad)" stroke-width="2"/>
+    <g clip-path="url(#inescClip)">
+      <rect x="156" y="176" width="48" height="14" fill="#1D4ED8"/>
+      <path d="M155 190 L165 176 H173 L163 190 Z M172 190 L182 176 H190 L180 190 Z M189 190 L199 176 H207 L197 190 Z" fill="#B91C1C"/>
+      <line x1="156" y1="176" x2="204" y2="176" stroke="#D4AF37" stroke-width="1.3"/>
+      <line x1="156" y1="190" x2="204" y2="190" stroke="#D4AF37" stroke-width="1.3"/>
+    </g>
+  </g>
+
+  <!-- Highland Compartment + Scottish Thistles -->
+  <path d="M44 268 Q180 242 316 268 L308 282 Q180 262 52 282 Z" fill="#14532D" stroke="#22C55E" stroke-opacity="0.45" stroke-width="1.2"/>
+  <!-- Left & Right Scottish Thistles -->
+  <g id="scottishThistles">
+    <path d="M112 268 L106 252 M112 268 L119 255" stroke="#22C55E" stroke-width="2.2"/>
+    <circle cx="106" cy="249" r="5.5" fill="#166534"/>
+    <path d="M101 247 Q106 237 111 247 Z" fill="#A855F7"/>
+    <path d="M248 268 L254 252 M248 268 L241 255" stroke="#22C55E" stroke-width="2.2"/>
+    <circle cx="254" cy="249" r="5.5" fill="#166534"/>
+    <path d="M249 247 Q254 237 259 247 Z" fill="#A855F7"/>
+  </g>
+
+  <!-- Gold / Black / Green Heritage Accent Ribbon -->
+  <g id="heritageAccentRibbon">
+    <path d="M68 286 Q180 270 292 286 L288 293 Q180 277 72 293 Z" fill="#D4AF37"/>
+    <path d="M72 293 Q180 277 288 293 L285 299 Q180 283 75 299 Z" fill="#111827"/>
+    <path d="M75 299 Q180 283 285 299 L282 305 Q180 289 78 305 Z" fill="#15803D"/>
+  </g>
+</svg>

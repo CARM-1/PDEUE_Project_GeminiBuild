@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 320" width="360" height="320" role="img" aria-label="Full Heraldic Achievement of Foundational House McCormick">
+  <title>Foundational McCormick Full Heraldic Achievement</title>
+  <desc>Full foundational McCormick coat of arms featuring three royal-blue eagles, a crimson zigzag fess dancette, and black engrailed border on silver, topped by a royal-blue eagle crest over helm and mantling, supported by twin golden Highland stags with Scottish thistles and SINE TIMORE scroll.</desc>
+  <defs>
+    <radialGradient id="mccHalo" cx="50%" cy="46%" r="54%">
+      <stop offset="0%" stop-color="#1A3259"/>
+      <stop offset="100%" stop-color="#0B132B"/>
+    </radialGradient>
+    <linearGradient id="mccAchGold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFF0B3"/>
+      <stop offset="48%" stop-color="#D4AF37"/>
+      <stop offset="100%" stop-color="#9A721C"/>
+    </linearGradient>
+    <linearGradient id="mccAchSteel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#E2E8F0"/>
+      <stop offset="55%" stop-color="#94A3B8"/>
+      <stop offset="100%" stop-color="#475569"/>
+    </linearGradient>
+    <linearGradient id="stagGold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FDE68A"/>
+      <stop offset="52%" stop-color="#D4AF37"/>
+      <stop offset="100%" stop-color="#9A6818"/>
+    </linearGradient>
+    <clipPath id="mccMainShieldClip">
+      <path d="M134 128 H226 V186 C226 219 202 239 180 249 C158 239 134 219 134 186 Z"/>
+    </clipPath>
+    <g id="achBlueEagle">
+      <path d="M0,-10 L2.4,-6.5 L10,-7.5 L12.5,-3 L7.5,-0.5 L11,3 L5.5,4 L3.5,2.5 L5.5,9.5 L1.5,7 L0,11 L-1.5,7 L-5.5,9.5 L-3.5,2.5 L-5.5,4 L-11,3 L-7.5,-0.5 L-12.5,-3 L-10,-7.5 L-2.4,-6.5 Z" fill="#1D4ED8" stroke="#0F2A6B" stroke-width="0.8" stroke-linejoin="round"/>
+      <circle cx="0" cy="-7.8" r="1.6" fill="#1D4ED8"/>
+    </g>
+    <g id="highlandStag">
+      <!-- Antlers -->
+      <path d="M0,0 L-10,-16 M-6,-10 L-14,-12 M-9,-14 L-6,-22 M0,0 L8,-17 M5,-10 L13,-12 M7,-15 L12,-21" fill="none" stroke="#FDE68A" stroke-width="2.1" stroke-linecap="round"/>
+      <!-- Stag Head & Neck -->
+      <path d="M-4,2 L10,6 L14,12 L4,14 L-6,26 L-12,50 L-22,46 L-16,18 Z" fill="url(#stagGold)" stroke="#78350F" stroke-width="1.2"/>
+      <circle cx="5" cy="7" r="1.5" fill="#1E130C"/>
+      <!-- Stag Body & Forelegs Steadying Shield -->
+      <path d="M-20,44 C-32,56 -34,82 -24,104 L-12,138 L-3,138 L-9,102 L4,92 L8,136 L17,136 L14,82 C10,60 -4,46 -20,44 Z" fill="url(#stagGold)" stroke="#78350F" stroke-width="1.2"/>
+      <!-- Raised Foreleg -->
+      <path d="M-4,50 L26,42 L28,49 L-2,60 Z" fill="url(#stagGold)" stroke="#78350F" stroke-width="1.1"/>
+      <path d="M0,66 L26,64 L26,71 L0,75 Z" fill="url(#stagGold)" stroke="#78350F" stroke-width="1.1"/>
+    </g>
+  </defs>
+
+  <!-- Showcase Backdrop -->
+  <rect x="4" y="4" width="352" height="312" rx="18" fill="url(#mccHalo)" stroke="url(#mccAchGold)" stroke-width="2.5"/>
+  <rect x="11" y="11" width="338" height="298" rx="13" fill="none" stroke="#D4AF37" stroke-opacity="0.35" stroke-width="1"/>
+
+  <!-- Mantling (Royal Blue, Crimson & Silver) -->
+  <path d="M180 90 C142 84 114 102 108 136 C122 128 130 134 134 146 C138 124 156 114 180 114 Z" fill="#1D4ED8" stroke="#D4AF37" stroke-width="1"/>
+  <path d="M180 90 C218 84 246 102 252 136 C238 128 230 134 226 146 C222 124 204 114 180 114 Z" fill="#B91C1C" stroke="#D4AF37" stroke-width="1"/>
+  <path d="M126 114 C112 120 106 138 116 151 C125 142 132 140 136 134 Z" fill="#F8FAFC" opacity="0.92"/>
+  <path d="M234 114 C248 120 254 138 244 151 C235 142 228 140 224 134 Z" fill="#F8FAFC" opacity="0.92"/>
+
+  <!-- Blue Eagle Crest Rising Over Helm -->
+  <g transform="translate(180, 56) scale(2.1)">
+    <use href="#achBlueEagle"/>
+  </g>
+
+  <!-- Torse & Helm -->
+  <rect x="160" y="84" width="40" height="7" rx="3.5" fill="#1D4ED8" stroke="url(#mccAchGold)" stroke-width="1"/>
+  <path d="M167 84 L173 91 M177 84 L183 91 M187 84 L193 91" stroke="#F8FAFC" stroke-width="3"/>
+  <path d="M162 92 H198 V112 C198 121 190 126 180 126 C170 126 162 121 162 112 Z" fill="url(#mccAchSteel)" stroke="#1E293B" stroke-width="1.4"/>
+  <line x1="168" y1="104" x2="192" y2="104" stroke="#0F172A" stroke-width="2.4"/>
+  <path d="M173 108 V118 M180 108 V120 M187 108 V118" stroke="url(#mccAchGold)" stroke-width="1.5"/>
+
+  <!-- Twin Golden Highland Stags (Dexter & Sinister Supporters) -->
+  <g id="dexterStag" transform="translate(96, 118)">
+    <use href="#highlandStag"/>
+  </g>
+  <g id="sinisterStag" transform="translate(264, 118) scale(-1, 1)">
+    <use href="#highlandStag"/>
+  </g>
+
+  <!-- Foundational McCormick Escutcheon -->
+  <path d="M130 124 H230 V187 C230 223 204 245 180 256 C156 245 130 223 130 187 Z" fill="#111827" stroke="url(#mccAchGold)" stroke-width="3.2"/>
+  <g clip-path="url(#mccMainShieldClip)">
+    <!-- Black Engrailed Border Base -->
+    <rect x="130" y="124" width="100" height="130" fill="#111827"/>
+    <!-- Inner Silver Field with Engrailed Scallops -->
+    <path d="M144 138 Q150 142 156 138 Q162 142 168 138 Q174 142 180 138 Q186 142 192 138 Q198 142 204 138 Q210 142 216 138 Q212 146 216 154 Q212 162 216 170 Q212 178 216 186 Q211 196 209 205 Q201 214 196 222 Q188 229 180 235 Q172 229 164 222 Q159 214 151 205 Q149 196 144 186 Q148 178 144 170 Q148 162 144 154 Q148 146 144 138 Z" fill="#FFFFFF" stroke="#334155" stroke-width="0.9"/>
+    <!-- Crimson Zigzag Fess Dancette -->
+    <path d="M140 187 L151 176 L162 187 L173 176 L184 187 L195 176 L206 187 L218 176 V189 L206 200 L195 189 L184 200 L173 189 L162 200 L151 189 L140 200 Z" fill="#B91C1C" stroke="#7F1D1D" stroke-width="1"/>
+    <!-- Three Royal-Blue Eagles -->
+    <use href="#achBlueEagle" transform="translate(163, 158) scale(1.05)"/>
+    <use href="#achBlueEagle" transform="translate(197, 158) scale(1.05)"/>
+    <use href="#achBlueEagle" transform="translate(180, 214) scale(1.05)"/>
+  </g>
+
+  <!-- Highland Compartment + Scottish Thistles -->
+  <path d="M44 268 Q180 242 316 268 L308 282 Q180 262 52 282 Z" fill="#14532D" stroke="#22C55E" stroke-opacity="0.45" stroke-width="1.2"/>
+  <path d="M114 268 L108 252 M114 268 L121 255" stroke="#22C55E" stroke-width="2.2"/>
+  <circle cx="108" cy="249" r="5.5" fill="#166534"/>
+  <path d="M103 247 Q108 237 113 247 Z" fill="#A855F7"/>
+  <path d="M246 268 L252 252 M246 268 L239 255" stroke="#22C55E" stroke-width="2.2"/>
+  <circle cx="252" cy="249" r="5.5" fill="#166534"/>
+  <path d="M247 247 Q252 237 257 247 Z" fill="#A855F7"/>
+
+  <!-- Bottom Motto Scroll: SINE TIMORE -->
+  <path d="M98 282 Q180 268 262 282 L255 302 Q180 288 105 302 Z" fill="#F8FAFC" stroke="url(#mccAchGold)" stroke-width="1.8"/>
+  <text x="180" y="294" text-anchor="middle" font-family="Georgia, serif" font-size="11.5" font-weight="800" letter-spacing="1.6" fill="#0B132B">SINE TIMORE</text>
+</svg>

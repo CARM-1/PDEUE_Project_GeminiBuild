@@ -416,9 +416,9 @@ def _render_detail_page(
       align-items: center; flex-wrap: wrap; margin-bottom: 20px;
     }}
     .crest-frame {{
-      width: 130px; aspect-ratio: 5/6; border-radius: 14px;
-      border: 2px solid rgba(228,187,99,0.75); background: #0B132B;
-      padding: 10px; display: grid; place-items: center; flex-shrink: 0;
+      width: 210px; max-width: 100%; aspect-ratio: 9 / 8; border-radius: 14px;
+      border: 2px solid rgba(228,187,99,0.78); background: #0B132B;
+      padding: 8px; display: grid; place-items: center; flex-shrink: 0;
     }}
     .crest-frame img {{ width: 100%; height: 100%; object-fit: contain; display: block; }}
     .hero-copy {{ flex: 1; min-width: 240px; }}
@@ -513,6 +513,7 @@ def _render_detail_page(
 def get_heritage_house_history_page(house_id: int):
     """Serve an individual House's genealogist-managed Family History Page."""
     house = get_heritage_community_service().get_house_history(house_id)
+    bordure = house.get("bordure_differencing") or {}
     surnames_html = "".join(
         f'<a class="surname-chip" href="/community/heritage/surname/{html.escape(s["slug"], quote=True)}">'
         f'{s["surname"]}</a>'
@@ -521,7 +522,17 @@ def get_heritage_house_history_page(house_id: int):
     milestones_html = "".join(
         f"<li>{m}</li>" for m in house.get("milestones", [])
     ) or "<li>House chronicle opened in the Hall of Arms.</li>"
+    heraldry_note = html.escape(bordure.get("blazon_note") or house.get("lineage_descent") or "")
+    heraldry_style = html.escape(
+        f"{bordure.get('border_style', 'Standard')} · {bordure.get('tincture', 'Gold')}"
+    )
     extra = (
+        '<section class="card">'
+        '<h2>Heraldic Blazon &amp; Lineage Descent</h2>'
+        f'<p><strong>Lineage Descent:</strong> {html.escape(house.get("lineage_descent", house["founding_branch"]))}</p>'
+        f'<p><strong>Heraldic Treatment:</strong> {heraldry_style}</p>'
+        f'<p>{heraldry_note}</p>'
+        '</section>'
         '<section class="card">'
         '<h2>Allied &amp; Founding Surnames in This House</h2>'
         f'<div class="chip-grid">{surnames_html or "<span class=meta-note>No linked surnames recorded yet.</span>"}</div>'
@@ -531,13 +542,14 @@ def get_heritage_house_history_page(house_id: int):
         f'<ul>{milestones_html}</ul>'
         '</section>'
     )
+    showcase_crest = house.get("achievement_asset_path") or house["crest_asset_path"]
     return _render_detail_page(
         page_title=f"{house['lineage_code']} · {html.unescape(house['house_name'])}",
         eyebrow=f"HALL OF ARMS · {house['lineage_code']} · {house['founding_branch']}",
         heading=house["house_name"],
         subtitle=house["motto"],
-        crest_path=house["crest_asset_path"],
-        crest_alt=f"{html.unescape(house['house_name'])} Crest",
+        crest_path=showcase_crest,
+        crest_alt=f"{html.unescape(house['house_name'])} Heraldic Crest",
         history_body=house["history_body"],
         extra_sections_html=extra,
         updated_by=house["updated_by"],
@@ -559,13 +571,14 @@ def get_heritage_surname_history_page(slug: str):
         f'<p><a class="surname-chip" href="{parent_house_url}">Visit {parent_house_name} History →</a></p>'
         '</section>'
     )
+    showcase_crest = record.get("achievement_asset_path") or record["crest_asset_path"]
     return _render_detail_page(
         page_title=f"{html.unescape(record['surname'])} Family Heritage",
         eyebrow=f"HALL OF ARMS · {badge_kind} · {record['lineage_code']}",
         heading=f"The {record['surname']} Family Line",
         subtitle=record["origin_summary"],
-        crest_path=record["crest_asset_path"],
-        crest_alt=f"{html.unescape(record['surname'])} Crest",
+        crest_path=showcase_crest,
+        crest_alt=f"{html.unescape(record['surname'])} Heraldic Achievement",
         history_body=record["history_body"],
         extra_sections_html=extra,
         updated_by=record["updated_by"],

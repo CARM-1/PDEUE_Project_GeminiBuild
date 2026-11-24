@@ -1,38 +1,42 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120" width="100" height="120" role="img" aria-label="McCormick Family Crest">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120" width="100" height="120" role="img" aria-label="McCormick Family Compact Shield Emblem">
+  <title>McCormick Compact Shield Emblem</title>
+  <desc>High-contrast compact header shield featuring the foundational McCormick arms: three royal-blue eagles, crimson zigzag fess dancette, and black engrailed border on a silver field.</desc>
   <defs>
-    <linearGradient id="mccBg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#132944"/>
-      <stop offset="100%" stop-color="#0B132B"/>
-    </linearGradient>
     <linearGradient id="mccGold" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#F6DE8D"/>
+      <stop offset="0%" stop-color="#FCE79C"/>
       <stop offset="50%" stop-color="#D4AF37"/>
-      <stop offset="100%" stop-color="#A67C23"/>
+      <stop offset="100%" stop-color="#9A721C"/>
+    </linearGradient>
+    <linearGradient id="mccSilver" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E2E8F0"/>
     </linearGradient>
     <clipPath id="mccShieldClip">
-      <path d="M14 22 H86 V63 C86 86 67 101 50 110 C33 101 14 86 14 63 Z"/>
+      <path d="M12 20 H88 V64 C88 89 68 104 50 113 C32 104 12 89 12 64 Z"/>
     </clipPath>
+    <g id="blueEagle">
+      <!-- Crisp heraldic displayed royal-blue eagle silhouette -->
+      <path d="M0,-9 L2,-6 L9,-7 L11,-3 L7,-1 L10,2 L5,3 L3,2 L5,8 L1,6 L0,10 L-1,6 L-5,8 L-3,2 L-5,3 L-10,2 L-7,-1 L-11,-3 L-9,-7 L-2,-6 Z" fill="#1D4ED8" stroke="#0F2A6B" stroke-width="0.7" stroke-linejoin="round"/>
+      <circle cx="0" cy="-7" r="1.4" fill="#1D4ED8"/>
+    </g>
   </defs>
-  <!-- Heraldic Coronet / Crest -->
-  <path d="M35 16 L39 7 L45 12 L50 5 L55 12 L61 7 L65 16 Z" fill="url(#mccGold)" stroke="#F6DE8D" stroke-width="0.9" stroke-linejoin="round"/>
-  <rect x="35" y="16" width="30" height="3.2" rx="1.2" fill="url(#mccGold)"/>
-  <!-- Outer Shield -->
-  <path d="M10 20 H90 V64 C90 90 69 106 50 116 C31 106 10 90 10 64 Z" fill="url(#mccBg)" stroke="url(#mccGold)" stroke-width="2.6"/>
-  <!-- Inner Shield Hairline -->
-  <path d="M14.5 24 H85.5 V63 C85.5 85.5 67 100.5 50 109.5 C33 100.5 14.5 85.5 14.5 63 Z" fill="none" stroke="#D4AF37" stroke-opacity="0.55" stroke-width="1"/>
-  <!-- Shield Interior Motifs -->
+  <!-- Compact Coronet -->
+  <path d="M33 15 L38 6 L44 11 L50 4 L56 11 L62 6 L67 15 Z" fill="url(#mccGold)" stroke="#FFF3C4" stroke-width="1" stroke-linejoin="round"/>
+  <rect x="33" y="15" width="34" height="3.6" rx="1.4" fill="url(#mccGold)"/>
+  <!-- Outer Shield Frame -->
+  <path d="M9 19 H91 V65 C91 91 70 107 50 117 C30 107 9 91 9 65 Z" fill="#111827" stroke="url(#mccGold)" stroke-width="3"/>
   <g clip-path="url(#mccShieldClip)">
-    <!-- Deep Emerald Chief Band (subtle heritage accent) -->
-    <rect x="12" y="22" width="76" height="22" fill="#0F3530" opacity="0.78"/>
-    <line x1="12" y1="44" x2="88" y2="44" stroke="#F6DE8D" stroke-width="1.2"/>
-    <!-- Heraldic Chevron -->
-    <path d="M14 78 L50 50 L86 78 L86 90 L50 62 L14 90 Z" fill="url(#mccGold)" opacity="0.92"/>
-    <!-- Three Chief Trefoil / Diamond Medallions -->
-    <polygon points="29,28 34,33 29,38 24,33" fill="url(#mccGold)"/>
-    <polygon points="50,27 56,33 50,39 44,33" fill="#F6DE8D"/>
-    <polygon points="71,28 76,33 71,38 66,33" fill="url(#mccGold)"/>
-    <!-- Base Emblem: Stylized Shield Escutcheon -->
-    <path d="M41 79 H59 V88 C59 94 54.5 98.5 50 101 C45.5 98.5 41 94 41 88 Z" fill="#1C2541" stroke="#F6DE8D" stroke-width="1.4"/>
-    <circle cx="50" cy="88" r="3.2" fill="url(#mccGold)"/>
+    <!-- Black Engrailed Border Base -->
+    <rect x="10" y="18" width="80" height="98" fill="#111827"/>
+    <!-- Inner Silver Field with Engrailed Scalloped Edge -->
+    <path d="M21 28 Q26 31 31 28 Q36 31 41 28 Q46 31 50 28 Q54 31 59 28 Q64 31 69 28 Q74 31 79 28 Q76 34 79 40 Q76 46 79 52 Q76 58 79 64 Q75 72 74 79 Q67 86 63 92 Q56 97 50 102 Q44 97 37 92 Q33 86 26 79 Q25 72 21 64 Q24 58 21 52 Q24 46 21 40 Q24 34 21 28 Z" fill="url(#mccSilver)" stroke="#334155" stroke-width="0.8"/>
+    <!-- Crimson Zigzag Fess Dancette -->
+    <path d="M18 65 L27 56 L36 65 L45 56 L54 65 L63 56 L72 65 L82 56 V66 L72 75 L63 66 L54 75 L45 66 L36 75 L27 66 L18 75 Z" fill="#B91C1C" stroke="#7F1D1D" stroke-width="0.9" stroke-linejoin="miter"/>
+    <!-- Three Royal-Blue Eagles (2 in Chief, 1 in Base) -->
+    <use href="#blueEagle" transform="translate(36, 43) scale(0.92)"/>
+    <use href="#blueEagle" transform="translate(64, 43) scale(0.92)"/>
+    <use href="#blueEagle" transform="translate(50, 86) scale(0.92)"/>
   </g>
+  <!-- Crisp Gold Outer Hairline -->
+  <path d="M12 20 H88 V64 C88 89 68 104 50 113 C32 104 12 89 12 64 Z" fill="none" stroke="url(#mccGold)" stroke-width="1.3"/>
 </svg>

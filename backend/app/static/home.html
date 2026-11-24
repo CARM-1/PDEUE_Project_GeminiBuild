@@ -314,8 +314,58 @@
       color: var(--text-secondary);
     }
 
+    .achievement-showcase-card {
+      background: linear-gradient(145deg, #1B2A4A 0%, #121B33 100%);
+      border: 1px solid rgba(228, 187, 99, 0.55);
+      border-radius: 18px;
+      padding: 20px 22px;
+      margin-bottom: 22px;
+    }
+    .achievement-showcase-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .achievement-showcase-head h2 {
+      margin: 0;
+      font-size: 1.2rem;
+      color: #F6DE8D;
+    }
+    .achievement-showcase-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .achievement-tile {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: #0B132B;
+      border: 1px solid rgba(228, 187, 99, 0.48);
+      border-radius: 14px;
+      padding: 14px;
+      text-decoration: none;
+      color: inherit;
+    }
+    .achievement-tile:hover {
+      border-color: #F6DE8D;
+    }
+    .achievement-tile img {
+      width: 100%;
+      max-height: 210px;
+      aspect-ratio: 9 / 8;
+      object-fit: contain;
+      display: block;
+      margin: 0 auto;
+    }
+    .achievement-tile strong { color: #F8FAFC; font-size: 1rem; }
+    .achievement-tile span { color: var(--text-secondary); font-size: 0.88rem; }
+
     @media (max-width: 780px) {
-      .doorway-grid { grid-template-columns: minmax(0, 1fr); }
+      .doorway-grid, .achievement-showcase-grid { grid-template-columns: minmax(0, 1fr); }
       .doorway-card { padding: 20px 18px; }
     }
     @media (max-width: 520px) {
@@ -328,38 +378,52 @@
 <body>
 <div style="display:none" id="legacyPortalHub">PDEUE PORTAL HUB</div>
 <main class="shell">
-  <div class="top-brand-bar">
-    <a href="__HERITAGE_URL__" class="brand-lockup" data-plane-doorway="heritage" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Hall of Arms">
-      <span class="brand-crests">
-        <img class="brand-crest" src="/static/assets/crests/carmichael_crest.svg" alt="Carmichael Family Crest" width="40" height="46" loading="eager">
-        <span class="brand-crest-divider" aria-hidden="true"></span>
-        <img class="brand-crest" src="/static/assets/crests/mccormick_crest.svg" alt="McCormick Family Crest" width="40" height="46" loading="eager">
-      </span>
-      <span class="brand-stack">
-        <span class="brand-title">FUTURE · CARMICHAEL — McCORMICK</span>
-        <span class="brand-motto">Generational Love, Harmony, Resilience, and Wealth</span>
-      </span>
-    </a>
-    <div class="senior-a11y-controls">
-      <button id="familyAlertsBtn" type="button" class="alerts-bell-btn" aria-expanded="false" aria-controls="familyAlertsDrawer" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.toggleAlerts()">
-        🔔 Family Alerts <span id="familyAlertsCount" class="alerts-count-pill">3</span>
-      </button>
-      <div id="textScaleGroup" class="text-scale-group" role="group" aria-label="Text size controls">
-        <button type="button" class="text-scale-btn active" data-scale="standard" aria-pressed="true" aria-label="Standard text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('standard')">A</button>
-        <button type="button" class="text-scale-btn" data-scale="large" aria-pressed="false" aria-label="Large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('large')">A+</button>
-        <button type="button" class="text-scale-btn" data-scale="xlarge" aria-pressed="false" aria-label="Extra large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('xlarge')">A++</button>
+  <div class="portal-header-shell" role="banner">
+    <nav aria-label="Family Home Hub navigation">
+      <div class="portal-header-row1">
+        <a href="__HERITAGE_URL__" class="brand-lockup" data-plane-doorway="heritage" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Hall of Arms">
+          <span class="brand-crests">
+            <img class="brand-crest" src="/static/assets/crests/carmichael_crest.svg" alt="Carmichael Family Crest" width="40" height="46" loading="eager">
+            <span class="brand-crest-divider" aria-hidden="true"></span>
+            <img class="brand-crest" src="/static/assets/crests/mccormick_crest.svg" alt="McCormick Family Crest" width="40" height="46" loading="eager">
+          </span>
+          <span class="brand-stack">
+            <span class="brand-title">FUTURE · CARMICHAEL — McCORMICK</span>
+            <span class="brand-motto">Generational Love, Harmony, Resilience, and Wealth</span>
+          </span>
+        </a>
+        <div class="senior-a11y-controls">
+          <div id="textScaleGroup" class="text-scale-group" role="group" aria-label="Text size controls">
+            <button type="button" class="text-scale-btn active" data-scale="standard" aria-pressed="true" aria-label="Standard text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('standard')">A</button>
+            <button type="button" class="text-scale-btn" data-scale="large" aria-pressed="false" aria-label="Large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('large')">A+</button>
+            <button type="button" class="text-scale-btn" data-scale="xlarge" aria-pressed="false" aria-label="Extra large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('xlarge')">A++</button>
+          </div>
+        </div>
       </div>
-    </div>
+      <div class="portal-header-row2">
+        <div class="portal-hub-pills">
+          <span class="portal-hub-label">FAMILY HUB:</span>
+          <a href="/home" class="portal-hub-pill active" data-plane-doorway="home" aria-current="page">🏡 Home Hub</a>
+          <a href="__COMMUNITY_URL__" class="portal-hub-pill" data-plane-doorway="community">🔥 Family Hearth</a>
+          <a href="__HERITAGE_URL__" class="portal-hub-pill" data-plane-doorway="heritage">🛡️ Hall of Arms</a>
+          <a href="__COMPANION_URL__" class="nav-link campus-link" id="navCompanionLink" data-plane-doorway="companion">🎓 PDEUE University</a>
+        </div>
+      </div>
+    </nav>
+    <header class="portal-header-row3">
+      <div class="portal-title-block">
+        <h1 style="margin:2px 0 4px;font-size:clamp(1.45rem,2.8vw,2.15rem);line-height:1.2;">Welcome to the Carmichael / McCormick Family Hub</h1>
+        <p style="margin:0;color:var(--text-secondary);font-size:0.96rem;">Choose one of the four calm doorways below. Adjust text size anytime with <strong>A | A+ | A++</strong>, and every room has a <strong>← Back to Home</strong> button.</p>
+      </div>
+      <div class="portal-action-strip">
+        <span id="planeIndicatorBadge" class="plane-badge">🏡 Family Social Space — No Financial Data</span>
+        <span id="homeActiveHatBadge" class="hat-badge">__ACTIVE_HAT_LABEL__</span>
+        <button id="familyAlertsBtn" type="button" class="alerts-bell-btn" aria-expanded="false" aria-controls="familyAlertsDrawer" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.toggleAlerts()">
+          🔔 Family Alerts <span id="familyAlertsCount" class="alerts-count-pill">3</span>
+        </button>
+      </div>
+    </header>
   </div>
-
-  <header class="hero-welcome">
-    <div class="hero-meta-row">
-      <span id="planeIndicatorBadge" class="plane-badge">🏡 Family Social Space — No Financial Data</span>
-      <span id="homeActiveHatBadge" class="hat-badge">__ACTIVE_HAT_LABEL__</span>
-    </div>
-    <h1>Welcome to the Carmichael / McCormick Family Hub</h1>
-    <p>Choose one of the four calm doorways below. You can make the text larger anytime with the <strong>A | A+ | A++</strong> buttons at the top right, and every room has a <strong>← Back to Home</strong> button to bring you right back here.</p>
-  </header>
 
   <section class="doorway-grid" aria-label="Family Home Hub Doorways">
     <a id="doorwayMyAccount" class="doorway-card" href="__MEMBER_URL__" data-plane-doorway="member">
@@ -403,6 +467,25 @@
     </a>
 
     __ROLE_FIFTH_CARD__
+  </section>
+
+  <section id="homeAchievementsShowcase" class="achievement-showcase-card" aria-label="Founding Heraldic Achievements">
+    <div class="achievement-showcase-head">
+      <h2>Founding Coats of Arms — Full Achievements</h2>
+      <a class="portal-hub-pill" href="__HERITAGE_URL__" data-plane-doorway="heritage">Explore All 12 Houses &amp; 28 Allied Surnames →</a>
+    </div>
+    <div class="achievement-showcase-grid">
+      <a class="achievement-tile" href="/community/heritage/surname/carmichael">
+        <img src="/static/assets/crests/carmichael_achievement.svg" alt="Full Carmichael Heraldic Achievement">
+        <strong>House 01 · Carmichael (Eldest McCormick Daughter)</strong>
+        <span>Hyndford eagle, blue/crimson wreathed inescutcheon, broken spear, knight &amp; crowned golden African lion supporters.</span>
+      </a>
+      <a class="achievement-tile" href="/community/heritage/surname/mccormick">
+        <img src="/static/assets/crests/mccormick_achievement.svg" alt="Full Foundational McCormick Heraldic Achievement">
+        <strong>Houses 02–12 · Foundational McCormick Stock</strong>
+        <span>Three royal-blue eagles, crimson zigzag fess dancetté, black engrailed border &amp; twin golden Highland stags.</span>
+      </a>
+    </div>
   </section>
 
   <section class="reassurance-card" aria-label="Privacy and safety reassurance">

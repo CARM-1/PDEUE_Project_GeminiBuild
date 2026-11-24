@@ -295,35 +295,52 @@
   </style>
 </head>
 <body>
-  <header>
-    <div>
-      <a href="/community/heritage" class="brand-lockup" data-plane-doorway="heritage" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Heritage">
-        <span class="brand-crests">
-          <img class="brand-crest" src="/static/assets/crests/carmichael_crest.svg" alt="Carmichael Family Crest" width="40" height="46" loading="eager">
-          <span class="brand-crest-divider" aria-hidden="true"></span>
-          <img class="brand-crest" src="/static/assets/crests/mccormick_crest.svg" alt="McCormick Family Crest" width="40" height="46" loading="eager">
-        </span>
-        <span class="brand-stack">
-          <span class="brand-title">FUTURE · CARMICHAEL — McCORMICK</span>
-          <span class="brand-motto">Generational Love, Harmony, Resilience, and Wealth</span>
-        </span>
-      </a>
-      <h1>CLASS H SOVEREIGN DESK — HOUSE __HOUSE_ID__: __HOUSE_NAME__</h1>
-      <div class="hat-row">
-        <span class="hat"><abbr class="pdeue-term" tabindex="0" data-term="active-hat-r06" data-tooltip="One role at a time. Even if a family leader holds two jobs—like personal member and platform steward—they must intentionally switch hats so personal money and leadership tools never mix by accident.">Active Hat: __ACTIVE_HAT__<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></span>
-        <span class="house-pill">__HOUSE_CODE__ · __HOUSE_STATUS__</span>
-      </div>
+  <div class="wrap" style="padding-bottom:0;">
+    <div class="portal-header-shell" role="banner" style="margin-bottom:0;">
+      <nav aria-label="Class H House Desk navigation">
+        <div class="portal-header-row1">
+          <a href="/community/heritage" class="brand-lockup" data-plane-doorway="heritage" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Heritage" style="margin-bottom:0;">
+            <span class="brand-crests">
+              <img class="brand-crest" src="/static/assets/crests/carmichael_crest.svg" alt="Carmichael Family Crest" width="40" height="46" loading="eager">
+              <span class="brand-crest-divider" aria-hidden="true"></span>
+              <img class="brand-crest" src="/static/assets/crests/mccormick_crest.svg" alt="McCormick Family Crest" width="40" height="46" loading="eager">
+            </span>
+            <span class="brand-stack">
+              <span class="brand-title">FUTURE · CARMICHAEL — McCORMICK</span>
+              <span class="brand-motto">Generational Love, Harmony, Resilience, and Wealth</span>
+            </span>
+          </a>
+          <div class="senior-a11y-controls">
+            <a id="backToHomeBtn" class="back-home-btn" href="/home" data-plane-doorway="home">← Back to Home</a>
+            <div id="textScaleGroup" class="text-scale-group" role="group" aria-label="Text size controls">
+              <button type="button" class="text-scale-btn active" data-scale="standard" aria-pressed="true" aria-label="Standard text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('standard')">A</button>
+              <button type="button" class="text-scale-btn" data-scale="large" aria-pressed="false" aria-label="Large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('large')">A+</button>
+              <button type="button" class="text-scale-btn" data-scale="xlarge" aria-pressed="false" aria-label="Extra large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('xlarge')">A++</button>
+            </div>
+          </div>
+        </div>
+        <div class="portal-header-row2">
+          <div class="portal-hub-pills">
+            <span class="portal-hub-pill active">🏰 __HOUSE_CODE__ Sovereign Desk</span>
+            <a href="/community/heritage" class="portal-hub-pill" data-plane-doorway="heritage">🛡️ Hall of Arms</a>
+            <a href="/companion" class="nav-link campus-link" id="navCompanionLink">🎓 PDEUE University</a>
+          </div>
+        </div>
+      </nav>
+      <header class="portal-header-row3" style="background:transparent;border:none;padding:10px 0 2px;">
+        <div class="portal-title-block">
+          <h1>CLASS H SOVEREIGN DESK — HOUSE __HOUSE_ID__: __HOUSE_NAME__</h1>
+          <div class="hat-row">
+            <span class="hat"><abbr class="pdeue-term" tabindex="0" data-term="active-hat-r06" data-tooltip="One role at a time. Even if a family leader holds two jobs—like personal member and platform steward—they must intentionally switch hats so personal money and leadership tools never mix by accident.">Active Hat: __ACTIVE_HAT__<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></span>
+            <span class="house-pill">__HOUSE_CODE__ · __HOUSE_STATUS__</span>
+          </div>
+        </div>
+        <div class="portal-action-strip">
+          <span class="house-pill">MODE: __GOVERNANCE_MODE__</span>
+        </div>
+      </header>
     </div>
-    <div class="senior-a11y-controls">
-      <a id="backToHomeBtn" class="back-home-btn" href="/home" data-plane-doorway="home">← Back to Home</a>
-      <span class="house-pill">MODE: __GOVERNANCE_MODE__</span>
-      <div id="textScaleGroup" class="text-scale-group" role="group" aria-label="Text size controls">
-        <button type="button" class="text-scale-btn active" data-scale="standard" aria-pressed="true" aria-label="Standard text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('standard')">A</button>
-        <button type="button" class="text-scale-btn" data-scale="large" aria-pressed="false" aria-label="Large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('large')">A+</button>
-        <button type="button" class="text-scale-btn" data-scale="xlarge" aria-pressed="false" aria-label="Extra large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('xlarge')">A++</button>
-      </div>
-    </div>
-  </header>
+  </div>
   <main class="wrap">
     <section id="readModelStatusBanner" class="__RM_BANNER_CLASS__" __RM_BANNER_HIDDEN__ role="status" aria-live="assertive" data-rm-status="__RM_STATUS__">
       <div>
