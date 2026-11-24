@@ -1,0 +1,286 @@
+/* PDEUE PR #82 — Site-Wide Senior Accessibility (60+ UX), Text Scaling & Family Alerts */
+:root {
+  --pdeue-scale: 1;
+}
+
+html[data-text-scale="standard"] {
+  font-size: 16px;
+  --pdeue-scale: 1;
+}
+
+html[data-text-scale="large"] {
+  font-size: 18px;
+  --pdeue-scale: 1.125;
+}
+
+html[data-text-scale="xlarge"] {
+  font-size: 20px;
+  --pdeue-scale: 1.25;
+}
+
+html[data-text-scale="large"] body {
+  font-size: 1.02rem;
+  line-height: 1.6;
+}
+
+html[data-text-scale="xlarge"] body {
+  font-size: 1.08rem;
+  line-height: 1.65;
+}
+
+/* Preserve exact 40x46 institutional twin-crest geometry across all text scales */
+a.brand-lockup img.brand-crest {
+  width: 40px !important;
+  height: 46px !important;
+  min-width: 40px;
+  min-height: 46px;
+  flex-shrink: 0;
+}
+
+/* Prevent horizontal overflow on mobile/desktop even in A++ mode */
+html, body {
+  max-width: 100%;
+}
+
+h1, h2, h3, h4, p, li, .brand-title, .brand-motto, .card, article, section {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+/* Top header accessibility utility cluster */
+.senior-a11y-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+.back-home-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 14px;
+  border-radius: 9px;
+  border: 1.5px solid #38BDF8;
+  background: #0F2544;
+  color: #F8FAFC !important;
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-decoration: none !important;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.back-home-btn:hover,
+.back-home-btn:focus-visible {
+  background: #0284C7;
+  border-color: #7DD3FC;
+  color: #FFFFFF !important;
+  outline: 2px solid #7DD3FC;
+  outline-offset: 2px;
+}
+
+.text-scale-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px;
+  border-radius: 10px;
+  border: 1px solid #475569;
+  background: #0F172A;
+}
+
+.text-scale-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 6px 10px !important;
+  margin: 0 !important;
+  border-radius: 8px !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  color: #E2E8F0 !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  cursor: pointer;
+}
+
+.text-scale-btn[data-scale="standard"] { font-size: 0.88rem !important; }
+.text-scale-btn[data-scale="large"] { font-size: 1rem !important; }
+.text-scale-btn[data-scale="xlarge"] { font-size: 1.12rem !important; }
+
+.text-scale-btn:hover,
+.text-scale-btn:focus-visible {
+  background: #1E293B !important;
+  border-color: #38BDF8 !important;
+  color: #FFFFFF !important;
+}
+
+.text-scale-btn.active,
+.text-scale-btn[aria-pressed="true"] {
+  background: #0284C7 !important;
+  border-color: #7DD3FC !important;
+  color: #FFFFFF !important;
+}
+
+/* Shared Family Alerts Bell & Drawer (strictly social/R-12 safe) */
+.alerts-bell-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 8px 13px !important;
+  margin: 0 !important;
+  border-radius: 9px !important;
+  border: 1.5px solid #D97706 !important;
+  background: #1E293B !important;
+  color: #FDE68A !important;
+  font-size: 0.88rem !important;
+  font-weight: 800 !important;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.alerts-bell-btn:hover,
+.alerts-bell-btn:focus-visible {
+  background: #B45309 !important;
+  color: #FFFFFF !important;
+  border-color: #FCD34D !important;
+}
+
+.alerts-count-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #D97706;
+  color: #0B132B;
+  font-size: 0.76rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.family-alerts-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: min(440px, 100vw);
+  height: 100vh;
+  background: #1C2541;
+  border-left: 2px solid #D97706;
+  box-shadow: -12px 0 36px rgba(0, 0, 0, 0.75);
+  z-index: 26000;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  overflow: hidden;
+  color: #F8FAFC;
+}
+
+.family-alerts-drawer[hidden] {
+  display: none !important;
+}
+
+.family-alerts-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #334155;
+}
+
+.family-alerts-close {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 14px !important;
+  background: #0F172A !important;
+  border: 1px solid #64748B !important;
+  color: #F8FAFC !important;
+  border-radius: 8px !important;
+  font-weight: 800 !important;
+  cursor: pointer;
+}
+
+.family-alerts-list {
+  flex: 1;
+  overflow-y: auto;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.family-alert-item {
+  background: #0B132B;
+  border: 1px solid #334155;
+  border-left: 4px solid #38BDF8;
+  border-radius: 10px;
+  padding: 13px 14px;
+}
+
+.family-alert-item h4 {
+  margin: 4px 0 6px;
+  font-size: 0.98rem;
+  color: #F8FAFC;
+}
+
+.family-alert-item p {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  color: #CBD5E1;
+  line-height: 1.5;
+}
+
+.family-alert-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.76rem;
+  color: #94A3B8;
+}
+
+.family-alert-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #1E293B;
+  border: 1px solid #38BDF8;
+  color: #7DD3FC;
+  font-weight: 800;
+  font-size: 0.72rem;
+}
+
+.family-alert-link {
+  color: #38BDF8 !important;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+@media (max-width: 520px) {
+  .senior-a11y-controls {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .back-home-btn {
+    padding: 8px 11px;
+    font-size: 0.84rem;
+  }
+  .text-scale-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 6px 8px !important;
+  }
+}

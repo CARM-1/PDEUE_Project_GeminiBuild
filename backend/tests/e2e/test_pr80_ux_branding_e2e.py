@@ -215,7 +215,7 @@ def test_pr80_twin_crests_brand_lockup_and_footer_across_all_seven_portals(
 
             lockup = page.locator("a.brand-lockup").first
             assert lockup.is_visible(), f"Brand lockup not visible on {path} ({vp_name})"
-            assert lockup.get_attribute("href") == "/community"
+            assert lockup.get_attribute("href") == "/community/heritage"
             assert lockup.get_attribute("data-heritage-target") == "/community/heritage"
             lockup_text = lockup.inner_text()
             assert "FUTURE · CARMICHAEL — McCORMICK" in lockup_text

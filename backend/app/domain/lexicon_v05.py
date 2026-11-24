@@ -403,6 +403,57 @@ LEXICON_TERMS: List[Dict[str, Any]] = [
         ),
         "aliases": ["admissions ratification", "genealogical admissions board", "dual-plane provisioning", "member_admission_ratified"],
     },
+    {
+        "id": "family-home-hub",
+        "term": "Family Home Hub",
+        "short_label": "Family Home Hub",
+        "category": "Family & Heritage",
+        "authority_ref": "PR #82 · /home · 4-Domain Air-Gap",
+        "plain_english": (
+            "Your calm, easy-to-read starting page for the entire Carmichael and McCormick family space. "
+            "It holds no dollar balances or bank information—just four clear doorways to your account, family hearth, Hall of Arms, and learning guides."
+        ),
+        "technical_spec": (
+            "Root entry portal served at /home (with GET / -> 302 /home) inside the air-gapped social plane (FAMILY_HUB_BASE_URL, "
+            "production target https://narratixai.org). Renders four Class M doorways plus one server-gated fifth doorway strictly for "
+            "authenticated custodial, technical, genealogist, or admin hats, with zero imports of CapitalLedger or trading workers."
+        ),
+        "aliases": ["home hub", "/home", "front door", "four doorways", "narratixai.org"],
+    },
+    {
+        "id": "hall-of-arms",
+        "term": "Hall of Arms",
+        "short_label": "Hall of Arms",
+        "category": "Family & Heritage",
+        "authority_ref": "PR #82 · /community/heritage · 12 Houses & Allied Surnames",
+        "plain_english": (
+            "Our family heritage gallery displaying the founding Carmichael and McCormick crests, all 12 Houses, "
+            "and 28+ allied surnames—curated by trusted House Genealogists so every family story is preserved."
+        ),
+        "technical_spec": (
+            "Persistent heritage archive (/community/heritage, /community/heritage/house/{id}, /community/heritage/surname/{slug}) "
+            "backed by Alembic 006 tables heritage_house_profiles and heritage_surname_records. Write mutations enforce server-side "
+            "HTTP 403 scoping to an active HOUSE_GENEALOGIST assigned to that House in user_role_assignments (or CHIEF_ADMIN) with XSS escaping and audit logging."
+        ),
+        "aliases": ["heritage gallery", "coats of arms", "crests", "/community/heritage", "allied surnames"],
+    },
+    {
+        "id": "lineage-hearth",
+        "term": "Lineage Hearth",
+        "short_label": "Lineage Hearth",
+        "category": "Family & Heritage",
+        "authority_ref": "PR #82 · /community · Non-Transactional Social Plane",
+        "plain_english": (
+            "Our warm, private family living room for news, reunions, milestone celebrations, and video calls. "
+            "It stays completely separate from trading software and bank accounts so relatives can visit safely."
+        ),
+        "technical_spec": (
+            "Air-gapped Class C fellowship surface (/community) hosted in social_plane_router.py with zero financial ledger imports. "
+            "Provides XSS-sanitized categorized family feeds, the Pay-it-Forward (LCCF) Sponsorship Charter, sandboxed Jitsi Meet "
+            "room presets (sandbox='allow-scripts allow-same-origin allow-forms allow-popups'), and Directive R-12 sanitized notifications."
+        ),
+        "aliases": ["community hearth", "/community", "family hearth", "jitsi classroom", "family living room"],
+    },
 ]
 
 # Populate backward-compatible tooltip & definition fields directly from plain_english
@@ -434,6 +485,9 @@ REQUIRED_CANONICAL_TERM_IDS: tuple[str, ...] = (
     "anti-tribalism-custody",
     "delegated-onboarding",
     "genealogical-ratification",
+    "family-home-hub",
+    "hall-of-arms",
+    "lineage-hearth",
 )
 
 

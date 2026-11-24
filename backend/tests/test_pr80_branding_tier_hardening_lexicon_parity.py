@@ -76,7 +76,7 @@ def test_all_seven_portals_render_founding_brand_lockup_and_colophon():
             assert resp.status_code == 200, f"{route} returned HTTP {resp.status_code}"
             html = resp.text
             assert 'class="brand-lockup"' in html, f"Missing brand-lockup on {route}"
-            assert 'href="/community"' in html, f"Missing /community heritage link on {route}"
+            assert 'href="/community/heritage"' in html, f"Missing /community/heritage link on {route}"
             assert 'data-heritage-target="/community/heritage"' in html, f"Missing data-heritage-target on {route}"
             assert "/static/assets/crests/carmichael_crest.svg" in html, f"Missing Carmichael crest on {route}"
             assert "/static/assets/crests/mccormick_crest.svg" in html, f"Missing McCormick crest on {route}"
@@ -206,7 +206,7 @@ def test_automated_ui_to_lexicon_to_curriculum_parity_ci_gate():
     report = audit_ui_lexicon_curriculum_parity(REPO_ROOT)
 
     assert set(report["portals_scanned"]) == set(PORTALS.keys())
-    assert len(report["portals_scanned"]) == 7
+    assert len(report["portals_scanned"]) == 9
     assert report["undocumented_controls"] == [], f"Undocumented controls: {report['undocumented_controls']}"
     assert report["dangling_data_terms"] == [], f"Dangling data-term tooltips: {report['dangling_data_terms']}"
     assert report["jargon_violations"] == [], f"Plain-English jargon violations: {report['jargon_violations']}"

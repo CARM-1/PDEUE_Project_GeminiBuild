@@ -415,11 +415,63 @@ class DelegatedOnboardingDossierModel(Base):
     updated_at_utc = Column(String, nullable=False, default=_now)
 
 
+class HeritageHouseProfileModel(Base):
+    """PR #82: Hall of Arms profile & genealogist-managed family history for the 12 Houses."""
+    __tablename__ = 'heritage_house_profiles'
+    house_id = Column(Integer, primary_key=True, index=True)
+    lineage_code = Column(String, unique=True, nullable=False, index=True)
+    house_name = Column(String, nullable=False)
+    motto = Column(String, nullable=False)
+    crest_asset_path = Column(String, nullable=False)
+    founding_branch = Column(String, nullable=False, default='Carmichael — McCormick')
+    history_body = Column(Text, nullable=False)
+    milestones_json = Column(Text, nullable=False, default='[]')
+    updated_by = Column(String, nullable=False, default='SYSTEM_SEED')
+    updated_at_utc = Column(String, nullable=False, default=_now)
+    surnames = relationship('HeritageSurnameRecordModel', back_populates='house', cascade='all, delete-orphan')
+
+
+class HeritageSurnameRecordModel(Base):
+    """PR #82: Founding & allied/married-in surname heraldry & family history records."""
+    __tablename__ = 'heritage_surname_records'
+    slug = Column(String, primary_key=True, index=True)
+    surname = Column(String, nullable=False, index=True)
+    is_founding = Column(Integer, nullable=False, default=0)
+    house_id = Column(Integer, ForeignKey('heritage_house_profiles.house_id'), nullable=False, index=True)
+    crest_asset_path = Column(String, nullable=False)
+    origin_summary = Column(String, nullable=False)
+    history_body = Column(Text, nullable=False)
+    updated_by = Column(String, nullable=False, default='SYSTEM_SEED')
+    updated_at_utc = Column(String, nullable=False, default=_now)
+    house = relationship('HeritageHouseProfileModel', back_populates='surnames')
+
+
+class CommunityNotificationModel(Base):
+    """PR #82: Isolated in-app family alert store & R-12 sanitized email/SMS delivery audit log."""
+    __tablename__ = 'community_notifications'
+    notification_id = Column(String, primary_key=True, index=True)
+    category = Column(String, nullable=False, default='ANNOUNCEMENT', index=True)
+    title = Column(String, nullable=False)
+    message = Column(Text, nullable=False)
+    target_scope = Column(String, nullable=False, default='ALL_FAMILY')
+    target_house_id = Column(Integer, nullable=True, index=True)
+    action_url = Column(String, nullable=False, default='/community')
+    sender_id = Column(String, nullable=False, default='SYSTEM')
+    sender_role = Column(String, nullable=False, default='CHIEF_ADMIN')
+    channels_json = Column(Text, nullable=False, default='["in_app"]')
+    delivery_audit_json = Column(Text, nullable=False, default='[]')
+    r12_sanitized = Column(Integer, nullable=False, default=1)
+    created_at_utc = Column(String, nullable=False, default=_now)
+
+
 UserRoleAssignment = UserRoleAssignmentModel
 CustodialAssignment = CustodialAssignmentModel
 EnclavePolicyControl = EnclavePolicyControlModel
 DelegatedOnboardingDossier = DelegatedOnboardingDossierModel
 AccountingOutboxEvent = AccountingOutboxEventModel
+HeritageHouseProfile = HeritageHouseProfileModel
+HeritageSurnameRecord = HeritageSurnameRecordModel
+CommunityNotification = CommunityNotificationModel
 
 
 

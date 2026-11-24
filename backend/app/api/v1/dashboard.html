@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PDEUE Chief Administrator Workspace</title>
+  <link rel="stylesheet" href="/static/css/senior_a11y.css">
   <style>
     :root {
       --bg-canvas: #0B132B;
@@ -225,7 +226,7 @@
 
   <div class="hub-ribbon">
     <div class="hub-ribbon-left" style="flex-wrap:wrap;gap:12px;">
-      <a href="/community" class="brand-lockup" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Heritage">
+      <a href="/community/heritage" class="brand-lockup" data-plane-doorway="heritage" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Heritage">
         <span class="brand-crests">
           <img class="brand-crest" src="/static/assets/crests/carmichael_crest.svg" alt="Carmichael Family Crest" width="40" height="46" loading="eager">
           <span class="brand-crest-divider" aria-hidden="true"></span>
@@ -236,6 +237,7 @@
           <span class="brand-motto">Generational Love, Harmony, Resilience, and Wealth</span>
         </span>
       </a>
+      <a id="backToHomeBtn" class="back-home-btn" href="/home" data-plane-doorway="home">← Back to Home</a>
       <span style="font-weight: bold; font-size: 12px; color: #38bdf8;">PDEUE PORTAL HUB:</span>
       <div class="hub-links">
         <a href="/dashboard" class="hub-btn active">Chief Admin Cockpit</a>
@@ -245,7 +247,16 @@
         <a href="/companion" class="nav-link campus-link" id="navCompanionLink">🎓 PDEUE University</a>
       </div>
     </div>
-    <div class="currency-toggle" aria-label="Currency display precision and glossary"><button id="openGlossaryBtn" type="button" class="curr-btn" onclick="openGlossaryDrawer()">📖 Lexicon v0.5</button><button id="currBtnClean" class="curr-btn active" onclick="setCurrencyMode('clean')">$ USD (Clean)</button><button id="currBtnExact" class="curr-btn" onclick="setCurrencyMode('exact')">$ USD.¢¢ (Exact Cents)</button></div>
+    <div class="currency-toggle senior-a11y-controls" aria-label="Text size, currency display precision, and glossary">
+      <div id="textScaleGroup" class="text-scale-group" role="group" aria-label="Text size controls">
+        <button type="button" class="text-scale-btn active" data-scale="standard" aria-pressed="true" aria-label="Standard text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('standard')">A</button>
+        <button type="button" class="text-scale-btn" data-scale="large" aria-pressed="false" aria-label="Large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('large')">A+</button>
+        <button type="button" class="text-scale-btn" data-scale="xlarge" aria-pressed="false" aria-label="Extra large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('xlarge')">A++</button>
+      </div>
+      <button id="openGlossaryBtn" type="button" class="curr-btn" onclick="openGlossaryDrawer()">📖 Lexicon v0.5</button>
+      <button id="currBtnClean" class="curr-btn active" onclick="setCurrencyMode('clean')">$ USD (Clean)</button>
+      <button id="currBtnExact" class="curr-btn" onclick="setCurrencyMode('exact')">$ USD.¢¢ (Exact Cents)</button>
+    </div>
   </div>
   <header class="header"><div><div style="color:#38bdf8;font-size:11px;font-weight:800;letter-spacing:.08em;">SOVEREIGN SETTLOR JURISDICTION · <abbr class="pdeue-term" tabindex="0" data-term="executive-command-mode" data-tooltip="Our protective starter mode while the family learns together. House voting buttons stay safely tucked away until the Founder opens later stages—and can snap back instantly during an emergency.">EXECUTIVE COMMAND MODE<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></div><h1>Chief Administrator Cockpit</h1><div style="color:#94a3b8;font-size:12px;">FOUNDER VETO: ACTIVE · IMMUTABLE <abbr class="pdeue-term" tabindex="0" data-term="tpw-waterfall" data-tooltip="How brand-new profits are shared: 87% stays in your personal account to grow, 10% builds the shared family safety net, and 3% keeps the system running. Nothing is shared until you pass your own previous peak.">87 / 10 / 3 WATERFALL<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> (<abbr class="pdeue-term" tabindex="0" data-term="high-water-mark-adr-012" data-tooltip="Your account's personal all-time high balance. If your account dips and then climbs back up, you keep 100% of every recovery dollar—profit sharing only resumes once you earn genuinely new gains above your old peak.">ADR-012 HWM<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>)</div></div><div class="header-controls"><span id="activeHatBadge" class="badge-mode" style="background:#1E293B;color:#F8FAFC;border-color:#38BDF8;"><abbr class="pdeue-term" tabindex="0" data-term="active-hat-r06" data-tooltip="One role at a time. Even if a family leader holds two jobs—like personal member and platform steward—they must intentionally switch hats so personal money and leadership tools never mix by accident.">Active Hat: CHIEF_ADMIN<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></span><button id="openHatSwitchBtn" type="button" class="btn-batch" onclick="openHatSwitchModal()">Switch Active Hat</button><span class="badge-mode">MODE: PAPER</span><button id="emergencyKillSwitchBtn" class="btn-kill" type="button" onclick="confirmKillSwitch()">EMERGENCY KILL SWITCH</button></div></header>
 
@@ -2413,5 +2424,6 @@
       }
     }
   </script>
+  <script src="/static/js/senior_a11y.js"></script>
 </body>
 </html>

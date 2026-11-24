@@ -184,11 +184,11 @@ def test_root_redirect_and_scoped_lookup_bars_across_all_custodial_portals(
 ):
     viewport = VIEWPORTS[vp_name]
 
-    # 1. Root URL `/` redirects cleanly to `/community`
+    # 1. Root URL `/` redirects cleanly to `/home` (PR #82 Central Family Home Hub)
     ctx, page, diag = _create_monitored_page(browser, live_server, viewport)
     try:
         page.goto(f"{live_server}/", wait_until="networkidle")
-        assert urlparse(page.url).path == "/community"
+        assert urlparse(page.url).path == "/home"
         _assert_clean_page(page, diag, f"root_redirect_{vp_name}")
     finally:
         ctx.close()

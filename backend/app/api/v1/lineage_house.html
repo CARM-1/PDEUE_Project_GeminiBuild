@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Class H Sovereign Desk — __HOUSE_CODE__</title>
+  <link rel="stylesheet" href="/static/css/senior_a11y.css">
   <style>
     :root {
       --bg-canvas: #0B132B;
@@ -296,7 +297,7 @@
 <body>
   <header>
     <div>
-      <a href="/community" class="brand-lockup" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Heritage">
+      <a href="/community/heritage" class="brand-lockup" data-plane-doorway="heritage" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Heritage">
         <span class="brand-crests">
           <img class="brand-crest" src="/static/assets/crests/carmichael_crest.svg" alt="Carmichael Family Crest" width="40" height="46" loading="eager">
           <span class="brand-crest-divider" aria-hidden="true"></span>
@@ -313,7 +314,15 @@
         <span class="house-pill">__HOUSE_CODE__ · __HOUSE_STATUS__</span>
       </div>
     </div>
-    <span class="house-pill">MODE: __GOVERNANCE_MODE__</span>
+    <div class="senior-a11y-controls">
+      <a id="backToHomeBtn" class="back-home-btn" href="/home" data-plane-doorway="home">← Back to Home</a>
+      <span class="house-pill">MODE: __GOVERNANCE_MODE__</span>
+      <div id="textScaleGroup" class="text-scale-group" role="group" aria-label="Text size controls">
+        <button type="button" class="text-scale-btn active" data-scale="standard" aria-pressed="true" aria-label="Standard text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('standard')">A</button>
+        <button type="button" class="text-scale-btn" data-scale="large" aria-pressed="false" aria-label="Large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('large')">A+</button>
+        <button type="button" class="text-scale-btn" data-scale="xlarge" aria-pressed="false" aria-label="Extra large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('xlarge')">A++</button>
+      </div>
+    </div>
   </header>
   <main class="wrap">
     <section id="readModelStatusBanner" class="__RM_BANNER_CLASS__" __RM_BANNER_HIDDEN__ role="status" aria-live="assertive" data-rm-status="__RM_STATUS__">
@@ -445,5 +454,6 @@
       }
     }
   </script>
+  <script src="/static/js/senior_a11y.js"></script>
 </body>
 </html>

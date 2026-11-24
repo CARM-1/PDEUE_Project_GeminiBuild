@@ -105,7 +105,7 @@ def test_root_url_redirects_to_community_hearth():
     with TestClient(app) as client:
         resp = client.get("/", follow_redirects=False)
         assert resp.status_code == 302
-        assert resp.headers["location"] == "/community"
+        assert resp.headers["location"] == "/home"
 
 
 def test_alembic_005_migration_idempotent_upgrade_and_downgrade(tmp_path: Path):

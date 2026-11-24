@@ -47,6 +47,7 @@ VIEWPORTS: dict[str, dict[str, int]] = {
 }
 
 EXPECTED_HTML_ROUTES = {
+    "/home",
     "/dashboard",
     "/member",
     "/advisor",
@@ -55,6 +56,9 @@ EXPECTED_HTML_ROUTES = {
     "/lineage/house/{house_id}",
     "/lineage/house",
     "/community",
+    "/community/heritage",
+    "/community/heritage/house/{house_id}",
+    "/community/heritage/surname/{slug}",
 }
 
 # Explicitly allowed sandboxed iframe host on /community (Milestone G3 / Wave 2C).
@@ -187,9 +191,38 @@ CRAWL_TARGETS: tuple[CrawlTarget, ...] = (
         role_scope="CLASS_C_COMMUNITY",
         forbidden_visible_href_prefixes=("/dashboard", "/member", "/advisor", "/admin/tech", "/lineage/house"),
         desktop_tab_selectors=(
+            ("charter", 'button.tab[data-tab="charter"]'),
             ("classroom", 'button.tab[data-tab="classroom"]'),
             ("academy", 'button.tab[data-tab="academy"]'),
         ),
+    ),
+    CrawlTarget(
+        slug="family_home_hub",
+        path="/home",
+        route_template="/home",
+        role_scope="CLASS_M_HOME_HUB",
+        forbidden_visible_href_prefixes=("/dashboard", "/advisor", "/admin/tech", "/lineage/house"),
+    ),
+    CrawlTarget(
+        slug="hall_of_arms_heritage",
+        path="/community/heritage",
+        route_template="/community/heritage",
+        role_scope="CLASS_C_HERITAGE",
+        forbidden_visible_href_prefixes=("/dashboard", "/member", "/advisor", "/admin/tech", "/lineage/house"),
+    ),
+    CrawlTarget(
+        slug="heritage_house_01_history",
+        path="/community/heritage/house/1",
+        route_template="/community/heritage/house/{house_id}",
+        role_scope="CLASS_C_HERITAGE_HOUSE",
+        forbidden_visible_href_prefixes=("/dashboard", "/member", "/advisor", "/admin/tech", "/lineage/house"),
+    ),
+    CrawlTarget(
+        slug="heritage_surname_carmichael",
+        path="/community/heritage/surname/carmichael",
+        route_template="/community/heritage/surname/{slug}",
+        role_scope="CLASS_C_HERITAGE_SURNAME",
+        forbidden_visible_href_prefixes=("/dashboard", "/member", "/advisor", "/admin/tech", "/lineage/house"),
     ),
 )
 
