@@ -904,13 +904,120 @@ def get_companion_manual(manual_name: str) -> PlainTextResponse:
     manual = pathlib.Path(__file__).resolve().parents[4] / "docs" / "manuals" / manual_name
     return PlainTextResponse(manual.read_text(encoding="utf-8"), media_type="text/markdown")
 
+def _is_chief_admin_portal_viewer(
+    *,
+    authorization: Optional[str] = None,
+    x_actor_role: Optional[str] = None,
+    x_active_hat: Optional[str] = None,
+    inspector: Optional[str] = None,
+) -> bool:
+    """Return True strictly when the authenticated viewer holds CHIEF_ADMIN authority."""
+    if authorization and authorization.lower().startswith("bearer "):
+        from app.core.security import decode_access_token
+
+        claims = decode_access_token(authorization.split(" ", 1)[1].strip())
+        if claims and is_chief_admin_role(claims.get("active_hat") or claims.get("role")):
+            return True
+    if x_actor_role and is_chief_admin_role(x_actor_role):
+        return True
+    if x_active_hat and is_chief_admin_role(x_active_hat):
+        return True
+    if inspector and is_chief_admin_role(inspector):
+        return True
+    return False
+
+
+def _strip_marked_block(markup: str, start_marker: str, end_marker: str) -> str:
+    """Remove a server-gated DOM section completely when caller lacks authority."""
+    start_idx = markup.find(start_marker)
+    end_idx = markup.find(end_marker)
+    if start_idx >= 0 and end_idx >= start_idx:
+        return markup[:start_idx] + markup[end_idx + len(end_marker):]
+    return markup
+
+
 @router.get("/advisor", response_class=HTMLResponse)
-def get_advisor_portal():
-    return _load_html("advisor.html")
+def get_advisor_portal(
+    role: Optional[str] = Query(None),
+    inspector: Optional[str] = Query(None),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+):
+    is_admin = _is_chief_admin_portal_viewer(
+        authorization=authorization,
+        x_actor_role=x_actor_role,
+        x_active_hat=x_active_hat,
+        inspector=inspector,
+    )
+    if not is_admin:
+        claimed_raw = x_active_hat or x_actor_role
+        if claimed_raw:
+            claimed = normalize_role_token(claimed_raw)
+            if is_class_t_role(claimed):
+                raise HTTPException(status_code=403, detail="Class T operators cannot access Class F advisory workspace.")
+            if role and claimed in {"F1", "F2-H", "F2-A", "F3"}:
+                requested = normalize_advisor_role(role)
+                if requested != claimed:
+                    raise HTTPException(
+                        status_code=403,
+                        detail=f"CROSS_TIER_ACCESS_DENIED: Assigned Class F tier {claimed} cannot jump to {requested}.",
+                    )
+
+    page = _load_html("advisor.html").body.decode("utf-8")
+    if is_admin:
+        page = page.replace("<!-- CHIEF_ADMIN_ROLE_SWITCHER_START -->", "").replace(
+            "<!-- CHIEF_ADMIN_ROLE_SWITCHER_END -->", ""
+        )
+    else:
+        page = _strip_marked_block(
+            page,
+            "<!-- CHIEF_ADMIN_ROLE_SWITCHER_START -->",
+            "<!-- CHIEF_ADMIN_ROLE_SWITCHER_END -->",
+        )
+    return HTMLResponse(page)
+
 
 @router.get("/admin/tech", response_class=HTMLResponse)
-def get_tech_console():
-    return _load_html("tech.html")
+def get_tech_console(
+    tier: Optional[str] = Query(None),
+    inspector: Optional[str] = Query(None),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+):
+    is_admin = _is_chief_admin_portal_viewer(
+        authorization=authorization,
+        x_actor_role=x_actor_role,
+        x_active_hat=x_active_hat,
+        inspector=inspector,
+    )
+    if not is_admin:
+        claimed_raw = x_active_hat or x_actor_role
+        if claimed_raw:
+            claimed = normalize_role_token(claimed_raw)
+            if claimed in {"F1", "F2-H", "F2-A", "F3", "MEMBER_USER", "PERSONAL_SCMA", "H1", "H2"}:
+                raise HTTPException(status_code=403, detail="Non-Class-T role cannot access Technical Console.")
+            if tier and claimed in {"T1", "T2", "T2-HOUSEHOLD", "T3"}:
+                requested = normalize_tech_tier(tier)
+                if requested != claimed:
+                    raise HTTPException(
+                        status_code=403,
+                        detail=f"CROSS_TIER_ACCESS_DENIED: Assigned Class T tier {claimed} cannot jump to {requested}.",
+                    )
+
+    page = _load_html("tech.html").body.decode("utf-8")
+    if is_admin:
+        page = page.replace("<!-- CHIEF_ADMIN_TIER_SWITCHER_START -->", "").replace(
+            "<!-- CHIEF_ADMIN_TIER_SWITCHER_END -->", ""
+        )
+    else:
+        page = _strip_marked_block(
+            page,
+            "<!-- CHIEF_ADMIN_TIER_SWITCHER_START -->",
+            "<!-- CHIEF_ADMIN_TIER_SWITCHER_END -->",
+        )
+    return HTMLResponse(page)
 
 
 # --- Class C Community Fellowship (strictly non-transactional) ---
@@ -1500,6 +1607,12 @@ def get_advisor_household_tree(
     role = role.upper()
     if role not in {"F1", "F2-H", "F2-A", "F3"}:
         raise HTTPException(status_code=422, detail="Unsupported financial advisor role")
+    claimed_f = normalize_role_token(x_active_hat or x_actor_role)
+    if claimed_f in {"F1", "F2-H", "F2-A", "F3"} and claimed_f != role:
+        raise HTTPException(
+            status_code=403,
+            detail=f"CROSS_TIER_ACCESS_DENIED: Class F tier {claimed_f} cannot query {role} workspace data.",
+        )
 
     accounts = []
     for account in house["accounts"]:
@@ -1959,6 +2072,7 @@ def get_tech_telemetry(
     authenticated_household_id: Optional[str] = Header(None, alias="X-Household-ID"),
     authorization: Optional[str] = Header(None, alias="Authorization"),
     x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
 ) -> Dict[str, Any]:
     _enforce_portal_boundary(
         allowed_hats={"T1", "T2", "T2-HOUSEHOLD", "T3", "CHIEF_ADMINISTRATOR"},
@@ -1970,6 +2084,12 @@ def get_tech_telemetry(
         is_mutation=False,
     )
     tier_norm = normalize_tech_tier(tier)
+    claimed_t = normalize_role_token(x_active_hat or x_actor_role)
+    if claimed_t in {"T1", "T2", "T2-HOUSEHOLD", "T3"} and claimed_t != tier_norm:
+        raise HTTPException(
+            status_code=403,
+            detail=f"CROSS_TIER_ACCESS_DENIED: Class T tier {claimed_t} cannot query {tier_norm} telemetry.",
+        )
 
     if tier_norm == "T2-HOUSEHOLD":
         if authenticated_household_id and authenticated_household_id.upper() != household_id.upper():

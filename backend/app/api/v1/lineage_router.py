@@ -485,13 +485,33 @@ def get_house_leader_portal(house_id: int = 1):
     .btn-freeze {{ background: #f59e0b; color: #020617; border: 1px solid #fbbf24; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }}
     .modal-backdrop {{ display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(4px); z-index: 20000; align-items: center; justify-content: center; }}
     .modal-box {{ background: #111c44; border-radius: 10px; width: 540px; max-width: 90vw; padding: 24px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7); animation: modalIn 0.2s ease-out; }}
+    .brand-lockup {{ display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; }}
+    .brand-crests {{ display: inline-flex; align-items: center; gap: 6px; }}
+    .brand-crest {{ width: 40px; height: 46px; aspect-ratio: 5 / 6; object-fit: contain; border: 1px solid rgba(212, 175, 55, 0.6); border-radius: 5px; background: rgba(11, 19, 43, 0.88); padding: 2px; display: block; }}
+    .brand-crest-divider {{ width: 1px; height: 34px; background: linear-gradient(180deg, transparent, rgba(212, 175, 55, 0.78), transparent); }}
+    .brand-stack {{ display: flex; flex-direction: column; line-height: 1.2; }}
+    .brand-title {{ font-size: 12px; font-weight: 800; letter-spacing: 0.08em; color: #F8FAFC; }}
+    .brand-motto {{ font-size: 11px; font-style: italic; color: #D8C48B; }}
+    .pdeue-colophon {{ margin-top: 24px; padding: 12px 4px; border-top: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; color: #94a3b8; font-size: 12px; }}
+    .colophon-mode-badge {{ font-family: ui-monospace, monospace; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: #1e293b; border: 1px solid #334155; color: #cbd5e1; }}
     @keyframes modalIn {{ from {{ opacity: 0; transform: scale(0.96); }} to {{ opacity: 1; transform: scale(1); }} }}
   </style>
 </head>
 <body>
 
-  <div class="class-h-banner">
-    <div style="display: flex; align-items: center; gap: 12px;">
+  <div class="class-h-banner" style="flex-wrap: wrap; gap: 12px;">
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+      <a href="/community" class="brand-lockup" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Heritage">
+        <span class="brand-crests">
+          <img class="brand-crest" src="/static/assets/crests/carmichael_crest.svg" alt="Carmichael Family Crest" width="40" height="46" loading="eager">
+          <span class="brand-crest-divider" aria-hidden="true"></span>
+          <img class="brand-crest" src="/static/assets/crests/mccormick_crest.svg" alt="McCormick Family Crest" width="40" height="46" loading="eager">
+        </span>
+        <span class="brand-stack">
+          <span class="brand-title">FUTURE · CARMICHAEL — McCORMICK</span>
+          <span class="brand-motto">Generational Love, Harmony, Resilience, and Wealth</span>
+        </span>
+      </a>
       <span class="class-badge">CLASS H SOVEREIGN DESK</span>
       <span style="font-weight: bold; color: #38bdf8;">{house['lineage_code']} &mdash; {house['name']}</span>
     </div>
@@ -540,6 +560,11 @@ def get_house_leader_portal(house_id: int = 1):
       </tbody>
     </table>
   </div>
+
+  <footer class="pdeue-colophon" role="contentinfo">
+    <span>Powered by CARM Aerotech Corporation</span>
+    <span class="colophon-mode-badge">FAIL-CLOSED · PAPER / OBSERVATION MODE · GATE G1</span>
+  </footer>
 
   <!-- CANCEL ORDERS MODAL -->
   <div id="cancel-modal" class="modal-backdrop">

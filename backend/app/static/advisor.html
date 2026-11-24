@@ -90,8 +90,19 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
 .advisor-action-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}
 .btn-stage{background:var(--accent-sky-deep);border:1px solid var(--accent-sky);color:var(--text-primary);border-radius:7px;padding:7px 11px;cursor:pointer;font-weight:750;font-size:.78rem}
 .btn-stage:hover{background:#0369A1}
+.brand-lockup{display:inline-flex;align-items:center;gap:11px;text-decoration:none;color:inherit;min-width:0;max-width:100%}
+.brand-lockup:hover .brand-title{color:#F6DE8D}
+.brand-crests{display:inline-flex;align-items:center;gap:6px;flex-shrink:0}
+.brand-crest{width:40px;height:46px;aspect-ratio:5/6;object-fit:contain;border:1px solid rgba(212,175,55,.6);border-radius:5px;background:rgba(11,19,43,.88);padding:2px;display:block;flex-shrink:0}
+.brand-crest-divider{width:1px;height:34px;background:linear-gradient(180deg,transparent,rgba(212,175,55,.78),transparent);flex-shrink:0}
+.brand-stack{display:flex;flex-direction:column;min-width:0;line-height:1.22}
+.brand-title{font-size:.78rem;font-weight:800;letter-spacing:.08em;color:#F8FAFC;white-space:normal}
+.brand-motto{font-size:.71rem;font-style:italic;color:#D8C48B;white-space:normal}
+.pdeue-colophon{margin-top:28px;padding:12px 4px;border-top:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;color:var(--text-muted);font-size:.76rem}
+.colophon-attr{color:var(--text-muted);letter-spacing:.02em}
+.colophon-mode-badge{display:inline-flex;align-items:center;gap:6px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.7rem;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--bg-surface);border:1px solid var(--border-subtle);color:var(--text-secondary)}
 @media(max-width:800px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.wide{grid-column:span 2}.role-switcher{grid-template-columns:repeat(2,minmax(0,1fr))}.hero{align-items:flex-start;flex-direction:column}.whatif-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:520px){.grid{grid-template-columns:minmax(0,1fr)}.wide{grid-column:auto}.role-switcher{grid-template-columns:minmax(0,1fr)}.shell{padding:14px}.whatif-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:520px){.grid{grid-template-columns:minmax(0,1fr)}.wide{grid-column:auto}.role-switcher{grid-template-columns:minmax(0,1fr)}.shell{padding:14px}.whatif-grid{grid-template-columns:minmax(0,1fr)}.brand-lockup{gap:8px}.brand-title{font-size:.72rem}.brand-motto{font-size:.66rem}}
 </style>
 </head>
 <body>
@@ -103,8 +114,24 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
 </div>
 <main class="shell" id="workspace">
 <div style="display:none" id="legacyPortalHub">PDEUE PORTAL HUB</div>
-<nav class="nav"><strong>Lineal Advisory &amp; Trusts</strong><span><a href="/companion" class="nav-link campus-link" id="navCompanionLink">🎓 PDEUE University</a></span></nav>
-<header class="hero" id="role-banner"><div><p class="eyebrow">Household-scoped advisory plane · <abbr class="pdeue-term" tabindex="0" data-term="active-hat-r06" data-tooltip="Directive R-06 Split-Hat Role Mapping: multi-role operators explicitly switch between isolated role contexts. Privileges never blend across workspaces.">Active-Hat / R-06<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></p><h1>Financial Advisor Workspace</h1><p class="muted">Lineage oversight, distribution review, and point-in-time evidence under <abbr class="pdeue-term" tabindex="0" data-term="directive-r12-masking" data-tooltip="Least-Privilege Financial Masking (R-12): sensitive financial values remain scoped and redacted by authority tier.">Directive R-12<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> and <abbr class="pdeue-term" tabindex="0" data-term="quarter-kelly" data-tooltip="Canonical sizing ceiling at 0.25 of full-Kelly. Final stake is clamped by risk dial, Tier-1 ceilings, liquidity, and the 40% Dry-Powder Floor.">Quarter-Kelly<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> risk bounds.</p></div><span class="badge" id="active-hat"><span class="badge-dot"></span><span id="active-hat-text">Active Hat: FINANCIAL_ADVISOR (F2-H_HOUSEHOLD_HEAD)</span></span></header>
+<nav class="nav">
+  <div class="row" style="gap:14px;">
+    <a href="/community" class="brand-lockup" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Heritage">
+      <span class="brand-crests">
+        <img class="brand-crest" src="/static/assets/crests/carmichael_crest.svg" alt="Carmichael Family Crest" width="40" height="46" loading="eager">
+        <span class="brand-crest-divider" aria-hidden="true"></span>
+        <img class="brand-crest" src="/static/assets/crests/mccormick_crest.svg" alt="McCormick Family Crest" width="40" height="46" loading="eager">
+      </span>
+      <span class="brand-stack">
+        <span class="brand-title">FUTURE · CARMICHAEL — McCORMICK</span>
+        <span class="brand-motto">Generational Love, Harmony, Resilience, and Wealth</span>
+      </span>
+    </a>
+    <strong>Lineal Advisory &amp; Trusts</strong>
+  </div>
+  <span><a href="/companion" class="nav-link campus-link" id="navCompanionLink">🎓 PDEUE University</a></span>
+</nav>
+<header class="hero" id="role-banner"><div><p class="eyebrow">Household-scoped advisory plane · <abbr class="pdeue-term" tabindex="0" data-term="active-hat-r06" data-tooltip="One role at a time. Even if a family leader holds two jobs—like personal member and platform steward—they must intentionally switch hats so personal money and leadership tools never mix by accident.">Active-Hat / R-06<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></p><h1>Financial Advisor Workspace</h1><p class="muted">Lineage oversight, distribution review, and point-in-time evidence under <abbr class="pdeue-term" tabindex="0" data-term="directive-r12-masking" data-tooltip="Privacy blinds for technical helpers. Engineers and house secretaries can keep systems healthy without seeing anyone's real dollar balances or account names—those numbers appear hidden as stars.">Directive R-12<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> and <abbr class="pdeue-term" tabindex="0" data-term="quarter-kelly" data-tooltip="A cautious bet-sizing rule that uses only one-quarter of what pure math says you could wager. It gives your account a wide safety cushion against surprises so a bad streak stays small.">Quarter-Kelly<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> risk bounds.</p></div><span class="badge" id="active-hat"><span class="badge-dot"></span><span id="active-hat-text">Active Hat: FINANCIAL_ADVISOR (F2-H_HOUSEHOLD_HEAD)</span></span></header>
 <section id="readModelStatusBanner" class="rm-banner rm-qualification_pending" hidden role="status" aria-live="assertive" data-rm-status="OK">
   <div>
     <span id="readModelStatusCode" class="rm-pill">QUALIFICATION_PENDING</span>
@@ -113,14 +140,16 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
   </div>
   <div id="readModelBannerTimestamp" class="rm-meta"></div>
 </section>
-<nav class="role-switcher" id="role-switcher" aria-label="Financial advisor sub-tier"><button class="role-tab" type="button" data-role="F1">F1 (Peer Guide)</button><button class="role-tab active" type="button" data-role="F2-H">F2-H (Head of Household)</button><button class="role-tab" type="button" data-role="F2-A">F2-A (Lineage Advisor)</button><button class="role-tab" type="button" data-role="F3">F3 (CRO)</button></nav>
+<!-- CHIEF_ADMIN_ROLE_SWITCHER_START -->
+<nav class="role-switcher" id="role-switcher" aria-label="Chief Admin multi-tier inspection"><button class="role-tab" type="button" data-role="F1">F1 (Peer Guide)</button><button class="role-tab active" type="button" data-role="F2-H">F2-H (Head of Household)</button><button class="role-tab" type="button" data-role="F2-A">F2-A (Lineage Advisor)</button><button class="role-tab" type="button" data-role="F3">F3 (CRO)</button></nav>
+<!-- CHIEF_ADMIN_ROLE_SWITCHER_END -->
 <div class="role-alert" id="role-alert" role="status" aria-live="polite"></div>
 <section class="scope-control card" id="branch-scope" hidden><label class="label" for="household-selector">Assigned Household</label><select id="household-selector"><option>HOUSEHOLD-ALPHA</option><option>HOUSEHOLD-BETA</option></select></section>
 <div class="row" id="advisor-actions" hidden style="margin-bottom:14px;"><button class="action" id="stage-proposal" type="button">Stage Advisory Proposal</button></div>
 <section class="card" id="cro-emergency-controls" hidden aria-label="F3 CRO Directive R-04 and Dual-Signature Controls">
   <div class="row">
     <div>
-      <div class="label">F3 CRO Dual-Control &amp; <abbr class="pdeue-term" tabindex="0" data-term="directive-r04-halt" data-tooltip="Emergency Financial Halt (R-04): immediately stops new financial commitments and surfaces a fail-closed TRADING HALTED banner across portals. Resumption is strictly reserved to the Chief Administrator.">Directive R-04<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> Governance</div>
+      <div class="label">F3 CRO Dual-Control &amp; <abbr class="pdeue-term" tabindex="0" data-term="directive-r04-halt" data-tooltip="The big red emergency brake. If anything looks wrong, leadership can pause all new trades across the entire platform in one step, and only the Chief Administrator can safely turn things back on.">Directive R-04<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> Governance</div>
       <h2>Emergency Financial Halt &amp; Dual-Signature Override</h2>
       <p class="muted" style="margin:0;">F3 CRO may engage Directive R-04 Emergency Halt or stage a dual-signature override. <strong>Resumption and counter-signature are strictly reserved to the Chief Administrator (HTTP 403 for non-CA).</strong></p>
     </div>
@@ -135,10 +164,14 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
 <section class="grid" id="macro-risk" hidden aria-label="Macro Platform Risk"></section>
 <section class="card" id="house-exposures" hidden><div class="label">12-House Exposure Table</div><div class="table-wrap table-card"><table><thead><tr><th>House</th><th>Exposure</th><th>Margin utilization</th><th>Risk meter</th></tr></thead><tbody id="exposure-rows"></tbody></table></div></section>
 <section class="grid" id="metrics"><article class="card"><div class="label">Household ID</div><div class="value" id="household">HOUSEHOLD-ALPHA</div></article><article class="card accent" id="equity-card"><div class="label" id="equity-label">Total Household Equity</div><div class="value" id="equity">—</div></article><article class="card"><div class="label">Available Liquidity</div><div class="value" id="liquidity">—</div></article><article class="card"><div class="label">Monitored Members</div><div class="value" id="count">—</div></article></section>
-<section class="card"><div class="label">Subordinate <abbr class="pdeue-term" tabindex="0" data-term="scma" data-tooltip="Self-Contained Member Account: tenant-partitioned member sub-ledger in exact integer cents. Losses remain 100% isolated inside the executing SCMA.">SCMA<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> Accounts</div><div class="table-wrap table-card"><table><thead><tr><th>Member</th><th>Account (<abbr class="pdeue-term" tabindex="0" data-term="scma" data-tooltip="Self-Contained Member Account: tenant-partitioned member sub-ledger in exact integer cents.">SCMA<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>)</th><th>Equity</th><th>Lineage status</th><th>Risk controls</th></tr></thead><tbody id="roster"></tbody></table></div></section>
+<section class="card"><div class="label">Subordinate <abbr class="pdeue-term" tabindex="0" data-term="scma" data-tooltip="Your own private, walled-off family account. Your money grows inside your personal box, and if a trade ever loses money, that loss stays strictly inside your own account and never touches anyone else's savings.">SCMA<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> Accounts</div><div class="table-wrap table-card"><table><thead><tr><th>Member</th><th>Account (<abbr class="pdeue-term" tabindex="0" data-term="scma" data-tooltip="Your own private, walled-off family account. Your money grows inside your personal box, and if a trade ever loses money, that loss stays strictly inside your own account and never touches anyone else's savings.">SCMA<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>)</th><th>Equity</th><th>Lineage status</th><th>Risk controls</th></tr></thead><tbody id="roster"></tbody></table></div></section>
 <section class="grid" id="operations"><div id="distribution-slot"></div><article class="card wide" id="audit-card"><div class="label">PIT Decision Audit</div><div id="telemetry"></div><div id="pit"></div></article></section>
 <section class="card" id="proposal-queue" hidden><div class="label">Fiduciary Supervisory Queue</div><div id="proposals"></div></section>
 <section class="card" id="advisorCopilotCard"><div class="row"><div class="label">Fiduciary Copilot (Class F)</div><span id="advisorCopilotInvariantBadge" class="copilot-pill green">UNILATERAL EXECUTION: OFF · AUTH-01–AUTH-04</span></div><label for="advisor-query">Educational, What-If risk modeling, or dual-control audit question</label><input id="advisor-query" placeholder="Model a What-If risk scenario or explain trade rationale"><div class="row" style="justify-content:flex-start"><button class="action" type="button" id="consult-copilot">Consult Copilot</button><button id="clearAdvisorCopilotBtn" type="button" class="btn-clear" aria-label="Clear displayed guidance and input" onclick="clearAdvisorCopilot()">Clear answer</button></div><div id="copilot-output" aria-live="polite"><p class="placeholder-text">Your educational answer will appear here.</p></div></section>
+<footer class="pdeue-colophon" role="contentinfo">
+  <span class="colophon-attr">Powered by CARM Aerotech Corporation</span>
+  <span class="colophon-mode-badge">FAIL-CLOSED · PAPER / OBSERVATION MODE · GATE G1</span>
+</footer>
 </main>
 <div class="modal" id="cosign-modal" hidden role="dialog" aria-modal="true"><div class="modal-box"><h2>Confirm F2-H Co-Signature</h2><p>This stages the distribution under dual control and records your active role.</p><div class="row"><button class="action" type="button" id="confirm-cosign">Confirm &amp; Co-Sign</button><button class="role-tab" type="button" id="cancel-cosign">Cancel</button></div></div></div>
 <div class="modal" id="proposal-modal" hidden role="dialog" aria-modal="true"><form class="modal-box" id="proposal-form"><h2>Stage Advisory Proposal</h2><label>Target SCMA<input id="proposal-target" required value="SCMA-JULIAN_-A1F98B21"></label><label>Proposed risk dial<input id="proposal-dial" required type="number" min="0" max="100" step="0.01" value="1.25"></label><label>Fiduciary justification<textarea id="proposal-justification" required></textarea></label><div class="row"><button class="action" type="submit">Submit Pending Proposal</button><button class="role-tab" id="cancel-proposal" type="button">Cancel</button></div></form></div>

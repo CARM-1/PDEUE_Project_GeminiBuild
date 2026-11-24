@@ -67,8 +67,19 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
 .tech-action-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
 .tech-action-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}
 @keyframes flash{50%{background:#4ade80;color:#052e1d}}
+.brand-lockup{display:inline-flex;align-items:center;gap:11px;text-decoration:none;color:inherit;min-width:0;max-width:100%}
+.brand-lockup:hover .brand-title{color:#F6DE8D}
+.brand-crests{display:inline-flex;align-items:center;gap:6px;flex-shrink:0}
+.brand-crest{width:40px;height:46px;aspect-ratio:5/6;object-fit:contain;border:1px solid rgba(212,175,55,.6);border-radius:5px;background:rgba(11,19,43,.88);padding:2px;display:block;flex-shrink:0}
+.brand-crest-divider{width:1px;height:34px;background:linear-gradient(180deg,transparent,rgba(212,175,55,.78),transparent);flex-shrink:0}
+.brand-stack{display:flex;flex-direction:column;min-width:0;line-height:1.22}
+.brand-title{font-size:.78rem;font-weight:800;letter-spacing:.08em;color:#F8FAFC;white-space:normal}
+.brand-motto{font-size:.71rem;font-style:italic;color:#D8C48B;white-space:normal}
+.pdeue-colophon{margin-top:28px;padding:12px 4px;border-top:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;color:var(--text-muted);font-size:.76rem}
+.colophon-attr{color:var(--text-muted);letter-spacing:.02em}
+.colophon-mode-badge{display:inline-flex;align-items:center;gap:6px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.7rem;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--bg-surface);border:1px solid var(--border-subtle);color:var(--text-secondary)}
 @media(max-width:850px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:520px){.grid{grid-template-columns:minmax(0,1fr)}.shell{padding:14px}}
+@media(max-width:520px){.grid{grid-template-columns:minmax(0,1fr)}.shell{padding:14px}.brand-lockup{gap:8px}.brand-title{font-size:.72rem}.brand-motto{font-size:.66rem}}
 </style></head><body>
 <div id="supervisoryAuditLensBanner" class="supervisory-lens-banner" hidden role="region" aria-label="Supervisory Audit Lens">
   <div class="supervisory-lens-inner">
@@ -78,12 +89,28 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
 </div>
 <main class="shell">
 <div style="display:none" id="legacyPortalHub">PDEUE PORTAL HUB</div>
-<nav class="nav"><strong>Technical Console (Class T)</strong><span><a href="/companion" class="nav-link campus-link" id="navCompanionLink">🎓 PDEUE University</a></span></nav>
+<nav class="nav">
+  <div class="row" style="gap:14px;">
+    <a href="/community" class="brand-lockup" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Heritage">
+      <span class="brand-crests">
+        <img class="brand-crest" src="/static/assets/crests/carmichael_crest.svg" alt="Carmichael Family Crest" width="40" height="46" loading="eager">
+        <span class="brand-crest-divider" aria-hidden="true"></span>
+        <img class="brand-crest" src="/static/assets/crests/mccormick_crest.svg" alt="McCormick Family Crest" width="40" height="46" loading="eager">
+      </span>
+      <span class="brand-stack">
+        <span class="brand-title">FUTURE · CARMICHAEL — McCORMICK</span>
+        <span class="brand-motto">Generational Love, Harmony, Resilience, and Wealth</span>
+      </span>
+    </a>
+    <strong>Technical Console (Class T)</strong>
+  </div>
+  <span><a href="/companion" class="nav-link campus-link" id="navCompanionLink">🎓 PDEUE University</a></span>
+</nav>
 <header class="hero">
   <div>
-    <p class="eyebrow"><abbr class="pdeue-term" tabindex="0" data-term="directive-r12-masking" data-tooltip="Least-Privilege Financial Masking (R-12): Class T and H1 desks redact balances ($****.**) and SCMA IDs (SCMA-MEM-****) server-side. Only a time-bounded, audited T3 Chief Admin override may temporarily unmask.">Directive R-12<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> protected plane</p>
+    <p class="eyebrow"><abbr class="pdeue-term" tabindex="0" data-term="directive-r12-masking" data-tooltip="Privacy blinds for technical helpers. Engineers and house secretaries can keep systems healthy without seeing anyone's real dollar balances or account names—those numbers appear hidden as stars.">Directive R-12<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> protected plane</p>
     <h1>Technical Infrastructure Console</h1>
-    <p class="muted">Live diagnostics. Financial fields remain masked (<code>$****.**</code> / <code>SCMA-MEM-****</code>) under <abbr class="pdeue-term" tabindex="0" data-term="active-hat-r06" data-tooltip="Directive R-06 Split-Hat Role Mapping: multi-role operators explicitly switch between isolated role contexts. Privileges never blend across workspaces.">Active-Hat / R-06<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> until an explicit, time-bounded, audited CA grant is active.</p>
+    <p class="muted">Live diagnostics. Financial fields remain masked (<code>$****.**</code> / <code>SCMA-MEM-****</code>) under <abbr class="pdeue-term" tabindex="0" data-term="active-hat-r06" data-tooltip="One role at a time. Even if a family leader holds two jobs—like personal member and platform steward—they must intentionally switch hats so personal money and leadership tools never mix by accident.">Active-Hat / R-06<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> until an explicit, time-bounded, audited CA grant is active.</p>
   </div>
   <div class="header-controls">
     <span class="badge" id="active-hat">Active Hat: TECHNICAL_OPERATOR (T3_CTO)</span>
@@ -101,12 +128,14 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
   </div>
   <div id="readModelBannerTimestamp" class="rm-meta"></div>
 </section>
-<div class="row" id="tier-switcher" style="justify-content:flex-end;margin:16px 0">
+<!-- CHIEF_ADMIN_TIER_SWITCHER_START -->
+<div class="row" id="tier-switcher" style="justify-content:flex-end;margin:16px 0" aria-label="Chief Admin multi-tier inspection">
   <button type="button" data-tier="T1">T1 (Monitor)</button>
   <button type="button" data-tier="T2">T2 (Engineer)</button>
   <button type="button" data-tier="T2-HOUSEHOLD">T2-Household (Scoped)</button>
   <button type="button" data-tier="T3">T3 (CTO)</button>
 </div>
+<!-- CHIEF_ADMIN_TIER_SWITCHER_END -->
 <div id="tier-scope-banner" class="tier-banner" role="status" aria-live="polite">T3 CTO scope: full technical daemon controls + audited CA Override modal; zero financial distribution, House, or household authority.</div>
 <section id="household-scope-card" class="card" hidden aria-label="Household-scoped telemetry boundary">
   <div class="label">T2-Household Boundary</div>
@@ -115,14 +144,14 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
 </section>
 <section class="grid">
   <article class="card"><div class="label">AutonomousScanWorker</div><div class="value" id="daemon">Cycle 0 · ACTIVE</div><button type="button" id="trigger-daemon">Trigger Scan Cycle</button></article>
-  <article class="card"><div class="label">SettlementReconciler (<abbr class="pdeue-term" tabindex="0" data-term="tpw-waterfall" data-tooltip="Transaction Profit Waterfall: eligible realized net new profit above HWM splits 87% SCMA, 10% CFCP (+ floor remainder cents), and 3% FAEP with exact-cent conservation.">87/10/3<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>)</div><div class="value" id="settlement">Settled 0 · Waterfall: 87/10/3</div><button type="button" id="trigger-settlement">Trigger Settlement</button></article>
+  <article class="card"><div class="label">SettlementReconciler (<abbr class="pdeue-term" tabindex="0" data-term="tpw-waterfall" data-tooltip="How brand-new profits are shared: 87% stays in your personal account to grow, 10% builds the shared family safety net, and 3% keeps the system running. Nothing is shared until you pass your own previous peak.">87/10/3<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>)</div><div class="value" id="settlement">Settled 0 · Waterfall: 87/10/3</div><button type="button" id="trigger-settlement">Trigger Settlement</button></article>
   <article class="card"><div class="label">WebSocket Latency</div><div class="value" id="latency">Kalshi: 14ms<br>Polymarket: 22ms</div></article>
   <article class="card"><div class="label">Token Buckets</div><div class="value" id="buckets">Kalshi: 10/10<br>Polymarket: 10/10</div></article>
-  <article class="card"><div class="label"><abbr class="pdeue-term" tabindex="0" data-term="dry-powder-floor-40" data-tooltip="Uncommitted cash shield: every dispatch batch must leave at least 40% of pre-dispatch total equity uncommitted (integer-cent ceiling).">40% Dry-Powder Floor<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></div><div class="value" id="dry-powder-status">4,000 cents</div><div class="status">COMPLIANT</div></article>
+  <article class="card"><div class="label"><abbr class="pdeue-term" tabindex="0" data-term="dry-powder-floor-40" data-tooltip="A permanent cash reserve rule that keeps at least 40% of your account safely on the sidelines in cash at all times, so you are never overextended and always ready for better opportunities.">40% Dry-Powder Floor<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></div><div class="value" id="dry-powder-status">4,000 cents</div><div class="status">COMPLIANT</div></article>
 </section>
 <section class="card">
-  <div class="row"><div><div class="label">Recent Dispatches</div><h2><abbr class="pdeue-term" tabindex="0" data-term="directive-r12-masking" data-tooltip="Least-Privilege Financial Masking (R-12): Class T and H1 desks redact balances ($****.**) and SCMA IDs (SCMA-MEM-****) server-side.">Directive R-12<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> protected ledger</h2></div><span id="grant-expiry-meta" class="muted"></span></div>
-  <div class="table-wrap table-card"><table><thead><tr><th>Candidate</th><th>Venue</th><th><abbr class="pdeue-term" tabindex="0" data-term="scma" data-tooltip="Self-Contained Member Account: tenant-partitioned member sub-ledger in exact integer cents. Losses remain 100% isolated inside the executing SCMA.">SCMA<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></th><th>Probability</th><th>Exposure</th></tr></thead><tbody id="resting-orders-body"></tbody></table></div>
+  <div class="row"><div><div class="label">Recent Dispatches</div><h2><abbr class="pdeue-term" tabindex="0" data-term="directive-r12-masking" data-tooltip="Privacy blinds for technical helpers. Engineers and house secretaries can keep systems healthy without seeing anyone's real dollar balances or account names—those numbers appear hidden as stars.">Directive R-12<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> protected ledger</h2></div><span id="grant-expiry-meta" class="muted"></span></div>
+  <div class="table-wrap table-card"><table><thead><tr><th>Candidate</th><th>Venue</th><th><abbr class="pdeue-term" tabindex="0" data-term="scma" data-tooltip="Your own private, walled-off family account. Your money grows inside your personal box, and if a trade ever loses money, that loss stays strictly inside your own account and never touches anyone else's savings.">SCMA<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></th><th>Probability</th><th>Exposure</th></tr></thead><tbody id="resting-orders-body"></tbody></table></div>
 </section>
 <section class="card copilot" id="techCopilotCard">
   <div class="row">
@@ -141,6 +170,10 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
   <div id="diagnostic-output" aria-live="polite"><p class="placeholder-text">Your telemetry diagnostic will appear here.</p></div>
 </section>
 <div hidden id="active-bids-count">1</div><div hidden id="eviction-history-body"></div><span hidden>/api/v1/portal/telemetry</span>
+<footer class="pdeue-colophon" role="contentinfo">
+  <span class="colophon-attr">Powered by CARM Aerotech Corporation</span>
+  <span class="colophon-mode-badge">FAIL-CLOSED · PAPER / OBSERVATION MODE · GATE G1</span>
+</footer>
 </main>
 <div class="modal" id="override-modal" hidden role="dialog" aria-modal="true" aria-labelledby="override-title">
   <form class="modal-box" id="override-form">

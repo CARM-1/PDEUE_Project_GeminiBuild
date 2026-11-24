@@ -270,7 +270,7 @@ def test_f3_advisor_copilot_what_if_scope_isolation_and_zero_network_clear(
         assert clear_audit["activeId"] == "advisor-query"
 
         # 3. F1 Mentee-Only scope blocks household equity probe with guardrail refusal.
-        page.locator('[data-role="F1"]').click()
+        page.goto(f"{live_server}/advisor?role=F1", wait_until="networkidle")
         page.wait_for_function("() => document.getElementById('equity').textContent.includes('$****.**')")
         page.locator("#advisor-query").fill("What is the total household equity?")
         page.locator("#consult-copilot").click()

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120" width="100" height="120" role="img" aria-label="McCormick Family Crest">
+  <defs>
+    <linearGradient id="mccBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#132944"/>
+      <stop offset="100%" stop-color="#0B132B"/>
+    </linearGradient>
+    <linearGradient id="mccGold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F6DE8D"/>
+      <stop offset="50%" stop-color="#D4AF37"/>
+      <stop offset="100%" stop-color="#A67C23"/>
+    </linearGradient>
+    <clipPath id="mccShieldClip">
+      <path d="M14 22 H86 V63 C86 86 67 101 50 110 C33 101 14 86 14 63 Z"/>
+    </clipPath>
+  </defs>
+  <!-- Heraldic Coronet / Crest -->
+  <path d="M35 16 L39 7 L45 12 L50 5 L55 12 L61 7 L65 16 Z" fill="url(#mccGold)" stroke="#F6DE8D" stroke-width="0.9" stroke-linejoin="round"/>
+  <rect x="35" y="16" width="30" height="3.2" rx="1.2" fill="url(#mccGold)"/>
+  <!-- Outer Shield -->
+  <path d="M10 20 H90 V64 C90 90 69 106 50 116 C31 106 10 90 10 64 Z" fill="url(#mccBg)" stroke="url(#mccGold)" stroke-width="2.6"/>
+  <!-- Inner Shield Hairline -->
+  <path d="M14.5 24 H85.5 V63 C85.5 85.5 67 100.5 50 109.5 C33 100.5 14.5 85.5 14.5 63 Z" fill="none" stroke="#D4AF37" stroke-opacity="0.55" stroke-width="1"/>
+  <!-- Shield Interior Motifs -->
+  <g clip-path="url(#mccShieldClip)">
+    <!-- Deep Emerald Chief Band (subtle heritage accent) -->
+    <rect x="12" y="22" width="76" height="22" fill="#0F3530" opacity="0.78"/>
+    <line x1="12" y1="44" x2="88" y2="44" stroke="#F6DE8D" stroke-width="1.2"/>
+    <!-- Heraldic Chevron -->
+    <path d="M14 78 L50 50 L86 78 L86 90 L50 62 L14 90 Z" fill="url(#mccGold)" opacity="0.92"/>
+    <!-- Three Chief Trefoil / Diamond Medallions -->
+    <polygon points="29,28 34,33 29,38 24,33" fill="url(#mccGold)"/>
+    <polygon points="50,27 56,33 50,39 44,33" fill="#F6DE8D"/>
+    <polygon points="71,28 76,33 71,38 66,33" fill="url(#mccGold)"/>
+    <!-- Base Emblem: Stylized Shield Escutcheon -->
+    <path d="M41 79 H59 V88 C59 94 54.5 98.5 50 101 C45.5 98.5 41 94 41 88 Z" fill="#1C2541" stroke="#F6DE8D" stroke-width="1.4"/>
+    <circle cx="50" cy="88" r="3.2" fill="url(#mccGold)"/>
+  </g>
+</svg>
