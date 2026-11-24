@@ -1,6 +1,7 @@
 """Transport models shared by Copilot providers and the orchestration layer."""
 
-from typing import Any, Dict, List, Literal
+from typing import Any, Dict, List, Literal, Optional
+import uuid
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -37,11 +38,25 @@ class CopilotQuery(BaseModel):
 
 
 class ActionCard(BaseModel):
+    action_id: Optional[str] = None
     action_type: str
+    auth_tier: str = "AUTH-01"
     title: str
+    description: str = ""
+    ui_target: Optional[str] = None
+    endpoint: Optional[str] = None
+    method: Optional[str] = None
     payload: Dict[str, Any] = Field(default_factory=dict)
+    destructive: bool = False
+    requires_dual_control: bool = False
     requires_settlor_approval: bool = True
+    requires_human_confirmation: bool = True
+    unilateral_execution: bool = False
+    executed: bool = False
     is_disabled: bool = False
+    confirmation_notice: str = (
+        "Non-executing proposal under AUTH-01–AUTH-04: explicit human confirmation is required."
+    )
 
 
 class RiskTelemetry(BaseModel):
@@ -56,3 +71,12 @@ class CopilotResponse(BaseModel):
     action_cards: List[ActionCard] = Field(default_factory=list)
     risk_telemetry: RiskTelemetry = Field(default_factory=RiskTelemetry)
     provider_used: str
+    model_used: Optional[str] = None
+    fallback_used: bool = False
+    unilateral_execution: bool = False
+    auth_tier: str = "AUTH-01"
+    guard_blocked: bool = False
+    guard_category: Optional[str] = None
+    audit_event_id: Optional[str] = None
+    policy_decision_matrix: Optional[Dict[str, Any]] = None
+    governance_posture: Optional[Dict[str, Any]] = None

@@ -39,6 +39,7 @@ from app.domain.authority_tiers import (
 )
 from app.domain.lexicon_v05 import get_lexicon_payload, render_term_abbr
 from app.domain.member_tutor import MemberLiteracyTutor
+from app.domain.role_copilots import ClassFFinancialCopilot, ClassTDevOpsCopilot
 from app.schemas.read_model import ReadModelEnvelope, build_read_model_envelope
 
 router = APIRouter(tags=['Portals'])
@@ -47,6 +48,8 @@ _lineage_service = get_lineage_service()
 _enclave_gov = get_enclave_governance_service()
 _advisor_copilot_engine = AICopilotEngine()
 _member_literacy_tutor = MemberLiteracyTutor()
+_class_f_copilot = ClassFFinancialCopilot()
+_class_t_copilot = ClassTDevOpsCopilot()
 
 LINEAGE_DATA: Dict[str, Any] = {
     "HOUSEHOLD-ALPHA": {
@@ -143,6 +146,10 @@ class AssistantQuery(BaseModel):
     question: Optional[str] = None
     context_scope: Optional[str] = "GENERAL"
     scma_id: Optional[str] = None
+    role: Optional[str] = None
+    tier: Optional[str] = None
+    household_id: Optional[str] = None
+    unredact_token: Optional[str] = None
 
 class CAOverrideRequest(BaseModel):
     token: str
@@ -2325,38 +2332,130 @@ def member_tutor(query: AssistantQuery, scma_id: Optional[str] = Query(None)):
     return member_ai_tutor(query, scma_id=scma_id)
 
 @router.post("/api/v1/portal/advisor/copilot")
-def advisor_copilot(query: AssistantQuery):
-    prompt = query.query or query.question or ""
-    response_text = _advisor_copilot_engine.ask(
-        prompt,
-        user_role="FINANCIAL_ADVISOR",
-        context={"context_scope": query.context_scope},
+def advisor_copilot(
+    query: AssistantQuery,
+    role: Optional[str] = Query(None),
+    household_id: Optional[str] = Query(None),
+    authenticated_household_id: Optional[str] = Header(None, alias="X-Household-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+):
+    _enforce_portal_boundary(
+        allowed_hats={"F1", "F2-H", "F2-A", "F3", "CHIEF_ADMINISTRATOR"},
+        action="ADVISOR_COPILOT_QUERY",
+        target_id=household_id or query.household_id or "HOUSEHOLD-ALPHA",
+        authorization=authorization,
+        x_active_hat=x_active_hat,
+        x_actor_role=x_actor_role,
+        block_class_t=True,
+        is_mutation=False,
     )
-    # ``response`` and ``cards`` keep pre-Wave clients working while the three
-    # canonical fields provide the stable Wave 2A.4 response contract.
-    return {
-        "role": "FIDUCIARY_COPILOT",
-        "response_text": response_text,
-        "disclaimer": "EDUCATIONAL_NOT_ADVICE",
-        "response": response_text,
-        "cards": [{
-            "title": "Fiduciary analysis",
-            "body": response_text,
-            "classification": "EDUCATIONAL_NOT_ADVICE",
-        }],
-    }
+    prompt = query.query or query.question or ""
+    requested_role = (
+        role
+        or query.role
+        or x_actor_role
+        or (query.context_scope if query.context_scope and query.context_scope.upper() != "GENERAL" else None)
+        or "F2-H"
+    )
+    requested_hh = (household_id or query.household_id or authenticated_household_id or "HOUSEHOLD-ALPHA").strip()
+    if (
+        authenticated_household_id
+        and requested_hh.upper() != authenticated_household_id.strip().upper()
+        and normalize_advisor_role(requested_role) in {"F1", "F2-H"}
+    ):
+        get_governance_audit_log().record(
+            event_type="ROLE_BOUNDARY_DENIED",
+            actor_id=authenticated_household_id,
+            actor_role=normalize_advisor_role(requested_role) or "F2-H",
+            target_id=requested_hh,
+            action="ADVISOR_COPILOT_QUERY",
+            outcome="DENIED_CROSS_HOUSEHOLD",
+            http_status=403,
+            detail=f"Class F session scoped to {authenticated_household_id} cannot query {requested_hh}.",
+        )
+        raise HTTPException(status_code=403, detail="Cross-household access denied")
+
+    r04_controller = get_directive_r04_controller()
+    return _class_f_copilot.answer_advisor_query(
+        prompt,
+        role=requested_role,
+        household_id=requested_hh,
+        lineage_data=LINEAGE_DATA,
+        distribution_state=_DISTRIBUTION_STATE,
+        advisory_proposals=_ADVISORY_PROPOSALS,
+        macro_house_exposures=_MACRO_HOUSE_EXPOSURES,
+        directive_r04_snapshot=r04_controller.snapshot(),
+        dual_sig_overrides=r04_controller.list_overrides(),
+    )
+
 
 @router.post("/api/v1/portal/tech/copilot")
-def tech_copilot(query: AssistantQuery):
+def tech_copilot(
+    query: AssistantQuery,
+    tier: Optional[str] = Query(None),
+    household_id: Optional[str] = Query(None),
+    unredact_token: Optional[str] = Query(None),
+    authenticated_household_id: Optional[str] = Header(None, alias="X-Household-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+):
+    _enforce_portal_boundary(
+        allowed_hats={"T1", "T2", "T2-HOUSEHOLD", "T3", "CHIEF_ADMINISTRATOR"},
+        action="TECH_COPILOT_QUERY",
+        target_id=tier or query.tier or "T1",
+        authorization=authorization,
+        x_active_hat=x_active_hat,
+        block_class_t=False,
+        is_mutation=False,
+    )
     prompt = query.query or query.question or ""
-    q = prompt.lower()
-    if "rate" in q or "limit" in q:
-        ans = "Rate Limiter Telemetry: Kalshi token bucket is at 85% capacity; Polymarket is at 92%. Current consumption is well within safe thresholds."
-    elif "latency" in q or "worker" in q:
-        ans = "Worker Diagnostic: AutonomousScanWorker average round-trip ping is 12.4ms across 1,420 cycles. Zero preemption collisions."
-    else:
-        ans = "DevOps Telemetry Copilot active. Monitoring daemon cycles, event queues, and WebSocket latency under Directive R-12."
-    return {"role": "DEVOPS_COPILOT", "query": prompt, "response": ans, "telemetry": {"cycle_count": _TECH_WORKER.cycle_count, "ws_latency_ms": dict(_TECH_LATENCY_MS), "token_buckets": _TECH_TOKEN_BUCKETS}}
+    raw_tier = tier or query.tier
+    if not raw_tier and query.context_scope:
+        scope_upper = query.context_scope.strip().upper()
+        if scope_upper in {"T1", "T2", "T2-HOUSEHOLD", "T2_HOUSEHOLD", "T3"}:
+            raw_tier = scope_upper
+        elif scope_upper == "READ_ONLY_TELEMETRY":
+            raw_tier = "T1"
+        elif scope_upper == "OPERATIONS":
+            raw_tier = "T3"
+    tier_norm = normalize_tech_tier(raw_tier or "T1")
+    target_hh = (household_id or query.household_id or authenticated_household_id or "HOUSEHOLD-ALPHA").strip()
+
+    if tier_norm == "T2-HOUSEHOLD":
+        if authenticated_household_id and authenticated_household_id.strip().upper() != target_hh.upper():
+            get_governance_audit_log().record(
+                event_type="ROLE_BOUNDARY_DENIED",
+                actor_id=authenticated_household_id,
+                actor_role="T2-HOUSEHOLD",
+                target_id=target_hh,
+                action="HOUSEHOLD_COPILOT_QUERY",
+                outcome="DENIED_CROSS_HOUSEHOLD",
+                http_status=403,
+                detail=f"T2-Household scoped to {authenticated_household_id} cannot query {target_hh}.",
+            )
+            raise HTTPException(
+                status_code=403,
+                detail="CROSS_HOUSEHOLD_TELEMETRY_DENIED: T2-Household is scoped strictly to its assigned household.",
+            )
+        if target_hh not in LINEAGE_DATA:
+            raise HTTPException(status_code=404, detail="Assigned household not found")
+
+    token = unredact_token or query.unredact_token
+    override_grant = get_ca_override_manager().validate_token(tier_norm, token) if token else None
+
+    return _class_t_copilot.answer_tech_query(
+        prompt,
+        tier=tier_norm,
+        household_id=target_hh,
+        cycle_count=_TECH_WORKER.cycle_count,
+        settled_count=_TECH_SETTLED_COUNT,
+        ws_latency_ms=_TECH_LATENCY_MS,
+        token_buckets=_TECH_TOKEN_BUCKETS,
+        override_grant=override_grant,
+        directive_r04_snapshot=get_directive_r04_controller().snapshot(),
+    )
 
 @router.get("/api/v1/portal/advisor/decision-audit/{contract_id}")
 def advisor_decision_audit(contract_id: str):

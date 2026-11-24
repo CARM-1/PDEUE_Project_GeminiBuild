@@ -31,6 +31,7 @@ class LLMResponse:
     requested_provider: Optional[str] = None
     impact_card: Optional[Dict[str, Any]] = None
     citations: List[str] = field(default_factory=list)
+    structured_data: Optional[Dict[str, Any]] = None
 
     def __post_init__(self) -> None:
         if self.unilateral_execution is not False:
@@ -85,6 +86,9 @@ class BaseLLMClient(ABC):
         actor_id: str = "member_user",
         allowed_scma_id: Optional[str] = None,
         member_name: Optional[str] = None,
+        assigned_household_id: Optional[str] = None,
+        r12_unredacted: bool = False,
+        forbidden_scma_ids: Optional[List[str]] = None,
     ) -> LLMResponse:
         """Run input prompt-injection guard, invoke adapter, and sanitize output."""
         verdict = inspect_user_input(
@@ -93,6 +97,9 @@ class BaseLLMClient(ABC):
             actor_id=actor_id,
             allowed_scma_id=allowed_scma_id,
             member_name=member_name,
+            assigned_household_id=assigned_household_id,
+            r12_unredacted=r12_unredacted,
+            forbidden_scma_ids=forbidden_scma_ids,
         )
         if verdict.blocked:
             return LLMResponse(
@@ -112,8 +119,14 @@ class BaseLLMClient(ABC):
 
         scoped_context = dict(context or {})
         scoped_context.setdefault("actor_role", actor_role)
+        scoped_context.setdefault("actor_id", actor_id)
         if allowed_scma_id:
             scoped_context.setdefault("allowed_scma_id", allowed_scma_id)
+        if assigned_household_id:
+            scoped_context.setdefault("assigned_household_id", assigned_household_id)
+        scoped_context.setdefault("r12_unredacted", bool(r12_unredacted))
+        if forbidden_scma_ids:
+            scoped_context.setdefault("forbidden_scma_ids", list(forbidden_scma_ids))
 
         raw_response = self.generate_response(
             system_prompt=system_prompt,
@@ -125,6 +138,8 @@ class BaseLLMClient(ABC):
             raw_response.content,
             actor_role=actor_role,
             allowed_scma_id=allowed_scma_id,
+            r12_unredacted=r12_unredacted,
+            forbidden_scma_ids=forbidden_scma_ids,
         )
         safe_cards = sanitize_action_cards(raw_response.action_cards, actor_role=actor_role)
 
@@ -145,4 +160,5 @@ class BaseLLMClient(ABC):
             requested_provider=raw_response.requested_provider,
             impact_card=raw_response.impact_card,
             citations=list(raw_response.citations),
+            structured_data=raw_response.structured_data,
         )

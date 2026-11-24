@@ -57,6 +57,15 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
 .rm-headline{font-weight:800;color:var(--text-primary);font-size:.92rem;margin-top:4px}
 .rm-reason{color:var(--text-secondary);font-size:.82rem;margin-top:2px}
 .rm-meta{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.74rem;color:var(--text-muted)}
+.copilot-meta-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0 8px}
+.copilot-pill{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border-subtle);border-radius:999px;padding:3px 9px;font-size:.72rem;font-weight:800;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;background:var(--bg-surface);color:var(--text-primary)}
+.copilot-pill.sky{border-color:var(--accent-sky);color:var(--accent-sky);background:rgba(56,189,248,.12)}
+.copilot-pill.green{border-color:var(--status-green);color:#6EE7B7;background:rgba(5,150,105,.18)}
+.copilot-pill.amber{border-color:var(--status-amber);color:#FCD34D;background:rgba(217,119,6,.18)}
+.copilot-pill.red{border-color:var(--status-red);color:#FCA5A5;background:rgba(220,38,38,.2)}
+.tech-action-card{background:var(--bg-canvas);border:1px solid var(--border-subtle);border-left:4px solid var(--accent-sky);border-radius:9px;padding:11px 13px;margin-top:10px}
+.tech-action-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.tech-action-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}
 @keyframes flash{50%{background:#4ade80;color:#052e1d}}
 @media(max-width:850px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){.grid{grid-template-columns:minmax(0,1fr)}.shell{padding:14px}}
@@ -115,13 +124,20 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
   <div class="row"><div><div class="label">Recent Dispatches</div><h2><abbr class="pdeue-term" tabindex="0" data-term="directive-r12-masking" data-tooltip="Least-Privilege Financial Masking (R-12): Class T and H1 desks redact balances ($****.**) and SCMA IDs (SCMA-MEM-****) server-side.">Directive R-12<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> protected ledger</h2></div><span id="grant-expiry-meta" class="muted"></span></div>
   <div class="table-wrap table-card"><table><thead><tr><th>Candidate</th><th>Venue</th><th><abbr class="pdeue-term" tabindex="0" data-term="scma" data-tooltip="Self-Contained Member Account: tenant-partitioned member sub-ledger in exact integer cents. Losses remain 100% isolated inside the executing SCMA.">SCMA<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></th><th>Probability</th><th>Exposure</th></tr></thead><tbody id="resting-orders-body"></tbody></table></div>
 </section>
-<section class="card copilot">
-  <div class="label">DevOps Copilot</div>
-  <h2>Operational telemetry diagnostic</h2>
+<section class="card copilot" id="techCopilotCard">
+  <div class="row">
+    <div>
+      <div class="label">DevOps Telemetry Copilot (Class T)</div>
+      <h2>Operational telemetry diagnostic</h2>
+    </div>
+    <span id="techCopilotInvariantBadge" class="copilot-pill green">UNILATERAL EXECUTION: OFF · DIRECTIVE R-12</span>
+  </div>
   <label for="tech-query">Diagnostic query</label>
   <input id="tech-query" placeholder="Explain worker latency or rate limits">
-  <button type="button" id="run-diagnostic">Run Diagnostic</button>
-  <button id="clearTechCopilotBtn" type="button" class="btn-clear" aria-label="Clear displayed diagnostic and input" onclick="clearTechCopilot()">Clear answer</button>
+  <div class="row" style="justify-content:flex-start">
+    <button type="button" id="run-diagnostic">Run Diagnostic</button>
+    <button id="clearTechCopilotBtn" type="button" class="btn-clear" aria-label="Clear displayed diagnostic and input" onclick="clearTechCopilot()">Clear answer</button>
+  </div>
   <div id="diagnostic-output" aria-live="polite"><p class="placeholder-text">Your telemetry diagnostic will appear here.</p></div>
 </section>
 <div hidden id="active-bids-count">1</div><div hidden id="eviction-history-body"></div><span hidden>/api/v1/portal/telemetry</span>
@@ -141,11 +157,12 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
 <div id="toast" class="toast" role="status"></div>
 <script>
 const $=id=>document.getElementById(id),dollars=c=>`$${(c/100).toFixed(2)}`;
+const esc=v=>{const n=document.createElement('span');n.textContent=String(v??'');return n.innerHTML};
 const qs=new URLSearchParams(location.search);
 const isSupervisoryLens=qs.get('supervisory')==='1'||qs.get('audit_lens')==='1'||qs.get('inspector')==='CHIEF_ADMIN';
 const assignedHousehold=qs.get('household_id')||'HOUSEHOLD-ALPHA';
 function normalizeTier(raw){const t=String(raw||'T3').toUpperCase().replace('_','-');return ['T1','T2','T2-HOUSEHOLD','T3'].includes(t)?t:'T3'}
-let grantData=null,activeTier=normalizeTier(qs.get('tier')||'T3');
+let grantData=null,activeTier=normalizeTier(qs.get('tier')||'T3'),lastTechActionCards=[];
 function toast(message){$('toast').textContent=message;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),2600)}
 function renderOrder(order){$('resting-orders-body').innerHTML=`<tr><td>${order.candidate_id}</td><td>${order.venue}</td><td class="masked">${order.scma_id}</td><td>${(order.model_probability_bps/100).toFixed(2)}%</td><td class="masked">${typeof order.exposure_cents==='number'?dollars(order.exposure_cents):order.exposure_cents}</td></tr>`}
 function applyTier(){
@@ -249,7 +266,27 @@ $('revoke').addEventListener('click',async()=>{
   refresh();
   toast('Grant revoked; R-12 masking restored');
 });
-function clearTechCopilot(){$('tech-query').value='';$('diagnostic-output').innerHTML='<p class="placeholder-text">Your telemetry diagnostic will appear here.</p>';$('tech-query').focus()}
-$('run-diagnostic').addEventListener('click',async()=>{const query=$('tech-query').value.trim();if(!query)return toast('Enter a diagnostic query');const r=await fetch('/api/v1/portal/tech/copilot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query,context_scope:activeTier==='T1'?'READ_ONLY_TELEMETRY':'OPERATIONS'})});const d=await r.json();$('diagnostic-output').innerHTML=`<article class="analysis"><strong>${d.role}${activeTier==='T1'?' · READ-ONLY TELEMETRY':''}</strong><p>${d.response}</p><small>Cycle ${d.telemetry.cycle_count}</small></article>`});
+function stageTechAction(idx){
+  const card=lastTechActionCards[idx];
+  if(!card||!card.ui_target)return;
+  const el=$(card.ui_target);
+  if(el){el.scrollIntoView({behavior:'smooth',block:'center'});if(typeof el.focus==='function')el.focus();toast('Control focused — manual confirmation required')}
+}
+window.stageTechAction=stageTechAction;
+function clearTechCopilot(){$('tech-query').value='';lastTechActionCards=[];$('diagnostic-output').innerHTML='<p class="placeholder-text">Your telemetry diagnostic will appear here.</p>';$('tech-query').focus()}
+$('run-diagnostic').addEventListener('click',async()=>{
+  const query=$('tech-query').value.trim();
+  if(!query)return toast('Enter a diagnostic query');
+  const headers={'Content-Type':'application/json'};
+  if(activeTier==='T2-HOUSEHOLD')headers['X-Household-ID']=assignedHousehold;
+  const r=await fetch('/api/v1/portal/tech/copilot',{method:'POST',headers,body:JSON.stringify({query,tier:activeTier,context_scope:activeTier,household_id:assignedHousehold,unredact_token:grantData?.grant_token||null})});
+  const d=await r.json();
+  if(!r.ok){$('diagnostic-output').innerHTML=`<article class="analysis"><strong>Telemetry Access Denied (${r.status})</strong><p>${esc(d.detail||'Request blocked')}</p></article>`;return}
+  lastTechActionCards=d.action_cards||[];
+  const r12Pill=d.r12_masked!==false?'<span id="techR12Pill" class="copilot-pill amber">R-12 MASKED ($****.** / SCMA-MEM-****)</span>':`<span id="techR12Pill" class="copilot-pill red">R-12 AUDITED T3 OVERRIDE (${esc(d.override_grant_id||'ACTIVE')})</span>`;
+  const meta=`<div class="copilot-meta-bar"><span class="copilot-pill sky">PROVIDER: ${esc(d.provider_used||'mock')}</span><span class="copilot-pill green">TIER: ${esc(d.tier||activeTier)}</span><span class="copilot-pill sky">${esc(d.auth_tier||'AUTH-01')} · UNILATERAL=FALSE</span>${r12Pill}${d.guard_blocked?`<span id="techGuardPill" class="copilot-pill red">GUARDRAIL REFUSAL: ${esc(d.guard_category||'BLOCKED')}</span>`:''}</div>`;
+  const actions=lastTechActionCards.map((c,idx)=>`<article class="tech-action-card" data-auth-tier="${esc(c.auth_tier||'AUTH-01')}" data-executed="false" data-unilateral-execution="false"><div class="tech-action-head"><strong>${esc(c.title||'Staged Action')}</strong><div><span class="copilot-pill amber">${esc(c.auth_tier||'AUTH-01')}</span> <span class="copilot-pill green">STAGED · NOT EXECUTED</span></div></div><p class="muted" style="margin:6px 0 0;">${esc(c.description||'')}</p><div class="tech-action-foot"><small class="muted">${esc(c.confirmation_notice||'Requires manual operator action.')}</small><button type="button" onclick="stageTechAction(${idx})">Focus Control (No Auto-Exec)</button></div></article>`).join('');
+  $('diagnostic-output').innerHTML=`${meta}<article class="analysis"><strong>${esc(d.role)}${activeTier==='T1'?' · READ-ONLY TELEMETRY':''}</strong><p>${esc(d.response)}</p><small>Cycle ${esc(d.telemetry?.cycle_count??0)} · Scope ${esc(d.telemetry_scope||'CLASS_T_OPERATIONAL')}</small></article>${actions}`;
+});
 applyTier();refresh();
 </script></body></html>
