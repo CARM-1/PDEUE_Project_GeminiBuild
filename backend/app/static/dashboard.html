@@ -510,6 +510,14 @@
       <div style="background:#0f172a;border:1px solid #334155;border-left:4px solid #38bdf8;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12.5px;color:#cbd5e1;">
         <strong style="color:#f8fafc;">What This Means:</strong> This research studio runs permanently in isolated <code>SHADOW_PAPER</code> mode on its own SQLite table (<code>shadow_hunch_dossiers</code>) with <code>unilateral_execution = false</code>. Testing hypotheses or placing virtual shadow bids NEVER touches live SCMA cash, Gate G1 fail-closed defaults, or the <abbr class="pdeue-term" tabindex="0" data-term="adr-011-air-gap" data-tooltip="A strict safety wall between trading software and your bank. This platform never asks for or stores bank account numbers, routing numbers, or bank logins—it only uses a harmless reference code to coordinate with IFAS.">ADR-011<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> IFAS outbox. Prohibited categories (sports, casino, war, terrorism, death) fail closed automatically.
       </div>
+      <details id="adminShadowHunchHowTo" style="background:#0b132b;border:1px solid #334155;border-radius:8px;padding:10px 14px;margin-bottom:14px;" aria-label="Admin Parallel Shadow Testing Guide">
+        <summary style="cursor:pointer;font-weight:700;color:#38bdf8;font-size:13px;user-select:none;">📘 Admin Parallel Shadow Testing Guide</summary>
+        <ol style="margin:9px 0 4px 20px;padding:0;color:#cbd5e1;font-size:12.5px;line-height:1.55;display:grid;gap:6px;">
+          <li><strong style="color:#f8fafc;">Parallel Research Without Ledger Contamination:</strong> Test new regulated market verticals (Weather/NOAA, Macro/CPI, Energy/EIA, Treasuries, Equity Indices, FX) or strategy hypotheses in permanent <code>SHADOW_PAPER</code> mode alongside live operations. Every evaluation and virtual shadow bid writes exclusively to <code>shadow_hunch_dossiers</code>—zero live SCMA balances, zero Gate G1 overrides, and zero ADR-011 IFAS outbox events are ever touched.</li>
+          <li><strong style="color:#f8fafc;">Automated 3-Point Audit &amp; Regulatory Gate:</strong> Click <em>Load Example Hunch</em> or enter a hypothesis and run the 3-Point Audit. Results classify deterministically as <code>VALIDATED</code> (<code>VALIDATED_SHADOW_READY</code>), <code>REJECTED_NO_EDGE</code> (exact-cent edge after fees &le; 0¢), or fail-closed <code>PROHIBITED_EVENT_CATEGORY</code> (sports, casino, war, terrorism, death per Nov 2026 CFTC / DEATH BETS Act).</li>
+          <li><strong style="color:#f8fafc;">Adjudicating Member Live-Clearance Petitions:</strong> Review F2-H-endorsed dossiers in the queue below with each member's verified Shadow Hit-Rate, then issue final <code>ALLOWED</code>, <code>DENIED</code>, or <code>RESCINDED</code> determinations under <code>unilateral_execution = False</code>.</li>
+        </ol>
+      </details>
       <form id="adminHunchForm" style="display:grid;gap:10px;margin-bottom:12px;">
         <input id="adminHunchHypothesis" type="text" required aria-label="Admin shadow paper market hypothesis" placeholder="e.g., EIA weekly natural gas storage draw will exceed 110 Bcf due to Midwest cold snap" style="padding:10px;border-radius:6px;background:#0f172a;color:#f8fafc;border:1px solid #334155;">
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;">
@@ -528,6 +536,7 @@
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
           <button id="adminEvalHunchBtn" type="submit" class="btn-onboard">Evaluate Hypothesis (3-Point Audit)</button>
+          <button id="adminLoadExampleHunchBtn" type="button" class="btn-batch" onclick="loadExampleAdminHunch()">Load Example Hunch</button>
           <button id="adminShadowBidBtn" type="button" class="btn-batch" onclick="submitAdminShadowBid()">Stage Virtual Shadow Bid ($100.00)</button>
           <button id="adminRefreshHunchesBtn" type="button" class="btn-batch" onclick="loadAdminShadowHunches()">Refresh Shadow Ledger &amp; Clearance Queue</button>
         </div>
@@ -2517,6 +2526,21 @@
       } catch (_err) {
         listEl.innerHTML = '<div style="color:#94a3b8;font-size:12px;">Shadow Hunch Studio temporarily unreachable.</div>';
       }
+    }
+    function loadExampleAdminHunch() {
+      const hyp = document.getElementById('adminHunchHypothesis');
+      const vert = document.getElementById('adminHunchVertical');
+      const prob = document.getElementById('adminHunchModelProb');
+      const quote = document.getElementById('adminHunchQuotePrice');
+      const fee = document.getElementById('adminHunchFeeCents');
+      const out = document.getElementById('adminHunchResult');
+      if (hyp) hyp.value = 'NOAA forecasts a 95°F heat wave in Phoenix this week, making the high-temp contract underpriced at 42¢';
+      if (vert) vert.value = 'WEATHER';
+      if (prob) prob.value = '58';
+      if (quote) quote.value = '42';
+      if (fee) fee.value = '2';
+      if (out) out.textContent = 'Loaded example Weather hunch (Phoenix 95°F heat wave at 42¢ quote vs. 58¢ fair value, 2¢ fee = +14¢ net edge). Click "Evaluate Hypothesis (3-Point Audit)" to run in isolated SHADOW_PAPER mode.';
+      if (hyp) hyp.focus();
     }
     const adminHunchForm = document.getElementById('adminHunchForm');
     if (adminHunchForm) {
