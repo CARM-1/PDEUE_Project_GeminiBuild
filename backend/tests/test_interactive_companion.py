@@ -50,7 +50,7 @@ def test_all_active_portals_link_to_the_university():
     for root in roots:
         for portal in ("dashboard.html", "member.html", "advisor.html", "tech.html"):
             markup = (root / portal).read_text(encoding="utf-8")
-            assert '<a href="/companion" class="nav-link campus-link" id="navCompanionLink">' in markup
+            assert '<a href="/companion" class="nav-link campus-link" id="navCompanionLink" data-plane-doorway="companion">' in markup
 
 
 def test_companion_wires_web_speech_and_deep_interactions():

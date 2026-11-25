@@ -208,7 +208,7 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
     <div class="portal-header-row2">
       <div class="portal-hub-pills">
         <strong id="activeHatNavLabel" class="portal-hub-pill active"><abbr class="pdeue-term" tabindex="0" data-term="active-hat-r06" data-tooltip="One role at a time. Even if a family leader holds two jobs—like personal member and platform steward—they must intentionally switch hats so personal money and leadership tools never mix by accident.">Active Hat: MEMBER_USER<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></strong>
-        <a href="/companion" class="nav-link campus-link" id="navCompanionLink">🎓 PDEUE University</a>
+        <a href="/companion" class="nav-link campus-link" id="navCompanionLink" data-plane-doorway="companion">🎓 PDEUE University</a>
       </div>
       <div class="currency-toggle portal-utility-group" aria-label="Glossary, hat switch, and currency display">
         <button id="openGlossaryBtn" type="button" class="curr-btn" onclick="openGlossaryDrawer()">📖 Glossary (v0.6)</button>
@@ -250,7 +250,7 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
       <strong id="onboardingHeadline" style="color:#F8FAFC;font-size:1.02rem;">Status: PENDING_TUTOR_CERTIFICATION — Complete PDEUE University Chapter 6 to activate your SCMA.</strong>
       <div id="onboardingSubtext" class="fine" style="margin-top:4px;color:#CBD5E1;">Review the Platform Orientation &amp; Lineage Covenant below, then pass the 3-question Chapter 6 Stewardship Self-Check on PDEUE University.</div>
     </div>
-    <a id="startCertificationLink" class="cta-link" href="/companion">Complete Stage 4 Certification →</a>
+    <a id="startCertificationLink" class="cta-link" href="/companion" data-plane-doorway="companion">Complete Stage 4 Certification →</a>
   </div>
   <div class="step-chips" aria-label="5-stage onboarding progress">
     <span class="step-chip done">1. Admin Provisioned ✓</span>
@@ -595,7 +595,8 @@ function renderOnboardingStatus(state){
   onboardingStatusCard.hidden=!pending;
   certifiedBanner.hidden=!certified;
   if(pending){
-    startCertificationLink.href=`/companion?scma_id=${encodeURIComponent(state.scma_id)}&chapter=6`;
+    const certHref=`/companion?scma_id=${encodeURIComponent(state.scma_id)}&chapter=6`;
+    startCertificationLink.href=(window.PDEUESeniorA11y&&window.PDEUESeniorA11y.resolveDoorwayUrl)?window.PDEUESeniorA11y.resolveDoorwayUrl('companion',certHref):certHref;
     stepChipActivate.textContent=state.invite_activated_at?'2. 48h Invite Activated ✓':'2. 48h Invite Pending';
     if(!orientationDefaultApplied){orientationDefaultApplied=true;switchMemberView('orientation')}
   }
@@ -605,7 +606,8 @@ function renderOnboardingStatus(state){
   fundingBankRefToken.textContent=state.bank_ref_token||'EXT-REF-IFAS-****0000';
   fundingScmaId.textContent=state.scma_id||'—';
   ifasPortalHost.textContent=state.ifas_portal_host||'accounting.narratix.io';
-  navCompanionLink.href=`/companion?scma_id=${encodeURIComponent(state.scma_id)}`;
+  const compNavHref=`/companion?scma_id=${encodeURIComponent(state.scma_id)}`;
+  navCompanionLink.href=(window.PDEUESeniorA11y&&window.PDEUESeniorA11y.resolveDoorwayUrl)?window.PDEUESeniorA11y.resolveDoorwayUrl('companion',compNavHref):compNavHref;
   try{localStorage.setItem('pdeue_active_scma_id',state.scma_id)}catch(_e){}
 }
 async function maybeActivateInvite(){
@@ -689,7 +691,8 @@ async function confirmReturnToChiefAdminHat(){
       sessionStorage.setItem('pdeue_active_hat_event',data.event_id||'');
       sessionStorage.setItem('pdeue_active_hat_role','CHIEF_ADMINISTRATOR');
     }catch(_e){}
-    window.location.assign('/dashboard');
+    const dashHref=(window.PDEUESeniorA11y&&window.PDEUESeniorA11y.resolveDoorwayUrl)?window.PDEUESeniorA11y.resolveDoorwayUrl('dashboard','/dashboard'):'/dashboard';
+    window.location.assign(dashHref);
   }catch(err){errEl.textContent=`Switch failed: ${err.message}`}
   finally{btn.disabled=false;btn.textContent='Confirm & Switch to Chief Admin'}
 }

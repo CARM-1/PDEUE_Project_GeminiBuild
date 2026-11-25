@@ -134,6 +134,7 @@ def get_plane_config() -> Dict[str, Any]:
         "lineage_house_template": join_plane_url(vault_base, "/lineage/house/{house_id}"),
         "dashboard": join_plane_url(admin_base, "/dashboard"),
         "tech": join_plane_url(admin_base, "/admin/tech"),
+        "admin_tech": join_plane_url(admin_base, "/admin/tech"),
         "ifas": ifas_base,
         "ifas_configured": bool(ifas_base),
         "ifas_production_target": planes["ifas_accounting"]["production_target"],

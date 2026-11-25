@@ -12,6 +12,8 @@ from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
 import html
+import json
+import os
 import pathlib
 from app.domain.lineage_hierarchy import get_lineage_service
 from app.domain.enclave_governance import (
@@ -854,9 +856,107 @@ def get_companion_portal():
     return _load_html("companion.html")
 
 
+_COMPANION_MEDIA_URL_PREFIX = "/static/media/companion/"
+
+
+def _resolve_companion_media_dir() -> pathlib.Path:
+    override = (os.getenv("PDEUE_COMPANION_MEDIA_DIR") or "").strip()
+    if override:
+        return pathlib.Path(override).resolve()
+    return (pathlib.Path(__file__).resolve().parents[1] / "static" / "media" / "companion").resolve()
+
+
+def _verify_local_companion_asset(media_dir: pathlib.Path, asset_url: Any) -> Optional[str]:
+    """Ensure a manifest media URL points to an existing local file inside media_dir (zero-CDN, zero-404)."""
+    if not isinstance(asset_url, str):
+        return None
+    cleaned = asset_url.strip()
+    if not cleaned.startswith(_COMPANION_MEDIA_URL_PREFIX):
+        return None
+    rel_part = cleaned[len(_COMPANION_MEDIA_URL_PREFIX):].lstrip("/")
+    if not rel_part or ".." in pathlib.PurePosixPath(rel_part).parts:
+        return None
+    candidate = (media_dir / rel_part).resolve()
+    try:
+        candidate.relative_to(media_dir)
+    except ValueError:
+        return None
+    if not candidate.is_file() or candidate.stat().st_size <= 0:
+        return None
+    return cleaned
+
+
+def _load_companion_media_manifest() -> Dict[str, Any]:
+    """Load and verify local Batch 4 Studio Audio & WebVTT manifest.json (zero runtime TTS API calls)."""
+    media_dir = _resolve_companion_media_dir()
+    manifest_path = media_dir / "manifest.json"
+    fallback: Dict[str, Any] = {
+        "schema_version": "1.0",
+        "status": "ready_for_batch4_audio",
+        "zero_runtime_tts_api": True,
+        "voices": [],
+        "tracks": {},
+    }
+    if not manifest_path.is_file():
+        return fallback
+    try:
+        raw = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except Exception:
+        return fallback
+    if not isinstance(raw, dict):
+        return fallback
+
+    raw_tracks = raw.get("tracks") if isinstance(raw.get("tracks"), dict) else {}
+    verified_tracks: Dict[str, Dict[str, Dict[str, Any]]] = {}
+    for voice_id, beats_map in raw_tracks.items():
+        if not isinstance(voice_id, str) or not isinstance(beats_map, dict):
+            continue
+        voice_verified: Dict[str, Dict[str, Any]] = {}
+        for beat_id, entry in beats_map.items():
+            if not isinstance(beat_id, str) or not isinstance(entry, dict):
+                continue
+            mp3_url = _verify_local_companion_asset(media_dir, entry.get("mp3"))
+            if not mp3_url:
+                continue
+            verified_entry: Dict[str, Any] = dict(entry)
+            verified_entry["mp3"] = mp3_url
+            vtt_url = _verify_local_companion_asset(media_dir, entry.get("vtt"))
+            if vtt_url:
+                verified_entry["vtt"] = vtt_url
+            else:
+                verified_entry.pop("vtt", None)
+            voice_verified[beat_id] = verified_entry
+        if voice_verified:
+            verified_tracks[voice_id] = voice_verified
+
+    voices_out: List[Dict[str, Any]] = []
+    raw_voices = raw.get("voices") if isinstance(raw.get("voices"), list) else []
+    for voice in raw_voices:
+        if not isinstance(voice, dict) or not voice.get("id"):
+            continue
+        vid = str(voice["id"])
+        v_tracks = verified_tracks.get(vid, {})
+        voice_copy = dict(voice)
+        voice_copy["audio_ready"] = bool(v_tracks)
+        voice_copy["track_count"] = len(v_tracks)
+        voices_out.append(voice_copy)
+
+    any_ready = any(bool(v.get("audio_ready")) for v in voices_out) or bool(verified_tracks)
+    manifest: Dict[str, Any] = {
+        "schema_version": str(raw.get("schema_version") or "1.0"),
+        "status": "studio_audio_ready" if any_ready else str(raw.get("status") or "ready_for_batch4_audio"),
+        "provider": raw.get("provider"),
+        "generated_at_utc": raw.get("generated_at_utc"),
+        "zero_runtime_tts_api": True,
+        "voices": voices_out,
+        "tracks": verified_tracks,
+    }
+    return manifest
+
+
 @router.get("/api/v1/portal/companion/state")
 def get_companion_state() -> Dict[str, Any]:
-    """Return the versioned curriculum contract used by the campus shell."""
+    """Return the versioned curriculum contract and local studio audio manifest used by the campus shell."""
     chapters = [
         ("waterfall", "The 87/10/3 Transaction Profit Waterfall", 0),
         ("risk-governor", "Downward-Only Risk Governor & Safety Envelope", 45),
@@ -865,6 +965,8 @@ def get_companion_state() -> Dict[str, Any]:
         ("distribution", "Directive R-15 Three-Tier Distribution Gateway", 180),
         ("governance", "Sovereign Governance, Bicameral Voting & Self-Check", 225),
     ]
+    media_manifest = _load_companion_media_manifest()
+    studio_audio_ready = bool(media_manifest.get("tracks"))
     return {
         "curriculum": "PDEUE University",
         "lexicon_version": "0.5",
@@ -876,11 +978,16 @@ def get_companion_state() -> Dict[str, Any]:
         "audio": {
             "src": "/static/media/companion/pdeue-university.mp3",
             "fallback": "silent_timeline",
+            "studio_audio_ready": studio_audio_ready,
+            "zero_runtime_tts_api": True,
             "transcript_cues": [
                 {"start_seconds": cue, "chapter": number, "text": title}
                 for number, (_, title, cue) in enumerate(chapters, start=1)
             ],
         },
+        "media_manifest": media_manifest,
+        "studio_audio_ready": studio_audio_ready,
+        "zero_runtime_tts_api": True,
         "invariants": {
             "ADR-008": "Integer cents; SCMA and FAEP truncate and every residual cent routes to CFCP.",
             "ADR-011": "Sweeps emit signed, sequenced, idempotent accounting outbox envelopes across the air gap.",
