@@ -176,7 +176,7 @@ def _build_scoped_fifth_doorway_card(
     if is_chief_admin_role(role):
         href = html.escape(doorways["dashboard"], quote=True)
         return (
-            '<a id="roleDoorwayCard" class="doorway-card doorway-role-card" href="' + href + '" data-role-door="CHIEF_ADMIN">'
+            '<a id="roleDoorwayCard" class="doorway-card doorway-role-card" href="' + href + '" data-plane-doorway="dashboard" data-role-door="CHIEF_ADMIN">'
             '<span class="doorway-icon" aria-hidden="true">🏛️</span>'
             '<span class="doorway-tag role-tag">ASSIGNED HAT · CHIEF ADMINISTRATOR</span>'
             '<h2>Chief Admin Cockpit</h2>'
@@ -188,7 +188,7 @@ def _build_scoped_fifth_doorway_card(
     if role in {"F1", "F2-H", "F2-A", "F3"}:
         href = html.escape(f"{doorways['advisor']}?role={role}", quote=True)
         return (
-            '<a id="roleDoorwayCard" class="doorway-card doorway-role-card" href="' + href + '" data-role-door="' + html.escape(role, quote=True) + '">'
+            '<a id="roleDoorwayCard" class="doorway-card doorway-role-card" href="' + href + '" data-plane-doorway="advisor" data-role-door="' + html.escape(role, quote=True) + '">'
             '<span class="doorway-icon" aria-hidden="true">🛡️</span>'
             '<span class="doorway-tag role-tag">ASSIGNED HAT · CLASS F (' + html.escape(role) + ')</span>'
             '<h2>Lineal Advisory Desk</h2>'
@@ -215,7 +215,7 @@ def _build_scoped_fifth_doorway_card(
     if role == "HOUSE_GENEALOGIST":
         href = html.escape(doorways["genealogist_desk"], quote=True)
         return (
-            '<a id="roleDoorwayCard" class="doorway-card doorway-role-card" href="' + href + '" data-role-door="HOUSE_GENEALOGIST">'
+            '<a id="roleDoorwayCard" class="doorway-card doorway-role-card" href="' + href + '" data-plane-doorway="genealogist_desk" data-role-door="HOUSE_GENEALOGIST">'
             '<span class="doorway-icon" aria-hidden="true">📜</span>'
             '<span class="doorway-tag role-tag">ASSIGNED HAT · HOUSE GENEALOGIST</span>'
             '<h2>House Genealogist Desk</h2>'
@@ -226,9 +226,9 @@ def _build_scoped_fifth_doorway_card(
 
     if is_class_t_role(role):
         tier = role if role in {"T1", "T2", "T2-HOUSEHOLD", "T3"} else "T1"
-        href = html.escape(f"{doorways['tech']}?tier={tier}", quote=True)
+        href = html.escape(f"{doorways['admin_tech']}?tier={tier}", quote=True)
         return (
-            '<a id="roleDoorwayCard" class="doorway-card doorway-role-card" href="' + href + '" data-role-door="' + html.escape(tier, quote=True) + '">'
+            '<a id="roleDoorwayCard" class="doorway-card doorway-role-card" href="' + href + '" data-plane-doorway="admin_tech" data-role-door="' + html.escape(tier, quote=True) + '">'
             '<span class="doorway-icon" aria-hidden="true">⚙️</span>'
             '<span class="doorway-tag role-tag">ASSIGNED HAT · CLASS T (' + html.escape(tier) + ')</span>'
             '<h2>Technical Infrastructure Console</h2>'

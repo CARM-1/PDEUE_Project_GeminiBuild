@@ -50,7 +50,7 @@ narratixai.org {
 	import security_headers_social_jitsi
 
 	@social_blocked {
-		path /member /member/* /advisor /advisor/* /dashboard /dashboard/* /admin /admin/* /lineage /lineage/* /companion /companion/* /api/v1/ledger /api/v1/ledger/* /api/v1/governance /api/v1/governance/* /api/v1/operator /api/v1/operator/* /api/v1/accounting /api/v1/accounting/* /api/v1/workspace /api/v1/workspace/* /api/v1/copilot /api/v1/copilot/* /api/v1/paper /api/v1/paper/* /api/v1/member /api/v1/member/* /api/v1/advisor /api/v1/advisor/* /api/v1/lineage /api/v1/lineage/* /api/v1/onboarding /api/v1/onboarding/* /api/v1/portal/member* /api/v1/portal/advisor* /api/v1/portal/custodial* /api/v1/portal/lineage* /api/v1/portal/telemetry* /api/v1/portal/read-model* /api/v1/portal/active-hat*
+		path /member /member/* /advisor /advisor/* /dashboard /dashboard/* /admin /admin/* /lineage /lineage/* /companion /companion/* /api/v1/ledger /api/v1/ledger/* /api/v1/governance /api/v1/governance/* /api/v1/operator /api/v1/operator/* /api/v1/accounting /api/v1/accounting/* /api/v1/workspace /api/v1/workspace/* /api/v1/copilot /api/v1/copilot/* /api/v1/paper /api/v1/paper/* /api/v1/hunch /api/v1/hunch/* /api/v1/member /api/v1/member/* /api/v1/advisor /api/v1/advisor/* /api/v1/lineage /api/v1/lineage/* /api/v1/onboarding /api/v1/onboarding/* /api/v1/portal/member* /api/v1/portal/advisor* /api/v1/portal/custodial* /api/v1/portal/lineage* /api/v1/portal/telemetry* /api/v1/portal/read-model* /api/v1/portal/active-hat*
 	}
 
 	@social_allowed {
@@ -83,7 +83,7 @@ narratixai.info {
 	}
 
 	@university_blocked {
-		path /member /member/* /advisor /advisor/* /dashboard /dashboard/* /admin /admin/* /lineage /lineage/* /home /home/* /community /community/* /api/v1/ledger /api/v1/ledger/* /api/v1/governance /api/v1/governance/* /api/v1/operator /api/v1/operator/* /api/v1/accounting /api/v1/accounting/* /api/v1/workspace /api/v1/workspace/* /api/v1/copilot /api/v1/copilot/* /api/v1/paper /api/v1/paper/* /api/v1/member /api/v1/member/* /api/v1/advisor /api/v1/advisor/* /api/v1/lineage /api/v1/lineage/* /api/v1/portal/member* /api/v1/portal/advisor* /api/v1/portal/custodial* /api/v1/portal/lineage* /api/v1/portal/telemetry*
+		path /member /member/* /advisor /advisor/* /dashboard /dashboard/* /admin /admin/* /lineage /lineage/* /home /home/* /community /community/* /api/v1/ledger /api/v1/ledger/* /api/v1/governance /api/v1/governance/* /api/v1/operator /api/v1/operator/* /api/v1/accounting /api/v1/accounting/* /api/v1/workspace /api/v1/workspace/* /api/v1/copilot /api/v1/copilot/* /api/v1/paper /api/v1/paper/* /api/v1/hunch /api/v1/hunch/* /api/v1/member /api/v1/member/* /api/v1/advisor /api/v1/advisor/* /api/v1/lineage /api/v1/lineage/* /api/v1/portal/member* /api/v1/portal/advisor* /api/v1/portal/custodial* /api/v1/portal/lineage* /api/v1/portal/telemetry*
 	}
 
 	@university_allowed {
@@ -124,7 +124,7 @@ vault.narratixai.io {
 	}
 
 	@vault_allowed {
-		path /member /member/* /advisor /advisor/* /lineage/* /static/* /api/v1/portal/* /api/v1/member/* /api/v1/advisor/* /api/v1/lineage/* /api/v1/lexicon /api/v1/lexicon/* /api/v1/onboarding/* /health
+		path /member /member/* /advisor /advisor/* /lineage/* /static/* /api/v1/portal/* /api/v1/member/* /api/v1/advisor/* /api/v1/lineage/* /api/v1/lexicon /api/v1/lexicon/* /api/v1/onboarding/* /api/v1/hunch /api/v1/hunch/* /health
 	}
 
 	route {
@@ -157,7 +157,7 @@ admin.narratixai.io {
 	}
 
 	@admin_allowed {
-		path /dashboard /dashboard/* /admin/* /static/* /api/v1/* /health
+		path /dashboard /dashboard/* /admin/* /static/* /api/v1/* /api/v1/hunch /api/v1/hunch/* /health
 	}
 
 	route {

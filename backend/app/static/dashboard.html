@@ -262,11 +262,11 @@
       <div class="portal-header-row2">
         <div class="portal-hub-pills hub-links">
           <span class="portal-hub-label">PDEUE PORTAL HUB:</span>
-          <a href="/dashboard" class="hub-btn active" aria-current="page">Chief Admin Cockpit</a>
-          <a href="/admin/tech?supervisory=1&amp;inspector=CHIEF_ADMIN" class="hub-btn inactive">Technical Console (Class T)</a>
-          <a href="/advisor?supervisory=1&amp;inspector=CHIEF_ADMIN" class="hub-btn inactive">Lineal Advisory (Class F)</a>
-          <a href="/member" class="hub-btn inactive" id="hubMemberLink" onclick="return openHatSwitchModalFromLink(event)">Member Desktop (Class M)</a>
-          <a href="/companion" class="nav-link campus-link" id="navCompanionLink">🎓 PDEUE University</a>
+          <a href="/dashboard" class="hub-btn active" aria-current="page" data-plane-doorway="dashboard">Chief Admin Cockpit</a>
+          <a href="/admin/tech?supervisory=1&amp;inspector=CHIEF_ADMIN" class="hub-btn inactive" data-plane-doorway="admin_tech">Technical Console (Class T)</a>
+          <a href="/advisor?supervisory=1&amp;inspector=CHIEF_ADMIN" class="hub-btn inactive" data-plane-doorway="advisor">Lineal Advisory (Class F)</a>
+          <a href="/member" class="hub-btn inactive" id="hubMemberLink" data-plane-doorway="member" onclick="return openHatSwitchModalFromLink(event)">Member Desktop (Class M)</a>
+          <a href="/companion" class="nav-link campus-link" id="navCompanionLink" data-plane-doorway="companion">🎓 PDEUE University</a>
         </div>
         <div class="currency-toggle portal-utility-group" aria-label="Glossary and currency display precision">
           <button id="openGlossaryBtn" type="button" class="curr-btn" onclick="openGlossaryDrawer()">📖 Glossary (v0.6)</button>
@@ -985,7 +985,7 @@
         <code id="onboard-invite-token" class="mono-token"></code>
         <div style="font-size: 11px; color: #94A3B8; font-weight: 700; margin-top: 8px;">ACTIVATION LINK (EXPIRES <span id="onboard-invite-expires"></span>)</div>
         <div style="margin-top: 4px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-          <a id="onboard-invite-link" href="/member" style="color: #38BDF8; font-family: ui-monospace, monospace; font-size: 12px; word-break: break-all;">Open Member Activation Link</a>
+          <a id="onboard-invite-link" href="/member" data-plane-doorway="member" style="color: #38BDF8; font-family: ui-monospace, monospace; font-size: 12px; word-break: break-all;">Open Member Activation Link</a>
         </div>
       </div>
     </div>
@@ -1630,7 +1630,10 @@
           sessionStorage.setItem('pdeue_active_hat_role', data.active_hat || 'PERSONAL_SCMA');
           sessionStorage.setItem('pdeue_multi_role_principal', data.principal_id || 'USR-founder_ch-C8575D7E');
         } catch (_e) {}
-        window.location.assign(`/member?scma_id=SCMA-FOUNDER_-C8575D7E&hat_switch=${encodeURIComponent(data.event_id || '')}`);
+        const memberTarget = (window.PDEUESeniorA11y && window.PDEUESeniorA11y.resolveDoorwayUrl)
+          ? window.PDEUESeniorA11y.resolveDoorwayUrl('member', `/member?scma_id=SCMA-FOUNDER_-C8575D7E&hat_switch=${encodeURIComponent(data.event_id || '')}`)
+          : `/member?scma_id=SCMA-FOUNDER_-C8575D7E&hat_switch=${encodeURIComponent(data.event_id || '')}`;
+        window.location.assign(memberTarget);
       } catch (err) {
         if (errBox) {
           errBox.textContent = `Active-Hat switch failed: ${err.message}`;
@@ -1712,8 +1715,11 @@
         document.getElementById('onboard-invite-token').textContent = inv.token;
         document.getElementById('onboard-invite-expires').textContent = inv.expires_at;
         const linkEl = document.getElementById('onboard-invite-link');
-        linkEl.href = inv.activation_link;
-        linkEl.textContent = inv.activation_link;
+        const resolvedInviteHref = (window.PDEUESeniorA11y && window.PDEUESeniorA11y.resolveDoorwayUrl)
+          ? window.PDEUESeniorA11y.resolveDoorwayUrl('member', inv.activation_link)
+          : inv.activation_link;
+        linkEl.href = resolvedInviteHref;
+        linkEl.textContent = resolvedInviteHref;
         receiptBox.style.display = 'block';
         showLineageStatus(`Provisioned ${m.full_name} (${m.scma_id}) in ${m.lineage_code} with status ${m.status}.`);
         await loadWorkspaceState();

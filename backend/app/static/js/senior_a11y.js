@@ -39,32 +39,87 @@
     return chosen;
   }
 
+  function resolveDoorwayHref(currentHref, targetUrl) {
+    if (!targetUrl) return currentHref || '';
+    try {
+      var baseOrigin = (window.location && window.location.origin && window.location.origin !== 'null')
+        ? window.location.origin
+        : 'http://localhost';
+      var parsedTarget = new URL(targetUrl, baseOrigin);
+      if (currentHref) {
+        var parsedCurrent = new URL(currentHref, baseOrigin);
+        if (parsedCurrent.search) {
+          if (!parsedTarget.search) {
+            parsedTarget.search = parsedCurrent.search;
+          } else {
+            var merged = new URLSearchParams(parsedTarget.search);
+            var incoming = new URLSearchParams(parsedCurrent.search);
+            incoming.forEach(function (val, key) {
+              merged.set(key, val);
+            });
+            parsedTarget.search = '?' + merged.toString();
+          }
+        }
+        if (parsedCurrent.hash) {
+          parsedTarget.hash = parsedCurrent.hash;
+        }
+      }
+      return parsedTarget.toString();
+    } catch (_err) {
+      return targetUrl;
+    }
+  }
+
+  function lookupDoorwayTarget(doorways, key) {
+    if (!doorways || !key) return '';
+    if (doorways[key]) return doorways[key];
+    if (key === 'admin_tech' && doorways.tech) return doorways.tech;
+    if (key === 'tech' && doorways.admin_tech) return doorways.admin_tech;
+    return '';
+  }
+
+  function applyPlaneDoorways(data) {
+    if (!data || !data.doorways) return;
+    window.PDEUEPlaneConfig = data;
+    if (data.routing_mode === 'multi_domain_air_gapped') {
+      var links = document.querySelectorAll('a[data-plane-doorway]');
+      for (var i = 0; i < links.length; i++) {
+        var el = links[i];
+        var key = el.getAttribute('data-plane-doorway');
+        var targetUrl = lookupDoorwayTarget(data.doorways, key);
+        if (targetUrl) {
+          var currentHref = el.getAttribute('href') || '';
+          el.setAttribute('href', resolveDoorwayHref(currentHref, targetUrl));
+        }
+      }
+    }
+    var ifasBtn = document.getElementById('ifasHandoffBtn');
+    var ifasHost = document.getElementById('ifasPortalHost');
+    if (ifasHost && data.doorways.ifas_configured && data.doorways.ifas) {
+      ifasHost.textContent = data.doorways.ifas;
+    }
+    if (ifasBtn) {
+      ifasBtn.setAttribute('data-ifas-url', data.doorways.ifas || '');
+      ifasBtn.setAttribute('data-ifas-target', data.doorways.ifas_production_target || 'https://narratixai.net');
+    }
+  }
+
+  function resolveDoorwayUrl(key, fallbackHref) {
+    var cfg = window.PDEUEPlaneConfig;
+    if (cfg && cfg.routing_mode === 'multi_domain_air_gapped' && cfg.doorways) {
+      var targetUrl = lookupDoorwayTarget(cfg.doorways, key);
+      if (targetUrl) {
+        return resolveDoorwayHref(fallbackHref || '', targetUrl);
+      }
+    }
+    return fallbackHref || '';
+  }
+
   function hydratePlaneLinks() {
     if (typeof window.fetch !== 'function') return;
     window.fetch('/api/v1/portal/planes')
       .then(function (resp) { return resp.ok ? resp.json() : null; })
-      .then(function (data) {
-        if (!data || !data.doorways) return;
-        window.PDEUEPlaneConfig = data;
-        var links = document.querySelectorAll('[data-plane-doorway]');
-        for (var i = 0; i < links.length; i++) {
-          var el = links[i];
-          var key = el.getAttribute('data-plane-doorway');
-          var targetUrl = data.doorways[key];
-          if (targetUrl && el.tagName === 'A') {
-            el.setAttribute('href', targetUrl);
-          }
-        }
-        var ifasBtn = document.getElementById('ifasHandoffBtn');
-        var ifasHost = document.getElementById('ifasPortalHost');
-        if (ifasHost && data.doorways.ifas_configured && data.doorways.ifas) {
-          ifasHost.textContent = data.doorways.ifas;
-        }
-        if (ifasBtn) {
-          ifasBtn.setAttribute('data-ifas-url', data.doorways.ifas || '');
-          ifasBtn.setAttribute('data-ifas-target', data.doorways.ifas_production_target || 'https://narratixai.net');
-        }
-      })
+      .then(function (data) { applyPlaneDoorways(data); })
       .catch(function () { /* keep relative defaults cleanly */ });
   }
 
@@ -160,7 +215,10 @@
     setScale: applyScale,
     getScale: readStoredScale,
     toggleAlerts: toggleFamilyAlerts,
-    refreshAlerts: loadFamilyAlerts
+    refreshAlerts: loadFamilyAlerts,
+    hydratePlaneLinks: hydratePlaneLinks,
+    applyPlaneDoorways: applyPlaneDoorways,
+    resolveDoorwayUrl: resolveDoorwayUrl
   };
 
   // Apply persisted text scale immediately to avoid layout flicker
