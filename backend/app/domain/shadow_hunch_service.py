@@ -671,6 +671,14 @@ class ShadowHunchService:
         notes: str = "",
     ) -> Dict[str, Any]:
         norm_role = normalize_role_token(actor_role or "")
+        if norm_role == "CHIEF_ADMIN_DEPUTY":
+            raise ShadowHunchError(
+                "DEPUTY_READ_ONLY_OBSERVER: CHIEF_ADMIN_DEPUTY operates in Read-Only Shadow Succession Mode "
+                "and cannot adjudicate Shadow Hunch live-promotion clearance.",
+                status_code=403,
+                code="DEPUTY_READ_ONLY_OBSERVER",
+                extra={"actor_role": norm_role},
+            )
         is_ca = is_chief_admin_role(norm_role)
         is_f2h = norm_role == "F2-H"
         is_f3 = norm_role == "F3"
@@ -851,7 +859,13 @@ class ShadowHunchService:
                 code="ROLE_FORBIDDEN",
             )
 
-        is_reviewer = is_chief_admin_role(norm_role) or norm_role in {"F1", "F2-H", "F2-A", "F3"}
+        is_reviewer = is_chief_admin_role(norm_role) or norm_role in {
+            "CHIEF_ADMIN_DEPUTY",
+            "F1",
+            "F2-H",
+            "F2-A",
+            "F3",
+        }
 
         clauses: List[str] = []
         params: List[Any] = []

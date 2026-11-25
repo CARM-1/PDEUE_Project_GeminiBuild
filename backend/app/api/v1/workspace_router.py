@@ -3,11 +3,12 @@ PDEUE Chief Administrator Workspace Router
 Authoritative endpoint provider for Operator Workspace, Active Positions Ledger,
 Velocity Radar Telemetry, Stage Dispatch, and Settlement Waterfall Reconciler.
 """
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.responses import HTMLResponse
 from typing import Dict, Any, List, Optional
 import pathlib
+import re
 
 from app.domain.operator_workspace import OperatorWorkspaceService
 from app.domain.lineage_hierarchy import get_lineage_service
@@ -15,19 +16,23 @@ from app.domain.scan_worker import AutonomousScanWorker
 from app.domain.fleet_bridge import get_shared_fleet_coordinator
 from app.domain.settlement_engine import SettlementEngine
 from app.domain.quarter_kelly_dispatcher import QuarterKellyDispatcher
-from app.api.v1.dashboard_template import DASHBOARD_HTML_TEMPLATE
+from app.api.v1.dashboard_template import DASHBOARD_HTML_TEMPLATE, get_fresh_dashboard_html
 from app.domain.historical_corpus import get_historical_tick_corpus
 from app.domain.walk_forward_simulation import WalkForwardBenchmark
 from app.domain.ai_copilot import AICopilotEngine
 from app.domain.active_hat import ActiveHatSessionAuthority, FounderHat
 from app.domain.founder_workspace import FounderWorkspaceService
 from app.domain.authority_tiers import (
+    DEPUTY_OBSERVER_BANNER_TEXT,
     get_active_hat_gateway,
     get_directive_r04_controller,
     get_governance_audit_log,
+    is_chief_admin_deputy_role,
     is_chief_admin_role,
     normalize_role_token,
+    resolve_deputy_observer_flag,
 )
+from app.domain.enclave_governance import get_enclave_governance_service
 from app.schemas.rca_workspace import (
     ExecutiveCapitalEnvelope, PersonalScmaEnvelope, ScannerSummaryEnvelope,
 )
@@ -150,9 +155,122 @@ def reseed_default_positions():
         _GLOBAL_POSITIONS.append(dict(CANONICAL_SEED_POSITION))
         _COMMITTED_MARGIN_CENTS = max(_COMMITTED_MARGIN_CENTS, 11875)
 
+_DEPUTY_LOCKED_BUTTON_IDS = (
+    "emergencyKillSwitchBtn",
+    "resumeFromHaltBtn",
+    "openOnboardModalBtn",
+    "openBatchDrawerBtn",
+    "submitBatchProvisionBtn",
+    "btn-mode-executive",
+    "btn-mode-advisory",
+    "btn-mode-bicameral",
+    "btn-shtf-snapback",
+    "btn-create-body",
+    "btn-grant-seat",
+    "btn-assign-role",
+    "btn-promote-role",
+    "btn-demote-role",
+    "btn-custody-intra",
+    "btn-custody-cross",
+    "btn-save-delegation-config",
+    "adminEvalHunchBtn",
+    "adminShadowBidBtn",
+)
+
+
+def _apply_deputy_observer_html(html: str) -> str:
+    """Server-render Read-Only Shadow Succession Mode on /dashboard when CHIEF_ADMIN_DEPUTY is active."""
+    out = html.replace("<body>", '<body data-deputy-observer="true">', 1)
+    out = out.replace(
+        '<div id="deputyObserverBanner" class="deputy-observer-banner" hidden role="region" aria-label="Deputy Observer Mode">',
+        '<div id="deputyObserverBanner" class="deputy-observer-banner" role="region" aria-label="Deputy Observer Mode">',
+        1,
+    )
+    out = out.replace(
+        "Active Hat: CHIEF_ADMIN<span",
+        "Active Hat: CHIEF_ADMIN_DEPUTY (READ-ONLY)<span",
+        1,
+    )
+    out = out.replace(
+        "SCOPE: ENCLAVE_WIDE</span>",
+        "SCOPE: ENCLAVE_WIDE (READ-ONLY)</span>",
+        1,
+    )
+    for btn_id in _DEPUTY_LOCKED_BUTTON_IDS:
+        out = out.replace(
+            f'id="{btn_id}"',
+            f'id="{btn_id}" disabled aria-disabled="true" data-deputy-locked="true"',
+            1,
+        )
+    return out
+
+
 @workspace_router.get("/dashboard", response_class=HTMLResponse)
-def get_dashboard_html():
-    return HTMLResponse(content=DASHBOARD_HTML_TEMPLATE)
+def get_dashboard_html(
+    role: Optional[str] = Query(None),
+    x_pdeue_role: Optional[str] = Header(None, alias="X-PDEUE-Role"),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+):
+    html = get_fresh_dashboard_html()
+    is_deputy = resolve_deputy_observer_flag(
+        role=role,
+        x_pdeue_role=x_pdeue_role,
+        x_actor_role=x_actor_role,
+        x_active_hat=x_active_hat,
+        authorization=authorization,
+    )
+    if is_deputy:
+        return HTMLResponse(content=_apply_deputy_observer_html(html))
+    return HTMLResponse(content=html)
+
+
+@workspace_router.get("/api/v1/portal/dashboard/state")
+def get_portal_dashboard_state(
+    role: Optional[str] = Query(None),
+    x_pdeue_role: Optional[str] = Header(None, alias="X-PDEUE-Role"),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+) -> Dict[str, Any]:
+    """Server-backed dashboard authority and CHIEF_ADMIN_DEPUTY read-only shadow observer state."""
+    is_deputy = resolve_deputy_observer_flag(
+        role=role,
+        x_pdeue_role=x_pdeue_role,
+        x_actor_role=x_actor_role,
+        x_active_hat=x_active_hat,
+        authorization=authorization,
+    )
+    r04_snapshot = get_directive_r04_controller().snapshot()
+    gov_mode = get_enclave_governance_service().get_governance_mode()
+    envelope = build_read_model_envelope(
+        {
+            "active_role": "CHIEF_ADMIN_DEPUTY" if is_deputy else "CHIEF_ADMIN",
+            "deputy_observer_mode": is_deputy,
+            "mutations_locked": is_deputy,
+            "open_positions_count": len(_GLOBAL_POSITIONS),
+        },
+        surface="dashboard",
+        directive_r04_snapshot=r04_snapshot,
+        circuit_breaker_tripped=bool(_service.circuit_breaker.is_tripped),
+        circuit_breaker_reason=_service.circuit_breaker.trip_reason,
+    )
+    return {
+        "surface": "dashboard",
+        "active_role": "CHIEF_ADMIN_DEPUTY" if is_deputy else "CHIEF_ADMIN",
+        "deputy_observer_mode": is_deputy,
+        "read_only": is_deputy,
+        "mutations_locked": is_deputy,
+        "mutation_error_code": "DEPUTY_READ_ONLY_OBSERVER" if is_deputy else None,
+        "observer_banner": DEPUTY_OBSERVER_BANNER_TEXT if is_deputy else None,
+        "observer_badge": "Observer Mode — Read-Only" if is_deputy else None,
+        "unilateral_execution": False,
+        "directive_r04": r04_snapshot,
+        "governance_mode": gov_mode.get("governance_mode", "EXECUTIVE_COMMAND"),
+        "read_model_envelope": envelope.model_dump(),
+    }
+
 
 @workspace_router.post("/api/v1/operator/emergency-stop")
 def trigger_emergency_stop(
@@ -218,8 +336,26 @@ def get_simulation_benchmark():
     return _benchmark_cache
 
 @workspace_router.get("/api/v1/operator/workspace-state")
-def get_workspace_state():
+def get_workspace_state(
+    role: Optional[str] = Query(None),
+    x_pdeue_role: Optional[str] = Header(None, alias="X-PDEUE-Role"),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+):
+    is_deputy = resolve_deputy_observer_flag(
+        role=role,
+        x_pdeue_role=x_pdeue_role,
+        x_actor_role=x_actor_role,
+        x_active_hat=x_active_hat,
+        authorization=authorization,
+    )
     state = _service.get_workspace_state()
+    state["active_role"] = "CHIEF_ADMIN_DEPUTY" if is_deputy else "CHIEF_ADMIN"
+    state["deputy_observer_mode"] = is_deputy
+    state["read_only"] = is_deputy
+    state["mutations_locked"] = is_deputy
+    state["observer_banner"] = DEPUTY_OBSERVER_BANNER_TEXT if is_deputy else None
     telem = _worker.get_telemetry()
     state["daemon"] = telem
     opportunities = list(telem.get("latest_opportunities", []))

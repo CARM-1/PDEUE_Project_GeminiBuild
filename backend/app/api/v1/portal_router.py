@@ -2668,13 +2668,14 @@ def _resolve_custodial_lookup_headers(
     role: Optional[str],
     actor_id: Optional[str],
     house_id: Optional[int],
+    x_pdeue_role: Optional[str] = None,
     x_actor_role: Optional[str],
     x_actor_id: Optional[str],
     x_active_hat: Optional[str],
     x_house_id: Optional[str],
     authorization: Optional[str],
 ) -> tuple[Optional[str], Optional[str], Optional[int]]:
-    eff_role = x_active_hat or x_actor_role or role
+    eff_role = x_pdeue_role or x_active_hat or x_actor_role or role
     eff_actor = x_actor_id or actor_id
     if authorization and authorization.lower().startswith("bearer "):
         from app.core.security import decode_access_token
@@ -2712,6 +2713,7 @@ def custodial_member_lookup(
     actor_id: Optional[str] = Query(None),
     house_id: Optional[int] = Query(None),
     household_id: Optional[str] = Query(None),
+    x_pdeue_role: Optional[str] = Header(None, alias="X-PDEUE-Role"),
     x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
     x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
     x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
@@ -2726,6 +2728,7 @@ def custodial_member_lookup(
         role=role,
         actor_id=actor_id,
         house_id=house_id,
+        x_pdeue_role=x_pdeue_role,
         x_actor_role=x_actor_role,
         x_actor_id=x_actor_id,
         x_active_hat=x_active_hat,
@@ -2748,6 +2751,7 @@ def custodial_member_detail(
     actor_id: Optional[str] = Query(None),
     house_id: Optional[int] = Query(None),
     household_id: Optional[str] = Query(None),
+    x_pdeue_role: Optional[str] = Header(None, alias="X-PDEUE-Role"),
     x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
     x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
     x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
@@ -2762,6 +2766,7 @@ def custodial_member_detail(
         role=role,
         actor_id=actor_id,
         house_id=house_id,
+        x_pdeue_role=x_pdeue_role,
         x_actor_role=x_actor_role,
         x_actor_id=x_actor_id,
         x_active_hat=x_active_hat,

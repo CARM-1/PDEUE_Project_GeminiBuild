@@ -8,14 +8,71 @@ from fastapi.staticfiles import StaticFiles
 from app.api.v1.health_router import health_router
 from app.api.v1.accounting_router import router as accounting_router
 from app.api.v1.copilot_router import router as copilot_router
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import RedirectResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel
 from typing import Dict, Any, List
 from app.domain.paper_session import PaperSessionManager
 from app.domain.decision_packet import DecisionPacketBuilder
+from app.domain.authority_tiers import (
+    get_governance_audit_log,
+    resolve_deputy_observer_flag,
+)
 
 app = FastAPI(title="PDEUE Operator Workspace API", version="1.0.0")
+
+# Strictly non-mutating educational/advisory Q&A endpoints allowed during Read-Only Deputy Shadow Mode.
+_DEPUTY_READ_ONLY_ALLOWED_POST_PATHS = frozenset(
+    {
+        "/api/v1/copilot/query",
+        "/api/v1/operator/chancellor/query",
+        "/api/v1/operator/ai-chat",
+        "/api/v1/operator/copilot/chat",
+        "/operator/copilot/chat",
+    }
+)
+
+
+@app.middleware("http")
+async def enforce_chief_admin_deputy_read_only(request: Request, call_next):
+    """Fail-closed HTTP 403 lock on all mutating endpoints when operating as CHIEF_ADMIN_DEPUTY."""
+    if request.method.upper() in {"POST", "PUT", "PATCH", "DELETE"}:
+        is_deputy = resolve_deputy_observer_flag(
+            role=request.query_params.get("role"),
+            x_pdeue_role=request.headers.get("X-PDEUE-Role"),
+            x_actor_role=request.headers.get("X-Actor-Role"),
+            x_active_hat=request.headers.get("X-Active-Hat"),
+            authorization=request.headers.get("Authorization"),
+        )
+        if is_deputy and request.url.path not in _DEPUTY_READ_ONLY_ALLOWED_POST_PATHS:
+            actor_id = request.headers.get("X-Actor-ID") or "CHIEF_ADMIN_DEPUTY"
+            get_governance_audit_log().record(
+                event_type="DEPUTY_READ_ONLY_MUTATION_BLOCKED",
+                actor_id=actor_id,
+                actor_role="CHIEF_ADMIN_DEPUTY",
+                target_id=request.url.path,
+                action=f"{request.method.upper()} {request.url.path}",
+                outcome="DENIED_DEPUTY_READ_ONLY_OBSERVER",
+                http_status=403,
+                detail=(
+                    "Blocked mutating request from CHIEF_ADMIN_DEPUTY in Read-Only Shadow "
+                    "Succession Mode (DEPUTY_READ_ONLY_OBSERVER)."
+                ),
+            )
+            return JSONResponse(
+                status_code=403,
+                content={
+                    "detail": (
+                        "DEPUTY_READ_ONLY_OBSERVER: CHIEF_ADMIN_DEPUTY operates in Read-Only "
+                        "Shadow Succession Mode. Destructive and mutating actions are locked."
+                    ),
+                    "error_code": "DEPUTY_READ_ONLY_OBSERVER",
+                    "role": "CHIEF_ADMIN_DEPUTY",
+                    "read_only": True,
+                    "path": request.url.path,
+                },
+            )
+    return await call_next(request)
 
 
 @app.get("/", include_in_schema=False)
