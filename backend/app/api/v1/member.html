@@ -337,16 +337,80 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
     <button id="clearTutorBtn" type="button" aria-label="Clear tutor answer and reset input">Clear Answer</button>
   </form>
   <div id="tutorMetaBar" class="tutor-meta-bar" hidden aria-live="polite">
+    <span id="tutorLanePill" class="badge-pill green">LANE 1 · LOCAL PDEUE CANON</span>
     <span id="tutorProviderPill" class="badge-pill sky">PROVIDER: mock</span>
     <span id="tutorAuthTierPill" class="badge-pill green">AUTH-01</span>
     <span id="tutorGuardPill" class="badge-pill amber" hidden>GUARDRAIL REFUSAL</span>
   </div>
   <div id="tutorResponse" class="response" aria-live="polite">Your educational answer will appear here.</div>
+  <div id="tutorDollarExampleBox" class="tutor-analogy" hidden><strong style="color:#6EE7B7;">Concrete Dollar Example:</strong> <span id="tutorDollarExampleText"></span></div>
+  <div id="tutorUniversityPointerBox" class="fine" hidden style="margin-top:6px;color:#38BDF8;"></div>
   <div id="tutorAnalogyBox" class="tutor-analogy" hidden><strong style="color:#38BDF8;">Everyday Analogy:</strong> <span id="tutorAnalogyText"></span></div>
+  <div id="tutorWebCitationsHost" class="tutor-analogy" hidden aria-label="Grounded public research citations"></div>
   <div id="tutorCitationsHost" class="tutor-citations" aria-label="Lexicon v0.5 citations"></div>
   <div id="tutorImpactCardHost" aria-live="polite"></div>
   <div id="tutorActionCardsHost" class="tutor-action-list" aria-label="Staged non-executing Action Cards"></div>
-</article></section>
+</article>
+
+<details id="shadowHunchStudioDetails" class="card" style="margin-top:16px;" aria-label="Shadow Paper Hunch Studio Zero-Risk Practice">
+  <summary style="cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+    <div>
+      <div class="label">SHADOW_PAPER MODE · PERMANENT ZERO-RISK RESEARCH LAB</div>
+      <h2 style="margin:2px 0 0;">Shadow Paper Hunch Studio (Zero-Risk Practice)</h2>
+    </div>
+    <span class="badge-pill green">🛡️ 100% PRETEND DOLLARS · ZERO REAL SCMA IMPACT</span>
+  </summary>
+  <div style="margin-top:14px;">
+    <div style="background:#0f172a;border:1px solid #334155;border-left:4px solid #38bdf8;border-radius:10px;padding:12px 14px;margin-bottom:14px;color:#cbd5e1;font-size:.9rem;">
+      <strong style="color:#f8fafc;">What This Means:</strong> Test your own economic, weather, energy, treasury, FX, or equity-index ideas using 100% virtual <code>SHADOW_PAPER</code> dollars. Shadow bids NEVER touch your real <abbr class="pdeue-term" tabindex="0" data-term="scma" data-tooltip="Your own private, walled-off family account. Your money grows inside your personal box, and if a trade ever loses money, that loss stays strictly inside your own account and never touches anyone else's savings.">SCMA<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> balance, live exchange keys, or <abbr class="pdeue-term" tabindex="0" data-term="ifas" data-tooltip="Our separate, dedicated banking and bookkeeping home where real bank accounts, deposits, withdrawals, and tax records live. Keeping it apart from the trading engine protects every family member's banking details.">IFAS<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> bank records. Sports, casino, war, terrorism, and death contracts are permanently blocked. To petition for higher-authority review (F2-H then F3 / Chief Admin), you must hold <code>STEWARDSHIP_L1_CERTIFIED</code> status and an active risk dial.
+    </div>
+    <form id="memberHunchForm" style="display:grid;gap:10px;">
+      <label class="fine" for="memberHunchHypothesis">Plain-English Market Hypothesis (Weather, CPI/Macro, Energy/EIA, Treasuries, Equity Indices, or FX)</label>
+      <input id="memberHunchHypothesis" type="text" required placeholder="e.g., NOAA forecast indicates Miami daily high temperature will exceed 88°F on Friday" aria-label="Shadow paper market hypothesis">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;">
+        <div>
+          <label class="fine" for="memberHunchVertical">Regulated Vertical</label>
+          <select id="memberHunchVertical" aria-label="Regulated event vertical" style="width:100%;padding:8px;border-radius:8px;background:#0f172a;color:#f8fafc;border:1px solid #334155;">
+            <option value="">Auto-detect</option>
+            <option value="WEATHER">Weather (NOAA)</option>
+            <option value="MACRO_CPI">Macro / CPI (BLS)</option>
+            <option value="ENERGY_EIA">Energy / EIA Storage</option>
+            <option value="TREASURIES">U.S. Treasuries</option>
+            <option value="EQUITY_INDICES">Equity Indices</option>
+            <option value="FX">G10 FX</option>
+          </select>
+        </div>
+        <div>
+          <label class="fine" for="memberHunchModelProb">Modeled Fair Value (¢)</label>
+          <input id="memberHunchModelProb" type="number" min="1" max="99" value="64" aria-label="Modeled probability in cents">
+        </div>
+        <div>
+          <label class="fine" for="memberHunchQuotePrice">Market Quote (¢)</label>
+          <input id="memberHunchQuotePrice" type="number" min="1" max="99" value="54" aria-label="Quoted market price in cents">
+        </div>
+        <div>
+          <label class="fine" for="memberHunchFeeCents">Fee Friction (¢)</label>
+          <input id="memberHunchFeeCents" type="number" min="0" max="20" value="2" aria-label="Fee friction in cents">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+        <button id="memberEvalHunchBtn" type="submit">Run 3-Point Validation Audit</button>
+        <button id="memberRefreshHunchesBtn" type="button" class="curr-btn" onclick="loadMemberShadowHunches()">Refresh My Shadow Track Record</button>
+      </div>
+    </form>
+    <div id="memberHunchResult" class="response" style="margin-top:12px;" aria-live="polite">Submit a regulated hypothesis above to run the 3-Point Validation Pipeline (Corroboration, Oracle Mapping, and Integer-Cent Edge Audit).</div>
+    <div id="memberShadowBidControls" hidden style="margin-top:12px;padding:12px;border:1px solid #334155;border-radius:10px;background:#0f172a;">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+        <label class="fine" for="memberShadowStake">Virtual Practice Stake (cents, e.g. 10000 = $100.00)</label>
+        <input id="memberShadowStake" type="number" min="100" max="500000" step="100" value="10000" aria-label="Virtual practice stake in cents" style="max-width:160px;">
+        <button id="memberShadowBidBtn" type="button" onclick="submitMemberShadowBid()">Place Shadow Paper Bid (Zero Risk)</button>
+        <button id="memberRequestClearanceBtn" type="button" class="curr-btn" onclick="requestMemberHunchClearance()">Request Live Clearance (Requires L1 Cert)</button>
+      </div>
+      <div id="memberShadowActionStatus" class="fine" style="margin-top:8px;color:#bae6fd;" aria-live="polite"></div>
+    </div>
+    <div id="memberHunchList" style="margin-top:14px;" aria-live="polite"></div>
+  </div>
+</details></section>
 
 <!-- STAGE 5: FUNDING INSTRUCTIONS CARD (ADR-011 ZERO-CREDENTIAL ISOLATION) -->
 <article id="fundingInstructionsCard" class="card funding-card" aria-label="Funding Instructions">
@@ -834,7 +898,7 @@ function renderTutorCitations(ids){
     return `<button type="button" class="tutor-cite-btn" onclick="openGlossaryForTerm('${escHtml(id)}')">📖 ${escHtml(label)}</button>`;
   }).join('');
 }
-function clearTutorAnswer(){tutorResponse.textContent='Your educational answer will appear here.';tutorInput.value='';tutorMetaBar.hidden=true;tutorAnalogyBox.hidden=true;tutorAnalogyText.textContent='';tutorCitationsHost.innerHTML='';tutorImpactCardHost.innerHTML='';tutorActionCardsHost.innerHTML='';lastTutorActionCards=[];tutorInput.focus()}
+function clearTutorAnswer(){tutorResponse.textContent='Your educational answer will appear here.';tutorInput.value='';tutorMetaBar.hidden=true;tutorAnalogyBox.hidden=true;tutorAnalogyText.textContent='';const dx=document.getElementById('tutorDollarExampleBox');if(dx)dx.hidden=true;const up=document.getElementById('tutorUniversityPointerBox');if(up)up.hidden=true;if(up)up.textContent='';const wc=document.getElementById('tutorWebCitationsHost');if(wc)wc.hidden=true;if(wc)wc.innerHTML='';tutorCitationsHost.innerHTML='';tutorImpactCardHost.innerHTML='';tutorActionCardsHost.innerHTML='';lastTutorActionCards=[];tutorInput.focus()}
 clearTutorBtn.addEventListener('click',clearTutorAnswer);
 distributionBtn.addEventListener('click',()=>{if(isSupervisoryLens){distributionStatus.textContent='Supervisory Audit Lens is read-only.';return}distributionStatus.textContent=Number(distributionAmount.value)>0?'Request ready for Green / Yellow / Red safeguard review.':'Enter a valid amount.'});
 async function submitTutorQuery(questionText){
@@ -843,6 +907,11 @@ async function submitTutorQuery(questionText){
   tutorResponse.textContent='Thinking…';
   tutorMetaBar.hidden=true;
   tutorAnalogyBox.hidden=true;
+  const dxBox=document.getElementById('tutorDollarExampleBox'),dxTxt=document.getElementById('tutorDollarExampleText');
+  const upBox=document.getElementById('tutorUniversityPointerBox'),wcHost=document.getElementById('tutorWebCitationsHost');
+  if(dxBox)dxBox.hidden=true;
+  if(upBox){upBox.hidden=true;upBox.textContent=''}
+  if(wcHost){wcHost.hidden=true;wcHost.innerHTML=''}
   tutorCitationsHost.innerHTML='';
   tutorImpactCardHost.innerHTML='';
   tutorActionCardsHost.innerHTML='';
@@ -852,11 +921,30 @@ async function submitTutorQuery(questionText){
     const d=await r.json();
     tutorResponse.textContent=d.response||d.answer||'Tutor unavailable.';
     tutorMetaBar.hidden=false;
+    const lanePill=document.getElementById('tutorLanePill');
+    if(lanePill){
+      if(d.lane==='PUBLIC_WEB_RESEARCH'){
+        lanePill.className='badge-pill amber';
+        lanePill.textContent='LANE 2 · '+(d.disclaimer_badge||'General Public Market Education — Not Financial Advice');
+      }else if(d.lane==='REGULATORY_REFUSAL'){
+        lanePill.className='badge-pill amber';
+        lanePill.textContent='BLOCKED · '+(d.lane_badge||'Protected Boundary');
+      }else{
+        lanePill.className='badge-pill green';
+        lanePill.textContent='LANE 1 · '+(d.lane_badge||'Local PDEUE Canon');
+      }
+    }
     tutorProviderPill.textContent=`PROVIDER: ${d.provider_used||'mock'}${d.fallback_used?' (FAIL-CLOSED FALLBACK)':''}`;
     tutorAuthTierPill.textContent=`${d.auth_tier||'AUTH-01'} · UNILATERAL=FALSE`;
     tutorGuardPill.hidden=!d.guard_blocked;
     if(d.guard_blocked){tutorGuardPill.textContent=`GUARDRAIL REFUSAL · ${d.guard_category||'PROTECTED'}`}
+    if(d.dollar_example&&dxBox&&dxTxt){dxTxt.textContent=d.dollar_example;dxBox.hidden=false}
+    if(d.university_pointer&&upBox){upBox.textContent='🎓 '+d.university_pointer;upBox.hidden=false}
     if(d.analogy){tutorAnalogyText.textContent=d.analogy;tutorAnalogyBox.hidden=false}else{tutorAnalogyBox.hidden=true;tutorAnalogyText.textContent=''}
+    if(Array.isArray(d.citations)&&d.citations.length&&wcHost){
+      wcHost.innerHTML='<strong style="color:#FCD34D;">Grounded Public Sources (Not Financial Advice):</strong><ul style="margin:6px 0 0 18px;">'+d.citations.map(c=>`<li><a href="${escHtml(c.url||'#')}" target="_blank" rel="noopener noreferrer" style="color:#38BDF8;">${escHtml(c.title||'Source')}</a> <span class="fine">(${escHtml(c.source||'Public Source')})</span></li>`).join('')+'</ul>';
+      wcHost.hidden=false;
+    }
     renderTutorCitations(d.lexicon_citations);
     renderTutorImpactCard(d.impact_card);
     renderTutorActionCards(d.action_cards);
@@ -867,6 +955,106 @@ async function submitTutorQuery(questionText){
 }
 function askPresetTutor(promptText){tutorInput.value=promptText;submitTutorQuery(promptText)}
 tutorForm.addEventListener('submit',async e=>{e.preventDefault();await submitTutorQuery(tutorInput.value)});
+
+let activeMemberDossierId=null;
+async function loadMemberShadowHunches(){
+  const host=document.getElementById('memberHunchList');
+  if(!host)return;
+  const scma=(memberState&&memberState.scma_id)||activeScmaId||'SCMA-ELEANOR_-B2B31C9E';
+  try{
+    const r=await fetch(`/api/v1/hunch/dossiers?scma_id=${encodeURIComponent(scma)}&role=MEMBER_USER`);
+    const d=await r.json();
+    if(!r.ok){host.innerHTML=`<p class="fine" style="color:#FCA5A5;">${escHtml(d.detail?.message||d.detail||'Unable to load shadow hunches.')}</p>`;return}
+    const items=d.dossiers||[];
+    const stats=d.hit_rate_summary||{};
+    const summary=`<div class="fine" style="margin-bottom:8px;color:#BAE6FD;">Shadow Track Record (${escHtml(scma)}): <strong>${escHtml(stats.total_shadow_bids??0)}</strong> virtual bids · Hit Rate <strong>${escHtml(stats.hit_rate_pct||'0.00%')}</strong> · Virtual PnL <strong>${escHtml(stats.net_virtual_pnl_display||'$0.00')}</strong> (Zero Real Risk)</div>`;
+    if(!items.length){host.innerHTML=summary+'<p class="fine">No Shadow Paper hunches recorded yet. Run your first 3-Point Validation above.</p>';return}
+    host.innerHTML=summary+items.slice(0,8).map(item=>`<article class="tutor-action-card" style="margin-bottom:8px;"><div class="tutor-action-head"><strong>${escHtml(item.dossier_id)} · ${escHtml(item.vertical?.label||item.vertical?.code||'Regulated')}</strong><div style="display:flex;gap:6px;flex-wrap:wrap;"><span class="badge-pill ${item.staging_eligible?'green':'amber'}">${escHtml(item.status)}</span><span class="badge-pill sky">${escHtml(item.clearance_status)}</span></div></div><p class="fine" style="margin:4px 0;color:#CBD5E1;">${escHtml(item.hypothesis)}</p><div class="fine">Modeled: ${escHtml(item.modeled_prob_cents)}¢ · Quote: ${escHtml(item.quoted_price_cents)}¢ · Fee: ${escHtml(item.fee_cents)}¢ · Net Edge: <strong>${escHtml(item.net_edge_cents)}¢</strong> · Shadow Bids: ${escHtml(item.shadow_stats?.total_shadow_bids??0)}</div></article>`).join('');
+  }catch(_e){
+    host.innerHTML='<p class="fine" style="color:#FCA5A5;">Shadow Paper Studio offline — zero real balances affected.</p>';
+  }
+}
+window.loadMemberShadowHunches=loadMemberShadowHunches;
+
+const memberHunchForm=document.getElementById('memberHunchForm');
+if(memberHunchForm){
+  memberHunchForm.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const out=document.getElementById('memberHunchResult');
+    const bidBox=document.getElementById('memberShadowBidControls');
+    const actStatus=document.getElementById('memberShadowActionStatus');
+    const scma=(memberState&&memberState.scma_id)||activeScmaId||'SCMA-ELEANOR_-B2B31C9E';
+    out.textContent='Running Three-Point Validation Pipeline…';
+    if(actStatus)actStatus.textContent='';
+    try{
+      const r=await fetch('/api/v1/hunch/evaluate',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-Actor-Role':'MEMBER_USER'},
+        body:JSON.stringify({
+          hypothesis:document.getElementById('memberHunchHypothesis').value,
+          vertical_hint:document.getElementById('memberHunchVertical').value||null,
+          modeled_prob_cents:Number(document.getElementById('memberHunchModelProb').value),
+          quoted_price_cents:Number(document.getElementById('memberHunchQuotePrice').value),
+          fee_cents:Number(document.getElementById('memberHunchFeeCents').value),
+          scma_id:scma,
+          actor_role:'MEMBER_USER'
+        })
+      });
+      const d=await r.json();
+      if(!r.ok){
+        activeMemberDossierId=null;
+        if(bidBox)bidBox.hidden=true;
+        out.textContent='BLOCKED ('+(d.detail?.code||r.status)+'): '+(d.detail?.message||d.detail||'Validation failed.');
+        return;
+      }
+      activeMemberDossierId=d.dossier_id;
+      out.textContent=`[${d.status} · ${d.mode}] ${d.plain_english_verdict} Oracle: ${d.vertical?.oracle||''}.`;
+      if(bidBox)bidBox.hidden=!d.staging_eligible;
+      await loadMemberShadowHunches();
+    }catch(_err){
+      out.textContent='UNAVAILABLE — Shadow Hunch validator unreachable; zero changes made.';
+    }
+  });
+}
+
+async function submitMemberShadowBid(){
+  if(!activeMemberDossierId)return;
+  const actStatus=document.getElementById('memberShadowActionStatus');
+  const scma=(memberState&&memberState.scma_id)||activeScmaId||'SCMA-ELEANOR_-B2B31C9E';
+  const stake=Number(document.getElementById('memberShadowStake').value)||10000;
+  try{
+    const r=await fetch(`/api/v1/hunch/${encodeURIComponent(activeMemberDossierId)}/shadow-bid`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Actor-Role':'MEMBER_USER'},
+      body:JSON.stringify({virtual_stake_cents:stake,scma_id:scma,actor_role:'MEMBER_USER'})
+    });
+    const d=await r.json();
+    actStatus.textContent=r.ok?`Recorded SHADOW_PAPER virtual bid ${d.shadow_bid?.shadow_bid_id||''} (${d.shadow_bid?.contracts||0} virtual contracts; $0.00 real cash touched).`:`Shadow bid refused: ${d.detail?.message||d.detail||r.status}`;
+    await loadMemberShadowHunches();
+  }catch(_e){
+    actStatus.textContent='Shadow bid unavailable — zero real cash affected.';
+  }
+}
+window.submitMemberShadowBid=submitMemberShadowBid;
+
+async function requestMemberHunchClearance(){
+  if(!activeMemberDossierId)return;
+  const actStatus=document.getElementById('memberShadowActionStatus');
+  const scma=(memberState&&memberState.scma_id)||activeScmaId||'SCMA-ELEANOR_-B2B31C9E';
+  try{
+    const r=await fetch(`/api/v1/hunch/${encodeURIComponent(activeMemberDossierId)}/request-live-clearance`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Actor-Role':'MEMBER_USER'},
+      body:JSON.stringify({scma_id:scma,actor_role:'MEMBER_USER',rationale:'Member completed shadow paper validation and requests F2-H/F3 review.'})
+    });
+    const d=await r.json();
+    actStatus.textContent=r.ok?`Staged AUTH-03 Action Card (${d.clearance_status}). Awaiting F2-H Head of Household domestic review.`:`Clearance blocked (HTTP ${r.status}): ${d.detail?.message||d.detail||'Not eligible'}`;
+    await loadMemberShadowHunches();
+  }catch(_e){
+    actStatus.textContent='Clearance request unreachable — no action executed.';
+  }
+}
+window.requestMemberHunchClearance=requestMemberHunchClearance;
 // Legacy onboarding dismissal key retained for preference migration.
 localStorage.getItem('pdeue_welcome_dismissed');
 setCurrencyMode(currencyMode);

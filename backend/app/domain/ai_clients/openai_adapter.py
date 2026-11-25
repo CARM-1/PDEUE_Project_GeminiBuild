@@ -23,12 +23,16 @@ class OpenAILLMClient(BaseLLMClient):
         api_key: Optional[str] = None,
         model: Optional[str] = None,
         fallback_client: Optional[BaseLLMClient] = None,
-        timeout_seconds: float = 20.0,
+        timeout_seconds: Optional[float] = None,
+        max_output_tokens: Optional[int] = None,
     ):
         self.api_key = (api_key if api_key is not None else os.getenv("OPENAI_API_KEY", "")).strip()
         self.model = (model or os.getenv("OPENAI_MODEL", "gpt-4o")).strip()
         self.model_name = self.model
-        self.timeout_seconds = float(timeout_seconds)
+        env_timeout = float(os.getenv("AI_REQUEST_TIMEOUT_SECONDS", "15.0"))
+        env_tokens = int(os.getenv("AI_MAX_OUTPUT_TOKENS", "1024"))
+        self.timeout_seconds = float(timeout_seconds if timeout_seconds is not None else env_timeout)
+        self.max_output_tokens = int(max_output_tokens if max_output_tokens is not None else env_tokens)
         self._fallback = fallback_client or MockLLMClient()
         self.endpoint = "https://api.openai.com/v1/chat/completions"
 
@@ -67,6 +71,8 @@ class OpenAILLMClient(BaseLLMClient):
             requested_provider=self.provider_name,
             impact_card=mock_resp.impact_card,
             citations=list(mock_resp.citations),
+            web_citations=list(mock_resp.web_citations),
+            grounding_used=bool(mock_resp.grounding_used),
             structured_data=mock_resp.structured_data,
         )
 
@@ -131,10 +137,15 @@ class OpenAILLMClient(BaseLLMClient):
             })
         msgs.append({"role": "user", "content": verdict.sanitized_text})
 
+        token_cap = min(
+            int(ctx.get("max_output_tokens") or self.max_output_tokens),
+            int(self.max_output_tokens),
+        )
         payload: Dict[str, Any] = {
             "model": self.model,
             "messages": msgs,
             "temperature": 0.2,
+            "max_tokens": max(64, token_cap),
         }
         if tools and actor_role != "MEMBER":
             payload["tools"] = tools
@@ -185,6 +196,7 @@ class OpenAILLMClient(BaseLLMClient):
                 )
                 if draft.get("action_cards"):
                     action_cards.extend(list(draft["action_cards"]))
+                web_citations = list(draft.get("web_citations") or [])
                 return LLMResponse(
                     content=sanitize_output_text(
                         content,
@@ -202,6 +214,8 @@ class OpenAILLMClient(BaseLLMClient):
                     auth_tier=str(draft.get("auth_tier") or "AUTH-01"),
                     impact_card=draft.get("impact_card"),
                     citations=list(draft.get("citations") or []),
+                    web_citations=web_citations,
+                    grounding_used=bool(ctx.get("web_grounding")),
                     structured_data=draft.get("structured_data"),
                 )
         except (urllib.error.HTTPError, urllib.error.URLError, Exception) as exc:
