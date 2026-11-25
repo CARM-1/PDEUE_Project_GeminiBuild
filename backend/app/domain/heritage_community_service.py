@@ -157,9 +157,9 @@ HOUSE_HERALDRY_META: Dict[int, Dict[str, Any]] = {
                 "gold-and-green heritage ribbon."
             ),
         },
-        "emblem_asset_path": "/static/assets/crests/carmichael_crest.svg",
+        "emblem_asset_path": "/static/assets/crests/carmichael_crest.jpg",
         "achievement_stem": "carmichael_achievement",
-        "achievement_asset_path": "/static/assets/crests/carmichael_achievement.svg",
+        "achievement_asset_path": "/static/assets/crests/carmichael_achievement.jpg",
     },
     2: {
         "lineage_descent": "Foundational McCormick Stock — Senior Cadency (House 02)",
@@ -167,9 +167,9 @@ HOUSE_HERALDRY_META: Dict[int, Dict[str, Any]] = {
         "border_style": "Engrailed",
         "tincture": "Sable (Black)",
         "blazon_note": "Foundational McCormick core (three royal-blue eagles & crimson zigzag fess dancetté) within a Bordure engrailed Sable.",
-        "emblem_asset_path": "/static/assets/crests/house_02_mccormick_bordure.svg",
+        "emblem_asset_path": "/static/assets/crests/house_02_mccormick_bordure.jpg",
         "achievement_stem": "mccormick_achievement",
-        "achievement_asset_path": "/static/assets/crests/mccormick_achievement.svg",
+        "achievement_asset_path": "/static/assets/crests/mccormick_achievement.jpg",
     },
     3: {
         "lineage_descent": "Foundational McCormick Stock — Scottish Bordure Differencing (House 03)",
@@ -177,8 +177,8 @@ HOUSE_HERALDRY_META: Dict[int, Dict[str, Any]] = {
         "border_style": "Indented",
         "tincture": "Or (Gold)",
         "blazon_note": "Foundational McCormick shield core differenced by a Bordure indented Or (Gold).",
-        "emblem_asset_path": "/static/assets/crests/house_03_mccormick_bordure.svg",
-        "achievement_asset_path": "/static/assets/crests/house_03_mccormick_bordure.svg",
+        "emblem_asset_path": "/static/assets/crests/house_03_mccormick_bordure.jpg",
+        "achievement_asset_path": "/static/assets/crests/house_03_mccormick_bordure.jpg",
     },
     4: {
         "lineage_descent": "Foundational McCormick Stock — Scottish Bordure Differencing (House 04)",
@@ -186,8 +186,8 @@ HOUSE_HERALDRY_META: Dict[int, Dict[str, Any]] = {
         "border_style": "Wavy",
         "tincture": "Azure (Royal Blue)",
         "blazon_note": "Foundational McCormick shield core differenced by a Bordure wavy Azure (Royal Blue).",
-        "emblem_asset_path": "/static/assets/crests/house_04_mccormick_bordure.svg",
-        "achievement_asset_path": "/static/assets/crests/house_04_mccormick_bordure.svg",
+        "emblem_asset_path": "/static/assets/crests/house_04_mccormick_bordure.jpg",
+        "achievement_asset_path": "/static/assets/crests/house_04_mccormick_bordure.jpg",
     },
     5: {
         "lineage_descent": "Foundational McCormick Stock — Scottish Bordure Differencing (House 05)",
@@ -195,8 +195,8 @@ HOUSE_HERALDRY_META: Dict[int, Dict[str, Any]] = {
         "border_style": "Invected",
         "tincture": "Vert (Forest Green)",
         "blazon_note": "Foundational McCormick shield core differenced by a Bordure invected Vert (Forest Green).",
-        "emblem_asset_path": "/static/assets/crests/house_05_mccormick_bordure.svg",
-        "achievement_asset_path": "/static/assets/crests/house_05_mccormick_bordure.svg",
+        "emblem_asset_path": "/static/assets/crests/house_05_mccormick_bordure.jpg",
+        "achievement_asset_path": "/static/assets/crests/house_05_mccormick_bordure.jpg",
     },
     6: {
         "lineage_descent": "Foundational McCormick Stock — Scottish Bordure Differencing (House 06)",
@@ -204,8 +204,8 @@ HOUSE_HERALDRY_META: Dict[int, Dict[str, Any]] = {
         "border_style": "Embattled",
         "tincture": "Gules (Crimson)",
         "blazon_note": "Foundational McCormick shield core differenced by a Bordure embattled Gules (Crimson).",
-        "emblem_asset_path": "/static/assets/crests/house_06_mccormick_bordure.svg",
-        "achievement_asset_path": "/static/assets/crests/house_06_mccormick_bordure.svg",
+        "emblem_asset_path": "/static/assets/crests/house_06_mccormick_bordure.jpg",
+        "achievement_asset_path": "/static/assets/crests/house_06_mccormick_bordure.jpg",
     },
     7: {
         "lineage_descent": "Foundational McCormick Stock — Scottish Bordure Differencing (House 07)",
@@ -213,8 +213,8 @@ HOUSE_HERALDRY_META: Dict[int, Dict[str, Any]] = {
         "border_style": "Compony",
         "tincture": "Or & Vert (Gold/Green)",
         "blazon_note": "Foundational McCormick shield core differenced by a Bordure compony Or and Vert (Gold & Green).",
-        "emblem_asset_path": "/static/assets/crests/house_07_mccormick_bordure.svg",
-        "achievement_asset_path": "/static/assets/crests/house_07_mccormick_bordure.svg",
+        "emblem_asset_path": "/static/assets/crests/house_07_mccormick_bordure.jpg",
+        "achievement_asset_path": "/static/assets/crests/house_07_mccormick_bordure.jpg",
     },
     8: {
         "lineage_descent": "Foundational McCormick Stock — Scottish Bordure Differencing (House 08)",
@@ -222,8 +222,8 @@ HOUSE_HERALDRY_META: Dict[int, Dict[str, Any]] = {
         "border_style": "Engrailed Fimbriated",
         "tincture": "Azure & Or (Blue/Gold)",
         "blazon_note": "Foundational McCormick shield core differenced by a Bordure engrailed Azure fimbriated Or.",
-        "emblem_asset_path": "/static/assets/crests/house_08_mccormick_bordure.svg",
-        "achievement_asset_path": "/static/assets/crests/house_08_mccormick_bordure.svg",
+        "emblem_asset_path": "/static/assets/crests/house_08_mccormick_bordure.jpg",
+        "achievement_asset_path": "/static/assets/crests/house_08_mccormick_bordure.jpg",
     },
     9: {
         "lineage_descent": "Foundational McCormick Stock — Scottish Bordure Differencing (House 09)",
@@ -231,8 +231,8 @@ HOUSE_HERALDRY_META: Dict[int, Dict[str, Any]] = {
         "border_style": "Indented",
         "tincture": "Gules (Crimson)",
         "blazon_note": "Foundational McCormick shield core differenced by a Bordure indented Gules (Crimson).",
-        "emblem_asset_path": "/static/assets/crests/house_09_mccormick_bordure.svg",
-        "achievement_asset_path": "/static/assets/crests/house_09_mccormick_bordure.svg",
+        "emblem_asset_path": "/static/assets/crests/house_09_mccormick_bordure.jpg",
+        "achievement_asset_path": "/static/assets/crests/house_09_mccormick_bordure.jpg",
     },
     10: {
         "lineage_descent": "Foundational McCormick Stock — Scottish Bordure Differencing (House 10)",
@@ -240,8 +240,8 @@ HOUSE_HERALDRY_META: Dict[int, Dict[str, Any]] = {
         "border_style": "Embattled Fimbriated",
         "tincture": "Sable & Or (Black/Gold)",
         "blazon_note": "Foundational McCormick shield core differenced by a Bordure embattled Sable fimbriated Or.",
-        "emblem_asset_path": "/static/assets/crests/house_10_mccormick_bordure.svg",
-        "achievement_asset_path": "/static/assets/crests/house_10_mccormick_bordure.svg",
+        "emblem_asset_path": "/static/assets/crests/house_10_mccormick_bordure.jpg",
+        "achievement_asset_path": "/static/assets/crests/house_10_mccormick_bordure.jpg",
     },
     11: {
         "lineage_descent": "Foundational McCormick Stock — Scottish Bordure Differencing (House 11)",
@@ -249,8 +249,8 @@ HOUSE_HERALDRY_META: Dict[int, Dict[str, Any]] = {
         "border_style": "Wavy",
         "tincture": "Vert (Highland Green)",
         "blazon_note": "Foundational McCormick shield core differenced by a Bordure wavy Vert (Highland Green).",
-        "emblem_asset_path": "/static/assets/crests/house_11_mccormick_bordure.svg",
-        "achievement_asset_path": "/static/assets/crests/house_11_mccormick_bordure.svg",
+        "emblem_asset_path": "/static/assets/crests/house_11_mccormick_bordure.jpg",
+        "achievement_asset_path": "/static/assets/crests/house_11_mccormick_bordure.jpg",
     },
     12: {
         "lineage_descent": "Foundational McCormick Stock — Scottish Bordure Differencing (House 12)",
@@ -258,8 +258,8 @@ HOUSE_HERALDRY_META: Dict[int, Dict[str, Any]] = {
         "border_style": "Invected",
         "tincture": "Or (Burnished Gold)",
         "blazon_note": "Foundational McCormick shield core differenced by a Bordure invected Or (Burnished Gold).",
-        "emblem_asset_path": "/static/assets/crests/house_12_mccormick_bordure.svg",
-        "achievement_asset_path": "/static/assets/crests/house_12_mccormick_bordure.svg",
+        "emblem_asset_path": "/static/assets/crests/house_12_mccormick_bordure.jpg",
+        "achievement_asset_path": "/static/assets/crests/house_12_mccormick_bordure.jpg",
     },
 }
 
@@ -270,7 +270,7 @@ SEEDED_HOUSES: Tuple[Dict[str, Any], ...] = (
         "lineage_code": "HOUSE-01",
         "house_name": "House of Carmichael Prime",
         "motto": HOUSE_01_OFFICIAL_MOTTO,
-        "crest_asset_path": "/static/assets/crests/carmichael_crest.svg",
+        "crest_asset_path": "/static/assets/crests/carmichael_crest.jpg",
         "founding_branch": "Carmichael Line — Descending from Eldest McCormick Daughter",
         "history_body": (
             "Descending from the eldest McCormick daughter and anchored by the Carmichael covenant (IEHOVA SEMPER VIGILANS), "
@@ -292,7 +292,7 @@ SEEDED_HOUSES: Tuple[Dict[str, Any], ...] = (
         "lineage_code": "HOUSE-02",
         "house_name": "House of McCormick Prime",
         "motto": "Sine Timore — Steadfast Without Fear",
-        "crest_asset_path": "/static/assets/crests/house_02_mccormick_bordure.svg",
+        "crest_asset_path": "/static/assets/crests/house_02_mccormick_bordure.jpg",
         "founding_branch": "McCormick Foundational Stock · Bordure Engrailed Sable",
         "history_body": (
             "Carrying the foundational McCormick arms (three royal-blue eagles, crimson zigzag fess dancetté, and "
@@ -309,7 +309,7 @@ SEEDED_HOUSES: Tuple[Dict[str, Any], ...] = (
         "lineage_code": "HOUSE-03",
         "house_name": "House of the Highland Hearth",
         "motto": "Warmth Kept for Every Generation",
-        "crest_asset_path": "/static/assets/crests/house_03_mccormick_bordure.svg",
+        "crest_asset_path": "/static/assets/crests/house_03_mccormick_bordure.jpg",
         "founding_branch": "McCormick Stock · Bordure Indented Or (Gold)",
         "history_body": (
             "Descending from the foundational McCormick stock with a Scottish indented gold bordure, House 03 "
@@ -322,7 +322,7 @@ SEEDED_HOUSES: Tuple[Dict[str, Any], ...] = (
         "lineage_code": "HOUSE-04",
         "house_name": "House of the Riverbend",
         "motto": "Steady Current, Deep Roots",
-        "crest_asset_path": "/static/assets/crests/house_04_mccormick_bordure.svg",
+        "crest_asset_path": "/static/assets/crests/house_04_mccormick_bordure.jpg",
         "founding_branch": "McCormick Stock · Bordure Wavy Azure (Blue)",
         "history_body": (
             "Bearing the foundational McCormick eagles and crimson zigzag framed by a wavy royal-blue bordure, "
@@ -335,7 +335,7 @@ SEEDED_HOUSES: Tuple[Dict[str, Any], ...] = (
         "lineage_code": "HOUSE-05",
         "house_name": "House of the Oak & Compass",
         "motto": "Guided by Wisdom, Grounded in Kin",
-        "crest_asset_path": "/static/assets/crests/house_05_mccormick_bordure.svg",
+        "crest_asset_path": "/static/assets/crests/house_05_mccormick_bordure.jpg",
         "founding_branch": "McCormick Stock · Bordure Invected Vert (Green)",
         "history_body": (
             "Distinguished by a forest-green invected bordure around the foundational McCormick shield, House 05 "
@@ -348,7 +348,7 @@ SEEDED_HOUSES: Tuple[Dict[str, Any], ...] = (
         "lineage_code": "HOUSE-06",
         "house_name": "House of the Watchtower",
         "motto": "Vigilant Care for Those We Love",
-        "crest_asset_path": "/static/assets/crests/house_06_mccormick_bordure.svg",
+        "crest_asset_path": "/static/assets/crests/house_06_mccormick_bordure.jpg",
         "founding_branch": "McCormick Stock · Bordure Embattled Gules (Crimson)",
         "history_body": (
             "Bearing a crimson embattled bordure around the foundational McCormick shield, House 06 is dedicated "
@@ -361,7 +361,7 @@ SEEDED_HOUSES: Tuple[Dict[str, Any], ...] = (
         "lineage_code": "HOUSE-07",
         "house_name": "House of the Cedar Grove",
         "motto": "Patience Builds What Storms Cannot Shake",
-        "crest_asset_path": "/static/assets/crests/house_07_mccormick_bordure.svg",
+        "crest_asset_path": "/static/assets/crests/house_07_mccormick_bordure.jpg",
         "founding_branch": "McCormick Stock · Bordure Compony Or & Vert",
         "history_body": (
             "Framed by an alternating gold-and-green compony bordure around the McCormick stock core, House 07 "
@@ -374,7 +374,7 @@ SEEDED_HOUSES: Tuple[Dict[str, Any], ...] = (
         "lineage_code": "HOUSE-08",
         "house_name": "House of the Silver Loom",
         "motto": "Many Threads, One Unbroken Fabric",
-        "crest_asset_path": "/static/assets/crests/house_08_mccormick_bordure.svg",
+        "crest_asset_path": "/static/assets/crests/house_08_mccormick_bordure.jpg",
         "founding_branch": "McCormick Stock · Bordure Engrailed Azure & Or",
         "history_body": (
             "Wearing a royal-blue engrailed bordure fimbriated in gold around the foundational McCormick arms, "
@@ -387,7 +387,7 @@ SEEDED_HOUSES: Tuple[Dict[str, Any], ...] = (
         "lineage_code": "HOUSE-09",
         "house_name": "House of the Lantern Bearers",
         "motto": "Light the Path for the Next Footstep",
-        "crest_asset_path": "/static/assets/crests/house_09_mccormick_bordure.svg",
+        "crest_asset_path": "/static/assets/crests/house_09_mccormick_bordure.jpg",
         "founding_branch": "McCormick Stock · Bordure Indented Gules (Crimson)",
         "history_body": (
             "Differenced with a crimson indented bordure around the foundational McCormick shield, House 09 "
@@ -400,7 +400,7 @@ SEEDED_HOUSES: Tuple[Dict[str, Any], ...] = (
         "lineage_code": "HOUSE-10",
         "house_name": "House of the Stone Bridge",
         "motto": "Built to Carry Our Grandchildren",
-        "crest_asset_path": "/static/assets/crests/house_10_mccormick_bordure.svg",
+        "crest_asset_path": "/static/assets/crests/house_10_mccormick_bordure.jpg",
         "founding_branch": "McCormick Stock · Bordure Embattled Sable & Or",
         "history_body": (
             "Framed in a black-and-gold embattled bordure around the foundational McCormick core, House 10 "
@@ -413,7 +413,7 @@ SEEDED_HOUSES: Tuple[Dict[str, Any], ...] = (
         "lineage_code": "HOUSE-11",
         "house_name": "House of the Southern Star",
         "motto": "True North in Every Season",
-        "crest_asset_path": "/static/assets/crests/house_11_mccormick_bordure.svg",
+        "crest_asset_path": "/static/assets/crests/house_11_mccormick_bordure.jpg",
         "founding_branch": "McCormick Stock · Bordure Wavy Vert (Green)",
         "history_body": (
             "Differenced by a Highland-green wavy bordure around the foundational McCormick arms, House 11 "
@@ -426,7 +426,7 @@ SEEDED_HOUSES: Tuple[Dict[str, Any], ...] = (
         "lineage_code": "HOUSE-12",
         "house_name": "House of the Harvest Table",
         "motto": "Gratitude Shared Multiplies the Blessing",
-        "crest_asset_path": "/static/assets/crests/house_12_mccormick_bordure.svg",
+        "crest_asset_path": "/static/assets/crests/house_12_mccormick_bordure.jpg",
         "founding_branch": "McCormick Stock · Bordure Invected Or (Gold)",
         "history_body": (
             "Completing the circle of twelve Houses with a burnished-gold invected bordure around the foundational "
@@ -667,7 +667,7 @@ class HeritageCommunityService:
                         existing.milestones_json = json.dumps(h["milestones"])
                 elif existing.updated_by == "SYSTEM_SEED" and existing.crest_asset_path in {
                     "/static/assets/crests/house_crest_frame.svg",
-                    "/static/assets/crests/mccormick_crest.svg",
+                    "/static/assets/crests/mccormick_crest.jpg",
                 }:
                     existing.crest_asset_path = h["crest_asset_path"]
                     existing.founding_branch = h["founding_branch"]
@@ -681,9 +681,9 @@ class HeritageCommunityService:
             existing_s = db.get(HeritageSurnameRecordModel, slug)
             if existing_s is None:
                 if slug == "carmichael":
-                    crest_path = "/static/assets/crests/carmichael_crest.svg"
+                    crest_path = "/static/assets/crests/carmichael_crest.jpg"
                 elif slug == "mccormick":
-                    crest_path = "/static/assets/crests/mccormick_crest.svg"
+                    crest_path = "/static/assets/crests/mccormick_crest.jpg"
                 else:
                     crest_path = "/static/assets/crests/allied_crest_frame.svg"
                 db.add(
@@ -952,8 +952,8 @@ class HeritageCommunityService:
                 "allied_surname_count": sum(1 for s in surnames_rows if not s.is_founding),
                 "two_scale_heraldry": {
                     "emblem_assets": {
-                        "carmichael": "/static/assets/crests/carmichael_crest.svg",
-                        "mccormick": "/static/assets/crests/mccormick_crest.svg",
+                        "carmichael": "/static/assets/crests/carmichael_crest.jpg",
+                        "mccormick": "/static/assets/crests/mccormick_crest.jpg",
                     },
                     "achievement_assets": {
                         "carmichael": resolve_heraldic_asset_path("carmichael_achievement"),
