@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IFAS — Independent Financial Accounting System · ADR-011 Air-Gap Boundary</title>
+  <style>
+    :root {
+      --bg-canvas: #0B132B;
+      --bg-card: #1C2541;
+      --bg-surface: #1E293B;
+      --border-subtle: #334155;
+      --text-primary: #F8FAFC;
+      --text-secondary: #CBD5E1;
+      --text-muted: #94A3B8;
+      --accent-sky: #38BDF8;
+      --accent-sky-deep: #0284C7;
+      --status-green: #059669;
+      --status-amber: #D97706;
+      --gold: #D4AF37;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at 20% 0%, #162447 0%, var(--bg-canvas) 62%);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      line-height: 1.6;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .shell {
+      width: min(920px, 92vw);
+      margin: 0 auto;
+      padding: 32px 0 48px;
+      flex: 1;
+    }
+
+    .brand-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding-bottom: 20px;
+      margin-bottom: 28px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .brand-lockup {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .crest-badge {
+      width: 48px;
+      height: 54px;
+      border-radius: 8px;
+      border: 1px solid rgba(212, 175, 55, 0.72);
+      background: rgba(11, 19, 43, 0.92);
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.25;
+    }
+
+    .brand-title {
+      font-size: 0.85rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      color: var(--text-primary);
+    }
+
+    .brand-subtitle {
+      font-size: 0.78rem;
+      font-style: italic;
+      color: #E4C97A;
+    }
+
+    .airgap-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 14px;
+      border-radius: 999px;
+      background: rgba(5, 150, 105, 0.16);
+      border: 1px solid var(--status-green);
+      color: #A7F3D0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .hero-card {
+      background: var(--bg-card);
+      border: 1px solid rgba(212, 175, 55, 0.42);
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 24px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+    }
+
+    .eyebrow {
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: clamp(1.5rem, 3vw, 2rem);
+      font-weight: 700;
+      line-height: 1.25;
+      color: var(--text-primary);
+    }
+
+    .lead {
+      margin: 0;
+      font-size: 1rem;
+      color: var(--text-secondary);
+      max-width: 72ch;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+
+    .panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 20px;
+    }
+
+    .panel h2 {
+      margin: 0 0 8px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--accent-sky);
+    }
+
+    .panel p {
+      margin: 0;
+      font-size: 0.94rem;
+      color: var(--text-secondary);
+    }
+
+    .mono-tag {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.8rem;
+    }
+
+    .notice-banner {
+      background: rgba(217, 119, 6, 0.14);
+      border: 1px solid var(--status-amber);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 26px;
+      color: #FDE68A;
+      font-size: 0.93rem;
+    }
+
+    .notice-banner strong {
+      color: var(--text-primary);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      padding: 11px 20px;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .btn-primary {
+      background: var(--accent-sky-deep);
+      border: 1px solid var(--accent-sky);
+      color: var(--text-primary);
+    }
+
+    .btn-primary:hover,
+    .btn-primary:focus-visible {
+      background: #0369A1;
+      outline: 2px solid var(--accent-sky);
+      outline-offset: 2px;
+    }
+
+    .btn-secondary {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+    }
+
+    .btn-secondary:hover,
+    .btn-secondary:focus-visible {
+      border-color: var(--gold);
+      color: #FDE68A;
+      outline: 2px solid var(--gold);
+      outline-offset: 2px;
+    }
+
+    footer {
+      border-top: 1px solid var(--border-subtle);
+      margin-top: 36px;
+      padding-top: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    .footer-badge {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.74rem;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="brand-bar">
+      <div class="brand-lockup">
+        <div class="crest-badge" aria-hidden="true">
+          <svg width="34" height="40" viewBox="0 0 34 40" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Carmichael-McCormick Institutional Shield">
+            <path d="M17 2L31 7.5V19.5C31 28.6 24.9 35.4 17 38.5C9.1 35.4 3 28.6 3 19.5V7.5L17 2Z" fill="#1C2541" stroke="#D4AF37" stroke-width="2"/>
+            <path d="M17 6.5V33.5" stroke="#D4AF37" stroke-width="1.3" stroke-opacity="0.8"/>
+            <path d="M7.5 14.5H26.5" stroke="#38BDF8" stroke-width="1.4" stroke-opacity="0.85"/>
+            <circle cx="17" cy="14.5" r="3" fill="#D4AF37"/>
+            <path d="M11 24.5L17 20.5L23 24.5" stroke="#F8FAFC" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">FUTURE · CARMICHAEL — McCORMICK</span>
+          <span class="brand-subtitle">Independent Financial Accounting System (IFAS)</span>
+        </div>
+      </div>
+      <span class="airgap-pill">ADR-011 AIR-GAP ENCLAVE · narratixai.net</span>
+    </header>
+
+    <section class="hero-card" aria-labelledby="ifas-heading">
+      <div class="eyebrow">Fiduciary Accounting &amp; Custody Isolation Boundary</div>
+      <h1 id="ifas-heading">Standalone IFAS Accounting, Tax Statements &amp; Banking Rails</h1>
+      <p class="lead">
+        This domain (<strong>narratixai.net</strong>) is reserved exclusively for the standalone
+        <strong>Independent Financial Accounting System (IFAS)</strong> under <strong>ADR-011</strong>.
+        No PDEUE trading endpoints, family social pages, or execution services are hosted or proxied here.
+      </p>
+    </section>
+
+    <div class="notice-banner" role="note">
+      <strong>Architectural Firewall Active:</strong> Under ADR-011, PDEUE never stores bank routing numbers,
+      account numbers, SWIFT codes, or banking API credentials. Authorized accounting instructions cross into IFAS
+      strictly via HMAC-SHA256 signed JSON-LD outbox events referencing opaque custodial tokens.
+    </div>
+
+    <section class="grid" aria-label="IFAS Governance Invariants">
+      <article class="panel">
+        <h2>Zero Banking Credentials in PDEUE</h2>
+        <p>
+          External funding and distribution rails use opaque tokens only, separating custodial banking credentials
+          from the Public Data Event Underwriting Engine and Family Social planes.
+        </p>
+        <span class="mono-tag">EXT-REF-[ENTITY]-****[LAST4]</span>
+      </article>
+
+      <article class="panel">
+        <h2>Exact-Cent Accounting (ADR&#8209;008)</h2>
+        <p>
+          Every ledger posting, tax-basis schedule, and distribution instruction reconciles in 64-bit integer cents
+          with zero floating-point currency arithmetic.
+        </p>
+        <span class="mono-tag">INT64 EXACT-CENT LEDGER</span>
+      </article>
+
+      <article class="panel">
+        <h2>100% SCMA Loss Isolation (ADR&#8209;012)</h2>
+        <p>
+          Individual Sub-Capital Member Account outcomes remain strictly contained per member, with High-Water Mark
+          verification prior to any 87/10/3 waterfall distribution.
+        </p>
+        <span class="mono-tag">RULE A14 · HWM VERIFIED</span>
+      </article>
+    </section>
+
+    <nav class="actions" aria-label="Return to Family and Member Planes">
+      <a class="btn btn-primary" href="https://narratixai.org/home">Return to Family Home Hub (narratixai.org) →</a>
+      <a class="btn btn-secondary" href="https://vault.narratixai.io/member">Open Personal Account Vault (vault.narratixai.io) →</a>
+    </nav>
+
+    <footer>
+      <span>Carmichael — McCormick Institutional Stewardship · Powered by CARM Aerotech Corporation</span>
+      <span class="footer-badge">STATIC AIR-GAP BOUNDARY · ZERO PDEUE PROXY</span>
+    </footer>
+  </main>
+</body>
+</html>

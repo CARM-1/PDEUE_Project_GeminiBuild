@@ -1,0 +1,208 @@
+# PDEUE PR #85 — 4-Domain Air-Gapped HTTPS Reverse Proxy (Caddy 2)
+# Target Host: pdeue-ring1-paper (AWS Lightsail, 44.200.6.195)
+#
+# Strict Host-to-Plane Enclave Isolation:
+#   - www.narratixai.org  -> 301 canonical redirect to https://narratixai.org{uri}
+#   - narratixai.org      -> Family Social & Heritage Plane (ZERO financial/admin routes)
+#   - narratixai.info     -> PDEUE University Plane (educational routes only)
+#   - vault.narratixai.io -> Personal Account & Custodial Vault Plane (NO /dashboard or /admin)
+#   - admin.narratixai.io -> Executive & Technical Operations Plane
+#   - narratixai.net      -> Standalone IFAS Accounting & Banking Air-Gap (static only; ZERO PDEUE proxy)
+#
+# Automatic TLS: Caddy provisions and renews Let's Encrypt certificates on ports 80/443.
+
+(security_headers_strict) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+		-Server
+	}
+}
+
+# Social plane preserves sandboxed Jitsi Meet iframe compatibility (camera/mic/display-capture)
+# for /community while locking down unrelated browser capabilities.
+(security_headers_social_jitsi) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(self \"https://meet.jit.si\"), microphone=(self \"https://meet.jit.si\"), display-capture=(self \"https://meet.jit.si\"), geolocation=(), payment=(), usb=()"
+		-Server
+	}
+}
+
+# ----------------------------------------------------------------------
+# 1. Canonical Apex Redirect (www.narratixai.org -> narratixai.org)
+# ----------------------------------------------------------------------
+www.narratixai.org {
+	import security_headers_strict
+	redir https://narratixai.org{uri} 301
+}
+
+# ----------------------------------------------------------------------
+# 2. Family Social & Heritage Plane (narratixai.org) — ZERO Financial Data
+# ----------------------------------------------------------------------
+narratixai.org {
+	import security_headers_social_jitsi
+
+	@social_blocked {
+		path /member /member/* /advisor /advisor/* /dashboard /dashboard/* /admin /admin/* /lineage /lineage/* /companion /companion/* /api/v1/ledger /api/v1/ledger/* /api/v1/governance /api/v1/governance/* /api/v1/operator /api/v1/operator/* /api/v1/accounting /api/v1/accounting/* /api/v1/workspace /api/v1/workspace/* /api/v1/copilot /api/v1/copilot/* /api/v1/paper /api/v1/paper/* /api/v1/member /api/v1/member/* /api/v1/advisor /api/v1/advisor/* /api/v1/lineage /api/v1/lineage/* /api/v1/onboarding /api/v1/onboarding/* /api/v1/portal/member* /api/v1/portal/advisor* /api/v1/portal/custodial* /api/v1/portal/lineage* /api/v1/portal/telemetry* /api/v1/portal/read-model* /api/v1/portal/active-hat*
+	}
+
+	@social_allowed {
+		path / /home /community /community/* /static/* /api/v1/portal/planes /api/v1/portal/community/* /health
+	}
+
+	route {
+		handle @social_blocked {
+			respond "Forbidden: Financial and operational routes are air-gapped off narratixai.org." 403
+		}
+
+		handle @social_allowed {
+			reverse_proxy pdeue-paper-api:8000
+		}
+
+		handle {
+			respond "Not Found: Route not exposed on Family Social Plane." 404
+		}
+	}
+}
+
+# ----------------------------------------------------------------------
+# 3. PDEUE University Plane (narratixai.info) — Learning Campus Only
+# ----------------------------------------------------------------------
+narratixai.info {
+	import security_headers_strict
+
+	@university_root {
+		path /
+	}
+
+	@university_blocked {
+		path /member /member/* /advisor /advisor/* /dashboard /dashboard/* /admin /admin/* /lineage /lineage/* /home /home/* /community /community/* /api/v1/ledger /api/v1/ledger/* /api/v1/governance /api/v1/governance/* /api/v1/operator /api/v1/operator/* /api/v1/accounting /api/v1/accounting/* /api/v1/workspace /api/v1/workspace/* /api/v1/copilot /api/v1/copilot/* /api/v1/paper /api/v1/paper/* /api/v1/member /api/v1/member/* /api/v1/advisor /api/v1/advisor/* /api/v1/lineage /api/v1/lineage/* /api/v1/portal/member* /api/v1/portal/advisor* /api/v1/portal/custodial* /api/v1/portal/lineage* /api/v1/portal/telemetry*
+	}
+
+	@university_allowed {
+		path /companion /companion/* /static/* /api/v1/portal/planes /api/v1/portal/companion /api/v1/portal/companion/* /api/v1/manuals /api/v1/manuals/* /api/v1/lexicon /api/v1/lexicon/* /health
+	}
+
+	route {
+		handle @university_root {
+			redir /companion 302
+		}
+
+		handle @university_blocked {
+			respond "Forbidden: Financial and operational routes are air-gapped off narratixai.info." 403
+		}
+
+		handle @university_allowed {
+			reverse_proxy pdeue-paper-api:8000
+		}
+
+		handle {
+			respond "Not Found: Route not exposed on PDEUE University Plane." 404
+		}
+	}
+}
+
+# ----------------------------------------------------------------------
+# 4. Personal Account & Custodial Vault Plane (vault.narratixai.io)
+# ----------------------------------------------------------------------
+vault.narratixai.io {
+	import security_headers_strict
+
+	@vault_root {
+		path /
+	}
+
+	@vault_blocked {
+		path /dashboard /dashboard/* /admin /admin/* /api/v1/operator /api/v1/operator/* /api/v1/workspace /api/v1/workspace/* /api/v1/accounting /api/v1/accounting/* /api/v1/copilot /api/v1/copilot/* /api/v1/paper /api/v1/paper/* /api/v1/portal/telemetry*
+	}
+
+	@vault_allowed {
+		path /member /member/* /advisor /advisor/* /lineage/* /static/* /api/v1/portal/* /api/v1/member/* /api/v1/advisor/* /api/v1/lineage/* /api/v1/lexicon /api/v1/lexicon/* /api/v1/onboarding/* /health
+	}
+
+	route {
+		handle @vault_root {
+			redir /member 302
+		}
+
+		handle @vault_blocked {
+			respond "Forbidden: Executive and technical administration routes are isolated on admin.narratixai.io." 403
+		}
+
+		handle @vault_allowed {
+			reverse_proxy pdeue-paper-api:8000
+		}
+
+		handle {
+			respond "Not Found: Route not exposed on Personal Account Vault Plane." 404
+		}
+	}
+}
+
+# ----------------------------------------------------------------------
+# 5. Executive & Technical Operations Plane (admin.narratixai.io)
+# ----------------------------------------------------------------------
+admin.narratixai.io {
+	import security_headers_strict
+
+	@admin_root {
+		path /
+	}
+
+	@admin_allowed {
+		path /dashboard /dashboard/* /admin/* /static/* /api/v1/* /health
+	}
+
+	route {
+		handle @admin_root {
+			redir /dashboard 302
+		}
+
+		handle @admin_allowed {
+			reverse_proxy pdeue-paper-api:8000
+		}
+
+		handle {
+			respond "Not Found: Route not exposed on Executive & Technical Operations Plane." 404
+		}
+	}
+}
+
+# ----------------------------------------------------------------------
+# 6. Standalone IFAS Accounting & Banking Air-Gap Plane (narratixai.net)
+#    STRICT ADR-011 AIR-GAP: ZERO reverse_proxy to PDEUE API / trading app
+# ----------------------------------------------------------------------
+narratixai.net {
+	import security_headers_strict
+
+	@ifas_blocked_pdeue {
+		path /dashboard /dashboard/* /admin /admin/* /member /member/* /advisor /advisor/* /lineage /lineage/* /companion /companion/* /community /community/* /api/*
+	}
+
+	@ifas_static_landing {
+		path / /index.html
+	}
+
+	route {
+		handle @ifas_blocked_pdeue {
+			respond "Forbidden: narratixai.net is an ADR-011 air-gapped IFAS enclave. No PDEUE trading or API routes are served here." 403
+		}
+
+		handle @ifas_static_landing {
+			root * /srv/ifas
+			try_files /index.html
+			file_server
+		}
+
+		handle {
+			respond "Not Found: Standalone IFAS Air-Gap Boundary." 404
+		}
+	}
+}

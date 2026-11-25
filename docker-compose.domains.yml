@@ -1,0 +1,54 @@
+# PDEUE PR #85 — 4-Domain Air-Gapped HTTPS Reverse Proxy Overlay (AWS Lightsail)
+#
+# Usage (from repository root, layered over deploy/docker-compose.paper.yml):
+#   docker compose -f deploy/docker-compose.paper.yml -f docker-compose.domains.yml up -d --build
+#
+# Invariants preserved:
+#   - Does NOT modify or interrupt `pdeue-l2-collector`, `/var/lib/pdeue/data`, or `/var/lib/pdeue/tapes`.
+#   - Does NOT weaken Gate G1 fail-closed paper/observation defaults (`PDEUE_VENUE_MODE=paper`,
+#     `PDEUE_LIVE_TRADING_ENABLED=false`, `PDEUE_GATE_G1_STATUS=HOLD_OBSERVATIONS_ONLY`).
+#   - `pdeue-api` (`container_name: pdeue-paper-api`) remains bound to 127.0.0.1:8000 (dark-by-default),
+#     while `pdeue-caddy` terminates Let's Encrypt HTTPS on ports 80 and 443.
+#   - Relative bind-mount paths use `../deploy/...` because Docker Compose resolves relative paths
+#     against the directory of the first `-f` file (`deploy/docker-compose.paper.yml`), keeping the
+#     Compose project name (`deploy`) identical to the live Lightsail stack.
+
+services:
+  pdeue-api:
+    environment:
+      FAMILY_HUB_BASE_URL: https://narratixai.org
+      UNIVERSITY_BASE_URL: https://narratixai.info
+      PDEUE_VAULT_BASE_URL: https://vault.narratixai.io
+      PDEUE_ADMIN_BASE_URL: https://admin.narratixai.io
+      IFAS_ACCOUNTING_BASE_URL: https://narratixai.net
+    networks:
+      default:
+        aliases:
+          - pdeue-paper-api
+
+  pdeue-caddy:
+    image: caddy:2-alpine
+    container_name: pdeue-caddy
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      pdeue-api:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "../deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro"
+      - "../deploy/caddy/ifas_airgap:/srv/ifas:ro"
+      - "/var/lib/pdeue/caddy/data:/data"
+      - "/var/lib/pdeue/caddy/config:/config"
+    mem_limit: 128m
+    memswap_limit: 256m
+    mem_reservation: 32m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
