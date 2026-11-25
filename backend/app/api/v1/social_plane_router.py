@@ -43,6 +43,10 @@ from app.domain.heritage_community_service import (
     resolve_heraldic_asset_path,
     sanitize_social_text,
 )
+from app.domain.dual_lane_tutor import (
+    get_dual_lane_tutor,
+    is_academy_balance_or_trade_request,
+)
 from app.domain.plane_routing import (
     get_plane_config,
     resolve_lineage_house_url,
@@ -320,37 +324,15 @@ def get_community_lessons() -> Dict[str, Any]:
 
 
 @social_plane_router.post("/api/v1/portal/community/academy/ask-tutor")
-def ask_community_tutor(request: CommunityTutorRequest) -> Dict[str, str]:
+def ask_community_tutor(request: CommunityTutorRequest) -> Dict[str, Any]:
     query = sanitize_social_text(request.query, field="query", maximum=500)
     member_id = sanitize_social_text(request.member_id, field="member_id", maximum=80)
-    lowered = html.unescape(query).lower()
-    mutation_phrases = (
-        "buy ", "sell ", "place an order", "execute", "submit a trade",
-        "make a trade", "cancel order", "transfer", "withdraw", "deposit",
-    )
-    balance_phrases = ("my balance", "account balance", "capital balance", "bank balance", "how much money")
-    if any(phrase in lowered for phrase in mutation_phrases + balance_phrases):
+    if is_academy_balance_or_trade_request(query):
         raise HTTPException(
             status_code=403,
             detail="The academy tutor is educational only and cannot access balances or perform transactions.",
         )
-
-    if "quarter-kelly" in lowered or "quarter kelly" in lowered:
-        answer = "Quarter-Kelly uses one fourth of a model's Kelly-sized exposure. It keeps the idea of scaling with confidence while adding a large cushion for estimation error and uncertainty."
-        concept = "RISK_SIZING"
-    elif "binary" in lowered:
-        answer = "A binary contract has two possible settlement outcomes. Its quoted probability is a learning aid, not a promise; uncertainty and calibration still matter."
-        concept = "BINARY_CONTRACT_FOUNDATIONS"
-    elif "87/10/3" in lowered or "waterfall" in lowered:
-        answer = "The 87/10/3 lesson describes a stewardship safeguard: three defined portions help learners reason about compounding, family protection, and education support without directing a transaction."
-        concept = "WATERFALL_STEWARDSHIP"
-    elif "pay-it-forward" in lowered or "lccf" in lowered or "fsap" in lowered:
-        answer = "Pay-it-Forward (FSAP — Familial Stability Advance Pool) launches in Phase II inside our separate IFAS accounting system. Stable relatives help pay off high-interest debt and seed an isolated account with zero shared trading risk, receiving full principal return plus a transparent share of actual realized pool income. Once repaid to $0.00, the relative makes The Sovereign Choice to pass it forward voluntarily."
-        concept = "LCCF_STEWARDSHIP"
-    else:
-        answer = "Start by naming the outcome, the uncertainty, and what evidence could change your view. Good risk literacy separates an educational estimate from a guaranteed result."
-        concept = "RISK_LITERACY"
-    return {"member_id": member_id, "query": query, "answer": answer, "concept": concept, "mode": "EDUCATIONAL_ONLY"}
+    return get_dual_lane_tutor().answer_academy_query(query=query, member_id=member_id)
 
 
 # ----------------------------------------------------------------------

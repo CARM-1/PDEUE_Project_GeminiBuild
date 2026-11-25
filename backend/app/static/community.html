@@ -269,9 +269,15 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
   <div class="grid" id="lessons"><article class="card">Loading curriculum…</article></div>
   <div class="badges"><span class="tag">✓ Foundations Pathfinder</span><span class="tag">✓ Risk Vocabulary</span><span class="tag">Milestone: 2 of 3 lessons</span></div>
   <article class="card tutor">
-    <h2>Interactive AI Literacy Tutor</h2>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+      <h2 style="margin:0;">Interactive Dual-Lane AI Literacy Tutor</h2>
+      <span class="tag" style="background:#0f2942;border:1px solid #38bdf8;color:#bae6fd;">Lane 1: Local Canon · Lane 2: Public Research</span>
+    </div>
+    <div id="communityTutorExplainer" style="background:#0f172a;border:1px solid #334155;border-left:4px solid #38bdf8;border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:.9rem;color:#cbd5e1;">
+      <strong style="color:#f8fafc;">What This Means:</strong> Ask any family-rule question (such as the 87/10/3 waterfall, High-Water Mark, 40% Dry-Powder Floor, or Phase II Pay-it-Forward) for a <strong style="color:#6ee7b7;">Lane 1 · Local PDEUE Canon</strong> answer with a real dollar example. Ask general market questions (such as CPI prints, Treasury yields, EIA energy storage, or NOAA weather oracles) for <strong style="color:#fcd34d;">Lane 2 · General Public Market Education — Not Financial Advice</strong> with public source citations. Balance lookups, trade commands, and prohibited sports/casino/war/death topics are automatically blocked.
+    </div>
     <div class="tutor-log" id="tutorLog" aria-live="polite"><p class="reply">Tutor: Ask me to explain a curriculum concept in plain English.</p></div>
-    <form id="tutorForm" class="post-form"><input id="tutorQuery" maxlength="500" required aria-label="Question for literacy tutor" placeholder="Why does Quarter-Kelly add a cushion?"><button id="askCommunityTutorBtn" class="action" type="submit">Ask tutor</button><button id="clearCommunityTutorBtn" class="action-clear" type="button" aria-label="Clear tutor conversation and reset question input" onclick="clearCommunityTutor()">Clear</button></form>
+    <form id="tutorForm" class="post-form"><input id="tutorQuery" maxlength="500" required aria-label="Question for literacy tutor" placeholder="Ask about 87/10/3, High-Water Mark, CPI prints, or NOAA weather oracles…"><button id="askCommunityTutorBtn" class="action" type="submit">Ask tutor</button><button id="clearCommunityTutorBtn" class="action-clear" type="button" aria-label="Clear tutor conversation and reset question input" onclick="clearCommunityTutor()">Clear</button></form>
     <p class="notice" id="communityTutorStatus" role="status" aria-live="polite">Educational explanations only. Transaction requests and private account questions are refused.</p>
   </article>
 </section>
@@ -430,9 +436,71 @@ $('tutorForm').addEventListener('submit',async event=>{
     body:JSON.stringify({member_id:'authenticated-member',query})
   });
   const data=await response.json();
-  const reply=text('p','Tutor: '+(data.answer||data.detail));
-  reply.className='reply';
-  $('tutorLog').append(reply);
+  const wrap=document.createElement('div');
+  wrap.className='reply';
+  wrap.style.marginBottom='10px';
+  if(data.lane){
+    const badge=document.createElement('div');
+    badge.style.display='inline-block';
+    badge.style.padding='3px 9px';
+    badge.style.borderRadius='999px';
+    badge.style.fontSize='0.74rem';
+    badge.style.fontWeight='800';
+    badge.style.marginBottom='6px';
+    if(data.lane==='PUBLIC_WEB_RESEARCH'){
+      badge.style.background='#3b2a09';
+      badge.style.border='1px solid #d97706';
+      badge.style.color='#fde68a';
+      badge.textContent='LANE 2 · '+(data.disclaimer_badge||'General Public Market Education — Not Financial Advice');
+    }else if(data.lane==='REGULATORY_REFUSAL'){
+      badge.style.background='#3b1219';
+      badge.style.border='1px solid #dc2626';
+      badge.style.color='#fecaca';
+      badge.textContent='BLOCKED · '+(data.lane_badge||'Prohibited Event Category');
+    }else{
+      badge.style.background='#0d3326';
+      badge.style.border='1px solid #059669';
+      badge.style.color='#a7f3d0';
+      badge.textContent='LANE 1 · '+(data.lane_badge||'Local PDEUE Canon');
+    }
+    wrap.append(badge);
+  }
+  wrap.append(text('p','Tutor: '+(data.answer||data.detail)));
+  if(data.dollar_example){
+    const ex=text('p',data.dollar_example);
+    ex.style.color='#bae6fd';
+    ex.style.fontSize='0.88rem';
+    wrap.append(ex);
+  }
+  if(data.university_pointer){
+    const ptr=text('p','🎓 '+data.university_pointer);
+    ptr.style.color='#94a3b8';
+    ptr.style.fontSize='0.84rem';
+    wrap.append(ptr);
+  }
+  if(Array.isArray(data.citations)&&data.citations.length){
+    const citeWrap=document.createElement('div');
+    citeWrap.style.marginTop='6px';
+    citeWrap.style.fontSize='0.82rem';
+    citeWrap.style.color='#cbd5e1';
+    citeWrap.append(text('strong','Public Sources Cited:'));
+    const ul=document.createElement('ul');
+    ul.style.margin='4px 0 0 18px';
+    data.citations.forEach(c=>{
+      const li=document.createElement('li');
+      const a=document.createElement('a');
+      a.href=c.url||'#';
+      a.target='_blank';
+      a.rel='noopener noreferrer';
+      a.style.color='#38bdf8';
+      a.textContent=(c.title||'Source')+(c.source?' — '+c.source:'');
+      li.append(a);
+      ul.append(li);
+    });
+    citeWrap.append(ul);
+    wrap.append(citeWrap);
+  }
+  $('tutorLog').append(wrap);
   $('tutorQuery').value='';
   $('tutorLog').scrollTop=$('tutorLog').scrollHeight;
 });

@@ -22,12 +22,16 @@ class GeminiLLMClient(BaseLLMClient):
         api_key: Optional[str] = None,
         model: Optional[str] = None,
         fallback_client: Optional[BaseLLMClient] = None,
-        timeout_seconds: float = 20.0,
+        timeout_seconds: Optional[float] = None,
+        max_output_tokens: Optional[int] = None,
     ):
         self.api_key = (api_key if api_key is not None else os.getenv("GEMINI_API_KEY", "")).strip()
         self.model = (model or os.getenv("GEMINI_MODEL", "gemini-2.5-pro")).strip()
         self.model_name = self.model
-        self.timeout_seconds = float(timeout_seconds)
+        env_timeout = float(os.getenv("AI_REQUEST_TIMEOUT_SECONDS", "15.0"))
+        env_tokens = int(os.getenv("AI_MAX_OUTPUT_TOKENS", "1024"))
+        self.timeout_seconds = float(timeout_seconds if timeout_seconds is not None else env_timeout)
+        self.max_output_tokens = int(max_output_tokens if max_output_tokens is not None else env_tokens)
         self._fallback = fallback_client or MockLLMClient()
         self.endpoint = (
             f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
@@ -68,8 +72,32 @@ class GeminiLLMClient(BaseLLMClient):
             requested_provider=self.provider_name,
             impact_card=mock_resp.impact_card,
             citations=list(mock_resp.citations),
+            web_citations=list(mock_resp.web_citations),
+            grounding_used=bool(mock_resp.grounding_used),
             structured_data=mock_resp.structured_data,
         )
+
+    @staticmethod
+    def _extract_grounding_citations(data: Dict[str, Any]) -> List[Dict[str, str]]:
+        candidates = data.get("candidates") or []
+        if not candidates or not isinstance(candidates[0], dict):
+            return []
+        meta = candidates[0].get("groundingMetadata") or {}
+        chunks = meta.get("groundingChunks") or []
+        out: List[Dict[str, str]] = []
+        seen: set[str] = set()
+        for chunk in chunks:
+            if not isinstance(chunk, dict):
+                continue
+            web = chunk.get("web") or {}
+            url = str(web.get("uri") or web.get("url") or "").strip()
+            title = str(web.get("title") or "Public Market Source").strip()
+            if not url or url in seen:
+                continue
+            seen.add(url)
+            source = str(web.get("domain") or title).strip()
+            out.append({"title": title, "url": url, "source": source})
+        return out
 
     def generate_response(
         self,
@@ -131,10 +159,20 @@ class GeminiLLMClient(BaseLLMClient):
             prompt_parts.append(f"Scoped Context:\n{json.dumps(safe_ctx, default=str)}")
         prompt_parts.append(f"User Query:\n{verdict.sanitized_text}")
 
+        token_cap = min(
+            int(ctx.get("max_output_tokens") or self.max_output_tokens),
+            int(self.max_output_tokens),
+        )
         payload: Dict[str, Any] = {
             "contents": [{"role": "user", "parts": [{"text": "\n\n".join(prompt_parts)}]}],
-            "generationConfig": {"temperature": 0.2},
+            "generationConfig": {
+                "temperature": 0.2,
+                "maxOutputTokens": max(64, token_cap),
+            },
         }
+        web_grounding = bool(ctx.get("web_grounding"))
+        if web_grounding:
+            payload["tools"] = [{"google_search": {}}]
 
         req = urllib.request.Request(
             self.endpoint,
@@ -152,6 +190,7 @@ class GeminiLLMClient(BaseLLMClient):
                 candidates = data.get("candidates") or []
                 parts = (candidates[0].get("content", {}).get("parts", []) if candidates else [])
                 text = "".join(str(p.get("text", "")) for p in parts if isinstance(p, dict)).strip()
+                web_citations = self._extract_grounding_citations(data) if web_grounding else []
                 draft = (
                     ctx.get("copilot_draft")
                     if isinstance(ctx.get("copilot_draft"), dict)
@@ -174,6 +213,8 @@ class GeminiLLMClient(BaseLLMClient):
                     auth_tier=str(draft.get("auth_tier") or "AUTH-01"),
                     impact_card=draft.get("impact_card"),
                     citations=list(draft.get("citations") or []),
+                    web_citations=web_citations,
+                    grounding_used=web_grounding,
                     structured_data=draft.get("structured_data"),
                 )
         except (urllib.error.HTTPError, urllib.error.URLError, Exception) as exc:

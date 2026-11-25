@@ -106,9 +106,11 @@ app.include_router(copilot_router)
 app.include_router(health_router)
 
 
-# Mount air-gapped social/heritage/comms router, portal router, and static assets
+# Mount air-gapped social/heritage/comms router, shadow hunch router, portal router, and static assets
 from app.api.v1.social_plane_router import social_plane_router
+from app.api.v1.hunch_router import hunch_router
 app.include_router(social_plane_router)
+app.include_router(hunch_router)
 app.include_router(portal_router)
 static_path = pathlib.Path(__file__).parent / 'static'
 app.mount('/static', StaticFiles(directory=str(static_path)), name='static')

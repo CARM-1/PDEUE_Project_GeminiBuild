@@ -21,7 +21,18 @@ from app.domain.ai_clients import (
     get_llm_client,
     inspect_user_input,
 )
+from app.domain.dual_lane_tutor import (
+    LANE_LOCAL_CANON,
+    LANE_PUBLIC_WEB_RESEARCH,
+    LANE_REGULATORY_REFUSAL,
+    LOCAL_CANON_BADGE,
+    PUBLIC_RESEARCH_DISCLAIMER_BADGE,
+    REGULATORY_REFUSAL_BADGE,
+    is_public_market_research_query,
+    match_local_canon_topic,
+)
 from app.domain.lexicon_v05 import LEXICON_BY_ID, LEXICON_VERSION, get_lexicon_payload
+from app.domain.regulatory_filter import PROHIBITED_CODE, check_regulatory_content
 
 MEMBER_TUTOR_SYSTEM_PROMPT = (
     "You are the PDEUE Class M Member AI Literacy Tutor. "
@@ -737,7 +748,7 @@ def _build_deterministic_tutor_draft(
         }
 
     # 11. Project FUTURE / Monthly After $25k
-    if any(marker in q for marker in ("future", "diversification", "markets")):
+    if any(marker in q for marker in ("project future", "spawn 2.0", "diversification", "diversify")):
         content = (
             "Project FUTURE begins after the active trading float reaches its $25,000 ceiling. "
             "The same underwriting discipline then diversifies through SPAWN 2.0 into deep CME "
@@ -757,7 +768,7 @@ def _build_deterministic_tutor_draft(
             "citations": ["scma", "dry-powder-floor-40"],
         }
 
-    if "monthly" in q or "after 25k" in q or "after $25k" in q or "float cap" in q:
+    if ("monthly" in q and not is_public_market_research_query(query)) or "after 25k" in q or "after $25k" in q or "float cap" in q:
         content = (
             "After the active float reaches $25,000, it remains intact while excess personal net profits sweep "
             "off-venue into protected bank cash. The illustrative steady-state cash run rate is approximately "
@@ -774,6 +785,24 @@ def _build_deterministic_tutor_draft(
             "impact_card": None,
             "action_cards": [],
             "citations": ["scma", "adr-011-air-gap"],
+        }
+
+    # 11b. Additional Lane 1 Local Canon topics (Shadow Hunch rules, Phase I vs II, Active-Hat R-06, Directive R-12)
+    canon_hit = match_local_canon_topic(query)
+    if canon_hit is not None:
+        return {
+            "content": canon_hit["answer"],
+            "analogy": (
+                "PDEUE's local family canon pairs clear plain-English rules with exact-dollar examples "
+                "so every family member knows exactly how their account is protected."
+            ),
+            "auth_tier": "AUTH-01",
+            "impact_card": None,
+            "action_cards": [],
+            "citations": canon_hit["lexicon_citations"] or ["scma"],
+            "dollar_example": canon_hit["dollar_example"],
+            "university_pointer": canon_hit["university_pointer"],
+            "lane": LANE_LOCAL_CANON,
         }
 
     # 12. Direct Lexicon v0.5 lookup for any remaining term (SCMA, Active-Hat R-06, Directive R-12, etc.)
@@ -805,7 +834,12 @@ def _build_deterministic_tutor_draft(
                 )
             ],
             "citations": [top["id"]],
+            "lane": LANE_LOCAL_CANON,
         }
+
+    # 12b. Lane 2 signal: general public market / economic / oracle / binary probability research
+    if is_public_market_research_query(query):
+        return {"lane": LANE_PUBLIC_WEB_RESEARCH}
 
     # 13. Friendly default grounded in the requesting member's own isolated SCMA posture.
     content = (
@@ -813,7 +847,8 @@ def _build_deterministic_tutor_draft(
         f"Your current SCMA snapshot: balance {bal_str}, High-Water Mark {hwm_str}, mandatory 40% Dry-Powder "
         f"Floor {floor_str}, and downward-only risk dial {risk_pct:.2f}%. "
         "Ask me in everyday language about the 87/10/3 waterfall, 40% Dry-Powder Floor, Quarter-Kelly sizing, "
-        "High-Water Mark (ADR-012), ADR-011 banking air-gap, or what happens if you withdraw part of your seed."
+        "High-Water Mark (ADR-012), ADR-011 banking air-gap, Shadow Hunch rules, or general public market topics "
+        "like CPI prints, Treasury yields, EIA energy storage, and NOAA weather oracles."
     )
     analogy = (
         "Think of this tutor as a patient family financial librarian: I can explain every gauge on your "
@@ -835,11 +870,12 @@ def _build_deterministic_tutor_draft(
             )
         ],
         "citations": ["scma", "tpw-waterfall", "dry-powder-floor-40"],
+        "lane": LANE_LOCAL_CANON,
     }
 
 
 class MemberLiteracyTutor:
-    """Class M Member AI Literacy Tutor wired through the pluggable BaseLLMClient layer."""
+    """Class M Member Dual-Lane AI Literacy Tutor wired through the pluggable BaseLLMClient layer."""
 
     def __init__(self, llm_client: Optional[BaseLLMClient] = None):
         self._llm_client = llm_client
@@ -854,12 +890,12 @@ class MemberLiteracyTutor:
         query: str,
         member_state: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        """Answer a Class M member literacy question with strict isolation and zero mutations."""
+        """Answer a Class M member literacy question with Dual-Lane routing, strict isolation & zero mutations."""
         prompt = (query or "").strip()
         member_ctx = build_member_tutor_context(member_state)
         client = self._resolve_client()
 
-        # Input prompt-injection, role-scope, secret, and cross-member guard runs FIRST.
+        # 1. Input prompt-injection, role-scope, secret, and cross-member guard runs FIRST.
         verdict = inspect_user_input(
             prompt,
             actor_role="MEMBER",
@@ -877,12 +913,19 @@ class MemberLiteracyTutor:
                 "analogy": None,
                 "unilateral_execution": False,
                 "auth_tier": "AUTH-01",
+                "lane": LANE_REGULATORY_REFUSAL,
+                "lane_badge": "Blocked — Constitutional Guardrail",
+                "disclaimer_badge": None,
+                "dollar_example": None,
+                "university_pointer": None,
+                "citations": [],
                 "provider_used": client.provider_name if client.is_configured else "mock",
                 "model_used": client.model_name if client.is_configured else "mock-v1",
                 "fallback_used": not client.is_configured,
                 "guard_blocked": True,
                 "guard_category": verdict.category,
                 "guard_reason": verdict.reason,
+                "regulatory_blocked": False,
                 "audit_event_id": verdict.audit_event_id,
                 "lexicon_version": LEXICON_VERSION,
                 "lexicon_citations": [],
@@ -894,11 +937,110 @@ class MemberLiteracyTutor:
                 },
             }
 
+        # 2. Nov 2026 CFTC / DEATH BETS Act Regulatory Content Filter (FAIL-CLOSED)
+        reg = check_regulatory_content(verdict.sanitized_text)
+        if not reg.allowed:
+            return {
+                "role": "MEMBER_TUTOR",
+                "query": prompt,
+                "response": reg.reason,
+                "answer": reg.reason,
+                "analogy": None,
+                "unilateral_execution": False,
+                "auth_tier": "AUTH-01",
+                "lane": LANE_REGULATORY_REFUSAL,
+                "lane_badge": REGULATORY_REFUSAL_BADGE,
+                "disclaimer_badge": "Nov 2026 CFTC Event-Contract Scope & DEATH BETS Act",
+                "dollar_example": None,
+                "university_pointer": "Try this in PDEUE University: Chapter 1 — Eligible Regulated Markets & Ethics Charter (/companion?chapter=1)",
+                "citations": [],
+                "provider_used": "regulatory_filter",
+                "model_used": "policy-v1",
+                "fallback_used": False,
+                "guard_blocked": True,
+                "guard_category": PROHIBITED_CODE,
+                "guard_reason": reg.reason,
+                "regulatory_blocked": True,
+                "prohibited_category": reg.prohibited_category,
+                "audit_event_id": None,
+                "lexicon_version": LEXICON_VERSION,
+                "lexicon_citations": [],
+                "impact_card": None,
+                "action_cards": [],
+                "member_scope": {
+                    "scma_id": member_ctx["scma_id"],
+                    "isolated": True,
+                },
+            }
+
         draft = _build_deterministic_tutor_draft(verdict.sanitized_text, member_ctx)
+
+        # 3. Lane 2 — Grounded Public Market Research (unforeseen general economic/oracle/probability questions)
+        if draft.get("lane") == LANE_PUBLIC_WEB_RESEARCH:
+            llm_resp = client.research_public_web(
+                verdict.sanitized_text,
+                actor_role="MEMBER",
+                actor_id=member_ctx["scma_id"],
+            )
+            web_citations = list(llm_resp.web_citations or [])
+            if not web_citations and not llm_resp.guard_triggered:
+                web_citations = [
+                    {
+                        "title": "Federal Reserve Economic Data (FRED) Public Research Library",
+                        "url": "https://fred.stlouisfed.org/",
+                        "source": "Federal Reserve Bank of St. Louis (FRED)",
+                    }
+                ]
+            return {
+                "role": "MEMBER_TUTOR",
+                "query": prompt,
+                "response": llm_resp.content,
+                "answer": llm_resp.content,
+                "analogy": (
+                    "General public market research helps you understand how official economic, weather, "
+                    "and energy benchmarks work—always separate public education from personal financial advice."
+                ),
+                "unilateral_execution": False,
+                "auth_tier": "AUTH-01",
+                "lane": LANE_PUBLIC_WEB_RESEARCH,
+                "lane_badge": PUBLIC_RESEARCH_DISCLAIMER_BADGE,
+                "disclaimer_badge": PUBLIC_RESEARCH_DISCLAIMER_BADGE,
+                "dollar_example": None,
+                "university_pointer": "Try testing this hypothesis risk-free in the Shadow Paper Hunch Studio below.",
+                "citations": web_citations,
+                "provider_used": llm_resp.provider,
+                "model_used": llm_resp.model,
+                "fallback_used": bool(llm_resp.fallback_used),
+                "requested_provider": llm_resp.requested_provider,
+                "guard_blocked": bool(llm_resp.guard_triggered),
+                "guard_category": llm_resp.guard_category,
+                "guard_reason": llm_resp.guard_reason,
+                "regulatory_blocked": False,
+                "audit_event_id": llm_resp.audit_event_id,
+                "lexicon_version": LEXICON_VERSION,
+                "lexicon_citations": [],
+                "impact_card": None,
+                "action_cards": [],
+                "member_scope": {
+                    "scma_id": member_ctx["scma_id"],
+                    "isolated": True,
+                },
+            }
+
+        # 4. Lane 1 — Local PDEUE Canon (grounded in LEXICON_BY_ID + member's isolated SCMA snapshot)
+        canon_meta = match_local_canon_topic(verdict.sanitized_text) or {}
+        dollar_example = draft.get("dollar_example") or canon_meta.get("dollar_example") or (
+            f"Example: On your current {format_exact_cents(member_ctx['cash_cents'])} SCMA balance, "
+            f"at least {format_exact_cents(member_ctx['reserve_floor_cents'])} remains sealed as your 40% Dry-Powder Floor."
+        )
+        university_pointer = draft.get("university_pointer") or canon_meta.get("university_pointer") or (
+            "Try this in PDEUE University: Chapter 1 — PDEUE Canonical Rules & Safety Tour (/companion?chapter=1)"
+        )
+
         llm_context = dict(member_ctx)
         llm_context["tutor_draft"] = draft
 
-        llm_resp: LLMResponse = client.generate_safe_response(
+        llm_resp = client.generate_safe_response(
             system_prompt=MEMBER_TUTOR_SYSTEM_PROMPT,
             user_query=verdict.sanitized_text,
             context=llm_context,
@@ -922,6 +1064,12 @@ class MemberLiteracyTutor:
             "analogy": draft.get("analogy"),
             "unilateral_execution": False,
             "auth_tier": llm_resp.auth_tier or draft["auth_tier"],
+            "lane": LANE_LOCAL_CANON,
+            "lane_badge": LOCAL_CANON_BADGE,
+            "disclaimer_badge": None,
+            "dollar_example": dollar_example,
+            "university_pointer": university_pointer,
+            "citations": [],
             "provider_used": llm_resp.provider,
             "model_used": llm_resp.model,
             "fallback_used": bool(llm_resp.fallback_used),
@@ -929,6 +1077,7 @@ class MemberLiteracyTutor:
             "guard_blocked": bool(llm_resp.guard_triggered),
             "guard_category": llm_resp.guard_category,
             "guard_reason": llm_resp.guard_reason,
+            "regulatory_blocked": False,
             "audit_event_id": llm_resp.audit_event_id,
             "lexicon_version": LEXICON_VERSION,
             "lexicon_citations": citations,

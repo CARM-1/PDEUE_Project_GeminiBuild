@@ -31,6 +31,8 @@ class LLMResponse:
     requested_provider: Optional[str] = None
     impact_card: Optional[Dict[str, Any]] = None
     citations: List[str] = field(default_factory=list)
+    web_citations: List[Dict[str, str]] = field(default_factory=list)
+    grounding_used: bool = False
     structured_data: Optional[Dict[str, Any]] = None
 
     def __post_init__(self) -> None:
@@ -58,6 +60,8 @@ class BaseLLMClient(ABC):
 
     provider_name: str = "base"
     model_name: str = "base"
+    timeout_seconds: float = 15.0
+    max_output_tokens: int = 1024
 
     @property
     def is_configured(self) -> bool:
@@ -74,6 +78,34 @@ class BaseLLMClient(ABC):
     ) -> LLMResponse:
         """Generate a bounded response. Never executes state mutations directly."""
         raise NotImplementedError
+
+    def research_public_web(
+        self,
+        user_query: str,
+        *,
+        system_prompt: str = (
+            "You are a read-only public market educator for a family financial literacy academy. "
+            "Explain general economic, weather, energy, treasury, FX, equity-index, or binary probability "
+            "concepts in plain English with verifiable public-source citations. "
+            "Never give financial advice, never propose live trades, and enforce unilateral_execution=False."
+        ),
+        context: Optional[Dict[str, Any]] = None,
+        actor_role: str = "MEMBER",
+        actor_id: str = "member_user",
+        max_tokens: Optional[int] = None,
+    ) -> LLMResponse:
+        """Invoke read-only grounded public market research through this adapter."""
+        research_ctx = dict(context or {})
+        research_ctx["web_grounding"] = True
+        if max_tokens is not None:
+            research_ctx["max_output_tokens"] = max(64, min(int(max_tokens), int(self.max_output_tokens)))
+        return self.generate_safe_response(
+            system_prompt=system_prompt,
+            user_query=user_query,
+            context=research_ctx,
+            actor_role=actor_role,
+            actor_id=actor_id,
+        )
 
     def generate_safe_response(
         self,
@@ -160,5 +192,7 @@ class BaseLLMClient(ABC):
             requested_provider=raw_response.requested_provider,
             impact_card=raw_response.impact_card,
             citations=list(raw_response.citations),
+            web_citations=list(raw_response.web_citations),
+            grounding_used=bool(raw_response.grounding_used),
             structured_data=raw_response.structured_data,
         )

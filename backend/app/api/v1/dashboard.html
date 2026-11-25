@@ -498,6 +498,44 @@
         </tbody>
       </table></div>
     </div>
+
+    <div class="card" id="adminShadowHunchCard" style="margin-top: 20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+        <div>
+          <div class="card-title" style="color:#38bdf8;margin-bottom:2px;">ADMIN SHADOW PAPER HUNCH STUDIO (PERMANENT SHADOW_PAPER MODE)</div>
+          <div style="color:#94a3b8;font-size:12px;">Continuously evaluate new regulated verticals &amp; adjudicate F3/Chief Admin live-promotion clearance petitions alongside live operations.</div>
+        </div>
+        <span class="badge-mode" style="background:rgba(5,150,105,0.18);color:#34d399;border-color:#059669;">SHADOW_PAPER · ZERO LIVE LEDGER IMPACT</span>
+      </div>
+      <div style="background:#0f172a;border:1px solid #334155;border-left:4px solid #38bdf8;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12.5px;color:#cbd5e1;">
+        <strong style="color:#f8fafc;">What This Means:</strong> This research studio runs permanently in isolated <code>SHADOW_PAPER</code> mode on its own SQLite table (<code>shadow_hunch_dossiers</code>) with <code>unilateral_execution = false</code>. Testing hypotheses or placing virtual shadow bids NEVER touches live SCMA cash, Gate G1 fail-closed defaults, or the <abbr class="pdeue-term" tabindex="0" data-term="adr-011-air-gap" data-tooltip="A strict safety wall between trading software and your bank. This platform never asks for or stores bank account numbers, routing numbers, or bank logins—it only uses a harmless reference code to coordinate with IFAS.">ADR-011<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> IFAS outbox. Prohibited categories (sports, casino, war, terrorism, death) fail closed automatically.
+      </div>
+      <form id="adminHunchForm" style="display:grid;gap:10px;margin-bottom:12px;">
+        <input id="adminHunchHypothesis" type="text" required aria-label="Admin shadow paper market hypothesis" placeholder="e.g., EIA weekly natural gas storage draw will exceed 110 Bcf due to Midwest cold snap" style="padding:10px;border-radius:6px;background:#0f172a;color:#f8fafc;border:1px solid #334155;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;">
+          <select id="adminHunchVertical" aria-label="Admin hunch regulated vertical" style="padding:8px;border-radius:6px;background:#0f172a;color:#f8fafc;border:1px solid #334155;">
+            <option value="">Auto-detect Vertical</option>
+            <option value="WEATHER">Weather (NOAA)</option>
+            <option value="MACRO_CPI">Macro / CPI (BLS)</option>
+            <option value="ENERGY_EIA">Energy / EIA Storage</option>
+            <option value="TREASURIES">U.S. Treasuries</option>
+            <option value="EQUITY_INDICES">Equity Indices</option>
+            <option value="FX">G10 FX</option>
+          </select>
+          <input id="adminHunchModelProb" type="number" min="1" max="99" value="65" aria-label="Admin modeled fair value cents" style="padding:8px;border-radius:6px;background:#0f172a;color:#f8fafc;border:1px solid #334155;">
+          <input id="adminHunchQuotePrice" type="number" min="1" max="99" value="53" aria-label="Admin quoted price cents" style="padding:8px;border-radius:6px;background:#0f172a;color:#f8fafc;border:1px solid #334155;">
+          <input id="adminHunchFeeCents" type="number" min="0" max="20" value="2" aria-label="Admin fee friction cents" style="padding:8px;border-radius:6px;background:#0f172a;color:#f8fafc;border:1px solid #334155;">
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <button id="adminEvalHunchBtn" type="submit" class="btn-onboard">Evaluate Hypothesis (3-Point Audit)</button>
+          <button id="adminShadowBidBtn" type="button" class="btn-batch" onclick="submitAdminShadowBid()">Stage Virtual Shadow Bid ($100.00)</button>
+          <button id="adminRefreshHunchesBtn" type="button" class="btn-batch" onclick="loadAdminShadowHunches()">Refresh Shadow Ledger &amp; Clearance Queue</button>
+        </div>
+      </form>
+      <div id="adminHunchResult" style="background:#0f172a;border:1px solid #334155;border-radius:6px;padding:10px 12px;font-size:12.5px;color:#cbd5e1;margin-bottom:12px;" aria-live="polite">Submit a regulated vertical hypothesis above to run Three-Point Validation in SHADOW_PAPER mode.</div>
+      <div id="adminHunchSummary" style="font-size:12px;color:#38bdf8;margin-bottom:8px;" aria-live="polite"></div>
+      <div id="adminHunchList" aria-live="polite"></div>
+    </div>
   </div>
 
   <!-- TAB 4: SOVEREIGN GOVERNANCE & DUAL CONTROL -->
@@ -1036,7 +1074,7 @@
         }
         if (panel) panel.style.display = (i === idx) ? "block" : "none";
       }
-      if (idx === 3) { loadRadarOpportunities(); loadWalkForwardBenchmark(); }
+      if (idx === 3) { loadRadarOpportunities(); loadWalkForwardBenchmark(); if (typeof loadAdminShadowHunches === 'function') loadAdminShadowHunches(); }
       if (idx === 4) loadGovernanceProposals();
     }
 
@@ -2439,6 +2477,117 @@
         if (response.ok) prompt.value = '';
       } catch (error) {
         output.textContent = 'Copilot is temporarily unavailable.';
+      }
+    }
+
+    let activeAdminDossierId = null;
+    async function loadAdminShadowHunches() {
+      const listEl = document.getElementById('adminHunchList');
+      const sumEl = document.getElementById('adminHunchSummary');
+      if (!listEl) return;
+      try {
+        const res = await fetch('/api/v1/hunch/dossiers?role=CHIEF_ADMINISTRATOR', {
+          headers: { 'X-Actor-Role': 'CHIEF_ADMINISTRATOR' }
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          listEl.innerHTML = `<div style="color:#f87171;font-size:12px;">Unable to load shadow hunches (${res.status}).</div>`;
+          return;
+        }
+        const stats = data.hit_rate_summary || {};
+        if (sumEl) {
+          sumEl.textContent = `Isolated Shadow Ledger: ${stats.total_dossiers ?? 0} dossiers · ${stats.total_shadow_bids ?? 0} virtual bids · Overall Shadow Hit Rate: ${stats.hit_rate_pct || '0.00%'} · Net Virtual PnL: ${stats.net_virtual_pnl_display || '$0.00'} (Zero Real Capital Touched)`;
+        }
+        const items = data.dossiers || [];
+        if (!items.length) {
+          listEl.innerHTML = '<div style="color:#94a3b8;font-size:12px;">No Shadow Paper hunches recorded yet.</div>';
+          return;
+        }
+        listEl.innerHTML = items.slice(0, 10).map(item => {
+          const st = item.clearance_status || 'SHADOW_ONLY';
+          const tr = item.member_shadow_track_record || item.shadow_stats || {};
+          let actions = '';
+          if (st === 'PENDING_F3_CLEARANCE') {
+            actions = `<button type="button" class="btn-onboard" style="padding:4px 10px;font-size:11px;" onclick="reviewAdminHunch('${escapeCopilot(item.dossier_id)}','ALLOWED')">Allow (CA Final)</button> <button type="button" class="btn-kill" style="padding:4px 10px;font-size:11px;" onclick="reviewAdminHunch('${escapeCopilot(item.dossier_id)}','DENIED')">Deny</button>`;
+          } else if (st === 'ALLOWED') {
+            actions = `<button type="button" class="btn-kill" style="padding:4px 10px;font-size:11px;" onclick="reviewAdminHunch('${escapeCopilot(item.dossier_id)}','RESCINDED')">Rescind Clearance</button>`;
+          }
+          return `<div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:12px;"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;"><strong>${escapeCopilot(item.dossier_id)} · ${escapeCopilot(item.vertical?.label || item.vertical?.code || 'Regulated')} · ${escapeCopilot(item.scma_id)}</strong><span style="color:#38bdf8;font-weight:700;">${escapeCopilot(item.status)} · ${escapeCopilot(st)}</span></div><div style="color:#cbd5e1;margin:4px 0;">${escapeCopilot(item.hypothesis)}</div><div style="color:#94a3b8;">Modeled ${escapeCopilot(item.modeled_prob_cents)}¢ · Quote ${escapeCopilot(item.quoted_price_cents)}¢ · Fee ${escapeCopilot(item.fee_cents)}¢ · Net Edge <strong>${escapeCopilot(item.net_edge_cents)}¢</strong> · Track Record: ${escapeCopilot(tr.total_shadow_bids ?? 0)} bids (${escapeCopilot(tr.hit_rate_pct || '0.00%')})</div>${actions ? `<div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;">${actions}</div>` : ''}</div>`;
+        }).join('');
+      } catch (_err) {
+        listEl.innerHTML = '<div style="color:#94a3b8;font-size:12px;">Shadow Hunch Studio temporarily unreachable.</div>';
+      }
+    }
+    const adminHunchForm = document.getElementById('adminHunchForm');
+    if (adminHunchForm) {
+      adminHunchForm.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        const out = document.getElementById('adminHunchResult');
+        out.textContent = 'Running Three-Point Validation Pipeline (SHADOW_PAPER mode)…';
+        try {
+          const res = await fetch('/api/v1/hunch/evaluate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Actor-Role': 'CHIEF_ADMINISTRATOR' },
+            body: JSON.stringify({
+              hypothesis: document.getElementById('adminHunchHypothesis').value,
+              vertical_hint: document.getElementById('adminHunchVertical').value || null,
+              modeled_prob_cents: Number(document.getElementById('adminHunchModelProb').value),
+              quoted_price_cents: Number(document.getElementById('adminHunchQuotePrice').value),
+              fee_cents: Number(document.getElementById('adminHunchFeeCents').value),
+              scma_id: 'SCMA-FOUNDER-ADMIN',
+              actor_role: 'CHIEF_ADMINISTRATOR'
+            })
+          });
+          const d = await res.json();
+          if (!res.ok) {
+            activeAdminDossierId = null;
+            out.textContent = `BLOCKED (${d.detail?.code || res.status}): ${d.detail?.message || d.detail || 'Validation failed.'}`;
+            return;
+          }
+          activeAdminDossierId = d.dossier_id;
+          out.textContent = `[${d.status} · ${d.mode}] ${d.plain_english_verdict} Oracle: ${d.vertical?.oracle || ''}.`;
+          await loadAdminShadowHunches();
+        } catch (_err) {
+          out.textContent = 'UNAVAILABLE — Shadow Hunch Studio unreachable.';
+        }
+      });
+    }
+    async function submitAdminShadowBid() {
+      const out = document.getElementById('adminHunchResult');
+      if (!activeAdminDossierId) {
+        out.textContent = 'Evaluate a positive-edge hypothesis first before staging a virtual SHADOW_PAPER bid.';
+        return;
+      }
+      try {
+        const res = await fetch(`/api/v1/hunch/${encodeURIComponent(activeAdminDossierId)}/shadow-bid`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Actor-Role': 'CHIEF_ADMINISTRATOR' },
+          body: JSON.stringify({ virtual_stake_cents: 10000, scma_id: 'SCMA-FOUNDER-ADMIN', actor_role: 'CHIEF_ADMINISTRATOR' })
+        });
+        const d = await res.json();
+        out.textContent = res.ok
+          ? `Recorded Admin SHADOW_PAPER bid ${d.shadow_bid?.shadow_bid_id || ''} (${d.shadow_bid?.contracts || 0} virtual contracts; zero live capital touched).`
+          : `Shadow bid refused: ${d.detail?.message || d.detail || res.status}`;
+        await loadAdminShadowHunches();
+      } catch (_err) {
+        out.textContent = 'Shadow bid unavailable — zero live state modified.';
+      }
+    }
+    async function reviewAdminHunch(dossierId, decision) {
+      const out = document.getElementById('adminHunchResult');
+      try {
+        const res = await fetch(`/api/v1/hunch/${encodeURIComponent(dossierId)}/review?role=CHIEF_ADMINISTRATOR`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Actor-Role': 'CHIEF_ADMINISTRATOR' },
+          body: JSON.stringify({ decision, actor_role: 'CHIEF_ADMINISTRATOR', notes: 'Adjudicated via Chief Admin Tab 3 Velocity Radar.' })
+        });
+        const d = await res.json();
+        out.textContent = res.ok
+          ? `Chief Admin decision recorded for ${dossierId}: ${d.previous_status} → ${d.clearance_status}.`
+          : `Review rejected: ${d.detail?.message || d.detail || res.status}`;
+        await loadAdminShadowHunches();
+      } catch (_err) {
+        out.textContent = 'Clearance review unreachable.';
       }
     }
   </script>

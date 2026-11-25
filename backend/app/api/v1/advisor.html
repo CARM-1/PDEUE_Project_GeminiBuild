@@ -211,6 +211,21 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
 <section class="card"><div class="label">Subordinate <abbr class="pdeue-term" tabindex="0" data-term="scma" data-tooltip="Your own private, walled-off family account. Your money grows inside your personal box, and if a trade ever loses money, that loss stays strictly inside your own account and never touches anyone else's savings.">SCMA<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> Accounts</div><div class="table-wrap table-card"><table><thead><tr><th>Member</th><th>Account (<abbr class="pdeue-term" tabindex="0" data-term="scma" data-tooltip="Your own private, walled-off family account. Your money grows inside your personal box, and if a trade ever loses money, that loss stays strictly inside your own account and never touches anyone else's savings.">SCMA<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>)</th><th>Equity</th><th>Lineage status</th><th>Risk controls</th></tr></thead><tbody id="roster"></tbody></table></div></section>
 <section class="grid" id="operations"><div id="distribution-slot"></div><article class="card wide" id="audit-card"><div class="label">PIT Decision Audit</div><div id="telemetry"></div><div id="pit"></div></article></section>
 <section class="card" id="proposal-queue" hidden><div class="label">Fiduciary Supervisory Queue</div><div id="proposals"></div></section>
+<section class="card" id="shadowHunchClearanceSection" aria-label="Shadow Hunch Clearance Queue">
+  <div class="row" style="margin-bottom:8px;">
+    <div>
+      <div class="label">SHADOW_PAPER CLEARANCE LADDER · AUTH-03 HIGHER-AUTHORITY QUEUE</div>
+      <h2 style="margin:2px 0 0;">Shadow Hunch Clearance Queue</h2>
+    </div>
+    <button id="refreshHunchQueueBtn" type="button" class="btn-stage" onclick="loadAdvisorHunchQueue()">Refresh Clearance Queue</button>
+  </div>
+  <div id="advisorHunchExplainer" style="background:#0f172a;border:1px solid #334155;border-left:4px solid #38bdf8;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:.86rem;color:#cbd5e1;">
+    <strong style="color:#f8fafc;">What This Means:</strong> Certified family members (<code>STEWARDSHIP_L1_CERTIFIED</code>) practice hunches in zero-risk <code>SHADOW_PAPER</code> mode first. When a member petitions for live promotion, it enters <strong>Step 1 (<code>PENDING_F2H_CLEARANCE</code>)</strong> where only an <strong>F2-H Head of Household</strong> can endorse or deny it. Endorsed petitions advance to <strong>Step 2 (<code>PENDING_F3_CLEARANCE</code>)</strong> where only the <strong>F3 CRO</strong> or <strong>Chief Administrator</strong> may issue a final <code>ALLOWED</code>, <code>DENIED</code>, or <code>RESCINDED</code> decision. F1 Peer Guides and F2-A Lineage Advisors remain strictly read-only.
+  </div>
+  <div id="advisorHunchSummary" class="muted" style="font-size:.84rem;margin-bottom:10px;" aria-live="polite">Loading Shadow Paper track records…</div>
+  <div id="advisorHunchQueueList" aria-live="polite"></div>
+  <div id="advisorHunchReviewFeedback" class="muted" style="font-size:.84rem;margin-top:8px;color:#bae6fd;" aria-live="polite"></div>
+</section>
 <section class="card" id="advisorCopilotCard"><div class="row"><div class="label">Fiduciary Copilot (Class F)</div><span id="advisorCopilotInvariantBadge" class="copilot-pill green">UNILATERAL EXECUTION: OFF · AUTH-01–AUTH-04</span></div><label for="advisor-query">Educational, What-If risk modeling, or dual-control audit question</label><input id="advisor-query" placeholder="Model a What-If risk scenario or explain trade rationale"><div class="row" style="justify-content:flex-start"><button class="action" type="button" id="consult-copilot">Consult Copilot</button><button id="clearAdvisorCopilotBtn" type="button" class="btn-clear" aria-label="Clear displayed guidance and input" onclick="clearAdvisorCopilot()">Clear answer</button></div><div id="copilot-output" aria-live="polite"><p class="placeholder-text">Your educational answer will appear here.</p></div></section>
 <footer class="pdeue-colophon" role="contentinfo">
   <span class="colophon-attr">Powered by CARM Aerotech Corporation</span>
@@ -280,7 +295,7 @@ async function renderCro(){
 function renderProposals(items){$('proposals').innerHTML=items.length?items.map(p=>`<div class="audit"><b>${esc(p.title||p.proposal_id)} · ${esc(p.target_scma)}</b><p><strong>Sponsor:</strong> ${esc(p.sponsor||p.submitted_by)}<br><strong>Justification:</strong> ${esc(p.justification)}<br>Current dial ${esc(p.current_dial||'—')} → proposed ${esc(p.proposed_dial)} · <span class="status-pill">${esc(p.status)}</span></p>${p.status==='PENDING'?`<button class="action" data-decision="ALLOW" data-proposal="${p.proposal_id}" ${isSupervisoryLens?'disabled':''}>Approve Proposal</button> <button class="action danger" data-decision="DENY" data-proposal="${p.proposal_id}" ${isSupervisoryLens?'disabled':''}>Veto Proposal</button>`:''}</div>`).join(''):'<p>No pending advisory proposals.</p>';document.querySelectorAll('[data-decision]').forEach(b=>b.addEventListener('click',async()=>{if(isSupervisoryLens)return;await fetch(`/api/v1/portal/advisor/proposals/${b.dataset.proposal}/adjudicate?role=F3`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({decision:b.dataset.decision})});await renderCro()}))}
 function render(){const isF2A=activeRole==='F2-A';$('branch-scope').hidden=!isF2A;$('advisor-actions').hidden=!isF2A;$('cro-emergency-controls').hidden=true;$('macro-risk').hidden=true;$('house-exposures').hidden=true;$('proposal-queue').hidden=true;if(activeRole==='F3')return renderCro();renderDomestic()}
 async function loadRole(){const current=++requestNumber;controller?.abort();controller=new AbortController();$('workspace').classList.add('loading');try{const r=await fetch(`/api/v1/portal/advisor/household-tree?role=${encodeURIComponent(activeRole)}&household_id=${encodeURIComponent(activeHousehold)}`,{headers:{'X-Household-ID':activeHousehold},signal:controller.signal});if(!r.ok)throw new Error(`Advisor data unavailable (${r.status})`);const next=await r.json();if(current!==requestNumber)return;data=next;render()}catch(error){if(error.name!=='AbortError'){renderReadModelBanner({status:'DEGRADED_RETRYING',banner_headline:'UNAVAILABLE — ENGINE UNREACHABLE',banner_detail:error.message||'Advisor read-model unreachable; retrying fail-closed without placeholder figures.',updated_at_utc:new Date().toISOString()});$('equity').textContent='UNAVAILABLE';$('liquidity').textContent='UNAVAILABLE';$('count').textContent='—';$('roster').innerHTML='<tr><td colspan="5">UNAVAILABLE — ENGINE UNREACHABLE</td></tr>';$('role-alert').innerHTML=`<span class="error">${esc(error.message)}</span>`}}finally{if(current===requestNumber)$('workspace').classList.remove('loading')}}
-function switchRole(role){if(!roles[role])return;activeRole=role;history.replaceState(null,'',`${location.pathname}?role=${encodeURIComponent(role)}`);applyRoleChrome();loadRole()}
+function switchRole(role){if(!roles[role])return;activeRole=role;history.replaceState(null,'',`${location.pathname}?role=${encodeURIComponent(role)}`);applyRoleChrome();loadRole();if(typeof loadAdvisorHunchQueue==='function')loadAdvisorHunchQueue()}
 window.switchRole=switchRole;window.setAdvisorRole=switchRole;
 document.querySelectorAll('[data-role]').forEach(b=>b.addEventListener('click',()=>switchRole(b.dataset.role)));
 $('cancel-cosign').addEventListener('click',()=>$('cosign-modal').hidden=true);
@@ -352,8 +367,57 @@ function clearCustodialLookup(){
   if(input){input.value='';input.focus()}
   if(drawer){drawer.hidden=true;drawer.innerHTML=''}
 }
+async function loadAdvisorHunchQueue(){
+  const summaryEl=$('advisorHunchSummary'),listEl=$('advisorHunchQueueList');
+  if(!listEl)return;
+  try{
+    const r=await fetch(`/api/v1/hunch/dossiers?role=${encodeURIComponent(activeRole)}`,{headers:{'X-Actor-Role':activeRole}});
+    const d=await r.json();
+    if(!r.ok){listEl.innerHTML=`<p class="error">Clearance queue restricted (${r.status}): ${esc(d.detail?.message||d.detail||'Forbidden')}</p>`;return}
+    const items=d.dossiers||[];
+    const stats=d.hit_rate_summary||{};
+    if(summaryEl)summaryEl.textContent=`Shadow Dossiers: ${stats.total_dossiers??items.length} · Total Virtual Bids: ${stats.total_shadow_bids??0} · Overall Shadow Hit Rate: ${stats.hit_rate_pct||'0.00%'} · Viewer Hat: ${activeRole}`;
+    if(!items.length){listEl.innerHTML='<p class="muted">No Shadow Paper hunches submitted yet.</p>';return}
+    listEl.innerHTML=items.slice(0,12).map(item=>{
+      const tr=item.member_shadow_track_record||item.shadow_stats||{};
+      const st=item.clearance_status||'SHADOW_ONLY';
+      let controls='';
+      if(activeRole==='F1'||activeRole==='F2-A'){
+        controls=`<span class="audit-pill" aria-disabled="true">READ-ONLY (${esc(activeRole)}): F2-H / F3 AUTHORITY REQUIRED</span>`;
+      }else if(activeRole==='F2-H'&&st==='PENDING_F2H_CLEARANCE'){
+        controls=`<button type="button" class="action" ${isSupervisoryLens?'disabled':''} onclick="reviewAdvisorHunch('${esc(item.dossier_id)}','APPROVE_F2H')">Advance to F3 Review</button> <button type="button" class="action danger" ${isSupervisoryLens?'disabled':''} onclick="reviewAdvisorHunch('${esc(item.dossier_id)}','DENIED')">Deny</button>`;
+      }else if(activeRole==='F3'&&st==='PENDING_F3_CLEARANCE'){
+        controls=`<button type="button" class="action" ${isSupervisoryLens?'disabled':''} onclick="reviewAdvisorHunch('${esc(item.dossier_id)}','ALLOWED')">Allow Clearance</button> <button type="button" class="action danger" ${isSupervisoryLens?'disabled':''} onclick="reviewAdvisorHunch('${esc(item.dossier_id)}','DENIED')">Deny</button>`;
+      }else if(activeRole==='F3'&&st==='ALLOWED'){
+        controls=`<button type="button" class="action danger" ${isSupervisoryLens?'disabled':''} onclick="reviewAdvisorHunch('${esc(item.dossier_id)}','RESCINDED')">Rescind Clearance</button>`;
+      }else{
+        controls=`<span class="muted" style="font-size:.78rem;">Status: ${esc(st)} (no action pending for ${esc(activeRole)})</span>`;
+      }
+      return `<div class="audit"><b>${esc(item.dossier_id)} · ${esc(item.scma_id)} · ${esc(item.vertical?.label||item.vertical?.code||'Regulated')}</b><p>${esc(item.hypothesis)}<br><small>Net Edge: <strong>${esc(item.net_edge_cents)}¢</strong> · Member Shadow Track Record: ${esc(tr.total_shadow_bids??0)} bids (${esc(tr.hit_rate_pct||'0.00%')} hit rate, ${esc(tr.net_virtual_pnl_display||'$0.00')} virtual PnL) · <span class="status-pill">${esc(st)}</span></small></p><div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;">${controls}</div></div>`;
+    }).join('');
+  }catch(_err){
+    listEl.innerHTML='<p class="muted">Shadow Hunch Clearance Queue unavailable — zero changes executed.</p>';
+  }
+}
+async function reviewAdvisorHunch(dossierId,decision){
+  if(isSupervisoryLens)return;
+  const fb=$('advisorHunchReviewFeedback');
+  try{
+    const r=await fetch(`/api/v1/hunch/${encodeURIComponent(dossierId)}/review?role=${encodeURIComponent(activeRole)}`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Actor-Role':activeRole},
+      body:JSON.stringify({decision,actor_role:activeRole,notes:`Reviewed via Advisor Workspace under ${activeRole} hat.`})
+    });
+    const d=await r.json();
+    if(fb)fb.textContent=r.ok?`Updated ${dossierId}: ${d.previous_status} → ${d.clearance_status} (unilateral_execution = false).`:`Review blocked (HTTP ${r.status}): ${d.detail?.message||d.detail||'Forbidden'}`;
+    await loadAdvisorHunchQueue();
+  }catch(_err){
+    if(fb)fb.textContent='Clearance review unreachable — no state modified.';
+  }
+}
+window.loadAdvisorHunchQueue=loadAdvisorHunchQueue;window.reviewAdvisorHunch=reviewAdvisorHunch;
 window.runCustodialLookup=runCustodialLookup;window.clearCustodialLookup=clearCustodialLookup;
-applyRoleChrome();loadRole();
+applyRoleChrome();loadRole();loadAdvisorHunchQueue();
 </script>
 <script>(function(){var K='pdeue_text_scale',V={standard:1,large:1,xlarge:1};function r(){try{var s=localStorage.getItem(K);if(s&&V[s])return s}catch(_e){}return 'standard'}function a(s){var c=V[s]?s:'standard';document.documentElement.setAttribute('data-text-scale',c);try{localStorage.setItem(K,c)}catch(_e){}document.querySelectorAll('#textScaleGroup button[data-scale]').forEach(function(b){var on=b.getAttribute('data-scale')===c;b.setAttribute('aria-pressed',on?'true':'false');b.classList.toggle('active',on)});return c}window.PDEUESeniorA11y={setScale:a,getScale:r};a(r());if(typeof fetch==='function'){fetch('/api/v1/portal/planes').then(function(x){return x.ok?x.json():null}).then(function(d){if(!d||!d.doorways)return;document.querySelectorAll('[data-plane-doorway]').forEach(function(el){var u=d.doorways[el.getAttribute('data-plane-doorway')];if(u&&el.tagName==='A')el.setAttribute('href',u)})}).catch(function(){})}})();</script>
 </body>
