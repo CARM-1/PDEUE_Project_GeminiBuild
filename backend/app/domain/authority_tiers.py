@@ -36,6 +36,17 @@ CHIEF_ADMIN_ROLES: Set[str] = {
     "CHIEF_ADMINISTRATOR",
 }
 
+CHIEF_ADMIN_DEPUTY_ROLES: Set[str] = {
+    "CHIEF_ADMIN_DEPUTY",
+    "CHIEF_ADMINISTRATOR_DEPUTY",
+    "DEPUTY_CHIEF_ADMIN",
+}
+
+DEPUTY_OBSERVER_BANNER_TEXT: str = (
+    "🛡️ DEPUTY OBSERVER MODE (CHIEF_ADMIN_DEPUTY) — READ-ONLY SUCCESSION SHADOW. "
+    "Destructive & mutating actions are locked."
+)
+
 CLASS_T_TIERS: Set[str] = {
     "T1",
     "T2",
@@ -70,6 +81,7 @@ CLASS_M_ROLES: Set[str] = {"MEMBER_USER", "PERSONAL_SCMA", "MEMBER", "CLASS_M"}
 
 HAT_WORKSPACES: Dict[str, str] = {
     "CHIEF_ADMINISTRATOR": "/dashboard",
+    "CHIEF_ADMIN_DEPUTY": "/dashboard?role=CHIEF_ADMIN_DEPUTY",
     "PERSONAL_SCMA": "/member",
     "MEMBER_USER": "/member",
     "T1": "/admin/tech?tier=T1",
@@ -92,6 +104,7 @@ PRINCIPAL_HAT_ENTITLEMENTS: Dict[str, Set[str]] = {
     "FOUNDER": {"CHIEF_ADMINISTRATOR", "PERSONAL_SCMA", "MEMBER_USER"},
     "CHIEF_ADMIN": {"CHIEF_ADMINISTRATOR", "PERSONAL_SCMA", "MEMBER_USER"},
     "CHIEF_ADMINISTRATOR": {"CHIEF_ADMINISTRATOR", "PERSONAL_SCMA", "MEMBER_USER"},
+    "CHIEF_ADMIN_DEPUTY": {"CHIEF_ADMIN_DEPUTY", "MEMBER_USER", "PERSONAL_SCMA"},
     "USR-eleanor_va-B2B31C9E": {"F2-H", "MEMBER_USER", "PERSONAL_SCMA"},
     "SCMA-ELEANOR_-B2B31C9E": {"F2-H", "MEMBER_USER", "PERSONAL_SCMA"},
     "USR-julian_va-A1F98B21": {"MEMBER_USER", "PERSONAL_SCMA"},
@@ -101,6 +114,7 @@ ROLE_DEFAULT_HATS: Dict[str, Set[str]] = {
     "FOUNDER": {"CHIEF_ADMINISTRATOR", "PERSONAL_SCMA", "MEMBER_USER"},
     "CHIEF_ADMIN": {"CHIEF_ADMINISTRATOR", "PERSONAL_SCMA", "MEMBER_USER"},
     "CHIEF_ADMINISTRATOR": {"CHIEF_ADMINISTRATOR", "PERSONAL_SCMA", "MEMBER_USER"},
+    "CHIEF_ADMIN_DEPUTY": {"CHIEF_ADMIN_DEPUTY"},
     "T1": {"T1"},
     "T2": {"T2"},
     "T2-HOUSEHOLD": {"T2-HOUSEHOLD"},
@@ -119,13 +133,16 @@ ROLE_DEFAULT_HATS: Dict[str, Set[str]] = {
 
 def normalize_role_token(raw: Optional[str]) -> str:
     """Normalize role / sub-tier aliases into canonical uppercase codes."""
-    if not raw:
+    if not raw or not isinstance(raw, str):
         return ""
     token = raw.strip().upper().replace("_", "-")
     aliases = {
         "CHIEF-ADMIN": "CHIEF_ADMINISTRATOR",
         "CHIEF-ADMINISTRATOR": "CHIEF_ADMINISTRATOR",
         "FOUNDER": "CHIEF_ADMINISTRATOR",
+        "CHIEF-ADMIN-DEPUTY": "CHIEF_ADMIN_DEPUTY",
+        "CHIEF-ADMINISTRATOR-DEPUTY": "CHIEF_ADMIN_DEPUTY",
+        "DEPUTY-CHIEF-ADMIN": "CHIEF_ADMIN_DEPUTY",
         "T1-MONITOR": "T1",
         "T2-ENGINEER": "T2",
         "T2-HOUSEHOLD": "T2-HOUSEHOLD",
@@ -170,6 +187,32 @@ def normalize_advisor_role(raw: Optional[str]) -> str:
 
 def is_chief_admin_role(raw: Optional[str]) -> bool:
     return normalize_role_token(raw) == "CHIEF_ADMINISTRATOR"
+
+
+def is_chief_admin_deputy_role(raw: Optional[str]) -> bool:
+    return normalize_role_token(raw) == "CHIEF_ADMIN_DEPUTY"
+
+
+def resolve_deputy_observer_flag(
+    *,
+    role: Optional[str] = None,
+    x_pdeue_role: Optional[str] = None,
+    x_actor_role: Optional[str] = None,
+    x_active_hat: Optional[str] = None,
+    authorization: Optional[str] = None,
+) -> bool:
+    """Return True when the caller is operating in CHIEF_ADMIN_DEPUTY Read-Only Shadow Mode."""
+    for candidate in (x_pdeue_role, x_active_hat, x_actor_role, role):
+        if isinstance(candidate, str) and is_chief_admin_deputy_role(candidate):
+            return True
+    if isinstance(authorization, str) and authorization.lower().startswith("bearer "):
+        claims = decode_access_token(authorization.split(" ", 1)[1].strip())
+        if claims and (
+            is_chief_admin_deputy_role(claims.get("active_hat"))
+            or is_chief_admin_deputy_role(claims.get("role"))
+        ):
+            return True
+    return False
 
 
 def is_class_t_role(raw: Optional[str]) -> bool:

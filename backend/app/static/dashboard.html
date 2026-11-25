@@ -219,9 +219,21 @@
     .custodial-lookup-drawer { margin-top: 10px; background: var(--bg-canvas); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 10px; display: grid; gap: 8px; }
     .custodial-lookup-drawer[hidden] { display: none !important; }
     .custodial-lookup-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 9px 11px; font-size: 13px; }
+    .deputy-observer-banner { width: 100%; background: #D97706; color: #0B132B; border: 2px solid #FCD34D; border-radius: 8px; padding: 12px 16px; margin-bottom: 14px; font-weight: 800; font-size: 0.92rem; letter-spacing: 0.02em; box-shadow: 0 8px 22px rgba(217, 119, 6, 0.35); }
+    .deputy-observer-banner[hidden] { display: none !important; }
+    .deputy-observer-inner { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .deputy-observer-meta { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.76rem; background: rgba(11, 19, 43, 0.16); color: #0B132B; padding: 4px 10px; border-radius: 6px; font-weight: 800; }
+    .deputy-readonly-pill { display: inline-flex; align-items: center; gap: 4px; border: 1px solid #D97706; background: rgba(217, 119, 6, 0.2); color: #FCD34D; border-radius: 999px; padding: 3px 9px; font-size: 10.5px; font-weight: 800; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; white-space: nowrap; }
+    [data-deputy-locked="true"], button:disabled[data-deputy-locked="true"] { opacity: 0.45 !important; cursor: not-allowed !important; filter: grayscale(35%); }
 </style>
 </head>
 <body>
+<div id="deputyObserverBanner" class="deputy-observer-banner" hidden role="region" aria-label="Deputy Observer Mode">
+  <div class="deputy-observer-inner">
+    <span>🛡️ DEPUTY OBSERVER MODE (CHIEF_ADMIN_DEPUTY) — READ-ONLY SUCCESSION SHADOW. Destructive &amp; mutating actions are locked.</span>
+    <span id="deputyObserverBadge" class="deputy-observer-meta">Observer Mode — Read-Only · HTTP 403 Mutation Lock</span>
+  </div>
+</div>
 <div style="display:none" id="legacyPortalHub">PDEUE PORTAL HUB</div>
 
   <div class="portal-header-shell" role="banner">
@@ -1054,6 +1066,106 @@
     let pendingDispatch = null;
     let activeSettleTarget = null;
     let dashToastTimer = null;
+    const _dashParams = new URLSearchParams(window.location.search);
+    const _rawDashRole = (_dashParams.get("role") || "").trim().toUpperCase().replace(/-/g, "_");
+    let isDeputyObserverMode =
+      document.body.dataset.deputyObserver === "true" ||
+      _rawDashRole === "CHIEF_ADMIN_DEPUTY" ||
+      _rawDashRole === "CHIEF_ADMINISTRATOR_DEPUTY" ||
+      _rawDashRole === "DEPUTY_CHIEF_ADMIN";
+
+    const DEPUTY_LOCKED_CONTROL_IDS = [
+      "emergencyKillSwitchBtn",
+      "resumeFromHaltBtn",
+      "openOnboardModalBtn",
+      "openBatchDrawerBtn",
+      "submitBatchProvisionBtn",
+      "btn-mode-executive",
+      "btn-mode-advisory",
+      "btn-mode-bicameral",
+      "btn-shtf-snapback",
+      "btn-create-body",
+      "btn-grant-seat",
+      "btn-assign-role",
+      "btn-promote-role",
+      "btn-demote-role",
+      "btn-custody-intra",
+      "btn-custody-cross",
+      "btn-save-delegation-config",
+      "adminEvalHunchBtn",
+      "adminShadowBidBtn"
+    ];
+
+    function deputyReadOnlyBadgeHtml(label = "Observer Mode — Read-Only") {
+      return `<span class="deputy-readonly-pill" aria-disabled="true" data-deputy-badge="true">🛡️ ${label}</span>`;
+    }
+
+    function guardDeputyMutation(actionLabel) {
+      if (!isDeputyObserverMode) return false;
+      showDashboardToast(`Observer Mode — Read-Only: ${actionLabel || "Mutating actions"} locked for CHIEF_ADMIN_DEPUTY (HTTP 403).`, true);
+      return true;
+    }
+
+    function applyDeputyObserverLocks() {
+      if (!isDeputyObserverMode) return;
+      document.body.dataset.deputyObserver = "true";
+      const banner = document.getElementById("deputyObserverBanner");
+      if (banner) banner.hidden = false;
+      const hatBadge = document.getElementById("activeHatBadge");
+      if (hatBadge && !hatBadge.textContent.includes("CHIEF_ADMIN_DEPUTY")) {
+        hatBadge.textContent = "Active Hat: CHIEF_ADMIN_DEPUTY (READ-ONLY)";
+        hatBadge.style.borderColor = "#D97706";
+        hatBadge.style.color = "#FCD34D";
+      }
+      const lookupBadge = document.getElementById("lookup-scope-badge");
+      if (lookupBadge) lookupBadge.textContent = "SCOPE: ENCLAVE_WIDE (READ-ONLY)";
+      DEPUTY_LOCKED_CONTROL_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.disabled = true;
+        el.setAttribute("aria-disabled", "true");
+        el.setAttribute("data-deputy-locked", "true");
+        el.title = "Observer Mode — Read-Only (CHIEF_ADMIN_DEPUTY)";
+      });
+      const badgeTargets = [
+        { parentSelector: ".portal-action-strip", badgeId: "deputyHeaderBadge" },
+        { parentSelector: ".lineage-toolbar-actions", badgeId: "deputyOnboardBadge" },
+        { parentSelector: "#adminHunchForm", badgeId: "deputyHunchBadge" },
+        { parentSelector: "#role-custody-governance-card .card-title", badgeId: "deputyRoleBadge" },
+        { parentSelector: "#delegated-onboarding-card .card-title", badgeId: "deputyDelegationBadge" }
+      ];
+      badgeTargets.forEach(({ parentSelector, badgeId }) => {
+        if (document.getElementById(badgeId)) return;
+        const parent = document.querySelector(parentSelector);
+        if (!parent) return;
+        const span = document.createElement("span");
+        span.id = badgeId;
+        span.className = "deputy-readonly-pill";
+        span.setAttribute("data-deputy-badge", "true");
+        span.textContent = "Observer Mode — Read-Only";
+        parent.appendChild(span);
+      });
+    }
+
+    async function loadDashboardAuthorityState() {
+      try {
+        const url = isDeputyObserverMode
+          ? "/api/v1/portal/dashboard/state?role=CHIEF_ADMIN_DEPUTY"
+          : "/api/v1/portal/dashboard/state";
+        const headers = isDeputyObserverMode
+          ? { "X-PDEUE-Role": "CHIEF_ADMIN_DEPUTY", "X-Actor-Role": "CHIEF_ADMIN_DEPUTY" }
+          : {};
+        const res = await fetch(url, { headers });
+        if (!res.ok) return;
+        const st = await res.json();
+        if (st && st.deputy_observer_mode) {
+          isDeputyObserverMode = true;
+          applyDeputyObserverLocks();
+        }
+      } catch (_err) {
+        if (isDeputyObserverMode) applyDeputyObserverLocks();
+      }
+    }
 
     function showDashboardToast(message, isError = false) {
       const el = document.getElementById("dashboard-toast");
@@ -1085,6 +1197,7 @@
       }
       if (idx === 3) { loadRadarOpportunities(); loadWalkForwardBenchmark(); if (typeof loadAdminShadowHunches === 'function') loadAdminShadowHunches(); }
       if (idx === 4) loadGovernanceProposals();
+      if (isDeputyObserverMode) applyDeputyObserverLocks();
     }
 
     function loadRadarOpportunities() {
@@ -1124,6 +1237,7 @@
     }
 
     function confirmKillSwitch() {
+      if (guardDeputyMutation("Emergency Kill Switch")) return;
       const errBox = document.getElementById("kill-switch-error");
       if (errBox) errBox.style.display = "none";
       const modal = document.getElementById("kill-switch-modal");
@@ -1136,6 +1250,7 @@
     }
 
     async function executeKillSwitch() {
+      if (guardDeputyMutation("Emergency Kill Switch")) return;
       const errBox = document.getElementById("kill-switch-error");
       const btn = document.getElementById("confirmKillSwitchExecuteBtn");
       if (errBox) errBox.style.display = "none";
@@ -1166,6 +1281,7 @@
     }
 
     async function resumeFromExecutiveHalt() {
+      if (guardDeputyMutation("Directive R-04 Resumption")) return;
       const btn = document.getElementById("resumeFromHaltBtn");
       if (btn) { btn.disabled = true; btn.textContent = "Resuming…"; }
       try {
@@ -1336,7 +1452,13 @@
 
     async function loadWorkspaceState() {
       try {
-        const res = await fetch("/api/v1/operator/workspace-state");
+        const wsUrl = isDeputyObserverMode
+          ? "/api/v1/operator/workspace-state?role=CHIEF_ADMIN_DEPUTY"
+          : "/api/v1/operator/workspace-state";
+        const wsHeaders = isDeputyObserverMode
+          ? { "X-PDEUE-Role": "CHIEF_ADMIN_DEPUTY", "X-Actor-Role": "CHIEF_ADMIN_DEPUTY" }
+          : {};
+        const res = await fetch(wsUrl, { headers: wsHeaders });
         if (!res.ok) {
           renderDashboardReadModelEnvelope({
             status: "DEGRADED_RETRYING",
@@ -1347,6 +1469,10 @@
           return;
         }
         const data = await res.json();
+        if (data.deputy_observer_mode) {
+          isDeputyObserverMode = true;
+          applyDeputyObserverLocks();
+        }
         if (data.houses) renderLineageTree(data.houses);
         renderDashboardAssetRings(data);
 
@@ -1381,7 +1507,9 @@
                 <td class="numeric" style="color:#10b981">${p.mtm}</td>
                 <td class="status-cell"><span class="status-chip resting"><i class="status-dot"></i>RESTING_MAKER</span></td>
                 <td class="action-cell">
-                  <button class="btn-settle" onclick="openSettleModal('${p.contract || p.contract_id}', ${p.qty || p.quantity || 3958}, '${p.cost || '$118.75'}')">Settle Contract</button>
+                  ${isDeputyObserverMode
+                    ? deputyReadOnlyBadgeHtml()
+                    : `<button class="btn-settle" onclick="openSettleModal('${p.contract || p.contract_id}', ${p.qty || p.quantity || 3958}, '${p.cost || '$118.75'}')">Settle Contract</button>`}
                 </td>
               </tr>
             `).join('');
@@ -1401,7 +1529,9 @@
               <td style="color: #4ade80; font-weight: bold;">+${(o.net_edge * 100).toFixed(1)}%</td>
               <td><span style="color: ${o.status === 'QUALIFIED' ? '#10b981' : '#f59e0b'}; font-weight: bold;">${o.status}</span></td>
               <td>
-                <button class="btn-stage" onclick="stageHouseDispatch('${o.contract_ticker}', '${o.venue}', ${o.target_house_id}, '${o.recommended_action}', ${o.market_price}, ${o.model_prob})">Stage Order</button>
+                ${isDeputyObserverMode
+                  ? deputyReadOnlyBadgeHtml()
+                  : `<button class="btn-stage" onclick="stageHouseDispatch('${o.contract_ticker}', '${o.venue}', ${o.target_house_id}, '${o.recommended_action}', ${o.market_price}, ${o.model_prob})">Stage Order</button>`}
               </td>
             </tr>
           `).join('');
@@ -1438,11 +1568,13 @@
             <span>${money(house.aggregated_equity_cents)}<small style="display:block;color:#64748b">Aggregated Equity</small></span>
             <span>${money(house.active_margin_cents)}<small style="display:block;color:#64748b">Active Margin</small></span>
             <span><span class="house-status ${house.status.toLowerCase()}">${house.status}</span><small style="display:block;color:#64748b">${Number(house.drawdown_pct).toFixed(2)}% drawdown</small></span>
-            <span class="house-freeze ${house.status === 'QUARANTINED' ? 'house-restore' : ''}" role="button" onclick="event.stopPropagation(); setHouseQuarantine(${house.house_id}, '${house.status === 'QUARANTINED' ? 'restore' : 'freeze'}')">${house.status === 'QUARANTINED' ? '↺ Restore House' : '⚡ Freeze Entire House'}</span>
+            ${isDeputyObserverMode
+              ? deputyReadOnlyBadgeHtml()
+              : `<span class="house-freeze ${house.status === 'QUARANTINED' ? 'house-restore' : ''}" role="button" onclick="event.stopPropagation(); setHouseQuarantine(${house.house_id}, '${house.status === 'QUARANTINED' ? 'restore' : 'freeze'}')">${house.status === 'QUARANTINED' ? '↺ Restore House' : '⚡ Freeze Entire House'}</span>`}
           </button>
           <div class="subaccount-panel" ${openHouseIds.has(String(house.house_id)) || (isInitialRender && index === 0) ? '' : 'hidden'}>
             <div class="table-card" style="margin-bottom:0;"><table style="width: 100%; min-width: 760px; border-collapse: collapse; display: table;"><thead><tr><th>SCMA ID</th><th>MEMBER NAME</th><th>ROLE / TAG</th><th>STATUS</th><th>CURRENT BALANCE</th><th>RISK DIAL</th><th>RESTING MAKER ORDERS</th><th>ACTIONS</th></tr></thead>
-            <tbody>${house.members.map(member => `<tr data-scma="${member.scma_id}" data-baseline="${member.baseline_risk_dial || .01}"><td class="house-code">${member.scma_id}</td><td><a href="/member?scma_id=${member.scma_id}" style="color:#38bdf8;text-decoration:underline;">${member.name}</a>${member.scma_id === 'SCMA-FOUNDER_-C8575D7E' || member.role_tag === 'Sovereign Settlor' ? '' : ` <a href="/member?scma_id=${member.scma_id}&supervisory=1&inspector=CHIEF_ADMIN" style="display:inline-block;margin-left:6px;background:rgba(217,119,6,0.18);border:1px solid #D97706;color:#FCD34D;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:800;text-decoration:none;">Audit Lens</a>`}</td><td>${member.role_tag || 'Lineal Member'}${member.is_custodial ? ' <span class="member-status-pill pending">CUSTODIAL</span>' : ''}</td><td><span class="member-status-pill ${member.status === 'ACTIVE' ? 'active' : (String(member.status || '').includes('PENDING') ? 'pending' : 'frozen')}">${member.status || 'ACTIVE'}</span></td><td style="font-variant-numeric:tabular-nums;">${money(member.cash_cents)}</td><td class="risk-value">${(Number(member.risk_dial) * 100).toFixed(1)}%</td><td class="order-value">${(member.open_orders || []).length}</td><td>${member.scma_id === 'SCMA-FOUNDER_-C8575D7E' || member.role_tag === 'Sovereign Settlor' ? '<span style="background:#1e293b;border:1px solid #38bdf8;color:#38bdf8;padding:4px 8px;border-radius:4px;font-weight:bold;font-size:11px;">🛡️ Sovereign Immune</span>' : `<button class="lineage-action freeze-risk" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'freeze-risk', this)">⚡ Freeze Risk</button> <button class="lineage-action restore-risk" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'restore-risk', this)">↺ Restore Risk</button> <button class="lineage-action revoke-orders" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'cancel-orders', this)">✕ Revoke Orders</button>`}</td></tr>`).join('')}</tbody></table></div>
+            <tbody>${house.members.map(member => `<tr data-scma="${member.scma_id}" data-baseline="${member.baseline_risk_dial || .01}"><td class="house-code">${member.scma_id}</td><td><a href="/member?scma_id=${member.scma_id}" style="color:#38bdf8;text-decoration:underline;">${member.name}</a>${member.scma_id === 'SCMA-FOUNDER_-C8575D7E' || member.role_tag === 'Sovereign Settlor' ? '' : ` <a href="/member?scma_id=${member.scma_id}&supervisory=1&inspector=CHIEF_ADMIN" style="display:inline-block;margin-left:6px;background:rgba(217,119,6,0.18);border:1px solid #D97706;color:#FCD34D;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:800;text-decoration:none;">Audit Lens</a>`}</td><td>${member.role_tag || 'Lineal Member'}${member.is_custodial ? ' <span class="member-status-pill pending">CUSTODIAL</span>' : ''}</td><td><span class="member-status-pill ${member.status === 'ACTIVE' ? 'active' : (String(member.status || '').includes('PENDING') ? 'pending' : 'frozen')}">${member.status || 'ACTIVE'}</span></td><td style="font-variant-numeric:tabular-nums;">${money(member.cash_cents)}</td><td class="risk-value">${(Number(member.risk_dial) * 100).toFixed(1)}%</td><td class="order-value">${(member.open_orders || []).length}</td><td>${member.scma_id === 'SCMA-FOUNDER_-C8575D7E' || member.role_tag === 'Sovereign Settlor' ? '<span style="background:#1e293b;border:1px solid #38bdf8;color:#38bdf8;padding:4px 8px;border-radius:4px;font-weight:bold;font-size:11px;">🛡️ Sovereign Immune</span>' : (isDeputyObserverMode ? deputyReadOnlyBadgeHtml() : `<button class="lineage-action freeze-risk" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'freeze-risk', this)">⚡ Freeze Risk</button> <button class="lineage-action restore-risk" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'restore-risk', this)">↺ Restore Risk</button> <button class="lineage-action revoke-orders" onclick="runLineageAction(${house.house_id}, '${member.scma_id}', 'cancel-orders', this)">✕ Revoke Orders</button>`)}</td></tr>`).join('')}</tbody></table></div>
           </div>
         </section>`).join('');
     }
@@ -1510,6 +1642,7 @@
     }
 
     function openOnboardModal() {
+      if (guardDeputyMutation("Member onboarding")) return;
       document.getElementById('onboard-error').style.display = 'none';
       document.getElementById('onboard-receipt').style.display = 'none';
       document.getElementById('onboard-modal').style.display = 'flex';
@@ -1538,6 +1671,7 @@
 
     async function submitOnboardMember(event) {
       event.preventDefault();
+      if (guardDeputyMutation("Member provisioning")) return;
       const errBox = document.getElementById('onboard-error');
       const receiptBox = document.getElementById('onboard-receipt');
       const submitBtn = document.getElementById('submitOnboardBtn');
@@ -1633,6 +1767,7 @@
     }
 
     async function submitBatchProvision() {
+      if (guardDeputyMutation("Batch provisioning")) return;
       const fmt = document.getElementById('batch-format-select').value;
       const raw = (document.getElementById('batch-provision-input').value || '').trim();
       const errBox = document.getElementById('batch-provision-error');
@@ -1700,6 +1835,7 @@
     }
 
     async function runLineageAction(houseId, scmaId, action, button) {
+      if (guardDeputyMutation("Lineage intervention")) return;
       button.disabled = true;
       try {
         const row = button.closest('tr');
@@ -1717,6 +1853,7 @@
     }
 
     async function setHouseQuarantine(houseId, action) {
+      if (guardDeputyMutation("House quarantine")) return;
       try {
         const response = await fetch(`/api/v1/lineage/house/${houseId}/${action}`, {method:'POST'});
         const result = await response.json();
@@ -1727,6 +1864,7 @@
     }
 
     function openSettleModal(ticker, qty, costStr) {
+      if (guardDeputyMutation("Contract settlement")) return;
       const costCents = Math.round(parseFloat(String(costStr).replace(/[^0-9.]/g, '')) * 100) || 11875;
       activeSettleTarget = { ticker, qty, costCents };
       document.getElementById("settle-ticker").textContent = ticker;
@@ -1773,6 +1911,7 @@
     }
 
     async function executeSettlement() {
+      if (guardDeputyMutation("Contract settlement")) return;
       if (!activeSettleTarget) return;
       const outcome = document.querySelector('input[name="settle_outcome"]:checked').value;
       const btn = document.getElementById("settle-confirm-btn");
@@ -1824,6 +1963,7 @@
     }
 
     function stageHouseDispatch(ticker, venue, houseId, side, price, prob) {
+      if (guardDeputyMutation("Stage order dispatch")) return;
       pendingDispatch = { ticker, venue, houseId, side, price, prob };
       document.getElementById("modal-ticket-id").textContent = ticker;
       document.getElementById("modal-venue").textContent = venue;
@@ -1947,7 +2087,7 @@
               <td><b>${_escGov(s.display_name)}</b>${s.user_id ? `<br><span style="font-family:monospace;font-size:11px;color:#94a3b8;">${_escGov(s.user_id)}</span>` : (s.house_code ? ` <span style="color:#a855f7;">(${_escGov(s.house_code)})</span>` : "")}</td>
               <td>${s.can_vote ? "VOTE" : "NONE"}${s.can_veto ? " + <b style='color:#fca5a5;'>VETO</b>" : ""}</td>
               <td><span style="color:${s.active ? "#34d399" : "#94a3b8"};font-weight:700;">${s.active ? "ACTIVE" : "REVOKED"}</span></td>
-              <td>${s.active ? `<button type="button" onclick="revokeVoterSeat('${_escGov(s.seat_id)}')" style="background:#dc2626;color:#f8fafc;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:700;">Revoke Seat</button>` : '<span style="font-size:11px;color:#64748b;">Revoked</span>'}</td>
+              <td>${s.active ? (isDeputyObserverMode ? deputyReadOnlyBadgeHtml() : `<button type="button" onclick="revokeVoterSeat('${_escGov(s.seat_id)}')" style="background:#dc2626;color:#f8fafc;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:700;">Revoke Seat</button>`) : '<span style="font-size:11px;color:#64748b;">Revoked</span>'}</td>
             </tr>
           `).join("") : '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:12px;">No voter seats registered.</td></tr>';
         }
@@ -1979,12 +2119,12 @@
             <td style="font-variant-numeric: tabular-nums;"><b style="color: #4ade80;">${p.aye_count ?? (p.affirmative_house_ids ? p.affirmative_house_ids.length : 0)} Aye</b> / ${p.nay_count ?? 0} Nay / <b style="color:#f87171;">${p.veto_count ?? 0} Veto</b></td>
             <td><span style="color: ${statusColor}; font-weight: bold;">${_escGov(String(p.status || "").replace(/_/g, " "))}</span></td>
             <td>
-              ${canAdjudicate ? `
+              ${canAdjudicate ? (isDeputyObserverMode ? deputyReadOnlyBadgeHtml() : `
                 <div style="display: flex; gap: 6px; flex-wrap: wrap;">
                   <button type="button" onclick="adjudicatePetition('${_escGov(p.proposal_id)}', 'APPROVE_AND_EXECUTE')" style="background: #059669; color: #f8fafc; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">Authorize Sweep</button>
                   <button type="button" onclick="adjudicatePetition('${_escGov(p.proposal_id)}', 'FOUNDER_VETO')" style="background: #dc2626; color: #f8fafc; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">Founder Veto</button>
                 </div>
-              ` : `<span style="font-size: 11px; color: #94a3b8;">${_escGov(p.settled_by || p.status)}</span>`}
+              `) : `<span style="font-size: 11px; color: #94a3b8;">${_escGov(p.settled_by || p.status)}</span>`}
             </td>
           </tr>
         `;
@@ -1996,6 +2136,7 @@
     }
 
     async function setGovernanceMode(targetMode) {
+      if (guardDeputyMutation("Governance mode mutation")) return;
       const statusEl = document.getElementById("gov-mode-status");
       const reasonInput = document.getElementById("gov-mode-reason");
       const reason = reasonInput ? reasonInput.value.trim() : "";
@@ -2018,6 +2159,7 @@
     }
 
     async function triggerShtfSnapback() {
+      if (guardDeputyMutation("SHTF Snap-Back")) return;
       const statusEl = document.getElementById("gov-mode-status");
       const reasonInput = document.getElementById("gov-mode-reason");
       const reason = reasonInput && reasonInput.value.trim() ? reasonInput.value.trim() : "1-Click SHTF Emergency Snap-Back";
@@ -2040,6 +2182,7 @@
     }
 
     async function createEnclaveBody() {
+      if (guardDeputyMutation("Create communal body")) return;
       const statusEl = document.getElementById("enclave-body-status");
       const name = (document.getElementById("new-body-name")?.value || "").trim();
       const qNum = Number(document.getElementById("new-body-quorum-num")?.value || 2);
@@ -2075,6 +2218,7 @@
     }
 
     async function grantVoterSeat() {
+      if (guardDeputyMutation("Grant voter seat")) return;
       const statusEl = document.getElementById("enclave-seat-status");
       const bodyId = document.getElementById("seat-body-select")?.value || "COUNCIL_OF_12_HOUSES";
       const seatType = document.getElementById("seat-type-select")?.value || "NAMED_INDIVIDUAL";
@@ -2116,6 +2260,7 @@
     }
 
     async function revokeVoterSeat(seatId) {
+      if (guardDeputyMutation("Revoke voter seat")) return;
       const statusEl = document.getElementById("enclave-seat-status");
       try {
         const res = await fetch(`/api/v1/governance/seats/${encodeURIComponent(seatId)}/revoke`, {
@@ -2136,6 +2281,7 @@
     }
 
     async function adjudicatePetition(proposalId, action) {
+      if (guardDeputyMutation("Petition adjudication")) return;
       const statusEl = document.getElementById("gov-petition-status");
       try {
         const res = await fetch("/api/v1/lineage/governance/adjudicate", {
@@ -2167,8 +2313,12 @@
       drawer.hidden = false;
       drawer.innerHTML = '<div style="font-size:12px;color:#94a3b8;">Searching enclave-wide directory...</div>';
       try {
-        const res = await fetch(`/api/v1/portal/custodial/lookup?q=${encodeURIComponent(q)}&role=CHIEF_ADMIN`, {
-          headers: CHIEF_ADMIN_HEADERS
+        const lookupRole = isDeputyObserverMode ? "CHIEF_ADMIN_DEPUTY" : "CHIEF_ADMIN";
+        const lookupHeaders = isDeputyObserverMode
+          ? { "X-PDEUE-Role": "CHIEF_ADMIN_DEPUTY", "X-Actor-Role": "CHIEF_ADMIN_DEPUTY", "X-Actor-ID": "CHIEF_ADMIN_DEPUTY" }
+          : CHIEF_ADMIN_HEADERS;
+        const res = await fetch(`/api/v1/portal/custodial/lookup?q=${encodeURIComponent(q)}&role=${encodeURIComponent(lookupRole)}`, {
+          headers: lookupHeaders
         });
         const data = await res.json();
         if (!res.ok) {
@@ -2268,12 +2418,12 @@
                 <td>${_escGov(d.lineage_code)}<br><span style="font-variant-numeric:tabular-nums;color:#4ade80;">${_escGov(d.seed_formatted)}</span></td>
                 <td>${_escGov(d.submitted_by_member_id)}<br><span style="font-size:11px;color:#94a3b8;">${_escGov(d.submitted_by_role)}</span></td>
                 <td><b>${_escGov(d.status)}</b>${d.ifas_outbox_event_id ? `<br><span style="font-family:monospace;font-size:11px;color:#38bdf8;">IFAS: ${_escGov(d.ifas_outbox_event_id)}</span>` : ""}</td>
-                <td>${canRatify ? `
+                <td>${canRatify ? (isDeputyObserverMode ? deputyReadOnlyBadgeHtml() : `
                   <div style="display:flex;gap:5px;flex-wrap:wrap;">
                     <button type="button" onclick="adjudicateOnboardingDossier('${_escGov(d.dossier_id)}','ratify')" style="background:#059669;color:#f8fafc;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;">Ratify &amp; Provision</button>
                     <button type="button" onclick="adjudicateOnboardingDossier('${_escGov(d.dossier_id)}','request-proof')" style="background:#d97706;color:#0b132b;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;">Request Proof</button>
                     <button type="button" onclick="adjudicateOnboardingDossier('${_escGov(d.dossier_id)}','reject')" style="background:#dc2626;color:#f8fafc;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;">Reject</button>
-                  </div>` : `<span style="font-size:11px;color:#94a3b8;">${_escGov(d.provisioned_scma_id || d.status)}</span>`}</td>
+                  </div>`) : `<span style="font-size:11px;color:#94a3b8;">${_escGov(d.provisioned_scma_id || d.status)}</span>`}</td>
               </tr>`;
             }).join("") : '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:12px;">No delegated admission dossiers submitted yet.</td></tr>';
           }
@@ -2284,6 +2434,7 @@
     }
 
     async function submitRoleRegistryAction(action) {
+      if (guardDeputyMutation("Role assignment / succession")) return;
       const statusEl = document.getElementById("role-registry-status");
       const memberId = (document.getElementById("role-member-id")?.value || "").trim();
       const roleToken = document.getElementById("role-token-select")?.value || "F1";
@@ -2313,6 +2464,7 @@
     }
 
     async function setCustodyMode(mode) {
+      if (guardDeputyMutation("Custody mode switch")) return;
       const statusEl = document.getElementById("custody-mode-status");
       try {
         const res = await fetch("/api/v1/governance/custody-mode", {
@@ -2334,6 +2486,7 @@
     }
 
     async function saveDelegationConfig() {
+      if (guardDeputyMutation("Delegation policy change")) return;
       const statusEl = document.getElementById("delegation-config-status");
       const scope = document.getElementById("delegation-scope-select")?.value || "ADMIN_ONLY";
       const houseId = document.getElementById("house-delegation-house-select")?.value || "1";
@@ -2363,6 +2516,7 @@
     }
 
     async function adjudicateOnboardingDossier(dossierId, action) {
+      if (guardDeputyMutation("Onboarding dossier adjudication")) return;
       const statusEl = document.getElementById("delegation-config-status");
       try {
         const res = await fetch(`/api/v1/onboarding/dossiers/${encodeURIComponent(dossierId)}/${action}`, {
@@ -2383,6 +2537,8 @@
     }
 
     window.addEventListener("DOMContentLoaded", () => {
+      if (isDeputyObserverMode) applyDeputyObserverLocks();
+      loadDashboardAuthorityState();
       setCurrencyMode(currencyMode);
       renderChart();
       preloadGlossary();
@@ -2495,8 +2651,12 @@
       const sumEl = document.getElementById('adminHunchSummary');
       if (!listEl) return;
       try {
-        const res = await fetch('/api/v1/hunch/dossiers?role=CHIEF_ADMINISTRATOR', {
-          headers: { 'X-Actor-Role': 'CHIEF_ADMINISTRATOR' }
+        const hunchRole = isDeputyObserverMode ? 'CHIEF_ADMIN_DEPUTY' : 'CHIEF_ADMINISTRATOR';
+        const hunchHeaders = isDeputyObserverMode
+          ? { 'X-PDEUE-Role': 'CHIEF_ADMIN_DEPUTY', 'X-Actor-Role': 'CHIEF_ADMIN_DEPUTY' }
+          : { 'X-Actor-Role': 'CHIEF_ADMINISTRATOR' };
+        const res = await fetch(`/api/v1/hunch/dossiers?role=${encodeURIComponent(hunchRole)}`, {
+          headers: hunchHeaders
         });
         const data = await res.json();
         if (!res.ok) {
@@ -2517,9 +2677,13 @@
           const tr = item.member_shadow_track_record || item.shadow_stats || {};
           let actions = '';
           if (st === 'PENDING_F3_CLEARANCE') {
-            actions = `<button type="button" class="btn-onboard" style="padding:4px 10px;font-size:11px;" onclick="reviewAdminHunch('${escapeCopilot(item.dossier_id)}','ALLOWED')">Allow (CA Final)</button> <button type="button" class="btn-kill" style="padding:4px 10px;font-size:11px;" onclick="reviewAdminHunch('${escapeCopilot(item.dossier_id)}','DENIED')">Deny</button>`;
+            actions = isDeputyObserverMode
+              ? deputyReadOnlyBadgeHtml('Observer Mode — Read-Only (Hunch Review Locked)')
+              : `<button type="button" class="btn-onboard" style="padding:4px 10px;font-size:11px;" onclick="reviewAdminHunch('${escapeCopilot(item.dossier_id)}','ALLOWED')">Allow (CA Final)</button> <button type="button" class="btn-kill" style="padding:4px 10px;font-size:11px;" onclick="reviewAdminHunch('${escapeCopilot(item.dossier_id)}','DENIED')">Deny</button>`;
           } else if (st === 'ALLOWED') {
-            actions = `<button type="button" class="btn-kill" style="padding:4px 10px;font-size:11px;" onclick="reviewAdminHunch('${escapeCopilot(item.dossier_id)}','RESCINDED')">Rescind Clearance</button>`;
+            actions = isDeputyObserverMode
+              ? deputyReadOnlyBadgeHtml('Observer Mode — Read-Only (Rescind Locked)')
+              : `<button type="button" class="btn-kill" style="padding:4px 10px;font-size:11px;" onclick="reviewAdminHunch('${escapeCopilot(item.dossier_id)}','RESCINDED')">Rescind Clearance</button>`;
           }
           return `<div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:12px;"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;"><strong>${escapeCopilot(item.dossier_id)} · ${escapeCopilot(item.vertical?.label || item.vertical?.code || 'Regulated')} · ${escapeCopilot(item.scma_id)}</strong><span style="color:#38bdf8;font-weight:700;">${escapeCopilot(item.status)} · ${escapeCopilot(st)}</span></div><div style="color:#cbd5e1;margin:4px 0;">${escapeCopilot(item.hypothesis)}</div><div style="color:#94a3b8;">Modeled ${escapeCopilot(item.modeled_prob_cents)}¢ · Quote ${escapeCopilot(item.quoted_price_cents)}¢ · Fee ${escapeCopilot(item.fee_cents)}¢ · Net Edge <strong>${escapeCopilot(item.net_edge_cents)}¢</strong> · Track Record: ${escapeCopilot(tr.total_shadow_bids ?? 0)} bids (${escapeCopilot(tr.hit_rate_pct || '0.00%')})</div>${actions ? `<div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;">${actions}</div>` : ''}</div>`;
         }).join('');
@@ -2546,6 +2710,7 @@
     if (adminHunchForm) {
       adminHunchForm.addEventListener('submit', async (ev) => {
         ev.preventDefault();
+        if (guardDeputyMutation('Shadow Hunch evaluation')) return;
         const out = document.getElementById('adminHunchResult');
         out.textContent = 'Running Three-Point Validation Pipeline (SHADOW_PAPER mode)…';
         try {
@@ -2577,6 +2742,7 @@
       });
     }
     async function submitAdminShadowBid() {
+      if (guardDeputyMutation('Shadow Hunch virtual bid')) return;
       const out = document.getElementById('adminHunchResult');
       if (!activeAdminDossierId) {
         out.textContent = 'Evaluate a positive-edge hypothesis first before staging a virtual SHADOW_PAPER bid.';
@@ -2598,6 +2764,7 @@
       }
     }
     async function reviewAdminHunch(dossierId, decision) {
+      if (guardDeputyMutation('Shadow Hunch live-clearance review')) return;
       const out = document.getElementById('adminHunchResult');
       try {
         const res = await fetch(`/api/v1/hunch/${encodeURIComponent(dossierId)}/review?role=CHIEF_ADMINISTRATOR`, {

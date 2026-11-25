@@ -220,6 +220,7 @@ def review_hunch_clearance_api(
     request: HunchReviewRequest,
     role: Optional[str] = Query(None),
     authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_pdeue_role: Optional[str] = Header(None, alias="X-PDEUE-Role"),
     x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
     x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
     x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
@@ -228,7 +229,7 @@ def review_hunch_clearance_api(
     _reject_supervisory_mutation(x_supervisory_mode)
     resolved_role, actor_id = _resolve_caller(
         authorization=authorization,
-        x_active_hat=x_active_hat,
+        x_active_hat=x_pdeue_role or x_active_hat,
         x_actor_role=x_actor_role,
         x_actor_id=x_actor_id,
         body_role=request.actor_role or role,
@@ -253,13 +254,14 @@ def list_hunch_dossiers_api(
     role: Optional[str] = Query(None),
     clearance_status: Optional[str] = Query(None),
     authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_pdeue_role: Optional[str] = Header(None, alias="X-PDEUE-Role"),
     x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
     x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
     x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
 ) -> Dict[str, Any]:
     resolved_role, _ = _resolve_caller(
         authorization=authorization,
-        x_active_hat=x_active_hat,
+        x_active_hat=x_pdeue_role or x_active_hat,
         x_actor_role=x_actor_role,
         x_actor_id=x_actor_id,
         body_role=role,

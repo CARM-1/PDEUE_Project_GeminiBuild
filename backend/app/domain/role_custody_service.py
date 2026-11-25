@@ -1671,7 +1671,7 @@ class RoleCustodyDelegationService:
                 max(active_role_set, key=lambda r: ROLE_RANK.get(r, 0)) if active_role_set else "MEMBER_USER"
             )
             assigned_houses = {int(r.house_id) for r in db_active_rows if r.house_id is not None}
-            if house_id is not None and eff_role not in {"CHIEF_ADMIN", "F3"} and not is_class_t_role(eff_role):
+            if house_id is not None and eff_role not in {"CHIEF_ADMIN", "CHIEF_ADMIN_DEPUTY", "F3"} and not is_class_t_role(eff_role):
                 if assigned_houses and int(house_id) not in assigned_houses:
                     raise HTTPException(
                         status_code=403,
@@ -1728,7 +1728,7 @@ class RoleCustodyDelegationService:
 
     def _is_member_in_scope(self, member: Dict[str, Any], auth: Dict[str, Any]) -> bool:
         role = auth["effective_role"]
-        if role in {"CHIEF_ADMIN", "F3"}:
+        if role in {"CHIEF_ADMIN", "CHIEF_ADMIN_DEPUTY", "F3"}:
             return True
         if is_class_t_role(role):
             return True  # Class T gets strictly R-12 masked node/relay telemetry only
@@ -1907,10 +1907,15 @@ class RoleCustodyDelegationService:
                 "query": q,
                 "actor_id": auth["actor_id"],
                 "effective_role": eff_role,
+                "read_only": eff_role == "CHIEF_ADMIN_DEPUTY",
                 "scope": (
                     "TECHNICAL_NODE_RELAY_R12_MASKED"
                     if is_class_t_role(eff_role)
-                    else ("ENCLAVE_WIDE" if eff_role in {"CHIEF_ADMIN", "F3"} else "SCOPED_CUSTODIAL")
+                    else (
+                        "ENCLAVE_WIDE_READ_ONLY"
+                        if eff_role == "CHIEF_ADMIN_DEPUTY"
+                        else ("ENCLAVE_WIDE" if eff_role in {"CHIEF_ADMIN", "F3"} else "SCOPED_CUSTODIAL")
+                    )
                 ),
                 "r12_masked": is_class_t_role(eff_role) or eff_role in {"F1", "H1"},
                 "count": len(matched),

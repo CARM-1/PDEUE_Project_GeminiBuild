@@ -188,14 +188,22 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
   </div>
   <div id="custodial-lookup-drawer" class="custodial-lookup-drawer" hidden role="region" aria-live="polite"></div>
 </section>
-<section class="scope-control card" id="branch-scope" hidden><label class="label" for="household-selector">Assigned Household</label><select id="household-selector"><option>HOUSEHOLD-ALPHA</option><option>HOUSEHOLD-BETA</option></select></section>
-<div class="row" id="advisor-actions" hidden style="margin-bottom:14px;"><button class="action" id="stage-proposal" type="button">Stage Advisory Proposal</button></div>
+<section class="scope-control card" id="branch-scope" hidden>
+  <div class="label" style="margin-bottom:4px;">F2-A Lineage Advisor · Multi-Branch Advisory Scope</div>
+  <p class="muted" style="margin:0 0 8px;font-size:.82rem;">Compare assigned family branches and stage <code>PENDING</code> risk/rebalancing proposals for independent F3 CRO adjudication. Domestic spending co-sign and Shadow Hunch clearance remain strictly read-only.</p>
+  <label class="label" for="household-selector">Assigned Household</label>
+  <select id="household-selector"><option>HOUSEHOLD-ALPHA</option><option>HOUSEHOLD-BETA</option></select>
+</section>
+<div class="row" id="advisor-actions" hidden style="margin-bottom:14px;">
+  <button class="action" id="stage-proposal" type="button">Stage Advisory Proposal</button>
+  <span class="audit-pill" aria-disabled="true">F2-A STAGES PENDING PROPOSALS ONLY · F3 CRO ADJUDICATES</span>
+</div>
 <section class="card" id="cro-emergency-controls" hidden aria-label="F3 CRO Directive R-04 and Dual-Signature Controls">
   <div class="row">
     <div>
-      <div class="label">F3 CRO Dual-Control &amp; <abbr class="pdeue-term" tabindex="0" data-term="directive-r04-halt" data-tooltip="The big red emergency brake. If anything looks wrong, leadership can pause all new trades across the entire platform in one step, and only the Chief Administrator can safely turn things back on.">Directive R-04<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> Governance</div>
-      <h2>Emergency Financial Halt &amp; Dual-Signature Override</h2>
-      <p class="muted" style="margin:0;">F3 CRO may engage Directive R-04 Emergency Halt or stage a dual-signature override. <strong>Resumption and counter-signature are strictly reserved to the Chief Administrator (HTTP 403 for non-CA).</strong></p>
+      <div class="label">F3 Chief Risk Officer (CRO) · Platform-Wide 12-House Macro-Risk &amp; <abbr class="pdeue-term" tabindex="0" data-term="directive-r04-halt" data-tooltip="The big red emergency brake. If anything looks wrong, leadership can pause all new trades across the entire platform in one step, and only the Chief Administrator can safely turn things back on.">Directive R-04<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> Desk</div>
+      <h2>Emergency Financial Halt, Macro-Risk &amp; Supervisory Adjudication</h2>
+      <p class="muted" style="margin:0;">F3 CRO oversees the 12-House macro-risk grid, adjudicates F2-A <code>PENDING</code> proposals &amp; Step 2 Shadow Hunch live clearance (<code>ALLOWED</code> / <code>DENIED</code> / <code>RESCINDED</code>), and may engage Directive R-04 Emergency Halt or stage dual-signature overrides. <strong>Domestic spending remains F2-H-only; R-04 resumption is strictly reserved to the Chief Administrator (HTTP 403 for non-CA).</strong></p>
     </div>
     <div class="row">
       <button class="action danger" id="trigger-r04-halt-btn" type="button">Engage Directive R-04 Halt</button>
@@ -210,7 +218,7 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
 <section class="grid" id="metrics"><article class="card"><div class="label">Household ID</div><div class="value" id="household">HOUSEHOLD-ALPHA</div></article><article class="card accent" id="equity-card"><div class="label" id="equity-label">Total Household Equity</div><div class="value" id="equity">—</div></article><article class="card"><div class="label">Available Liquidity</div><div class="value" id="liquidity">—</div></article><article class="card"><div class="label">Monitored Members</div><div class="value" id="count">—</div></article></section>
 <section class="card"><div class="label">Subordinate <abbr class="pdeue-term" tabindex="0" data-term="scma" data-tooltip="Your own private, walled-off family account. Your money grows inside your personal box, and if a trade ever loses money, that loss stays strictly inside your own account and never touches anyone else's savings.">SCMA<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> Accounts</div><div class="table-wrap table-card"><table><thead><tr><th>Member</th><th>Account (<abbr class="pdeue-term" tabindex="0" data-term="scma" data-tooltip="Your own private, walled-off family account. Your money grows inside your personal box, and if a trade ever loses money, that loss stays strictly inside your own account and never touches anyone else's savings.">SCMA<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>)</th><th>Equity</th><th>Lineage status</th><th>Risk controls</th></tr></thead><tbody id="roster"></tbody></table></div></section>
 <section class="grid" id="operations"><div id="distribution-slot"></div><article class="card wide" id="audit-card"><div class="label">PIT Decision Audit</div><div id="telemetry"></div><div id="pit"></div></article></section>
-<section class="card" id="proposal-queue" hidden><div class="label">Fiduciary Supervisory Queue</div><div id="proposals"></div></section>
+<section class="card" id="proposal-queue" hidden><div class="label">Fiduciary Supervisory Queue (F3 CRO Adjudication of F2-A Proposals)</div><div id="proposals"></div></section>
 <section class="card" id="shadowHunchClearanceSection" aria-label="Shadow Hunch Clearance Queue">
   <div class="row" style="margin-bottom:8px;">
     <div>
@@ -252,9 +260,9 @@ const qs=new URLSearchParams(location.search);
 const isSupervisoryLens=qs.get('supervisory')==='1'||qs.get('audit_lens')==='1'||qs.get('inspector')==='CHIEF_ADMIN';
 const roles={
  F1:{hat:'F1_PEER_GUIDE',accent:'#10b981',rgb:'16,185,129',alert:'RESTRICTED ACCESS — MENTEE OVERSIGHT ONLY. Household-level equity is redacted.'},
- 'F2-H':{hat:'F2-H_HOUSEHOLD_HEAD',accent:'#a855f7',rgb:'168,85,247',alert:'HOUSEHOLD AUTHORITY — Domestic oversight, custodial minor locks, and dual-control co-signing enabled.'},
- 'F2-A':{hat:'F2-A_LINEAGE_ADVISOR',accent:'#f59e0b',rgb:'245,158,11',alert:'FIDUCIARY AUDIT MODE — Point-in-time read-only inspection (mutations blocked HTTP 403).'},
- F3:{hat:'F3_CRO_RISK',accent:'#e11d48',rgb:'225,29,72',alert:'CRO GOVERNANCE — Platform-wide risk analytics, Directive R-04 Emergency Halt, and dual-signature submission (CA-only resumption).'}
+ 'F2-H':{hat:'F2-H_HOUSEHOLD_HEAD',accent:'#a855f7',rgb:'168,85,247',alert:'HOUSEHOLD AUTHORITY — Domestic oversight, custodial minor locks, Step 1 Shadow Hunch review, and dual-control co-signing enabled.'},
+ 'F2-A':{hat:'F2-A_LINEAGE_ADVISOR',accent:'#f59e0b',rgb:'245,158,11',alert:'F2-A LINEAGE ADVISOR — Multi-branch mentoring & staged PENDING proposals enabled. Domestic spending co-sign & direct mutations remain read-only (HTTP 403).'},
+ F3:{hat:'F3_CRO_RISK',accent:'#e11d48',rgb:'225,29,72',alert:'F3 CRO GOVERNANCE — Platform-wide 12-House macro-risk desk, F2-A proposal & Step 2 Shadow Hunch adjudication, Directive R-04 Emergency Halt, and dual-signature submission (CA-only resumption).'}
 };
 let activeRole=qs.get('role')||'F2-H',data,pendingId,requestNumber=0,controller,activeHousehold='HOUSEHOLD-ALPHA',lastAdvisorActionCards=[];
 if(!roles[activeRole])activeRole='F2-H';
