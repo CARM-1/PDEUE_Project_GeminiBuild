@@ -98,7 +98,7 @@ def test_two_scale_heraldic_crest_assets_and_11_bordure_differenced_svgs():
 
     # Verify Carmichael achievement depicts key heraldic elements
     carm_ach = (CRESTS_DIR / "carmichael_achievement.svg").read_text(encoding="utf-8")
-    for expected in ("TOUJOURS PREST", "knightSupporter", "crownedLionSupporter", "scottishThistles", "heritageAccentRibbon"):
+    for expected in ("IEHOVA SEMPER VIGILANS", "sacGauntletLightningOliveCrest", "knightSupporter", "crownedLionSupporter", "scottishThistles", "heritageAccentRibbon"):
         assert expected in carm_ach, f"Missing '{expected}' in carmichael_achievement.svg"
 
     # Verify McCormick achievement depicts three blue eagles, fess dancette, black engrailed border & twin golden stags

@@ -40,6 +40,7 @@ from app.domain.authority_tiers import (
 )
 from app.domain.heritage_community_service import (
     get_heritage_community_service,
+    resolve_heraldic_asset_path,
     sanitize_social_text,
 )
 from app.domain.plane_routing import (
@@ -103,6 +104,17 @@ def _load_social_html(filename: str) -> str:
     if static_page.exists():
         return static_page.read_text(encoding="utf-8")
     raise HTTPException(status_code=500, detail=f"Social plane template {filename} missing")
+
+
+def _apply_resolved_achievement_assets(markup: str) -> str:
+    """Substitute founding achievement SVG paths with high-res raster drop-ins (.png/.jpg) when present."""
+    carm_src = html.escape(resolve_heraldic_asset_path("carmichael_achievement"), quote=True)
+    mcc_src = html.escape(resolve_heraldic_asset_path("mccormick_achievement"), quote=True)
+    return (
+        markup
+        .replace("/static/assets/crests/carmichael_achievement.svg", carm_src)
+        .replace("/static/assets/crests/mccormick_achievement.svg", mcc_src)
+    )
 
 
 def _resolve_social_caller(
@@ -273,6 +285,7 @@ def get_family_home_hub(
     }
     for marker, value in replacements.items():
         markup = markup.replace(marker, value)
+    markup = _apply_resolved_achievement_assets(markup)
     return HTMLResponse(markup)
 
 
@@ -346,7 +359,7 @@ def ask_community_tutor(request: CommunityTutorRequest) -> Dict[str, str]:
 @social_plane_router.get("/community/heritage", response_class=HTMLResponse)
 def get_hall_of_arms_portal():
     """Serve the Hall of Arms gallery for the founding crests, 12 Houses, and 28+ allied surnames."""
-    return HTMLResponse(_load_social_html("heritage.html"))
+    return HTMLResponse(_apply_resolved_achievement_assets(_load_social_html("heritage.html")))
 
 
 def _render_detail_page(
@@ -526,12 +539,23 @@ def get_heritage_house_history_page(house_id: int):
     heraldry_style = html.escape(
         f"{bordure.get('border_style', 'Standard')} · {bordure.get('tincture', 'Gold')}"
     )
+    symbolism = house.get("heraldic_symbolism") or {}
+    symbolism_html = ""
+    if symbolism:
+        symbolism_html = (
+            '<ul style="margin:10px 0 0;padding-left:20px;color:var(--text-secondary);">'
+            f'<li><strong>Motto:</strong> {html.escape(str(symbolism.get("motto", "")))}</li>'
+            f'<li><strong>Crest:</strong> {html.escape(str(symbolism.get("crest", "")))}</li>'
+            f'<li><strong>Shield &amp; Coronet:</strong> {html.escape(str(symbolism.get("shield_and_coronet", "")))}</li>'
+            f'<li><strong>Supporters &amp; Compartment:</strong> {html.escape(str(symbolism.get("supporters_and_compartment", "")))}</li>'
+            '</ul>'
+        )
     extra = (
         '<section class="card">'
         '<h2>Heraldic Blazon &amp; Lineage Descent</h2>'
         f'<p><strong>Lineage Descent:</strong> {html.escape(house.get("lineage_descent", house["founding_branch"]))}</p>'
         f'<p><strong>Heraldic Treatment:</strong> {heraldry_style}</p>'
-        f'<p>{heraldry_note}</p>'
+        f'{symbolism_html or f"<p>{heraldry_note}</p>"}'
         '</section>'
         '<section class="card">'
         '<h2>Allied &amp; Founding Surnames in This House</h2>'
