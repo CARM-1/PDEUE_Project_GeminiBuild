@@ -117,10 +117,10 @@ def test_heritage_service_12_houses_carmichael_eldest_daughter_and_11_bordure_mc
         assert gallery["allied_surname_count"] >= 28
 
         two_scale = gallery["two_scale_heraldry"]
-        assert two_scale["emblem_assets"]["carmichael"] == "/static/assets/crests/carmichael_crest.svg"
-        assert two_scale["emblem_assets"]["mccormick"] == "/static/assets/crests/mccormick_crest.svg"
-        assert two_scale["achievement_assets"]["carmichael"] == "/static/assets/crests/carmichael_achievement.svg"
-        assert two_scale["achievement_assets"]["mccormick"] == "/static/assets/crests/mccormick_achievement.svg"
+        assert two_scale["emblem_assets"]["carmichael"] == "/static/assets/crests/carmichael_crest.jpg"
+        assert two_scale["emblem_assets"]["mccormick"] == "/static/assets/crests/mccormick_crest.jpg"
+        assert two_scale["achievement_assets"]["carmichael"] == "/static/assets/crests/carmichael_achievement.jpg"
+        assert two_scale["achievement_assets"]["mccormick"] == "/static/assets/crests/mccormick_achievement.jpg"
         assert "eldest mccormick daughter" in two_scale["house_1_descent"].lower()
         assert two_scale["bordure_differenced_house_count"] == 11
         assert two_scale["bordure_differenced_house_ids"] == list(range(2, 13))
@@ -128,7 +128,7 @@ def test_heritage_service_12_houses_carmichael_eldest_daughter_and_11_bordure_mc
         houses_by_id = {h["house_id"]: h for h in gallery["houses"]}
         h1 = houses_by_id[1]
         assert "eldest mccormick daughter" in h1["lineage_descent"].lower()
-        assert h1["achievement_asset_path"] == "/static/assets/crests/carmichael_achievement.svg"
+        assert h1["achievement_asset_path"] == "/static/assets/crests/carmichael_achievement.jpg"
         assert h1["bordure_differencing"]["is_bordure_differenced"] is False
 
         seen_bordure_crests = set()
@@ -137,25 +137,25 @@ def test_heritage_service_12_houses_carmichael_eldest_daughter_and_11_bordure_mc
             assert h["bordure_differencing"]["is_bordure_differenced"] is True
             assert h["bordure_differencing"]["border_style"]
             assert h["bordure_differencing"]["tincture"]
-            expected_path = f"/static/assets/crests/house_{hid:02d}_mccormick_bordure.svg"
+            expected_path = f"/static/assets/crests/house_{hid:02d}_mccormick_bordure.jpg"
             assert h["emblem_asset_path"] == expected_path
             seen_bordure_crests.add(expected_path)
         assert len(seen_bordure_crests) == 11
 
         # /community/heritage and /home display full achievements alongside compact emblems
         heritage_html = client.get("/community/heritage").text
-        assert "/static/assets/crests/carmichael_achievement.svg" in heritage_html
-        assert "/static/assets/crests/mccormick_achievement.svg" in heritage_html
+        assert "/static/assets/crests/carmichael_achievement.jpg" in heritage_html
+        assert "/static/assets/crests/mccormick_achievement.jpg" in heritage_html
         assert "Bordure Differencing" in heritage_html
 
         home_html = client.get("/home").text
-        assert "/static/assets/crests/carmichael_achievement.svg" in home_html
-        assert "/static/assets/crests/mccormick_achievement.svg" in home_html
+        assert "/static/assets/crests/carmichael_achievement.jpg" in home_html
+        assert "/static/assets/crests/mccormick_achievement.jpg" in home_html
 
         # House detail page shows heraldic blazon and lineage descent
         h3_html = client.get("/community/heritage/house/3").text
         assert "Heraldic Blazon" in h3_html
-        assert "house_03_mccormick_bordure.svg" in h3_html
+        assert "house_03_mccormick_bordure.jpg" in h3_html
 
 
 def test_community_ask_tutor_clear_button_is_client_only_and_site_wide_clear_controls_verified():

@@ -511,48 +511,57 @@ JITSI_ROOM_PRESETS: Tuple[Dict[str, Any], ...] = (
     },
 )
 
-# Plain-English Pay-it-Forward (LCCF) Charter (strictly educational / zero account balances)
+# Plain-English Pay-it-Forward (FSAP) Charter (strictly educational / zero account balances)
 PAY_IT_FORWARD_LCCF_CHARTER: Dict[str, Any] = {
-    "title": "Pay-it-Forward (LCCF) Sponsorship Charter",
-    "subtitle": "Lifting relatives out of high-interest debt and starting a better financial chapter — without ever mixing accounts.",
+    "title": "Pay-it-Forward (FSAP) Sponsorship Charter",
+    "subtitle": (
+        "A structured, ring-fenced way for financially stable relatives to lift another household out of "
+        "high-interest debt and seed their future — with principal protection, variable realized pool participation, "
+        "and zero shared trading risk."
+    ),
     "pillars": [
         {
-            "heading": "1. Voluntary Patron Sponsorship via IFAS",
+            "heading": "1. Ring-Fenced Pool & Zero Shared Risk",
             "body": (
-                "Solvent family Patrons who want to bless a relative may voluntarily sponsor a seed contribution "
-                "or high-interest debt relief gift strictly through the independent IFAS banking & accounting plane. "
-                "PDEUE never touches bank routing numbers or account credentials."
+                "Family sponsors (Patrons) contribute spare capital into the Familial Stability Advance Pool (FSAP), "
+                "held separately inside our independent accounting system (IFAS). Every personal member account (SCMA) "
+                "stays 100% walled off — helping a relative never pledges your savings or connects your account to anyone else's trading loss."
             ),
         },
         {
-            "heading": "2. Strict Zero Cross-Collateralization (Rule A14)",
+            "heading": "2. Principal Return & Variable Realized Participation",
             "body": (
-                "Sponsoring a loved one NEVER links your personal account to theirs. Every Self-Contained Member "
-                "Account (SCMA) remains 100% walled off: one person's trading loss can never touch a Patron's savings, "
-                "another relative's account, or the shared family pool."
+                "Sponsorship is neither a one-way handout nor a guaranteed-interest loan. Sponsors receive their full "
+                "contributed principal back as advances are repaid, plus a transparent, time-weighted share of actual "
+                "realized pool income (bank/Treasury interest on idle cash plus realized facility fees, minus expenses) — "
+                "never paid from newer contributors' deposits."
             ),
         },
         {
-            "heading": "3. Transparent Eligibility & Learning First",
+            "heading": "3. Three-Stage Direct Relief & Automated Repayment",
             "body": (
-                "Sponsored relatives complete the plain-English PDEUE University foundations walkthrough first so "
-                "they understand how the 40% cash shield, High-Water Mark rule, and three-tier withdrawal guardrails work."
+                "Approved advances (co-signed by the local Head of Household and Chief Administrator) flow in three stages: "
+                "(1) direct payoff of high-interest creditors, (2) a starter seed in the relative's isolated PDEUE account, "
+                "and (3) a modest household cash cushion. Trading runs untouched at 100%; repayment happens automatically only "
+                "from excess cash sweeps (50% default, tunable 30%–70% by the Head of Household)."
             ),
         },
         {
-            "heading": "4. Passing the Blessing Forward",
+            "heading": "4. The Sovereign Choice & Revolving Multiplier",
             "body": (
-                "As assisted family members regain footing and grow past their personal milestones, a portion of "
-                "their voluntary recovery covenant helps replenish the Lineage Community Capital Fund (LCCF) so the "
-                "next cousin or grandchild receives the same helping hand."
+                "The moment a relative's advance reaches $0.00, all obligation ends completely. Only then are they invited — "
+                "never required — to make The Sovereign Choice to sponsor the next cousin or grandchild. Recycled across "
+                "five cycles, a single $100,000 family pool delivers $409,510 (at 90% recovery) to $452,438 (at 95% recovery) "
+                "in cumulative family debt relief."
             ),
         },
     ],
     "rules": [
-        "No Patron SCMA is ever pledged as collateral for another member.",
-        "Direct-to-creditor toxic-debt payoffs and seed gifts settle strictly through IFAS (ADR-011 air-gap).",
-        "No monthly fees or out-of-pocket bills are ever charged to struggling family members.",
-        "Sponsorship eligibility and stewardship milestones remain transparent and reviewed with House elders.",
+        "Zero cross-collateralization: no Patron's personal account is ever pledged for another family member.",
+        "Dual-control verification: direct-to-creditor payoffs require both local Head of Household and Chief Administrator sign-off inside IFAS.",
+        "No guaranteed fixed interest and zero Ponzi cross-subsidy: sponsor participation comes strictly from actual realized pool earnings.",
+        "Phase I (Live Today): Family portals, Hall of Arms, Lineage Hearth, PDEUE University, and real-market observation run with zero bank links and zero live money at risk.",
+        "Phase II (Next Institutional Milestone): Activates the separate air-gapped IFAS accounting service, commercial trust bank rails, live profit sweeps, and live FSAP sponsorships.",
     ],
 }
 

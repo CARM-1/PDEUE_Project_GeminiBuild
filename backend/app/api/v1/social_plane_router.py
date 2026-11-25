@@ -112,8 +112,8 @@ def _apply_resolved_achievement_assets(markup: str) -> str:
     mcc_src = html.escape(resolve_heraldic_asset_path("mccormick_achievement"), quote=True)
     return (
         markup
-        .replace("/static/assets/crests/carmichael_achievement.svg", carm_src)
-        .replace("/static/assets/crests/mccormick_achievement.svg", mcc_src)
+        .replace("/static/assets/crests/carmichael_achievement.svg", carm_src).replace("/static/assets/crests/carmichael_achievement.jpg", carm_src)
+        .replace("/static/assets/crests/mccormick_achievement.svg", mcc_src).replace("/static/assets/crests/mccormick_achievement.jpg", mcc_src)
     )
 
 
@@ -344,8 +344,8 @@ def ask_community_tutor(request: CommunityTutorRequest) -> Dict[str, str]:
     elif "87/10/3" in lowered or "waterfall" in lowered:
         answer = "The 87/10/3 lesson describes a stewardship safeguard: three defined portions help learners reason about compounding, family protection, and education support without directing a transaction."
         concept = "WATERFALL_STEWARDSHIP"
-    elif "pay-it-forward" in lowered or "lccf" in lowered:
-        answer = "Pay-it-Forward (LCCF) is our voluntary family sponsorship charter. Solvent patrons help relatives through IFAS without ever cross-collateralizing or mixing personal accounts."
+    elif "pay-it-forward" in lowered or "lccf" in lowered or "fsap" in lowered:
+        answer = "Pay-it-Forward (FSAP — Familial Stability Advance Pool) launches in Phase II inside our separate IFAS accounting system. Stable relatives help pay off high-interest debt and seed an isolated account with zero shared trading risk, receiving full principal return plus a transparent share of actual realized pool income. Once repaid to $0.00, the relative makes The Sovereign Choice to pass it forward voluntarily."
         concept = "LCCF_STEWARDSHIP"
     else:
         answer = "Start by naming the outcome, the uncertainty, and what evidence could change your view. Good risk literacy separates an educational estimate from a guaranteed result."

@@ -272,8 +272,8 @@ def test_asset_resolver_prefers_raster_dropins_and_falls_back_to_svg(tmp_path: P
         assert "/static/assets/crests/carmichael_achievement.png" in home_html
         assert "/static/assets/crests/mccormick_achievement.jpg" in home_html
         # Compact header shield lockup remains crisp SVG
-        assert "/static/assets/crests/carmichael_crest.svg" in home_html
-        assert "/static/assets/crests/mccormick_crest.svg" in home_html
+        assert "/static/assets/crests/carmichael_crest.jpg" in home_html
+        assert "/static/assets/crests/mccormick_crest.jpg" in home_html
 
         heritage_html = client.get("/community/heritage").text
         assert "/static/assets/crests/carmichael_achievement.png" in heritage_html
@@ -344,8 +344,8 @@ def test_compact_header_lockup_firewall_sync_and_nine_portal_parity_gate():
     with TestClient(app) as client:
         for route in ALL_NINE_ROUTES:
             html_body = client.get(route).text
-            assert "/static/assets/crests/carmichael_crest.svg" in html_body
-            assert "/static/assets/crests/mccormick_crest.svg" in html_body
+            assert "/static/assets/crests/carmichael_crest.jpg" in html_body
+            assert "/static/assets/crests/mccormick_crest.jpg" in html_body
             assert 'width="40" height="46"' in html_body
             assert 'class="portal-header-row1"' in html_body
             assert 'class="portal-header-row2"' in html_body

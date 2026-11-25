@@ -212,7 +212,7 @@ def test_pr82_home_hub_senior_text_scale_persistence_and_back_to_home(
         # Open Pay-it-Forward (LCCF) Charter tab
         page.locator('button.tab[data-tab="charter"]').click()
         assert page.locator("#charter").is_visible()
-        assert "Pay-it-Forward (LCCF) Sponsorship Charter" in page.locator("#charter").inner_text()
+        assert "Pay-it-Forward (FSAP) Sponsorship Charter" in page.locator("#charter").inner_text()
 
         # Open Classroom tab & switch Jitsi room preset to House 07 while keeping strict sandbox
         page.locator('button.tab[data-tab="classroom"]').click()

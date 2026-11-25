@@ -320,20 +320,24 @@ LEXICON_TERMS: List[Dict[str, Any]] = [
     },
     {
         "id": "pay-it-forward-lccf",
-        "term": "Pay-it-Forward / LCCF (Lineage Community Capital Fund)",
-        "short_label": "Pay-it-Forward / LCCF",
+        "term": "Pay-it-Forward / FSAP (Familial Stability Advance Pool)",
+        "short_label": "Pay-it-Forward / FSAP",
         "category": "Capital & Pools",
-        "authority_ref": "Milestone C1 · Domain D5 · FSAP / IF-038–IF-041",
+        "authority_ref": "Milestone C1 · Domain D5 · FSAP Accord / IF-038–IF-041",
         "plain_english": (
-            "Our family tradition of helping loved ones get out of high-interest debt and start building wealth. "
-            "As early members grow, voluntary and common-pool support helps lift the next generation—who then pass that blessing forward."
+            "A ring-fenced family pool (launching in Phase II) where financially stable relatives help lift another household "
+            "out of high-interest debt and seed their account with zero shared trading risk. Sponsors receive their full principal "
+            "back plus a fair share of actual realized pool income, and once a relative's balance hits $0.00 they make The Sovereign "
+            "Choice to pass the blessing forward voluntarily."
         ),
         "technical_spec": (
-            "Lineage Community Capital Fund (LCCF) & Financial Stability Assistance Program (FSAP) framework (IF-038–IF-041): "
-            "variable contributor participation pool paired with CFCP reserves for direct-to-creditor toxic-debt payoff and "
-            "50% downstream sweep interception on assisted recovery accounts, reconciled strictly through IFAS without exposing bank credentials in PDEUE."
+            "Familial Stability Advance Pool (FSAP, formerly drafted as LCCF) under IFAS contracts IF-038–IF-041: "
+            "ring-fenced sub-ledger beside CFCP using Contributor Participation Capital (variable, time-weighted share of actual "
+            "realized pool income—no fixed guaranteed rate), 3-stage direct-to-creditor stabilization with F2-H + Chief Admin dual control, "
+            "untouched 87/10/3 PDEUE waterfall with downstream IFAS sweep interception (50% default, 30%–70% F2-H range), and voluntary "
+            "post-payoff Sovereign Choice pledges. Activates in Phase II alongside IFAS commercial banking rails."
         ),
-        "aliases": ["pay it forward", "pay-it-forward", "lccf", "fsap", "toxic debt", "debt relief", "family blessing"],
+        "aliases": ["pay it forward", "pay-it-forward", "fsap", "lccf", "sovereign choice", "contributor participation capital", "phase i", "phase ii", "toxic debt", "debt relief"],
     },
     {
         "id": "house-genealogist",
@@ -449,7 +453,7 @@ LEXICON_TERMS: List[Dict[str, Any]] = [
         ),
         "technical_spec": (
             "Air-gapped Class C fellowship surface (/community) hosted in social_plane_router.py with zero financial ledger imports. "
-            "Provides XSS-sanitized categorized family feeds, the Pay-it-Forward (LCCF) Sponsorship Charter, sandboxed Jitsi Meet "
+            "Provides XSS-sanitized categorized family feeds, the Pay-it-Forward (FSAP) Sponsorship Charter, sandboxed Jitsi Meet "
             "room presets (sandbox='allow-scripts allow-same-origin allow-forms allow-popups'), and Directive R-12 sanitized notifications."
         ),
         "aliases": ["community hearth", "/community", "family hearth", "jitsi classroom", "family living room"],

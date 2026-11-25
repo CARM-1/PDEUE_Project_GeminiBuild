@@ -51,7 +51,7 @@ CANONICAL_CONCEPT_PATTERNS: dict[str, tuple[str, ...]] = {
     "directive-r04-halt": (r"Directive\s+R-04", r"\bR-04\b"),
     "gate-g1-qualification": (r"\bGate\s+G1\b", r"HOLD_OBSERVATIONS_ONLY"),
     "concentric-asset-rings": (r"Concentric Asset", r"Asset Engine Rings"),
-    "pay-it-forward-lccf": (r"Pay-[Ii]t-Forward", r"\bLCCF\b"),
+    "pay-it-forward-lccf": (r"Pay-[Ii]t-Forward", r"\bLCCF\b", r"\bFSAP\b"),
     "house-genealogist": (r"House Genealogist", r"\bHOUSE_GENEALOGIST\b"),
     "anti-tribalism-custody": (r"Anti-Tribalism Custody", r"CROSS_HOUSE_ANTI_TRIBAL"),
     "delegated-onboarding": (r"Delegated Onboarding", r"PENDING_RATIFICATION"),
