@@ -16,6 +16,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import html
 import json
+from pathlib import Path
 import re
 from threading import RLock
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -45,6 +46,19 @@ from app.domain.notification_gateway import (
 
 POST_CATEGORIES: Tuple[str, ...] = ("Announcements", "Milestones", "Reunions", "General")
 
+CRESTS_STATIC_DIR: Path = Path(__file__).resolve().parent.parent / "static" / "assets" / "crests"
+HERALDIC_ASSET_URL_PREFIX = "/static/assets/crests"
+RASTER_DROPIN_EXTENSIONS: Tuple[str, ...] = (".png", ".jpg", ".jpeg")
+
+HOUSE_01_OFFICIAL_MOTTO = "IEHOVA SEMPER VIGILANS"
+_LEGACY_HOUSE_01_MOTTOS = frozenset(
+    {
+        "toujours prest — always ready in stewardship",
+        "toujours prest - always ready in stewardship",
+        "toujours prest",
+    }
+)
+
 _SCRIPT_BLOCK_RE = re.compile(
     r"(?is)<\s*(?:script|style|iframe|object|embed)[^>]*>.*?<\s*/\s*(?:script|style|iframe|object|embed)\s*>"
 )
@@ -54,6 +68,29 @@ _SLUG_CLEAN_RE = re.compile(r"[^a-z0-9]+")
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def resolve_heraldic_asset_path(
+    base_stem: str,
+    *,
+    crests_dir: Optional[Path] = None,
+    fallback_ext: str = ".svg",
+) -> str:
+    """Resolve a heraldic crest/achievement URL, preferring high-resolution raster drop-ins over SVG.
+
+    Priority order inside `backend/app/static/assets/crests/`:
+      1. `<stem>.png`
+      2. `<stem>.jpg`
+      3. `<stem>.jpeg`
+      4. `<stem><fallback_ext>` (default `.svg`)
+    """
+    clean_stem = Path(base_stem).stem
+    directory = crests_dir if crests_dir is not None else CRESTS_STATIC_DIR
+    for ext in RASTER_DROPIN_EXTENSIONS:
+        candidate = directory / f"{clean_stem}{ext}"
+        if candidate.is_file():
+            return f"{HERALDIC_ASSET_URL_PREFIX}/{clean_stem}{ext}"
+    return f"{HERALDIC_ASSET_URL_PREFIX}/{clean_stem}{fallback_ext}"
 
 
 def sanitize_social_text(value: str, *, field: str, maximum: int, allow_newlines: bool = False) -> str:
@@ -83,14 +120,45 @@ HOUSE_HERALDRY_META: Dict[int, Dict[str, Any]] = {
     1: {
         "lineage_descent": "Carmichael Line — Descending from Eldest McCormick Daughter",
         "is_bordure_differenced": False,
-        "border_style": "Wreathed Fess & Hyndford Eagle",
-        "tincture": "Azure, Gules & Gold/Black/Green Ribbon",
+        "border_style": "Wreathed Fess, Displayed Eagle & SAC Gauntlet Crest",
+        "tincture": "Or, Sable, Azure, Gules & Braided Gold-and-Green Ribbon",
+        "motto": HOUSE_01_OFFICIAL_MOTTO,
         "blazon_note": (
-            "Hyndford eagle bearing the Carmichael blue-and-crimson wreathed inescutcheon, armored arm with "
-            "broken spear, TOUJOURS PREST scroll, knight and crowned golden African lion supporters, Scottish thistles, "
-            "and gold/black/green heritage accent ribbon."
+            "Official Motto: IEHOVA SEMPER VIGILANS. "
+            "Crest: A single seamless bent dark-steel armored arm and articulated gauntlet gripping bright yellow "
+            "heraldic lightning bolts and a slender green olive branch—paying homage to the Founder's father's Cold War "
+            "service in the U.S. Air Force Strategic Air Command (SAC). "
+            "Shield & Coronet: Gold shield bearing the black displayed eagle with the central silver Carmichael "
+            "inescutcheon (twisted royal-blue and crimson wreathed fess) accented with a subtle dark-green and gold inner "
+            "border, surmounted by an ornate jewelled gold coronet, steel helm, and sweeping royal-blue, crimson, and "
+            "burnished-gold acanthus mantling. "
+            "Supporters & Compartment: On the left, a dignified African American knight in dark steel plate armor "
+            "accented with subtle gold lightning-bolt trim, wearing his steel helmet with the visor raised; on the right, "
+            "a crowned golden Barbary lion with a rich dark-brown/black mane—standing upon Scottish purple thistles and "
+            "a braided gold-and-green heritage ribbon."
         ),
+        "symbolism": {
+            "motto": HOUSE_01_OFFICIAL_MOTTO,
+            "crest": (
+                "A single seamless bent dark-steel armored arm and articulated gauntlet gripping bright yellow heraldic "
+                "lightning bolts and a slender green olive branch—paying homage to the Founder's father's Cold War "
+                "service in the U.S. Air Force Strategic Air Command (SAC)."
+            ),
+            "shield_and_coronet": (
+                "Gold shield bearing the black displayed eagle with the central silver Carmichael inescutcheon (twisted "
+                "royal-blue and crimson wreathed fess) accented with a subtle dark-green and gold inner border, surmounted "
+                "by an ornate jewelled gold coronet, steel helm, and sweeping royal-blue, crimson, and burnished-gold "
+                "acanthus mantling."
+            ),
+            "supporters_and_compartment": (
+                "On the left, a dignified African American knight in dark steel plate armor accented with subtle gold "
+                "lightning-bolt trim, wearing his steel helmet with the visor raised; on the right, a crowned golden "
+                "Barbary lion with a rich dark-brown/black mane—standing upon Scottish purple thistles and a braided "
+                "gold-and-green heritage ribbon."
+            ),
+        },
         "emblem_asset_path": "/static/assets/crests/carmichael_crest.svg",
+        "achievement_stem": "carmichael_achievement",
         "achievement_asset_path": "/static/assets/crests/carmichael_achievement.svg",
     },
     2: {
@@ -100,6 +168,7 @@ HOUSE_HERALDRY_META: Dict[int, Dict[str, Any]] = {
         "tincture": "Sable (Black)",
         "blazon_note": "Foundational McCormick core (three royal-blue eagles & crimson zigzag fess dancetté) within a Bordure engrailed Sable.",
         "emblem_asset_path": "/static/assets/crests/house_02_mccormick_bordure.svg",
+        "achievement_stem": "mccormick_achievement",
         "achievement_asset_path": "/static/assets/crests/mccormick_achievement.svg",
     },
     3: {
@@ -200,16 +269,21 @@ SEEDED_HOUSES: Tuple[Dict[str, Any], ...] = (
         "house_id": 1,
         "lineage_code": "HOUSE-01",
         "house_name": "House of Carmichael Prime",
-        "motto": "Toujours Prest — Always Ready in Stewardship",
+        "motto": HOUSE_01_OFFICIAL_MOTTO,
         "crest_asset_path": "/static/assets/crests/carmichael_crest.svg",
         "founding_branch": "Carmichael Line — Descending from Eldest McCormick Daughter",
         "history_body": (
-            "Descending from the eldest McCormick daughter and anchored by the Carmichael covenant, House 01 "
-            "preserves the family charter of generational love, harmony, resilience, and shared stewardship. "
-            "Elders and younger relatives gather here to chronicle reunion stories, mentorship traditions, and service milestones."
+            "Descending from the eldest McCormick daughter and anchored by the Carmichael covenant (IEHOVA SEMPER VIGILANS), "
+            "House 01 preserves the family charter of generational love, harmony, resilience, and shared stewardship. "
+            "Its finalized heraldic achievement pays homage to the Founder's father's Cold War service in the U.S. Air Force "
+            "Strategic Air Command (SAC)—uniting a single bent dark-steel armored arm and gauntlet gripping bright yellow "
+            "lightning bolts and a slender green olive branch with the gold displayed-eagle shield, silver Carmichael "
+            "inescutcheon, ornate jewelled gold coronet, visor-up African American knight supporter, and crowned dark-maned "
+            "Barbary lion supporter."
         ),
         "milestones": [
             "Founding Charter ratified uniting the eldest McCormick daughter's Carmichael line with Houses 02–12",
+            "Finalized House of Carmichael Coat of Arms adopted (IEHOVA SEMPER VIGILANS), honoring Strategic Air Command (SAC) Cold War service",
             "First multi-generational oral history archive opened for House Genealogists",
         ],
     },
@@ -369,8 +443,8 @@ SEEDED_SURNAMES: Tuple[Tuple[str, int, int, str, str], ...] = (
         "Carmichael",
         1,
         1,
-        "Founding Pillar · Lanarkshire & Highland stewardship heritage",
-        "Co-founding lineage of the FUTURE Enclave. Known across generations for preparedness, principled stewardship, and gathering extended kin under a shared covenant of resilience.",
+        "Founding Pillar · IEHOVA SEMPER VIGILANS · Scottish & Strategic Air Command (SAC) heritage",
+        "Co-founding lineage of the FUTURE Enclave bearing the official motto IEHOVA SEMPER VIGILANS. Its finalized coat of arms honors the Founder's father's Cold War service in the U.S. Air Force Strategic Air Command (SAC) via the dark-steel armored arm and gauntlet gripping bright yellow lightning bolts and a slender green olive branch, uniting Scottish heritage (gold displayed-eagle shield, silver Carmichael inescutcheon, jewelled gold coronet, purple thistles) with a visor-up African American knight supporter, a crowned golden Barbary lion with a rich dark-brown/black mane, and a braided gold-and-green heritage ribbon.",
     ),
     (
         "McCormick",
@@ -562,7 +636,7 @@ class HeritageCommunityService:
 
     def _seed_defaults(self, db: Session) -> None:
         now = _utc_now()
-        # Idempotently seed all 12 Houses (and upgrade unmodified legacy SYSTEM_SEED placeholders to bordure SVGs)
+        # Idempotently seed all 12 Houses (and synchronize unmodified SYSTEM_SEED records & legacy House 01 mottos)
         for h in SEEDED_HOUSES:
             existing = db.get(HeritageHouseProfileModel, h["house_id"])
             if existing is None:
@@ -580,13 +654,24 @@ class HeritageCommunityService:
                         updated_at_utc=now,
                     )
                 )
-            elif existing.updated_by == "SYSTEM_SEED" and existing.crest_asset_path in {
-                "/static/assets/crests/house_crest_frame.svg",
-                "/static/assets/crests/mccormick_crest.svg",
-            }:
-                existing.crest_asset_path = h["crest_asset_path"]
-                existing.founding_branch = h["founding_branch"]
-                existing.history_body = h["history_body"]
+            else:
+                if h["house_id"] == 1:
+                    normalized_existing_motto = " ".join((existing.motto or "").strip().lower().split())
+                    if normalized_existing_motto in _LEGACY_HOUSE_01_MOTTOS or normalized_existing_motto.startswith("toujours prest"):
+                        existing.motto = HOUSE_01_OFFICIAL_MOTTO
+                    if existing.updated_by == "SYSTEM_SEED":
+                        existing.motto = HOUSE_01_OFFICIAL_MOTTO
+                        existing.crest_asset_path = h["crest_asset_path"]
+                        existing.founding_branch = h["founding_branch"]
+                        existing.history_body = h["history_body"]
+                        existing.milestones_json = json.dumps(h["milestones"])
+                elif existing.updated_by == "SYSTEM_SEED" and existing.crest_asset_path in {
+                    "/static/assets/crests/house_crest_frame.svg",
+                    "/static/assets/crests/mccormick_crest.svg",
+                }:
+                    existing.crest_asset_path = h["crest_asset_path"]
+                    existing.founding_branch = h["founding_branch"]
+                    existing.history_body = h["history_body"]
 
         db.flush()
 
@@ -614,6 +699,10 @@ class HeritageCommunityService:
                         updated_at_utc=now,
                     )
                 )
+            elif slug == "carmichael" and existing_s.updated_by == "SYSTEM_SEED":
+                if HOUSE_01_OFFICIAL_MOTTO not in (existing_s.origin_summary or ""):
+                    existing_s.origin_summary = origin_summary
+                    existing_s.history_body = history_body
 
         # Idempotently seed baseline safe family notifications
         if db.query(CommunityNotificationModel).count() == 0:
@@ -724,6 +813,11 @@ class HeritageCommunityService:
             milestones = []
         hid = int(row.house_id)
         heraldry = HOUSE_HERALDRY_META.get(hid, {})
+        achievement_stem = heraldry.get("achievement_stem")
+        if achievement_stem:
+            achievement_path = resolve_heraldic_asset_path(achievement_stem)
+        else:
+            achievement_path = heraldry.get("achievement_asset_path", row.crest_asset_path)
         item: Dict[str, Any] = {
             "house_id": hid,
             "lineage_code": row.lineage_code,
@@ -731,7 +825,7 @@ class HeritageCommunityService:
             "motto": row.motto,
             "crest_asset_path": row.crest_asset_path,
             "emblem_asset_path": heraldry.get("emblem_asset_path", row.crest_asset_path),
-            "achievement_asset_path": heraldry.get("achievement_asset_path", row.crest_asset_path),
+            "achievement_asset_path": achievement_path,
             "founding_branch": row.founding_branch,
             "lineage_descent": heraldry.get("lineage_descent", row.founding_branch),
             "bordure_differencing": {
@@ -740,6 +834,7 @@ class HeritageCommunityService:
                 "tincture": heraldry.get("tincture", "Gold"),
                 "blazon_note": heraldry.get("blazon_note", ""),
             },
+            "heraldic_symbolism": dict(heraldry["symbolism"]) if "symbolism" in heraldry else None,
             "history_body": row.history_body,
             "milestones": milestones,
             "updated_by": row.updated_by,
@@ -755,9 +850,9 @@ class HeritageCommunityService:
     def _serialize_surname(row: HeritageSurnameRecordModel) -> Dict[str, Any]:
         achievement_path = row.crest_asset_path
         if row.slug == "carmichael":
-            achievement_path = "/static/assets/crests/carmichael_achievement.svg"
+            achievement_path = resolve_heraldic_asset_path("carmichael_achievement")
         elif row.slug == "mccormick":
-            achievement_path = "/static/assets/crests/mccormick_achievement.svg"
+            achievement_path = resolve_heraldic_asset_path("mccormick_achievement")
         return {
             "slug": row.slug,
             "surname": row.surname,
@@ -817,6 +912,7 @@ class HeritageCommunityService:
                             serialized_h.get("lineage_descent", ""),
                             bordure.get("border_style", ""),
                             bordure.get("tincture", ""),
+                            bordure.get("blazon_note", ""),
                             " ".join(s["surname"] for s in serialized_h["surnames"]),
                         ]
                     ).lower()
@@ -860,9 +956,10 @@ class HeritageCommunityService:
                         "mccormick": "/static/assets/crests/mccormick_crest.svg",
                     },
                     "achievement_assets": {
-                        "carmichael": "/static/assets/crests/carmichael_achievement.svg",
-                        "mccormick": "/static/assets/crests/mccormick_achievement.svg",
+                        "carmichael": resolve_heraldic_asset_path("carmichael_achievement"),
+                        "mccormick": resolve_heraldic_asset_path("mccormick_achievement"),
                     },
+                    "house_1_official_motto": HOUSE_01_OFFICIAL_MOTTO,
                     "house_1_descent": "Carmichael Line — Descending from Eldest McCormick Daughter",
                     "bordure_differenced_house_ids": list(range(2, 13)),
                     "bordure_differenced_house_count": 11,
