@@ -119,6 +119,29 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
 .colophon-mode-badge{display:inline-flex;align-items:center;gap:6px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.7rem;font-weight:700;padding:3px 9px;border-radius:999px;background:#102038;border:1px solid var(--line);color:#dbe8f7}
 .hidden{display:none!important}
 @keyframes pulseRed{50%{box-shadow:0 0 25px #fb7185}}
+.orientation-card{margin:0 0 1rem;padding:1rem 1.15rem;border:1.5px solid rgba(56,189,248,.55);border-left:5px solid var(--gold);border-radius:.95rem;background:linear-gradient(145deg,rgba(15,37,66,.94),rgba(8,21,38,.96))}
+.orientation-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.45rem}
+.orientation-eyebrow{font-size:.74rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}
+.phase-pill{display:inline-flex;align-items:center;gap:6px;padding:.24rem .62rem;border-radius:999px;font-size:.74rem;font-weight:800;background:rgba(5,150,105,.18);border:1px solid var(--green);color:#A7F3D0}
+.orientation-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:.7rem;margin:.7rem 0}
+.orientation-pillar{background:rgba(7,20,33,.72);border:1px solid var(--line);border-radius:.65rem;padding:.65rem .78rem;font-size:.87rem;line-height:1.45;color:#E2E8F0}
+.orientation-pillar strong{display:block;color:#7DD3FC;margin-bottom:.18rem;font-size:.82rem}
+.orientation-actions{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-top:.65rem}
+.beat-choreo-row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:.35rem;padding-top:.35rem;border-top:1px dashed rgba(125,211,252,.28);font-size:.82rem;color:#BAE6FD}
+.beat-demo-btn{padding:.26rem .62rem;font-size:.78rem;background:rgba(2,132,199,.28);border-color:var(--cyan);color:#E0F2FE;font-weight:800}
+.beat-spotlight{outline:3px solid var(--gold)!important;outline-offset:4px;box-shadow:0 0 0 6px rgba(251,191,36,.22),0 0 24px rgba(56,189,248,.45)!important;border-radius:.65rem;transition:box-shadow .25s ease,outline .25s ease}
+.library-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(265px,1fr));gap:14px;margin:14px 0 18px}
+.library-card{background:linear-gradient(145deg,#11243e,#091729);border:1.5px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;justify-content:space-between;gap:10px}
+.library-card.active-lesson{border-color:var(--gold);box-shadow:0 0 20px rgba(251,191,36,.2)}
+.library-meta{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:.74rem;font-weight:800}
+.lib-badge-core{color:#A7F3D0;background:rgba(5,150,105,.2);border:1px solid var(--green);padding:.16rem .5rem;border-radius:999px}
+.lib-badge-next{color:#FDE68A;background:rgba(217,119,6,.2);border:1px solid var(--gold);padding:.16rem .5rem;border-radius:999px}
+.library-stage{background:#081526;border:2px solid var(--gold);border-radius:1rem;padding:1.1rem 1.25rem;margin-top:1rem}
+.library-stage h3{margin:.15rem 0 .45rem;color:#F8FAFC}
+.library-beat-list{display:grid;gap:.65rem;margin:.75rem 0}
+.library-beat-item{background:#0D1F36;border:1px solid var(--line);border-left:4px solid var(--cyan);border-radius:.65rem;padding:.72rem .9rem;color:#E2E8F0;line-height:1.5}
+.library-beat-item strong{display:block;color:var(--gold);font-size:.82rem;margin-bottom:.2rem}
+
 @media(max-width:650px){.toolbar{position:static}.seals{grid-template-columns:repeat(4,1fr)}.brand-lockup{gap:8px}.brand-title{font-size:.72rem}.brand-motto{font-size:.66rem}}
 @media print{body{background:#fff;color:#111}.portal-header-shell,.tabs,.toolbar,#simulator,.manual-tools,.manual-cards-grid,.manual-reader-bar,.pdeue-colophon{display:none!important}.page-shell{max-width:none;padding:0}.hidden{display:block!important}#colleges,#manual-reader-panel{display:block!important}.manual-reader-panel{border:0;box-shadow:none}.manual-reader{border:0;background:#fff;color:#111;padding:0}.manual-reader details{break-inside:avoid;border-color:#bbb}.manual-reader details>*{display:block!important}.manual-reader summary{color:#111}.manual-reader pre{color:#111;font-size:10pt}}
 </style>
@@ -171,9 +194,28 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
 <div class="tabs" role="tablist">
   <button id="tabSimulatorBtn" class="tab" type="button" role="tab" aria-selected="true" data-panel="simulator">Campus Simulator (6 Chapters)</button>
   <button id="tabCollegesBtn" class="tab" type="button" role="tab" aria-selected="false" data-panel="colleges">Degree Colleges (Syllabi &amp; Manuals)</button>
+  <button id="tabLibraryBtn" class="tab" type="button" role="tab" aria-selected="false" data-panel="library">Deep-Dive Lesson Library (Audio &amp; Video)</button>
 </div>
 
 <section id="simulator" role="tabpanel">
+  <aside id="chapter-orientation" class="orientation-card" aria-label="Chapter 0: Welcome and Orientation">
+    <div class="orientation-head">
+      <span class="orientation-eyebrow">CHAPTER 0 · 30-SECOND ORIENTATION &amp; PURPOSE</span>
+      <span class="phase-pill">● PHASE I PAPER MODE — ZERO REAL BANK MONEY AT RISK</span>
+    </div>
+    <h2 style="margin:.15rem 0 .35rem;font-size:1.18rem;color:#F8FAFC;">Welcome to PDEUE University: You Never Need to Day-Trade</h2>
+    <p style="margin:0;color:#DBEAFE;font-size:.93rem;line-height:1.5;">Think of PDEUE like a quiet family orchard tended by disciplined rules. You do not stare at screens or chase fast trades—your job is simply to understand how your account is protected, how your safety dial works, and how family oversight keeps everyone safe.</p>
+    <div class="orientation-grid">
+      <div class="orientation-pillar"><strong>What PDEUE Does</strong>Monitors calm, rule-bound opportunities inside strict mathematical safety rails—never touching your bank logins.</div>
+      <div class="orientation-pillar"><strong>What You Control</strong>Your personal downward-only safety dial, your pause button, your withdrawal requests, and your own pace of learning.</div>
+      <div class="orientation-pillar"><strong>Phase I vs. Phase II</strong>Today is <abbr class="pdeue-term" tabindex="0" data-term="gate-g1-qualification" data-tooltip="Phase I is our live-data proving ground. Zero bank accounts are connected and zero real family dollars are at risk while we verify discipline.">Phase I Paper Mode ⓘ</abbr>. Real bank custody and <abbr class="pdeue-term" tabindex="0" data-term="pay-it-forward-lccf" data-tooltip="Familial Stability Advance Pool (Pay-it-Forward): launches in Phase II inside our separate IFAS bookkeeping system to help relatives pay off high-interest debt.">Pay-it-Forward (FSAP) ⓘ</abbr> begin only in Phase II.</div>
+    </div>
+    <div class="orientation-actions">
+      <button id="playOrientationBtn" type="button" style="background:#0284C7;border-color:#38BDF8;color:#FFFFFF;font-weight:800;">▶ Listen to 30-Second Welcome</button>
+      <button id="toggleOrientationBtn" type="button">Hide Orientation Card</button>
+      <span id="orientationStatus" style="font-size:.82rem;color:#BAE6FD;" aria-live="polite">Ready — click Play for a calm 30-second orientation or begin Chapter 1 below.</span>
+    </div>
+  </aside>
   <div class="toolbar">
     <div class="toolbar-top-row">
       <div class="mode" role="group" aria-label="Learning tour mode">
@@ -205,7 +247,9 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
       <button type="button" class="speed" data-speed="1.25">1.25x</button>
       <button type="button" class="speed" data-speed="1.5">1.5x</button>
       <select id="voiceSelect" class="voice-select" aria-label="Narration voice selection">
-        <option value="default">Voice: Default / Silent Timer</option>
+        <option value="studio:mentor_f_aa">Studio Mentor: Maya (African American Female)</option>
+          <option value="studio:mentor_m_aa">Studio Mentor: Marcus (African American Male)</option>
+          <option value="default">Voice: Browser / Silent Visual Timer</option>
       </select>
       <button id="mute" type="button" aria-pressed="false">🔊 Mute</button>
       <span id="audioBadge" class="audio-badge">Paced Narration: Ready</span>
@@ -223,6 +267,10 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
         <span id="narrationBeatStep" class="narration-beat-step">Beat 1 of 18</span>
       </div>
       <div id="captions" class="captions" role="status"></div>
+        <div id="beatChoreoRow" class="beat-choreo-row">
+          <span id="beatDemoHint">Guided Spotlight: Follow the highlighted control below as you listen.</span>
+          <button id="beatDemoBtn" type="button" class="beat-demo-btn">✨ Show Me Live</button>
+        </div>
       <div class="beat-progress-track" aria-hidden="true"><div id="beatProgressFill" class="beat-progress-fill"></div></div>
     </div>
     <audio id="companionAudioPlayer" preload="none"><source src="/static/media/companion/pdeue-university.mp3" type="audio/mpeg"></audio>
@@ -239,7 +287,7 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
     <p>Under <strong><abbr class="pdeue-term" tabindex="0" data-term="high-water-mark-adr-012" data-tooltip="Your account's personal all-time high balance. If your account dips and then climbs back up, you keep 100% of every recovery dollar—profit sharing only resumes once you earn genuinely new gains above your old peak.">ADR-012 (Per-SCMA High-Water Mark)<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></strong>, the 87/10/3 waterfall executes strictly on <strong>net new profit above each SCMA's prior High-Water Mark (HWM)</strong>—eliminating the 13% volatility tax during drawdown recovery. Profit earned while recovering below HWM stays 100% in the executing SCMA ($0.00 to CFCP and FAEP).</p>
     <div class="grid"><label class="field">Realized profit (integer cents)<input id="profitCents" type="number" min="0" step="1" value="10001"></label><label class="field">Prior drawdown deficit below HWM (integer cents)<input id="drawdownCents" type="number" min="0" step="1" value="0"></label></div>
     <svg class="waterfall" viewBox="0 0 800 210" role="img" aria-label="Profit waterfall"><path class="flow" stroke="#38bdf8" d="M50 105H280"/><path class="flow" stroke="#34d399" d="M280 105C390 105 390 35 530 35H750"/><path class="flow" stroke="#fbbf24" d="M280 105H750"/><path class="flow" stroke="#c4a7ff" d="M280 105C390 105 390 175 530 175H750"/><text x="560" y="25" fill="#34d399">100% recovery + 87% above HWM</text><text x="560" y="95" fill="#fbbf24">10% CFCP + residual (above HWM)</text><text x="580" y="165" fill="#c4a7ff">3% FAEP (above HWM)</text></svg>
-    <div class="grid"><div class="card">SCMA<div id="scmaValue" class="money"></div><small id="hwmSummary"></small></div><div class="card">CFCP<div id="cfcpValue" class="money"></div><small id="residualValue"></small></div><div class="card">FAEP<div id="faepValue" class="money"></div></div></div>
+    <div class="grid"><div class="card"><abbr class="pdeue-term" tabindex="0" data-term="scma" data-tooltip="Sovereign Capital Management Account: your own private, ring-fenced personal account that keeps 87% of new profits.">SCMA ⓘ</abbr><div id="scmaValue" class="money"></div><small id="hwmSummary"></small></div><div class="card">CFCP<div id="cfcpValue" class="money"></div><small id="residualValue"></small></div><div class="card"><abbr class="pdeue-term" tabindex="0" data-term="faep" data-tooltip="Founder/Platform Endowment Pool (3%): sustains servers, security, and platform upkeep from new profits only.">FAEP ⓘ</abbr><div id="faepValue" class="money"></div></div></div>
     <p class="callout">Rule A14 &amp; ADR-012: 100% loss isolation within the executing SCMA, and 0% CFCP/FAEP skim during drawdown recovery below each SCMA's High-Water Mark (eliminating the volatility tax).</p>
     <div class="chapter-footer-nav"><span>Chapter 1 of 6</span><button type="button" onclick="window.PDEUECompanion && window.PDEUECompanion.goChapter(1)">Continue to Chapter 2: Safety Dial →</button></div>
   </section>
@@ -251,7 +299,7 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
       <strong>What This Means in Plain English</strong>
       <p>You can always turn your safety dial down or pause your account yourself whenever you want extra caution—just like easing off the gas pedal. To prevent emotional heat-of-the-moment bets, turning the dial back up requires a second calm pair of eyes (your Head of Household), and at least 40% of your money always stays safely in cash.</p>
     </div>
-    <p>Position sizing obeys <strong>Quarter-Kelly (0.25f*)</strong> and the <strong>40% Dry-Powder Floor</strong>—visualized across portals by the <strong>Concentric Asset Engine Rings</strong>—while <strong>Gate G1 (HOLD_OBSERVATIONS_ONLY)</strong> keeps execution fail-closed in paper observation mode until Founder qualification sign-off.</p>
+    <p>Position sizing obeys <abbr class="pdeue-term" tabindex="0" data-term="quarter-kelly" data-tooltip="A conservative sizing rule that commits only one-fourth of a formula’s suggested stake so no single event can shake your account."><strong>Quarter-Kelly (0.25f*)</strong> ⓘ</abbr> and the <abbr class="pdeue-term" tabindex="0" data-term="dry-powder-floor-40" data-tooltip="At least 40% of your account always stays in calm, uncommitted cash—never placed into open trades."><strong>40% Dry-Powder Floor</strong> ⓘ</abbr>—visualized across portals by the <strong>Concentric Asset Engine Rings</strong>—while <strong>Gate G1 (HOLD_OBSERVATIONS_ONLY)</strong> keeps execution fail-closed in paper observation mode until Founder qualification sign-off.</p>
     <label class="field">Active risk watermark<input id="riskSlider" type="range" min="50" max="200" step="25" value="200"><output id="riskValue">2.00%</output></label>
     <button id="freezeRisk" type="button" aria-pressed="false">Freeze / Quarantine</button> <span id="riskStatus" class="status">ACTIVE · 2.00% CEILING</span>
     <div id="riskToast" class="toast amber" role="alert">Upward restoration locked: Requires F2-H Head of Household Approval</div>
@@ -267,7 +315,7 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
       <strong>What This Means in Plain English</strong>
       <p>Think of every family member's account as its own watertight room on a ship. If one relative's trade loses money, that loss stays 100% inside their own room—it can never drain a sibling's savings, a grandparent's account, or the shared family emergency pool.</p>
     </div>
-    <p>Under <strong>Rule A14 (100% SCMA Loss Isolation)</strong>, any realized trading loss remains 100% contained inside the executing SCMA. Sibling SCMAs, the <strong>CFCP Reserve Shield</strong>, and <strong>FAEP</strong> never decrease to absorb an individual trading loss. Under <strong>ADR-012</strong>, subsequent winning trades by that SCMA remain 100% inside the SCMA until its equity recovers past its prior High-Water Mark—eliminating any volatility tax.</p>
+    <p>Under <strong>Rule A14 (100% SCMA Loss Isolation)</strong>, any realized trading loss remains 100% contained inside the executing SCMA. Sibling SCMAs, the <abbr class="pdeue-term" tabindex="0" data-term="cfcp" data-tooltip="Central Familial Common Pool: the shared family safety reserve funded by 10% of new profits above each member’s High-Water Mark."><strong>CFCP Reserve Shield</strong> ⓘ</abbr>, and <strong>FAEP</strong> never decrease to absorb an individual trading loss. Under <strong>ADR-012</strong>, subsequent winning trades by that SCMA remain 100% inside the SCMA until its equity recovers past its prior High-Water Mark—eliminating any volatility tax.</p>
     <div class="household"><div class="grid"><div class="card account" id="acctAda"><strong>SCMA-Ada</strong><div class="money">$1,200.00</div><span class="shield">🛡 Contagion Prevented: Zero Communal Loss Bleed</span></div><div class="card account" id="acctBo"><strong>SCMA-Bo</strong><div class="money">$0.00 — Isolated Loss</div></div><div class="card account" id="acctCam"><strong>SCMA-Cam</strong><div class="money">$430.00</div><span class="shield">🛡 Contagion Prevented: Zero Communal Loss Bleed</span></div><div class="card account" id="acctCfcp"><strong>CFCP Reserve Shield</strong><div class="money">$5,000.00</div><span class="shield">🛡 Contagion Prevented: Zero Communal Loss Bleed</span></div></div><p><button id="lossEvent" type="button">Simulate Loss in SCMA-Bo</button></p><div id="isolationStatus" class="toast" role="status">Contagion Prevented: Zero Communal Loss Bleed</div></div>
     <div class="chapter-footer-nav"><button type="button" onclick="window.PDEUECompanion && window.PDEUECompanion.goChapter(1)">← Back to Chapter 2</button><button type="button" onclick="window.PDEUECompanion && window.PDEUECompanion.goChapter(3)">Continue to Chapter 4: $25k Sweep →</button></div>
   </section>
@@ -279,17 +327,17 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
       <strong>What This Means in Plain English</strong>
       <p>The trading software only ever keeps up to $25,000 working on a venue so orders stay nimble. Everything you earn above $25,000 automatically sweeps out to safe bank custody managed by our separate bookkeeping system (IFAS). Crucially, this trading app never sees or stores your bank routing numbers or bank logins.</p>
     </div>
-    <p>Under the <strong>ADR-011 Air-Gap</strong>, PDEUE never stores bank credentials; all real bank custody, tax records, and sweep settlements live in <strong>IFAS (Independent Financial Accounting System)</strong> at <code>accounting.narratix.io</code>, supporting <strong>Pay-it-Forward / LCCF</strong> stewardship.</p>
+    <p>Under the <strong>ADR-011 Air-Gap</strong>, PDEUE never stores bank credentials; all real bank custody, tax records, and sweep settlements live in <abbr class="pdeue-term" tabindex="0" data-term="ifas" data-tooltip="Independent Financial Accounting System: our physically separate bookkeeping and bank-custody system so trading software never touches bank logins."><strong>IFAS (Independent Financial Accounting System)</strong> ⓘ</abbr> at <code>accounting.narratix.io</code>, supporting <abbr class="pdeue-term" tabindex="0" data-term="pay-it-forward-lccf" data-tooltip="Familial Stability Advance Pool (Pay-it-Forward): launches in Phase II inside IFAS to help relatives replace high-interest debt with low-interest family advances."><strong>Pay-it-Forward (FSAP — Phase II)</strong> ⓘ</abbr> stewardship.</p>
     <label class="field">Custodial balance (integer cents)<input id="floatCents" type="number" min="0" step="1" value="2750001"></label>
     <div class="meter"><span id="floatMeter"></span></div>
-    <div class="grid"><div class="card">Active float<div id="activeFloat" class="money"></div></div><div class="card">Surplus sweep<div id="surplusSweep" class="money"></div></div></div>
+    <div class="grid"><div class="card"><abbr class="pdeue-term" tabindex="0" data-term="concentric-asset-rings" data-tooltip="The working portion of your account capped at $25,000 on an exchange so orders stay nimble; everything above $25,000 sweeps out to safe custody.">Active float ⓘ</abbr><div id="activeFloat" class="money"></div></div><div class="card">Surplus sweep<div id="surplusSweep" class="money"></div></div></div>
     <details open><summary>Signed outbox preview</summary><pre id="dynamic-outbox-container" class="card json" aria-live="polite"></pre></details>
     <div id="outboxToast" class="toast">Signed ADR-011 Outbox Envelope Ready for Delaware FBO Sweep</div>
     <div class="chapter-footer-nav"><button type="button" onclick="window.PDEUECompanion && window.PDEUECompanion.goChapter(2)">← Back to Chapter 3</button><button type="button" onclick="window.PDEUECompanion && window.PDEUECompanion.goChapter(4)">Continue to Chapter 5: Withdrawals →</button></div>
   </section>
 
   <section class="chapter hidden" id="chapter-distribution" data-chapter-number="5">
-    <div class="tag">CHAPTER 5 · DIRECTIVE R-15 &amp; PAY-IT-FORWARD / LCCF</div>
+    <div class="tag">CHAPTER 5 · DIRECTIVE R-15 &amp; PAY-IT-FORWARD (FSAP — PHASE II)</div>
     <h2>Three-Tier Distribution Gateway</h2>
     <div class="plain-english-box">
       <strong>What This Means in Plain English</strong>
@@ -310,7 +358,7 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
       <strong>What This Means in Plain English</strong>
       <p>No single computer or helper can move family money on its own. Leaders wear one clear role hat at a time, technical helpers see hidden star balances (<code>$****.**</code>) to protect privacy, and family votes act as respectful petitions reviewed alongside Founder stewardship. Answer the 3 short questions below to earn your Stewardship L1 badge!</p>
     </div>
-    <p>Multi-role stewards switch hats explicitly under <strong>Active-Hat / R-06</strong>, while <strong>Directive R-12 Masking</strong> keeps member dollar balances hidden as <code>$****.**</code> on technical and secretarial desks.</p>
+    <p>Multi-role stewards switch hats explicitly under <abbr class="pdeue-term" tabindex="0" data-term="active-hat-r06" data-tooltip="Multi-role leaders wear only one clear role hat at a time so financial, technical, and personal actions never blur together."><strong>Active-Hat / R-06</strong> ⓘ</abbr>, while <strong>Directive R-12 Masking</strong> keeps member dollar balances hidden as <code>$****.**</code> on technical and secretarial desks.</p>
     <div class="seals" id="houseSeals" aria-label="Twelve House Senate"></div>
     <button id="senateVote" type="button">Cast 9 Aye Votes</button> <span id="ratifiedBadge" class="ratified">SENATE RATIFIED (75% SUPERMAJORITY)</span>
     <p><button id="chancellorReview" type="button" disabled>Review Ratified Petition</button></p>
@@ -326,8 +374,8 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
       <div id="certificationResult" class="callout hidden" role="status" aria-live="polite"></div>
       <p id="returnToMemberWrap" class="hidden"><a id="returnToMemberLink" href="/member" style="display:inline-block;margin-top:.4rem;font-weight:800;">Return to My Wealth Desktop (/member) →</a></p>
     </div>
-    <details id="enclaveGovernanceCharter" class="card" open style="margin:1rem 0;border-color:#38bdf8;"><summary><strong>🏛️ Three-Stage Governance Lifecycle &amp; FUTURE Enclave Charter (Open-Study Doctrine)</strong></summary><p style="color:#cbd5e1;margin:.6rem 0;">Family members and future successors can openly study the complete constitutional progression here without exposing live balances, credentials, or premature production voting controls:</p><ol style="color:#dbe8f7;line-height:1.6;"><li><strong>Stage 1 — Executive Command (<code>EXECUTIVE_COMMAND</code>, Default Fledgling &amp; SHTF Mode):</strong> Fresh deployments start fail-closed here while the family builds operational discipline. Production House desks display <em>"Executive Command Mode Active — Voting Dormant"</em>, strip voting/veto buttons, and reject voting mutations (HTTP 403).</li><li><strong>Stage 2 — Advisory Petition Filter (<code>ADVISORY_PETITION_FILTER</code>):</strong> Activated solely by the Chief Administrator. Unlocks advisory voting (default 9-of-12 / 75% quorum -&gt; <code>RATIFIED_PENDING_SETTLOR</code>) with zero unilateral execution and <strong>Absolute Founder Veto (<code>VETOED_BY_FOUNDER</code>)</strong>.</li><li><strong>Stage 3 — Configurable Bicameral Veto (<code>BICAMERAL_VETO_ACTIVE</code>):</strong> Unlocks binding Bicameral Veto (<code>VETOED_BY_BICAMERAL_CHAMBER</code>) on eligible policy and CFCP grant proposals for authorized communal bodies (such as the <em>Council of 12 Houses</em>, <em>Council of Elders</em>, or <em>Enclave Stewardship Assembly</em>) and named individual or office voter seats configured by the Chief Administrator without code changes.</li><li><strong>Immutable Core Guardrail (ALL Modes):</strong> Proposals targeting the <strong>87/10/3 waterfall</strong>, <strong>ADR-012 High-Water Mark</strong>, <strong>Rule A14 100% SCMA loss isolation</strong>, <strong>Quarter-Kelly bounds</strong>, <strong>3% FAEP</strong>, <strong>ADR-011 banking air-gap</strong>, or <strong>Directive R-04 Emergency Kill Switch</strong> are permanently rejected (HTTP 403, <code>IMMUTABLE_CORE_INVARIANT</code>).</li><li><strong>1-Click SHTF Snap-Back Protocol:</strong> During any systemic emergency, the Chief Administrator can instantaneously return governance to <code>EXECUTIVE_COMMAND</code> with full <code>GovernanceAuditLog</code> recording.</li></ol></details>
-    <details class="card"><summary><strong>📘 Canon Reference Cheat Sheet — Lexicon v0.5</strong></summary><ol><li><strong>ADR-008 Exact-Cent Conservation &amp; 87/10/3 Waterfall (TPW):</strong> Every penny is counted as a whole cent; residual rounding goes to <strong>CFCP</strong> so every integer cent is conserved across <strong>SCMA</strong> (87%), <strong>CFCP</strong> (10%), and <strong>FAEP</strong> (3%).</li><li><strong>High-Water Mark (ADR-012) &amp; Rule A14:</strong> Trading losses stay 100% inside the executing <strong>SCMA</strong> (CFCP/FAEP never absorb member losses), and the 87/10/3 waterfall applies strictly to net new profit above each SCMA's High-Water Mark (0% skim during drawdown recovery, eliminating the volatility tax).</li><li><strong>Quarter-Kelly, 40% Dry-Powder Floor &amp; Concentric Asset Engine Rings:</strong> Sizing stays conservative at one-quarter Kelly while at least 40% of capital stays uncommitted in cash; members cannot raise risk autonomously because the governor is downward-only.</li><li><strong>IFAS &amp; ADR-011 Air-Gap:</strong> Real bank accounts, deposits, and tax records live separately in <strong>IFAS</strong> (<code>accounting.narratix.io</code>); PDEUE never stores bank routing or account credentials.</li><li><strong>Active-Hat (R-06), Directive R-12 Masking, Directive R-04 Halt &amp; Gate G1:</strong> Operators wear one role hat at a time, technical desks see masked balances (<code>$****.**</code>), leadership holds a platform-wide emergency brake, and <strong>Gate G1</strong> defaults to <code>HOLD_OBSERVATIONS_ONLY</code> paper mode.</li><li><strong>Executive Command Mode &amp; Pay-it-Forward / LCCF:</strong> Senate ratification stages a petition while Sovereign Chancellor dual control remains required, and the <strong>Pay-it-Forward / LCCF</strong> family fund helps lift relatives out of high-interest debt as the lineage grows.</li><li><strong>House Genealogist, Anti-Tribalism Custody, Delegated Onboarding &amp; Genealogical Ratification:</strong> Trusted <strong>House Genealogist</strong> officers and ranked House leaders can prepare welcome dossiers when <strong>Delegated Onboarding</strong> is enabled, while <strong>Genealogical Ratification</strong> keeps final activation with leadership and sends a signed notice to <strong>IFAS</strong>. Optional <strong>Anti-Tribalism Custody</strong> pairs mentors across Houses to keep family unity strong and prevent cliques.</li><li><strong>Family Home Hub, Hall of Arms, Lineage Hearth, Bordure Differencing &amp; Guided Tour:</strong> Every family member begins at the calm four-card <strong>Family Home Hub</strong> (<code>/home</code>), gathers inside the <strong>Lineage Hearth</strong> (<code>/community</code>), explores two-scale heraldic crests and Scottish <strong>Bordure Differencing</strong> across the 12 Houses (House 01 Carmichael from the eldest McCormick daughter + 11 bordure-differenced McCormick Houses) in the <strong>Hall of Arms</strong> (<code>/community/heritage</code>), and studies calmly via the <strong>Guided Tour</strong> in PDEUE University.</li></ol></details>
+    <details id="enclaveGovernanceCharter" class="card" open style="margin:1rem 0;border-color:#38bdf8;"><summary><strong>🏛️ Three-Stage Governance Lifecycle &amp; FUTURE Enclave Charter (Open-Study Doctrine)</strong></summary><p style="color:#cbd5e1;margin:.6rem 0;">Family members and future successors can openly study the complete constitutional progression here without exposing live balances, credentials, or premature production voting controls:</p><ol style="color:#dbe8f7;line-height:1.6;"><li><strong>Stage 1 — Executive Command (<code>EXECUTIVE_COMMAND</code>, Default Fledgling &amp; Emergency Safety Mode):</strong> Fresh deployments start fail-closed here while the family builds operational discipline. Production House desks display <em>"Executive Command Mode Active — Voting Dormant"</em>, strip voting/veto buttons, and reject voting mutations (HTTP 403).</li><li><strong>Stage 2 — Advisory Petition Filter (<code>ADVISORY_PETITION_FILTER</code>):</strong> Activated solely by the Chief Administrator. Unlocks advisory voting (default 9-of-12 / 75% quorum -&gt; <code>RATIFIED_PENDING_SETTLOR</code>) with zero unilateral execution and <strong>Absolute Founder Veto (<code>VETOED_BY_FOUNDER</code>)</strong>.</li><li><strong>Stage 3 — Configurable Bicameral Veto (<code>BICAMERAL_VETO_ACTIVE</code>):</strong> Unlocks binding Bicameral Veto (<code>VETOED_BY_BICAMERAL_CHAMBER</code>) on eligible policy and CFCP grant proposals for authorized communal bodies (such as the <em>Council of 12 Houses</em>, <em>Council of Elders</em>, or <em>Enclave Stewardship Assembly</em>) and named individual or office voter seats configured by the Chief Administrator without code changes.</li><li><strong>Immutable Core Guardrail (ALL Modes):</strong> Proposals targeting the <strong>87/10/3 waterfall</strong>, <strong>ADR-012 High-Water Mark</strong>, <strong>Rule A14 100% SCMA loss isolation</strong>, <strong>Quarter-Kelly bounds</strong>, <strong>3% FAEP</strong>, <strong>ADR-011 banking air-gap</strong>, or <strong>Directive R-04 Emergency Kill Switch</strong> are permanently rejected (HTTP 403, <code>IMMUTABLE_CORE_INVARIANT</code>).</li><li><strong>1-Click Emergency Safety Snap-Back Protocol (<code>SHTF</code>):</strong> During any systemic emergency, the Chief Administrator can instantaneously return governance to <code>EXECUTIVE_COMMAND</code> with full <code>GovernanceAuditLog</code> recording.</li></ol></details>
+    <details class="card"><summary><strong>📘 Canon Reference Cheat Sheet — Lexicon v0.5</strong></summary><ol><li><strong>ADR-008 Exact-Cent Conservation &amp; 87/10/3 Waterfall (TPW):</strong> Every penny is counted as a whole cent; residual rounding goes to <strong>CFCP</strong> so every integer cent is conserved across <strong>SCMA</strong> (87%), <strong>CFCP</strong> (10%), and <strong>FAEP</strong> (3%).</li><li><strong>High-Water Mark (ADR-012) &amp; Rule A14:</strong> Trading losses stay 100% inside the executing <strong>SCMA</strong> (CFCP/FAEP never absorb member losses), and the 87/10/3 waterfall applies strictly to net new profit above each SCMA's High-Water Mark (0% skim during drawdown recovery, eliminating the volatility tax).</li><li><strong>Quarter-Kelly, 40% Dry-Powder Floor &amp; Concentric Asset Engine Rings:</strong> Sizing stays conservative at one-quarter Kelly while at least 40% of capital stays uncommitted in cash; members cannot raise risk autonomously because the governor is downward-only.</li><li><strong>IFAS &amp; ADR-011 Air-Gap:</strong> Real bank accounts, deposits, and tax records live separately in <strong>IFAS</strong> (<code>accounting.narratix.io</code>); PDEUE never stores bank routing or account credentials.</li><li><strong>Active-Hat (R-06), Directive R-12 Masking, Directive R-04 Halt &amp; Gate G1:</strong> Operators wear one role hat at a time, technical desks see masked balances (<code>$****.**</code>), leadership holds a platform-wide emergency brake, and <strong>Gate G1</strong> defaults to <code>HOLD_OBSERVATIONS_ONLY</code> paper mode.</li><li><strong>Executive Command Mode &amp; Pay-it-Forward (FSAP — Phase II):</strong> Senate ratification stages a petition while Sovereign Chancellor dual control remains required, and the <strong>Pay-it-Forward (FSAP — Familial Stability Advance Pool)</strong> launches in Phase II inside IFAS to help lift relatives out of high-interest debt as the lineage grows.</li><li><strong>House Genealogist, Anti-Tribalism Custody, Delegated Onboarding &amp; Genealogical Ratification:</strong> Trusted <strong>House Genealogist</strong> officers and ranked House leaders can prepare welcome dossiers when <strong>Delegated Onboarding</strong> is enabled, while <strong>Genealogical Ratification</strong> keeps final activation with leadership and sends a signed notice to <strong>IFAS</strong>. Optional <strong>Anti-Tribalism Custody</strong> pairs mentors across Houses to keep family unity strong and prevent cliques.</li><li><strong>Family Home Hub, Hall of Arms, Lineage Hearth, Bordure Differencing &amp; Guided Tour:</strong> Every family member begins at the calm four-card <strong>Family Home Hub</strong> (<code>/home</code>), gathers inside the <strong>Lineage Hearth</strong> (<code>/community</code>), explores two-scale heraldic crests and Scottish <strong>Bordure Differencing</strong> across the 12 Houses (House 01 Carmichael from the eldest McCormick daughter + 11 bordure-differenced McCormick Houses) in the <strong>Hall of Arms</strong> (<code>/community/heritage</code>), and studies calmly via the <strong>Guided Tour</strong> in PDEUE University.</li></ol></details>
     <div class="chapter-footer-nav"><button type="button" onclick="window.PDEUECompanion && window.PDEUECompanion.goChapter(4)">← Back to Chapter 5</button><button type="button" onclick="window.PDEUECompanion && window.PDEUECompanion.goChapter(0)">↺ Restart at Chapter 1</button></div>
   </section>
 </div>
@@ -400,6 +448,28 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
     <div id="manual-reader-container" class="manual-reader" aria-live="polite">
       <p>Choose a canonical manual above. The local reader converts its Markdown sections into accessible accordions.</p>
     </div>
+  </div>
+</section>
+<section id="library" role="tabpanel" class="hidden" aria-label="Deep-Dive Lesson Library">
+  <div class="plain-english-box" style="margin-top:.8rem;">
+    <strong>Deep-Dive Audio &amp; Video Lesson Library — Study Any Topic at Your Own Pace</strong>
+    <p>Choose an individual lesson card below to read or listen to a focused 3-beat deep dive with your selected Studio Mentor voice—no need to scrub through the full simulator.</p>
+  </div>
+  <div id="deepDiveGrid" class="library-grid"></div>
+  <div id="deepDiveStage" class="library-stage hidden" aria-live="polite">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+      <div>
+        <span id="deepDiveTag" class="orientation-eyebrow">DEEP-DIVE MODULE</span>
+        <h3 id="deepDiveTitle">Select a lesson above</h3>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button id="playDeepDiveBtn" type="button" style="background:#0284C7;border-color:#38BDF8;color:#FFFFFF;font-weight:800;">▶ Listen with Studio Mentor</button>
+        <button id="closeDeepDiveBtn" type="button">✕ Close Lesson</button>
+      </div>
+    </div>
+    <p id="deepDiveSummary" style="color:#CBD5E1;margin:.35rem 0 .65rem;"></p>
+    <div id="deepDiveBeats" class="library-beat-list"></div>
+    <div id="deepDiveStatus" style="font-size:.82rem;color:#7DD3FC;font-weight:700;"></div>
   </div>
 </section>
 
@@ -527,9 +597,9 @@ $('senateVote').onclick=()=>{[...document.querySelectorAll('.seal')].forEach((s,
 $('chancellorReview').onclick=()=>show($('chancellorStatus'),0);
 
 const questions=[
-  ['Where does waterfall rounding residual go?',['SCMA','CFCP (ADR-008)'],'CFCP (ADR-008)','CFCP receives every residual cent so the split conserves its source.'],
-  ['Can a member raise risk autonomously?',['Yes','No (Downward-Only)'],'No (Downward-Only)','Upward restoration requires F2-H approval.'],
-  ['Does Senate ratification move money?',['Yes','No (Dual Control)'],'No (Dual Control)','Ratification only stages a petition for Chancellor review.']
+  ['You keep 100% of recovery dollars until you pass your High-Water Mark. On brand-new profits above that peak, where does any single rounding penny go so nothing is ever lost?',['SCMA','CFCP (ADR-008)'],'CFCP (ADR-008)','Exact-cent protection: you keep 100% during recovery, and on new profits the shared family shield (CFCP) receives any single rounding penny so every cent is conserved.'],
+  ['You can turn your safety dial down or pause your account anytime yourself. Can a member raise their risk ceiling back upward all alone?',['Yes','No (Downward-Only)'],'No (Downward-Only)','Downward-only protection: easing off the gas is always instant, while turning risk back up requires Head of Household approval.'],
+  ['Does a Twelve-House Senate vote—or an AI Tutor recommendation—automatically move family money on its own?',['Yes','No (Dual Control)'],'No (Dual Control)','Human dual control always applies: votes and AI tools only stage proposals—they can never move family money unilaterally.']
 ];
 const quizScore=new Map();
 function updateQuizProgress(){
@@ -583,43 +653,137 @@ $('completeCertificationBtn').onclick=async()=>{
   }
 };
 
-/* Paced Plain-Language Narration Engine (18 Beats across 6 Chapters, Graceful Headless/Offline Fallback) */
-const chapterIds=['chapter-waterfall','chapter-risk-governor','chapter-segregation','chapter-float-ceiling','chapter-distribution','chapter-governance'];
+/* Manifest-Driven Synchronized Teaching Engine (18 Beats across 6 Chapters + Chapter 0 Orientation + Visual Choreography + Studio Audio/WebVTT Ready) */
+const ORIENTATION_BEAT={
+  id:'ch0_orientation',
+  title:'Chapter 0 · 30-Second Welcome & Purpose',
+  text:'Welcome to PDEUE University. First, take a breath—you never need to become a day-trader or stare at market charts. Think of this system like a quiet family orchard tended by disciplined rules. Right now we are in Phase One paper mode, which means zero bank accounts are connected and zero real family dollars are at risk. Take your time, touch the practice controls below, and learn how every safeguard protects you.'
+};
+
 const beats=[
-  {t:0,  ch:0,title:'Chapter 1 · Beat 1: How New Profits Are Shared',text:'Welcome to Chapter 1. When your personal account reaches a brand-new record high, 87% of new profit stays with you, 10% builds the shared family shield, and 3% keeps the software running.'},
-  {t:15, ch:0,title:'Chapter 1 · Beat 2: Your Personal High-Water Mark',text:'If your account ever dips and climbs back up, you keep 100% of every recovery dollar. Zero profit is shared until you climb above your own previous peak.'},
-  {t:30, ch:0,title:'Chapter 1 · Beat 3: Exact Whole-Cent Accounting',text:'Every penny is counted as an exact whole cent under ADR-008, with any rounding penny routed to the shared family pool so nothing is ever lost.'},
-  {t:45, ch:1,title:'Chapter 2 · Beat 1: Turning Risk Down Anytime',text:'In Chapter 2, you can turn your safety dial down or freeze new orders at any time—just like easing off the gas pedal whenever you want more calm.'},
-  {t:60, ch:1,title:'Chapter 2 · Beat 2: Why Turning Up Needs a Partner',text:'To guard against rushed decisions, turning the safety dial back upward requires approval from your Head of Household.'},
-  {t:75, ch:1,title:'Chapter 2 · Beat 3: The 40% Cash Safety Cushion',text:'At least 40% of your capital always remains safely in uncommitted cash, and Quarter-Kelly keeps every single position modest.'},
-  {t:90, ch:2,title:'Chapter 3 · Beat 1: Watertight Family Accounts',text:'Chapter 3 shows Rule A14 in action. Every family member has a completely walled-off personal account.'},
-  {t:105,ch:2,title:'Chapter 3 · Beat 2: Zero Contagion Between Relatives',text:'If one relative takes a trading loss, that loss stays 100% inside their own account. Siblings and the shared family pool are never touched.'},
-  {t:120,ch:2,title:'Chapter 3 · Beat 3: Calm Recovery Without Penalty',text:'As the recovering account earns gains back toward its prior high mark, it keeps 100% of its recovery without any volatility tax.'},
-  {t:135,ch:3,title:'Chapter 4 · Beat 1: The $25,000 Active Float Ceiling',text:'Chapter 4 explains why active trading capital caps at $25,000: staying nimble avoids crowding smaller markets.'},
-  {t:150,ch:3,title:'Chapter 4 · Beat 2: Automatic Sweeps to Protected Custody',text:'Profits above $25,000 sweep automatically into off-venue bank custody managed by our separate bookkeeping system, IFAS.'},
-  {t:165,ch:3,title:'Chapter 4 · Beat 3: The ADR-011 Banking Safety Wall',text:'PDEUE never asks for or stores bank account numbers, routing numbers, or banking passwords—only signed notices cross the air gap.'},
-  {t:180,ch:4,title:'Chapter 5 · Beat 1: Green-Tier Everyday Withdrawals',text:'In Chapter 5, small Green-Tier withdrawals execute smoothly right away without red tape.'},
-  {t:195,ch:4,title:'Chapter 5 · Beat 2: Yellow-Tier Calm Reflection Card',text:'Medium Yellow-Tier withdrawals show a friendly preview of the long-term compounding you would trade away so you can decide thoughtfully.'},
-  {t:210,ch:4,title:'Chapter 5 · Beat 3: Red-Tier 24-Hour Shield & Dual Co-Sign',text:'Large Red-Tier withdrawals include a 24-hour cooling-off timer and two Head of Household co-signers to protect your family from scams.'},
-  {t:225,ch:5,title:'Chapter 6 · Beat 1: One Active Hat & Privacy Blinds',text:'Welcome to Chapter 6. Leaders wear one role hat at a time, and technical helpers see star-masked balances so family privacy stays protected.'},
-  {t:240,ch:5,title:'Chapter 6 · Beat 2: Twelve-House Petitions & Dual Control',text:'Family votes stage respectful petitions while human dual control ensures no vote or AI assistant can unilaterally move money.'},
-  {t:255,ch:5,title:'Chapter 6 · Beat 3: Earn Your Stewardship L1 Badge',text:'Complete the 3 short comprehension questions below to verify your understanding and unlock your active account status.'}
+  {id:'ch1_b1',t:0,  ch:0,spotlight:'#chapter-waterfall .waterfall',demoHint:'Watch the 87 / 10 / 3 split flow across the three buckets below.',demoAction:()=>{$('profitCents').value='10001';$('drawdownCents').value='0';$('profitCents').dispatchEvent(new Event('input'))},title:'Chapter 1 · Beat 1: Who Keeps New Profits?',text:'Before we look at any numbers, here is the only question that matters first: when your account earns money, who actually keeps it? Almost all of it stays right in your own account—87 cents of every brand-new profit dollar—while 10 cents strengthens the shared family safety net and 3 cents keeps the platform running.'},
+  {id:'ch1_b2',t:15, ch:0,spotlight:'#drawdownCents',demoHint:'Try typing 5000 ($50.00) into Prior Drawdown—watch the 10% and 3% shares drop to $0.00 on recovery dollars.',demoAction:()=>{$('profitCents').value='5000';$('drawdownCents').value='5000';$('drawdownCents').dispatchEvent(new Event('input'))},title:'Chapter 1 · Beat 2: The Doorframe Pencil Line (High-Water Mark)',text:'Now suppose your account has a dip before climbing back up—do you share profits while you are just getting back to even? Never. Think of your High-Water Mark like a pencil line on a doorframe marking your tallest height. Try entering a prior drawdown right now and watch the shared buckets drop to zero until you pass your old peak.'},
+  {id:'ch1_b3',t:30, ch:0,spotlight:'#scmaValue',demoHint:'Every exact whole cent is accounted for—try 10001 cents ($100.01) with 0 drawdown to see the single rounding penny.',demoAction:()=>{$('profitCents').value='10001';$('drawdownCents').value='0';$('profitCents').dispatchEvent(new Event('input'))},title:'Chapter 1 · Beat 3: Fairness Without Guarantees',text:'One common misunderstanding: this rule does not promise that every trade wins or prevent normal ups and downs. What it guarantees is fairness—you never pay a penny on recovery dollars, and every exact whole cent is accounted for with nothing lost to rounding.'},
+
+  {id:'ch2_b1',t:45, ch:1,spotlight:'#riskSlider',demoHint:'Drag the safety dial to the left—easing off the gas is always instant.',demoAction:()=>{$('riskSlider').value='125';$('riskSlider').dispatchEvent(new Event('input'))},title:'Chapter 2 · Beat 1: Slowing Down Anytime You Want',text:'What if you feel uneasy and want to slow down, or pause completely? You are always in charge of the brake pedal. Drag your safety dial down or press Freeze anytime you want extra calm—it takes effect immediately without asking permission.'},
+  {id:'ch2_b2',t:60, ch:1,spotlight:'#freezeRisk',demoHint:'Try sliding the dial back up after lowering it—the upward lock protects against rushed decisions.',demoAction:()=>{$('riskSlider').value='100';$('riskSlider').dispatchEvent(new Event('input'));$('riskSlider').value='200';$('riskSlider').dispatchEvent(new Event('input'))},title:'Chapter 2 · Beat 2: Why Turning Back Up Takes a Partner',text:'Think of the dial like a gas pedal with a family safety latch. You can ease off anytime, but to guard against heat-of-the-moment choices, turning risk back upward requires a quick approval from your Head of Household.'},
+  {id:'ch2_b3',t:75, ch:1,spotlight:'#floorValue',demoHint:'Notice how at least 40% of your account stays untouched in calm cash.',demoAction:()=>{$('equityCents').value='100000';$('equityCents').dispatchEvent(new Event('input'))},title:'Chapter 2 · Beat 3: What the 40% Cash Cushion Does (and Does Not Do)',text:'At least 40% of your account always stays parked in uncommitted cash, and conservative Quarter-Kelly sizing keeps every single position modest. Remember: that 40% cushion keeps you from ever being all-in, though the active 60% working in markets can still move up and down.'},
+
+  {id:'ch3_b1',t:90, ch:2,spotlight:'#acctAda',demoHint:'Look at the four separate household cards—each relative has their own walled-off room.',demoAction:null,title:'Chapter 3 · Beat 1: Can a Relative’s Loss Drain Your Savings?',text:'Here is a question almost every family member asks quietly: if a cousin or sibling takes a losing trade, can it drain my account? The answer is an absolute no. Every family member has their own completely walled-off personal account.'},
+  {id:'ch3_b2',t:105,ch:2,spotlight:'#lossEvent',demoHint:'Click "Simulate Loss in SCMA-Bo" below and watch the green protection shields light up across every sibling.',demoAction:()=>{$('lossEvent').click()},title:'Chapter 3 · Beat 2: Watertight Rooms on a Ship',text:'Picture your family accounts like watertight compartments on a ship. Click the Simulate Loss button below and watch what happens: even when one room takes on water, every sibling account and the shared family pool stay 100% dry.'},
+  {id:'ch3_b3',t:120,ch:2,spotlight:'#chapter-segregation .household',demoHint:'Sharing a family safety net never means sharing trading losses.',demoAction:null,title:'Chapter 3 · Beat 3: Shared Shield, Never Shared Losses',text:'Do not confuse the shared family pool with joint liability. The family safety net grows from brand-new profits above each person’s peak, and it never reaches into your pocket to cover someone else’s trading loss.'},
+
+  {id:'ch4_b1',t:135,ch:3,spotlight:'#floatCents',demoHint:'Watch what happens when a balance rises above $25,000.00—the excess sweeps out automatically.',demoAction:()=>{$('floatCents').value='2750001';$('floatCents').dispatchEvent(new Event('input'))},title:'Chapter 4 · Beat 1: Why Cap Working Capital at $25,000?',text:'Does the trading software keep piling all of your savings onto an exchange forever? No. Think of it like a cash register that keeps only up to $25,000 working in the drawer so orders stay nimble and never crowd smaller markets.'},
+  {id:'ch4_b2',t:150,ch:3,spotlight:'#surplusSweep',demoHint:'See the Surplus Sweep box and signed notice envelope below—excess profits move off-venue.',demoAction:()=>{$('floatCents').value='3000000';$('floatCents').dispatchEvent(new Event('input'))},title:'Chapter 4 · Beat 2: Automatic Sweeps to Protected Custody',text:'Whenever profits climb above $25,000, the surplus sweeps automatically off the trading venue into protected bank custody overseen by our separate family bookkeeping system.'},
+  {id:'ch4_b3',t:165,ch:3,spotlight:'#dynamic-outbox-container',demoHint:'Inspect the signed notice below—zero bank passwords or routing numbers ever exist here.',demoAction:null,title:'Chapter 4 · Beat 3: The Banking Safety Wall',text:'One vital safeguard to remember: this trading platform never asks for or stores your bank passwords, routing numbers, or account numbers. Only a tamper-evident signed notice crosses the wall to our separate accounting system.'},
+
+  {id:'ch5_b1',t:180,ch:4,spotlight:'#tierGreen',demoHint:'Click "$100.00 Green" below to see an everyday withdrawal pass smoothly.',demoAction:()=>{document.querySelector('[data-amount="10000"]').click()},title:'Chapter 5 · Beat 1: Taking Money Out Without Red Tape',text:'When you want to withdraw money, how does it work? Picture three clear checkout lanes. Small everyday withdrawals take the Green express lane and clear smoothly right away.'},
+  {id:'ch5_b2',t:195,ch:4,spotlight:'#tierYellow',demoHint:'Click "$250.00 Yellow" to preview the calm compounding reflection card.',demoAction:()=>{document.querySelector('[data-amount="25000"]').click()},title:'Chapter 5 · Beat 2: The Yellow Reflection Pause',text:'Medium Yellow withdrawals pause for a moment to show a plain-English preview of the long-term compounding you would trade away—not to block you, just to make sure the choice feels right.'},
+  {id:'ch5_b3',t:210,ch:4,spotlight:'#tierRed',demoHint:'Click "$650.00 Red" to see the 24-hour family scam shield and dual co-sign check.',demoAction:()=>{document.querySelector('[data-amount="65000"]').click()},title:'Chapter 5 · Beat 3: Your 24-Hour Scam Shield & Pay-it-Forward',text:'Large Red withdrawals include a 24-hour cooling-off timer and two Head of Household co-signers—designed to protect your family from pressured scams. And in Phase Two, our Pay-it-Forward pool inside separate accounting will also help relatives clear high-interest debt.'},
+
+  {id:'ch6_b1',t:225,ch:5,spotlight:'#chapter-governance .plain-english-box',demoHint:'One clear role hat at a time, and star-masked balances ($****.**) for technical helpers.',demoAction:null,title:'Chapter 6 · Beat 1: Who Watches the Watchers?',text:'Who makes sure no single helper or computer can overstep? Every leader wears one clear role hat at a time, and technical staff see masked star balances so your family’s private numbers stay private.'},
+  {id:'ch6_b2',t:240,ch:5,spotlight:'#senateVote',demoHint:'Click "Cast 9 Aye Votes" below—notice that ratification only stages a petition and moves zero money.',demoAction:()=>{$('senateVote').click()},title:'Chapter 6 · Beat 2: Two-Key Governance (No Solo Moves)',text:'Try casting nine votes below. Even a ratified family vote only stages a respectful petition for dual-control review—neither a vote nor an AI assistant can ever move a single dollar on its own.'},
+  {id:'ch6_b3',t:255,ch:5,spotlight:'#quiz',demoHint:'Answer the 3 plain-English questions below to unlock your Stewardship L1 Certification.',demoAction:null,title:'Chapter 6 · Beat 3: Confirm Your Understanding',text:'You have walked through every core safeguard. Answer the three short plain-English questions below to verify your understanding and earn your Stewardship Level One badge.'}
+];
+
+const DEEP_DIVE_MODULES=[
+  {
+    id:'dd_compounding',
+    badge:'Core Today',
+    badgeClass:'lib-badge-core',
+    duration:'3 min',
+    title:'How Compounding Actually Snowballs',
+    summary:'Why keeping 87% of net new profits working inside your own account matters far more than chasing big home-run trades.',
+    beats:[
+      {heading:'1. The Human Question',body:'Why do small, steady gains add up faster than waiting for one lucky windfall? Because every winning dollar that stays in your account begins earning on the very next cycle.'},
+      {heading:'2. The Mental Model',body:'Picture a wet snowball rolling down a gentle hill. At the top it grows slowly, one thin layer at a time—but as the ball widens, each single turn picks up more snow than the entire first ten turns combined.'},
+      {heading:'3. The Misconception Check',body:'Compounding requires patience and calm risk limits. One reckless oversized bet can melt months of steady progress—which is why conservative sizing and the 40% cash cushion protect the snowball.'}
+    ]
+  },
+  {
+    id:'dd_prediction_odds',
+    badge:'Core Today',
+    badgeClass:'lib-badge-core',
+    duration:'4 min',
+    title:'How Prediction Markets Price Odds (Without Gambling)',
+    summary:'Understanding binary event contracts settled by objective public data like weather stations and economic releases.',
+    beats:[
+      {heading:'1. The Human Question',body:'Is a prediction market contract the same thing as a casino bet? No—regulated event contracts settle strictly on objective, verifiable public facts like official NOAA weather readings or government inflation reports.'},
+      {heading:'2. The Mental Model',body:'Think of a $1.00 contract like a simple yes-or-no insurance coupon. If the crowd prices a 70% likely outcome at 55 cents, buying patiently with a limit order captures a measurable mathematical margin—never chasing hype.'},
+      {heading:'3. The Misconception Check',body:'Even a 70% probability still misses 30% of the time. That is why no single contract is ever allowed to risk your whole account—and why sports and casino-style wagers stay off-limits.'}
+    ]
+  },
+  {
+    id:'dd_hwm_deep',
+    badge:'Core Today',
+    badgeClass:'lib-badge-core',
+    duration:'3 min',
+    title:'High-Water Mark Deep Dive: Zero Volatility Tax',
+    summary:'A worked dollar-by-dollar example showing why dips and recoveries are never double-counted.',
+    beats:[
+      {heading:'1. The Human Question',body:'If my account grows from $1,000 to $1,200, dips back to $1,000, and climbs back to $1,200, do I share 10% and 3% twice? Never.'},
+      {heading:'2. The Mental Model',body:'Your personal High-Water Mark stays pinned at $1,200—like a pencil mark on a doorframe. Every recovery dollar from $1,000 back to $1,200 stays 100% yours. Sharing only resumes on dollar $1,201 and above.'},
+      {heading:'3. The Misconception Check',body:'A High-Water Mark protects you from paying a volatility tax during bumpy stretches, though it does not insure against market losses while a position is open.'}
+    ]
+  },
+  {
+    id:'dd_phase_fsap',
+    badge:'Core Today',
+    badgeClass:'lib-badge-core',
+    duration:'4 min',
+    title:'Phase I vs. Phase II & The Pay-it-Forward (FSAP) Pool',
+    summary:'How today’s zero-risk paper proving ground transitions into Phase II bank custody and debt-relief advances.',
+    beats:[
+      {heading:'1. The Human Question',body:'Is real family money moving through banks right now, and when does Pay-it-Forward start? Today is Phase I Paper Mode—zero live bank money is connected.'},
+      {heading:'2. The Mental Model',body:'Phase I is flight simulator training on live weather data. Only after discipline is proven does Phase II turn on separate IFAS bank custody and the Familial Stability Advance Pool (FSAP), where stable relatives help clear high-interest family debt.'},
+      {heading:'3. The Misconception Check',body:'Pay-it-Forward advances are revolving family stewardship agreements tracked in separate accounting—never automatic deductions from another relative’s personal trading account.'}
+    ]
+  },
+  {
+    id:'dd_ai_tutor',
+    badge:'Paired with Batch 2B',
+    badgeClass:'lib-badge-next',
+    duration:'3 min',
+    title:'Using the Dual-Lane AI Tutor Safely',
+    summary:'How the AI Tutor separates verified family policy from live public market research—and why it can never move money.',
+    beats:[
+      {heading:'1. The Human Question',body:'If I ask the AI Tutor an unexpected question about inflation or Treasury yields, where does it get the answer—and can it see my bank balance?'},
+      {heading:'2. The Mental Model',body:'Think of a librarian with two clearly labeled shelves: questions about family rules come strictly from our verified local manuals, while general public market questions use read-only web research with visible citations.'},
+      {heading:'3. The Misconception Check',body:'The AI Tutor has zero access to balances, zero banking credentials, and zero execution power. It teaches and explains—it can never place a trade or transfer cash.'}
+    ]
+  },
+  {
+    id:'dd_shadow_hunch',
+    badge:'Paired with Batch 2B',
+    badgeClass:'lib-badge-next',
+    duration:'4 min',
+    title:'Testing a Grounded Hunch in Shadow Paper Mode',
+    summary:'How certified members test real-world ideas risk-free in Shadow Paper Mode and how higher-authority clearance works.',
+    beats:[
+      {heading:'1. The Human Question',body:'What if I notice real-world news—like a major freeze or an economic shift—and want to test my own idea?'},
+      {heading:'2. The Mental Model',body:'Our Shadow Paper Hunch Studio runs your idea through three checks—public fact verification, regulated contract mapping, and fee-adjusted edge math—then lets you track it in a zero-risk Shadow Paper Book alongside live markets.'},
+      {heading:'3. The Misconception Check',body:'Members never have an impulsive solo "Buy" button. Promoting a vetted shadow idea to a real bid inside your own account requires Stewardship L1 certification plus Head of Household and Risk Officer sign-off.'}
+    ]
+  }
 ];
 
 const timeline=$('companion-timeline'),audio=$('companionAudioPlayer'),voiceSelect=$('voiceSelect');
-let guided=true,playing=false,muted=false,speed=1,raf=0,lastTs=0,activeIndex=-1,activeBeatIndex=-1,audioFailed=false,availableVoices=[];
+let guided=true,playing=false,muted=false,speed=1,raf=0,lastTs=0,activeIndex=-1,activeBeatIndex=-1,audioFailed=false,availableVoices=[],studioManifest=null,activeSpotlightEl=null;
 audio.addEventListener('error',()=>{audioFailed=true});
+
+/* Load zero-404 studio manifest so Batch 4 .mp3/.vtt assets auto-activate when dropped in */
+fetch('/api/v1/portal/companion/state').then(r=>r.ok?r.json():null).then(s=>{if(s&&s.media_manifest)studioManifest=s.media_manifest;}).catch(()=>{});
 
 function populateVoices(){
   if(!('speechSynthesis' in window)||typeof window.speechSynthesis.getVoices!=='function')return;
   const list=window.speechSynthesis.getVoices()||[];
   availableVoices=list;
-  const currentVal=voiceSelect.value||'default';
-  voiceSelect.innerHTML='<option value="default">Voice: Default / Silent Timer</option>';
-  list.slice(0,12).forEach((v,idx)=>{
+  const currentVal=voiceSelect.value||'studio:mentor_f_aa';
+  voiceSelect.innerHTML='<option value="studio:mentor_f_aa">Studio Mentor: Maya (African American Female)</option><option value="studio:mentor_m_aa">Studio Mentor: Marcus (African American Male)</option><option value="default">Voice: Browser / Silent Visual Timer</option>';
+  list.slice(0,10).forEach((v,idx)=>{
     const opt=document.createElement('option');
     opt.value=String(idx);
-    opt.textContent=`${v.name} (${v.lang})`;
+    opt.textContent=`Browser: ${v.name} (${v.lang})`;
     voiceSelect.appendChild(opt);
   });
   if([...voiceSelect.options].some(o=>o.value===currentVal))voiceSelect.value=currentVal;
@@ -631,10 +795,55 @@ if('speechSynthesis' in window){
   }
 }
 
+function getStudioTrack(beatId){
+  const sel=voiceSelect.value||'';
+  if(!sel.startsWith('studio:')||!studioManifest||!studioManifest.tracks)return null;
+  const vid=sel.slice(7);
+  return (studioManifest.tracks[vid]&&studioManifest.tracks[vid][beatId])||null;
+}
+
+function clearSpotlight(){
+  if(activeSpotlightEl){activeSpotlightEl.classList.remove('beat-spotlight');activeSpotlightEl=null;}
+}
+function applySpotlight(selector){
+  clearSpotlight();
+  if(!selector)return;
+  const el=document.querySelector(selector);
+  if(el){el.classList.add('beat-spotlight');activeSpotlightEl=el;}
+}
+
 function speakBeat(beat){
   if(!beat)return;
-  if(muted||!('speechSynthesis' in window)){
-    $('audioBadge').textContent=muted?'Paced Narration: Muted (Visual Timer)':'Paced Narration: Silent Visual Timer';
+  if(muted){
+    $('audioBadge').textContent='Paced Narration: Muted (Visual Timer)';
+    $('audioBadge').classList.toggle('active',playing);
+    return;
+  }
+  const studioTrack=getStudioTrack(beat.id);
+  if(studioTrack&&studioTrack.mp3){
+    try{
+      audio.pause();
+      audio.innerHTML='';
+      const srcEl=document.createElement('source');
+      srcEl.src=studioTrack.mp3;
+      srcEl.type='audio/mpeg';
+      audio.appendChild(srcEl);
+      if(studioTrack.vtt){
+        const tr=document.createElement('track');
+        tr.kind='captions';tr.srclang='en';tr.default=true;tr.src=studioTrack.vtt;
+        audio.appendChild(tr);
+      }
+      audio.load();
+      audio.playbackRate=speed;
+      const p=audio.play();
+      if(p&&typeof p.catch==='function')p.catch(()=>{audioFailed=true;});
+      $('audioBadge').textContent='Studio Mentor Audio + Synced Captions';
+      $('audioBadge').classList.add('active');
+      return;
+    }catch(_e){audioFailed=true;}
+  }
+  if(!('speechSynthesis' in window)){
+    $('audioBadge').textContent='Paced Narration: Silent Visual Timer';
     $('audioBadge').classList.toggle('active',playing);
     return;
   }
@@ -642,11 +851,15 @@ function speakBeat(beat){
     window.speechSynthesis.cancel();
     const utterance=new SpeechSynthesisUtterance(beat.text);
     utterance.rate=speed;
-    const vIdx=Number(voiceSelect.value);
-    if(!Number.isNaN(vIdx)&&availableVoices[vIdx])utterance.voice=availableVoices[vIdx];
+    const sel=voiceSelect.value||'';
+    if(!sel.startsWith('studio:')){
+      const vIdx=Number(sel);
+      if(!Number.isNaN(vIdx)&&availableVoices[vIdx])utterance.voice=availableVoices[vIdx];
+    }
     window._persistedUtterance=utterance;
     window.speechSynthesis.speak(utterance);
-    $('audioBadge').textContent=availableVoices.length?'Paced Narration: Voice + Visual Sync':'Paced Narration: Visual Timer Active';
+    const label=sel==='studio:mentor_f_aa'?'Maya (Preview Voice + Visual Sync)':sel==='studio:mentor_m_aa'?'Marcus (Preview Voice + Visual Sync)':(availableVoices.length?'Paced Narration: Voice + Visual Sync':'Paced Narration: Visual Timer Active');
+    $('audioBadge').textContent=label;
     $('audioBadge').classList.add('active');
   }catch(_err){
     $('audioBadge').textContent='Paced Narration: Silent Visual Timer';
@@ -680,14 +893,77 @@ function activateBeat(beatIdx,autoScroll=false){
   $('narrationBeatStep').textContent=`Beat ${clamped+1} of ${beats.length}`;
   $('captions').textContent=beat.text;
   $('beatProgressFill').style.width=Math.round(((clamped+1)/beats.length)*100)+'%';
+  $('beatDemoHint').textContent=beat.demoHint||'Follow the highlighted control below.';
+  $('beatDemoBtn').classList.toggle('hidden',typeof beat.demoAction!=='function');
+  applySpotlight(beat.spotlight);
   if(autoScroll&&chapterChanged){
     const target=document.getElementById(chapterIds[activeIndex]);
     if(target)target.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
-  if(playing&&beatChanged&&(audioFailed||audio.readyState===0)){
+  if(playing&&beatChanged){
     speakBeat(beat);
   }
 }
+
+$('beatDemoBtn').onclick=()=>{
+  const beat=beats[Math.max(0,activeBeatIndex)];
+  if(beat&&typeof beat.demoAction==='function'){
+    beat.demoAction();
+    applySpotlight(beat.spotlight);
+    $('beatDemoHint').textContent='✓ Live demo applied — look at the highlighted control below!';
+  }
+};
+
+/* Chapter 0 Orientation Card controls */
+$('playOrientationBtn').onclick=()=>{
+  if(playing)pause();
+  $('captions').textContent=ORIENTATION_BEAT.text;
+  $('narrationBeatTitle').textContent=ORIENTATION_BEAT.title;
+  $('orientationStatus').textContent='Playing 30-second welcome orientation…';
+  speakBeat(ORIENTATION_BEAT);
+};
+$('toggleOrientationBtn').onclick=()=>{
+  const card=$('chapter-orientation');
+  const collapsed=card.dataset.collapsed==='1';
+  card.dataset.collapsed=collapsed?'0':'1';
+  card.querySelectorAll('.orientation-grid, p').forEach(el=>el.classList.toggle('hidden',!collapsed));
+  $('toggleOrientationBtn').textContent=collapsed?'Hide Orientation Card':'Show Orientation Card';
+};
+
+/* Deep-Dive Lesson Library rendering & controls */
+let activeDeepDive=null;
+function openDeepDive(mod){
+  activeDeepDive=mod;
+  document.querySelectorAll('.library-card').forEach(c=>c.classList.toggle('active-lesson',c.dataset.lessonId===mod.id));
+  $('deepDiveTag').textContent=`${mod.badge.toUpperCase()} · ${mod.duration} DEEP DIVE`;
+  $('deepDiveTitle').textContent=mod.title;
+  $('deepDiveSummary').textContent=mod.summary;
+  $('deepDiveBeats').innerHTML=mod.beats.map(b=>`<div class="library-beat-item"><strong>${b.heading}</strong>${b.body}</div>`).join('');
+  $('deepDiveStatus').textContent='Ready — read at your own pace or click Listen with Studio Mentor.';
+  $('deepDiveStage').classList.remove('hidden');
+}
+(function initDeepDiveGrid(){
+  const grid=$('deepDiveGrid');
+  if(!grid)return;
+  grid.innerHTML=DEEP_DIVE_MODULES.map(m=>`<article class="library-card" data-lesson-id="${m.id}"><div><div class="library-meta"><span class="${m.badgeClass}">${m.badge}</span><span style="color:#94A3B8;">${m.duration}</span></div><h3 style="margin:.45rem 0 .25rem;color:#F8FAFC;font-size:1.02rem;">${m.title}</h3><p style="margin:0;color:#CBD5E1;font-size:.87rem;line-height:1.45;">${m.summary}</p></div><button type="button" class="manual-card-btn" data-open-lesson="${m.id}">Open Deep Dive</button></article>`).join('');
+  grid.querySelectorAll('[data-open-lesson]').forEach(btn=>{
+    btn.onclick=()=>{
+      const mod=DEEP_DIVE_MODULES.find(x=>x.id===btn.dataset.openLesson);
+      if(mod)openDeepDive(mod);
+    };
+  });
+})();
+$('playDeepDiveBtn').onclick=()=>{
+  if(!activeDeepDive)return;
+  if(playing)pause();
+  const spoken=activeDeepDive.beats.map(b=>b.body).join(' ');
+  $('deepDiveStatus').textContent='Playing deep-dive narration with selected Studio Mentor…';
+  speakBeat({id:activeDeepDive.id,title:activeDeepDive.title,text:spoken});
+};
+$('closeDeepDiveBtn').onclick=()=>{
+  if('speechSynthesis' in window)window.speechSynthesis.cancel();
+  $('deepDiveStage').classList.add('hidden');
+};
 
 function seek(value,autoScroll=false){
   const v=Math.max(0,Math.min(270,Number(value)||0));
@@ -695,7 +971,6 @@ function seek(value,autoScroll=false){
   $('elapsed').textContent=Math.floor(v/60)+':'+String(Math.floor(v%60)).padStart(2,'0');
   const beatIdx=Math.min(beats.length-1,Math.floor(v/15));
   activateBeat(beatIdx,autoScroll);
-  if(audio.readyState>0&&Math.abs(audio.currentTime-v)>1)audio.currentTime=v;
 }
 
 function goChapter(chIdx,autoScroll=true){
@@ -720,15 +995,7 @@ function play(){
   $('playPause').textContent='❚❚ Pause';
   $('audioBadge').classList.add('active');
   audio.playbackRate=speed;
-  if(audio.readyState>=2){
-    const playPromise=audio.play();
-    if(playPromise&&typeof playPromise.catch==='function'){
-      playPromise.catch(()=>{audioFailed=true;speakBeat(beats[Math.max(0,activeBeatIndex)])});
-    }
-  }else{
-    audioFailed=true;
-    speakBeat(beats[Math.max(0,activeBeatIndex)]);
-  }
+  speakBeat(beats[Math.max(0,activeBeatIndex)]);
   raf=requestAnimationFrame(frame);
 }
 
@@ -757,7 +1024,7 @@ document.querySelectorAll('.speed').forEach(b=>b.onclick=()=>{
   speed=Number(b.dataset.speed)||1;
   document.querySelectorAll('.speed').forEach(x=>x.classList.toggle('active',x===b));
   audio.playbackRate=speed;
-  if(playing&&(audioFailed||audio.readyState===0))speakBeat(beats[Math.max(0,activeBeatIndex)]);
+  if(playing)speakBeat(beats[Math.max(0,activeBeatIndex)]);
 });
 $('mute').onclick=()=>{
   muted=!muted;
@@ -765,7 +1032,7 @@ $('mute').onclick=()=>{
   $('mute').textContent=muted?'🔇 Unmute':'🔊 Mute';
   audio.muted=muted;
   if(muted&&'speechSynthesis' in window)window.speechSynthesis.cancel();
-  else if(playing&&(audioFailed||audio.readyState===0))speakBeat(beats[Math.max(0,activeBeatIndex)]);
+  else if(playing)speakBeat(beats[Math.max(0,activeBeatIndex)]);
 };
 /* Clicking Guided Step-by-Step ALWAYS starts cleanly at Chapter 1 (never stuck on Chapter 6) */
 $('guidedMode').onclick=()=>{
@@ -847,7 +1114,7 @@ $('printManual').onclick=()=>{
 };
 document.querySelectorAll('.tab').forEach(tab=>tab.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.setAttribute('aria-selected',String(x===tab)));
-  ['simulator','colleges'].forEach(id=>$(id).classList.toggle('hidden',id!==tab.dataset.panel));
+  ['simulator','colleges','library'].forEach(id=>$(id).classList.toggle('hidden',id!==tab.dataset.panel));
   if(tab.dataset.panel==='colleges')loadManualByName($('manualSelect').value,false);
 });
 

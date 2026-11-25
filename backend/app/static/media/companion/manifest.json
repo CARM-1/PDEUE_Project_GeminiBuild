@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "status": "ready_for_batch4_audio",
+  "voices": [
+    {
+      "id": "mentor_f_aa",
+      "label": "Studio Mentor: Maya (African American Female)",
+      "description": "Warm, clear kitchen-table mentor cadence",
+      "audio_ready": false
+    },
+    {
+      "id": "mentor_m_aa",
+      "label": "Studio Mentor: Marcus (African American Male)",
+      "description": "Calm, grounded family mentor cadence",
+      "audio_ready": false
+    }
+  ],
+  "tracks": {}
+}
