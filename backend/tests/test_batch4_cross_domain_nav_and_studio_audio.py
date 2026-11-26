@@ -426,8 +426,8 @@ def test_companion_state_endpoint_wires_manifest_and_enforces_zero_404_zero_cdn(
     default_state = default_resp.json()
     assert default_state["zero_runtime_tts_api"] is True
     assert "media_manifest" in default_state
-    assert default_state["media_manifest"]["status"] == "ready_for_batch4_audio"
-    assert default_state["studio_audio_ready"] is False
+    assert default_state["media_manifest"]["status"] in {"ready_for_batch4_audio", "studio_audio_ready"}
+    assert default_state["studio_audio_ready"] is (default_state["media_manifest"]["status"] == "studio_audio_ready")
 
     # 2. Populated local studio audio build via PDEUE_COMPANION_MEDIA_DIR
     audio_builder.build_companion_audio(

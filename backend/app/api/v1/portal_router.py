@@ -863,7 +863,7 @@ def _resolve_companion_media_dir() -> pathlib.Path:
     override = (os.getenv("PDEUE_COMPANION_MEDIA_DIR") or "").strip()
     if override:
         return pathlib.Path(override).resolve()
-    return (pathlib.Path(__file__).resolve().parents[1] / "static" / "media" / "companion").resolve()
+    return (pathlib.Path(__file__).resolve().parents[2] / "static" / "media" / "companion").resolve()
 
 
 def _verify_local_companion_asset(media_dir: pathlib.Path, asset_url: Any) -> Optional[str]:
