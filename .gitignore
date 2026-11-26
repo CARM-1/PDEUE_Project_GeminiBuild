@@ -10,3 +10,7 @@ artifacts/playwright_crawl_report.json
 backend/pdeue_shadow_hunch.db
 ui_audit_output/
 pdeue_ui_audit.zip
+# Gemini CLI & GitHub Actions credential artifacts
+.gemini/
+gha-creds-*.json
+
