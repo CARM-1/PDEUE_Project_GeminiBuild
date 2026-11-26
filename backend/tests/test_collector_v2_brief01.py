@@ -587,6 +587,10 @@ def test_overlapping_120s_trade_pagination_dedup_and_completeness_states(
         log_fn=lambda _m: None,
         session_id="sess_trades",
     )
+    collector.tracker.reconcile_admission_scan(
+        [_mk_market("KXHIGHMIA-26NOV27-T80", close_dt=base_now + timedelta(hours=24))],
+        now_utc=base_now,
+    )
     try:
         # Phase 1: 2-page cursor pagination -> COMPLETE, 2 unique trades
         r1 = collector.poll_kalshi_public_trades()
@@ -911,3 +915,326 @@ def test_trade_deduplicator_memory_bounded():
         assert dedup.mark_if_new(f"T-{i}", i) is True
     assert len(dedup) == 100
     assert dedup.mark_if_new("T-249", 249) is False
+
+
+# ---------------------------------------------------------------------------
+# 6. Hotfix v2.0.1 Regressions (Curated Trade Filter, HTTP 400 Fallback, O(1) Heartbeat)
+# ---------------------------------------------------------------------------
+
+
+def test_hotfix_non_curated_trades_dropped_before_dedup_tape_and_manifest(
+    tmp_path: pathlib.Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setenv("PDEUE_VENUE_MODE", "observation")
+    monkeypatch.setenv("PDEUE_LIVE_TRADING_ENABLED", "false")
+
+    base_now = datetime(2026, 11, 26, 17, 30, 0, tzinfo=timezone.utc)
+    phase = {"n": 1}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if "/markets/trades" in str(request.url):
+            if phase["n"] == 1:
+                return httpx.Response(
+                    200,
+                    json={
+                        "trades": [
+                            {
+                                "trade_id": "NONCURATED-1",
+                                "ticker": "KXMVE-PARLAY-999",
+                                "yes_price_dollars": "0.5500",
+                                "count_fp": "10.00",
+                                "taker_side": "yes",
+                                "created_time": "2026-11-26T17:29:00Z",
+                            },
+                            {
+                                "trade_id": "CURATED-1",
+                                "ticker": "KXHIGHMIA-26NOV27-T80",
+                                "yes_price_dollars": "0.4500",
+                                "count_fp": "50.00",
+                                "taker_side": "yes",
+                                "created_time": "2026-11-26T17:29:15Z",
+                            },
+                            {
+                                "trade_id": "NONCURATED-2",
+                                "ticker": "KXRANDOM-OTHER-1",
+                                "yes_price_dollars": "0.7000",
+                                "count_fp": "500.00",
+                                "taker_side": "no",
+                                "created_time": "2026-11-26T17:29:20Z",
+                            },
+                        ],
+                        "cursor": "",
+                    },
+                )
+            # Phase 2: exchange-wide trades exist, but ZERO match the curated basket -> EMPTY_COMPLETE
+            return httpx.Response(
+                200,
+                json={
+                    "trades": [
+                        {
+                            "trade_id": "NONCURATED-3",
+                            "ticker": "KXUNADMITTED-XYZ",
+                            "yes_price_dollars": "0.6000",
+                            "count_fp": "25.00",
+                            "taker_side": "yes",
+                            "created_time": "2026-11-26T17:29:50Z",
+                        }
+                    ],
+                    "cursor": "",
+                },
+            )
+        return httpx.Response(200, json={"markets": [], "cursor": ""})
+
+    collector = ObservedL2CollectorV2(
+        tmp_path / "tapes",
+        poly_benchmark_count=0,
+        kalshi_baseline_count=0,
+        http_client=httpx.Client(transport=httpx.MockTransport(handler)),
+        sleep_fn=lambda _s: None,
+        monotonic_fn=lambda: 100.0,
+        now_utc_fn=lambda: base_now,
+        log_fn=lambda _m: None,
+        session_id="sess_trade_filter",
+    )
+    try:
+        # Empty curated basket -> never writes non-curated trades, reports EMPTY_COMPLETE
+        r_empty = collector.poll_kalshi_public_trades()
+        assert r_empty["trades_emitted"] == 0
+        assert r_empty["window_completeness_status"] == "EMPTY_COMPLETE"
+        assert len(collector.trade_dedup) == 0
+        assert collector.writer.record_count == 0
+
+        # Admit single curated ticker
+        collector.tracker.reconcile_admission_scan(
+            [_mk_market("KXHIGHMIA-26NOV27-T80", close_dt=base_now + timedelta(hours=24))],
+            now_utc=base_now,
+        )
+
+        # Phase 1: 1 curated + 2 non-curated -> only curated enters dedup, tape, and rolling manifest
+        r1 = collector.poll_kalshi_public_trades()
+        assert r1["trades_emitted"] == 1
+        assert r1["non_curated_dropped"] == 2
+        assert r1["curated_trades_seen"] == 1
+        assert r1["raw_trades_seen"] == 3
+        assert r1["window_completeness_status"] == "COMPLETE"
+        assert len(collector.trade_dedup) == 1
+        assert collector.writer.record_count == 1
+        assert collector.writer.record_type_counts["OBSERVED_TRADE"] == 1
+        manifest_after_p1 = collector.writer.rolling_manifest()
+
+        # Phase 2: only non-curated trades in exchange feed -> EMPTY_COMPLETE for curated basket,
+        # dedup & rolling manifest strictly untouched!
+        phase["n"] = 2
+        r2 = collector.poll_kalshi_public_trades()
+        assert r2["trades_emitted"] == 0
+        assert r2["non_curated_dropped"] == 1
+        assert r2["curated_trades_seen"] == 0
+        assert r2["window_completeness_status"] == "EMPTY_COMPLETE"
+        assert len(collector.trade_dedup) == 1
+        assert collector.writer.rolling_manifest()["tape_manifest_sha256"] == manifest_after_p1["tape_manifest_sha256"]
+        assert collector.writer.rolling_manifest()["bytes_hashed"] == manifest_after_p1["bytes_hashed"]
+        assert collector.writer.rolling_manifest()["records_hashed"] == 1
+    finally:
+        collector.close()
+
+    tape_records = [
+        json.loads(ln)
+        for ln in (collector.session_dir / "tape.jsonl").read_text(encoding="utf-8").splitlines()
+        if ln.strip()
+    ]
+    assert len(tape_records) == 1
+    assert tape_records[0]["record_type"] == "OBSERVED_TRADE"
+    assert tape_records[0]["contract_ticker"] == "KXHIGHMIA-26NOV27-T80"
+    assert tape_records[0]["trade_id"] == "CURATED-1"
+
+
+def test_hotfix_http_400_batched_orderbooks_fallback_to_per_ticker(
+    tmp_path: pathlib.Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setenv("PDEUE_VENUE_MODE", "observation")
+    monkeypatch.setenv("PDEUE_LIVE_TRADING_ENABLED", "false")
+
+    now = datetime(2026, 11, 26, 17, 30, 0, tzinfo=timezone.utc)
+    curated_tickers = [
+        "KXHIGHMIA-26NOV27-T80",
+        "KXHIGHNYC-26NOV27-T55",
+        "KXCPI-26DEC-T03",
+        "KXFED-26DEC-T425",
+    ]
+    long_400_body = '{"error":"bad_request","detail":"' + ("X" * 350) + '"}'
+    batch_hits = 0
+    per_ticker_hits: List[str] = []
+    logged_lines: List[str] = []
+
+    sim_time = {"t": 100.0}
+    sleeps: List[float] = []
+
+    def fake_sleep(dt: float) -> None:
+        sleeps.append(dt)
+        sim_time["t"] += dt
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal batch_hits
+        path = request.url.path
+        if path.endswith("/markets/orderbooks"):
+            batch_hits += 1
+            return httpx.Response(400, text=long_400_body)
+        if path.endswith("/orderbook") and "/markets/" in path:
+            tk = path.split("/markets/")[1].split("/orderbook")[0]
+            per_ticker_hits.append(tk)
+            return httpx.Response(
+                200,
+                json={
+                    "orderbook_fp": {
+                        "yes_dollars": [["0.4400", "150.00"]],
+                        "no_dollars": [["0.5000", "120.00"]],
+                    }
+                },
+            )
+        if path.endswith("/markets/trades"):
+            return httpx.Response(200, json={"trades": [], "cursor": ""})
+        if path.endswith("/markets"):
+            return httpx.Response(
+                200,
+                json={
+                    "markets": [_mk_market(tk, close_dt=now + timedelta(hours=24)) for tk in curated_tickers],
+                    "cursor": "",
+                },
+            )
+        return httpx.Response(404)
+
+    collector = ObservedL2CollectorV2(
+        tmp_path / "tapes",
+        poly_benchmark_count=0,
+        kalshi_baseline_count=0,
+        max_req_per_sec=2,
+        curated_fallback_batch_size=2,  # Verify round-robin rotation across 4 curated tickers in 2 cycles
+        http_client=httpx.Client(transport=httpx.MockTransport(handler)),
+        sleep_fn=fake_sleep,
+        monotonic_fn=lambda: sim_time["t"],
+        now_utc_fn=lambda: now,
+        log_fn=logged_lines.append,
+        session_id="sess_400_fallback",
+    )
+    try:
+        hb1 = collector.collect_once(force_admission=True, force_curated=True, force_trades=True)
+        assert hb1["status"] == "HEALTHY"
+        assert hb1["cycle_snapshots"] == 2
+        assert hb1["data_gaps_total"] == 0
+        assert hb1["n_429"] == 0
+        assert hb1["last_error"] is None
+
+        # Cycle 2: must NOT hit /markets/orderbooks again, and must rotate to the remaining 2 tickers
+        sim_time["t"] += 15.0
+        hb2 = collector.collect_once(force_curated=True, force_trades=True)
+        assert hb2["status"] == "HEALTHY"
+        assert hb2["cycle_snapshots"] == 2
+        assert hb2["data_gaps_total"] == 0
+        assert hb2["n_429"] == 0
+    finally:
+        collector.close()
+
+    # Batch endpoint called strictly ONCE, fallback body logged strictly ONCE (truncated to <= 200 chars)
+    assert batch_hits == 1
+    fallback_logs = [json.loads(ln) for ln in logged_lines if "KALSHI_BATCH_ORDERBOOKS_FALLBACK" in ln]
+    assert len(fallback_logs) == 1
+    assert fallback_logs[0]["http_status"] == 400
+    assert len(fallback_logs[0]["body_snippet"]) == 200
+    assert fallback_logs[0]["body_snippet"] == long_400_body[:200]
+
+    # All 4 curated tickers covered cleanly via per-ticker fallback respecting <= 2 req/s governor
+    assert set(per_ticker_hits) == set(curated_tickers)
+    assert len(per_ticker_hits) == 4
+    assert len(sleeps) >= 1  # <= 2 req/s governor actively paced requests
+
+    # Verify OBSERVED_L2 snapshots and manifest integrity
+    manifest = verify_v2_tape_manifest(collector.session_dir / "tape_manifest.json")
+    assert manifest["record_type_counts"]["OBSERVED_L2"] == 4
+    assert manifest["record_type_counts"]["DATA_GAP"] == 0
+
+
+def test_hotfix_collector_heartbeat_strictly_o1_under_4kb_after_1000_records(
+    tmp_path: pathlib.Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setenv("PDEUE_VENUE_MODE", "observation")
+    monkeypatch.setenv("PDEUE_LIVE_TRADING_ENABLED", "false")
+
+    now = datetime(2026, 11, 26, 18, 0, 0, tzinfo=timezone.utc)
+    collector = ObservedL2CollectorV2(
+        tmp_path / "tapes",
+        poly_benchmark_count=0,
+        kalshi_baseline_count=0,
+        http_client=httpx.Client(transport=httpx.MockTransport(lambda _r: httpx.Response(200, json={}))),
+        sleep_fn=lambda _s: None,
+        monotonic_fn=lambda: 100.0,
+        now_utc_fn=lambda: now,
+        log_fn=lambda _m: None,
+        session_id="sess_o1_hb",
+    )
+    try:
+        # Write 1,200 records across 1,200 distinct contract_tickers to stress unbounded ticker accumulation
+        for idx in range(1200):
+            collector.writer.append_record(
+                "QUALIFICATION_DECISION",
+                {
+                    "venue": "KALSHI",
+                    "contract_ticker": f"KXSTRESS-UNIQUE-CONTRACT-TICKER-{idx:05d}",
+                    "decision": "REJECT",
+                    "admitted": False,
+                    "reasons": ["NOT_IN_SERIES_ALLOWLIST"],
+                },
+                http_status=200,
+            )
+
+        collector.last_error = "ERR:" + ("Z" * 500)
+        hb = collector._persist_heartbeat_file(
+            status="HEALTHY",
+            rate_limited=False,
+            cycle_snapshots=0,
+            cycle_errors=0,
+        )
+    finally:
+        collector.close()
+
+    hb_path = tmp_path / "tapes" / "collector_heartbeat.json"
+    raw_hb_bytes = hb_path.read_bytes()
+    assert len(raw_hb_bytes) < 4096, f"collector_heartbeat.json exceeded 4 KB: {len(raw_hb_bytes)} bytes"
+    assert len(raw_hb_bytes) < 2048, f"Expected O(1) heartbeat < 2 KB, got {len(raw_hb_bytes)} bytes"
+
+    hb_disk = json.loads(raw_hb_bytes.decode("utf-8"))
+    actual_tape_bytes = (collector.session_dir / "tape.jsonl").read_bytes()
+    actual_sha = hashlib.sha256(actual_tape_bytes).hexdigest()
+
+    # Required O(1) scalar fields present and accurate
+    for key in (
+        "tape_manifest_sha256",
+        "records_hashed",
+        "bytes_hashed",
+        "record_type_counts",
+        "curated_kalshi_active_count",
+        "polymarket_benchmark_active_count",
+        "status",
+        "last_error",
+        "n_429",
+        "timestamp_utc",
+    ):
+        assert key in hb_disk, f"Missing required O(1) heartbeat key: {key}"
+
+    assert hb_disk["tape_manifest_sha256"] == actual_sha
+    assert hb_disk["records_hashed"] == 1200
+    assert hb_disk["bytes_hashed"] == len(actual_tape_bytes)
+    assert hb_disk["record_type_counts"]["QUALIFICATION_DECISION"] == 1200
+    assert len(hb_disk["last_error"]) <= 200
+
+    # rolling_manifest inside collector_heartbeat.json must contain zero unbounded lists/tickers
+    rm = hb_disk["rolling_manifest"]
+    assert "tickers" not in rm
+    assert rm["tape_manifest_sha256"] == actual_sha
+    assert rm["records_hashed"] == 1200
+    assert rm["bytes_hashed"] == len(actual_tape_bytes)
+    assert not any(isinstance(v, list) for v in rm.values())
+    assert hb["tape_manifest_sha256"] == actual_sha
+
