@@ -347,7 +347,7 @@ def test_pr83_three_row_header_alignment_and_two_scale_heraldry_e2e(
                 assert "underline" not in row1_geom["uniDecoration"], f"PDEUE University must not be bare underlined link on {route}: {row1_geom}"
 
             if route == "/community/heritage":
-                # Verify both full achievement SVGs load crisply and all 12 Houses render with bordure pills
+                # Verify both full achievement crests load crisply and all 12 Houses render with bordure pills
                 ach_status = page.evaluate(
                     """() => Array.from(document.querySelectorAll('#foundingAchievementsShowcase img')).map(img => ({
                         src: img.getAttribute('src') || '',
@@ -356,8 +356,8 @@ def test_pr83_three_row_header_alignment_and_two_scale_heraldry_e2e(
                     }))"""
                 )
                 assert len(ach_status) == 2
-                assert ach_status[0]["src"].endswith("carmichael_achievement.svg") and ach_status[0]["naturalWidth"] > 0
-                assert ach_status[1]["src"].endswith("mccormick_achievement.svg") and ach_status[1]["naturalWidth"] > 0
+                assert ach_status[0]["src"].endswith("carmichael_achievement.jpg") and ach_status[0]["naturalWidth"] > 0
+                assert ach_status[1]["src"].endswith("mccormick_achievement.jpg") and ach_status[1]["naturalWidth"] > 0
                 page.locator("#housesGalleryGrid a.gallery-card").first.wait_for(state="visible", timeout=5000)
                 assert page.locator("#housesGalleryGrid a.gallery-card").count() == 12
                 assert page.locator("#housesGalleryGrid .bordure-pill").count() == 12

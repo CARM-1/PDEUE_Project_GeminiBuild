@@ -1,5 +1,7 @@
 """Verification tests for Layer A Autonomous PR Auditor (GEMINI.md + GitHub Actions)."""
+import os
 from pathlib import Path
+import subprocess
 
 import yaml
 
@@ -102,6 +104,81 @@ def test_workflow_uses_run_gemini_cli_safely_with_empty_key_guardrail():
     # Read-only guarantee: workflow must never push commits or merge PRs.
     assert "git push" not in raw_text
     assert "gh pr merge" not in raw_text
+
+
+def test_workflow_gracefully_handles_transient_429_and_503_errors(tmp_path: Path):
+    workflow = _load_workflow()
+    job = next(iter(workflow["jobs"].values()))
+    steps = job["steps"]
+
+    gemini_step = next(s for s in steps if s.get("id") == "gemini_auditor")
+    assert gemini_step.get("continue-on-error") is True, (
+        "gemini_auditor step must set continue-on-error: true so transient 429/503 errors can be classified gracefully"
+    )
+
+    error_step = next(s for s in steps if s.get("id") == "handle_auditor_error")
+    assert "steps.check_secret.outputs.enabled == 'true'" in str(error_step.get("if", ""))
+    assert "steps.gemini_auditor.outcome == 'failure'" in str(error_step.get("if", ""))
+    assert error_step.get("env", {}).get("AUDIT_ERROR") == "${{ steps.gemini_auditor.outputs.error }}"
+    script = str(error_step.get("run", ""))
+    assert "::warning" in script
+    assert "429" in script and "503" in script
+
+    comment_step = next(s for s in steps if s.get("name") == "Post PR Audit Comment")
+    assert "steps.check_secret.outputs.enabled == 'true'" in str(comment_step.get("if", ""))
+    assert "steps.gemini_auditor.outcome == 'success'" in str(comment_step.get("if", ""))
+
+    # Execute the exact workflow error-handler script against 429, 503, and non-transient errors.
+    summary_file = tmp_path / "step_summary.md"
+    base_env = {
+        "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+        "GITHUB_STEP_SUMMARY": str(summary_file),
+    }
+
+    # 1. Transient HTTP 429 (quota exhausted) -> ::warning:: + exit 0
+    quota_429 = subprocess.run(
+        ["bash", "-c", script],
+        env={
+            **base_env,
+            "AUDIT_ERROR": '{"type":"Error","message":"You have exhausted your daily quota on this model.","code":429}',
+            "AUDIT_SUMMARY": "",
+        },
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert quota_429.returncode == 0, f"HTTP 429 should exit green: {quota_429.stdout} {quota_429.stderr}"
+    assert "::warning" in quota_429.stdout
+
+    # 2. Transient HTTP 503 (high demand) -> ::warning:: + exit 0
+    demand_503 = subprocess.run(
+        ["bash", "-c", script],
+        env={
+            **base_env,
+            "AUDIT_ERROR": '{"type":"Error","message":"This model is currently experiencing high demand.","code":503}',
+            "AUDIT_SUMMARY": "",
+        },
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert demand_503.returncode == 0, f"HTTP 503 should exit green: {demand_503.stdout} {demand_503.stderr}"
+    assert "::warning" in demand_503.stdout
+
+    # 3. Non-transient error (e.g., invalid API key HTTP 401) -> ::error:: + non-zero exit
+    auth_401 = subprocess.run(
+        ["bash", "-c", script],
+        env={
+            **base_env,
+            "AUDIT_ERROR": '{"type":"Error","message":"API key not valid.","code":401}',
+            "AUDIT_SUMMARY": "",
+        },
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert auth_401.returncode != 0, "Non-transient errors must still fail the workflow"
+    assert "::error" in auth_401.stdout
 
 
 def test_gitignore_includes_gemini_and_gha_credentials():

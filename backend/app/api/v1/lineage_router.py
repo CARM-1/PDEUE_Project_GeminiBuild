@@ -140,7 +140,7 @@ def _build_member_table_rows(members: List[Dict[str, Any]], house_id: int) -> st
 
         r = (
             f"<tr>"
-            f"<td><b><a href='/member?scma={scma}' style='color:#38bdf8;text-decoration:underline;'>{name}</a></b></td>"
+            f"<td><b><a href='/member?scma_id={scma}' style='color:#38bdf8;text-decoration:underline;'>{name}</a></b></td>"
             f"<td style='font-family: monospace; color: #38bdf8;'>{scma}</td>"
             f"<td style='font-variant-numeric: tabular-nums;'>{cash}</td>"
             f"<td><b>{dial}</b></td>"
