@@ -1,0 +1,161 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:00.444
+Start with an objectively verifiable public event in one of six regulated verticals—Weather
+
+2
+00:00:00.444 --> 00:00:00.494
+(NOAA),
+
+3
+00:00:00.494 --> 00:00:00.572
+Macro/CPI (BLS),
+
+4
+00:00:00.572 --> 00:00:00.626
+Energy/EIA,
+
+5
+00:00:00.626 --> 00:00:00.676
+U.S.
+
+6
+00:00:00.676 --> 00:00:00.861
+Treasuries, Equity Indices, or G10 FX.
+
+7
+00:00:00.861 --> 00:00:00.911
+Example:
+
+8
+00:00:00.911 --> 00:00:01.175
+"NOAA forecasts a 95°F heat wave in Phoenix this week,
+
+9
+00:00:01.175 --> 00:00:01.458
+making the high-temp contract underpriced at 42¢." Sports,
+
+10
+00:00:01.458 --> 00:00:01.536
+casino gambling,
+
+11
+00:00:01.536 --> 00:00:01.586
+war,
+
+12
+00:00:01.586 --> 00:00:01.636
+terrorism,
+
+13
+00:00:01.636 --> 00:00:02.070
+and death wagers are permanently blocked fail-closed under Nov 2026 CFTC & DEATH BETS Act
+
+14
+00:00:02.070 --> 00:00:02.120
+rules.
+
+15
+00:00:02.120 --> 00:00:02.559
+Click Run 3-Point Validation Audit (or use Load Example Hunch to test-drive in one click).
+
+16
+00:00:02.559 --> 00:00:02.794
+The studio checks (1) public fact corroboration,
+
+17
+00:00:02.794 --> 00:00:02.999
+(2) regulated contract and oracle mapping,
+
+18
+00:00:02.999 --> 00:00:03.433
+and (3) exact-cent edge after fees—returning VALIDATED (VALIDATED_SHADOW_READY) when math
+
+19
+00:00:03.433 --> 00:00:03.487
+beats fees,
+
+20
+00:00:03.487 --> 00:00:03.691
+REJECTED_NO_EDGE when fees erase the edge,
+
+21
+00:00:03.691 --> 00:00:03.887
+or PROHIBITED_EVENT_CATEGORY if blocked.
+
+22
+00:00:03.887 --> 00:00:04.219
+Once validated, stage a virtual practice stake in SHADOW_PAPER mode.
+
+23
+00:00:04.219 --> 00:00:04.667
+Shadow bids run against real market prices using 100% pretend dollars—zero real SCMA cash or
+
+24
+00:00:04.667 --> 00:00:05.102
+IFAS bank records are ever touched—and build your verifiable Shadow Hit-Rate track record
+
+25
+00:00:05.102 --> 00:00:05.152
+over time.
+
+26
+00:00:05.152 --> 00:00:05.347
+To petition for real SCMA consideration,
+
+27
+00:00:05.347 --> 00:00:05.474
+three gates must all pass:
+
+28
+00:00:05.474 --> 00:00:05.820
+(a) you hold your STEWARDSHIP_L1_CERTIFIED badge from PDEUE University,
+
+29
+00:00:05.820 --> 00:00:06.035
+(b) your risk dial is active and non-frozen,
+
+30
+00:00:06.035 --> 00:00:06.450
+and (c) two-step human review approves it—first your F2-H Head of Household (domestic
+
+31
+00:00:06.450 --> 00:00:06.601
+suitability + Shadow Hit-Rate),
+
+32
+00:00:06.601 --> 00:00:06.972
+then the F3 Chief Risk Officer or Chief Administrator (platform risk limits:
+
+33
+00:00:06.972 --> 00:00:07.022
+ALLOWED,
+
+34
+00:00:07.022 --> 00:00:07.072
+DENIED,
+
+35
+00:00:07.072 --> 00:00:07.140
+or RESCINDED).
+
+36
+00:00:07.140 --> 00:00:07.355
+Shadow Paper practice NEVER moves real cash,
+
+37
+00:00:07.355 --> 00:00:07.501
+NEVER alters Gate G1 defaults,
+
+38
+00:00:07.501 --> 00:00:07.692
+and NEVER emits IFAS bank instructions.
+
+39
+00:00:07.692 --> 00:00:08.136
+Members never have an impulsive solo "Buy" button—unilateral_execution remains False across
+
+40
+00:00:08.136 --> 00:00:08.203
+every AI tutor and research studio screen.

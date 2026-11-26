@@ -409,9 +409,12 @@ class DeepgramTTSProvider(BaseTTSProvider):
         }
         params = {"model": model, "encoding": "mp3"}
         payload = {"text": text}
+        target_url = self._endpoint_url
+        if model.startswith("flux-") and target_url.rstrip("/").endswith("/v1/speak"):
+            target_url = target_url.rstrip("/")[:-len("/v1/speak")] + "/v2/speak"
         return _post_tts_with_retries(
             provider_name=self.name,
-            url=self._endpoint_url,
+            url=target_url,
             headers=headers,
             params=params,
             json_body=payload,

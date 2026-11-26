@@ -1,0 +1,73 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:00.325
+Where can I ask everyday questions about our family rules—or about public market topics like
+
+2
+00:00:00.325 --> 00:00:00.375
+inflation,
+
+3
+00:00:00.375 --> 00:00:00.439
+weather contracts,
+
+4
+00:00:00.439 --> 00:00:00.590
+or Treasury yields—without risking a penny?
+
+5
+00:00:00.590 --> 00:00:00.831
+The Dual-Lane AI Tutor is live today on both /community and /member.
+
+6
+00:00:00.831 --> 00:00:01.018
+Picture a librarian with two clearly labeled shelves:
+
+7
+00:00:01.018 --> 00:00:01.244
+Lane 1 (Local Family Canon) answers questions about PDEUE rules,
+
+8
+00:00:01.244 --> 00:00:01.294
+87/10/3,
+
+9
+00:00:01.294 --> 00:00:01.350
+High-Water Mark,
+
+10
+00:00:01.350 --> 00:00:01.531
+and roles strictly from our verified local manuals.
+
+11
+00:00:01.531 --> 00:00:01.848
+Lane 2 (Public Market Research) answers broader economic or weather-market questions using
+
+12
+00:00:01.848 --> 00:00:02.046
+read-only public research with visible source citations.
+
+13
+00:00:02.046 --> 00:00:02.163
+Neither lane can execute a trade,
+
+14
+00:00:02.163 --> 00:00:02.240
+change your risk dial,
+
+15
+00:00:02.240 --> 00:00:02.290
+move funds,
+
+16
+00:00:02.290 --> 00:00:02.499
+or view banking credentials (unilateral_execution = False).
+
+17
+00:00:02.499 --> 00:00:02.751
+Lane 2 outputs are general public education—never personal financial advice or an execution
+
+18
+00:00:02.751 --> 00:00:02.801
+command.
