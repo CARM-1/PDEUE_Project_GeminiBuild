@@ -4,94 +4,103 @@
 :root{color-scheme:dark;--bg-canvas:#0B132B;--bg-card:#1C2541;--bg-surface:#1E293B;--border-subtle:#334155;--text-primary:#F8FAFC;--text-secondary:#CBD5E1;--text-muted:#94A3B8;--accent-sky:#38BDF8;--accent-sky-deep:#0284C7;--status-green:#059669;--status-amber:#D97706;--status-red:#DC2626;--bg:#0B132B;--panel:#1C2541;--line:#334155;--muted:#94A3B8;--blue:#38BDF8;--green:#4ade80;--amber:#fbbf24;--red:#f87171}
 *{box-sizing:border-box}
 body{margin:0;background:radial-gradient(circle at top,#162447,var(--bg-canvas) 48%);color:var(--text-primary);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,sans-serif;font-size:15px;line-height:1.5}
-.shell{max-width:1240px;margin:auto;padding:20px}
-.portal-nav,.topbar,.header-actions,.workspace-switcher,.currency-toggle,.split{display:flex;align-items:center;gap:12px}
+.shell{max-width:1280px;margin:auto;padding:12px 18px 24px}
+.portal-nav,.topbar,.header-actions,.workspace-switcher,.currency-toggle,.split{display:flex;align-items:center;gap:10px}
 .portal-nav{justify-content:space-between;border-bottom:1px solid var(--border-subtle);flex-wrap:wrap}
 .portal-nav a{color:var(--accent-sky)}
 .topbar{justify-content:space-between;align-items:flex-end;flex-wrap:wrap}
-.eyebrow,.label{color:var(--text-muted);font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
-h1{margin:.25rem 0;font-size:clamp(1.5rem,3.5vw,2.2rem);font-weight:700;color:var(--text-primary)}
-h2{margin:.35rem 0 .85rem;font-size:1.2rem;font-weight:700;color:var(--text-primary)}
-h3{color:#bde8ff;font-size:1rem;margin:.25rem 0 .5rem}
-.switch-btn,.curr-btn,button{border:1px solid var(--border-subtle);border-radius:8px;background:var(--bg-surface);color:var(--text-primary);padding:10px 14px;font-weight:700;cursor:pointer}
+.eyebrow,.label{color:var(--text-muted);font-size:.74rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+h1{margin:.14rem 0;font-size:clamp(1.38rem,2.4vw,1.72rem);font-weight:700;color:var(--text-primary)}
+h2{margin:.2rem 0 .55rem;font-size:1.12rem;font-weight:700;color:var(--text-primary)}
+h3{color:#bde8ff;font-size:.96rem;margin:.2rem 0 .4rem}
+.switch-btn,.curr-btn,button{border:1px solid var(--border-subtle);border-radius:8px;background:var(--bg-surface);color:var(--text-primary);padding:8px 13px;font-weight:700;cursor:pointer}
 .switch-btn.active,.curr-btn.active,button:hover{background:var(--accent-sky-deep);border-color:var(--accent-sky);color:#F8FAFC}
-.workspace-switcher{margin:16px 0}
-.workspace-switcher .switch-btn{flex:1;font-size:.98rem}
-.card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:12px;padding:20px;margin-bottom:18px;box-shadow:0 10px 26px rgba(0,0,0,.32)}
+.workspace-switcher{margin:10px 0 12px}
+.workspace-switcher .switch-btn{flex:1;font-size:.92rem;padding:9px 14px}
+.card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:12px;padding:15px 18px;margin-bottom:14px;box-shadow:0 8px 22px rgba(0,0,0,.28)}
 .hero{border-color:var(--accent-sky);background:linear-gradient(125deg,#172a4d,#1C2541)}
-.hero p,.card li,.card p{color:var(--text-secondary);line-height:1.55}
-.pillar-grid,.metrics,.future-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+.hero p,.card li,.card p{color:var(--text-secondary);line-height:1.5;margin:.38rem 0}
+.pillar-grid,.metrics,.future-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
 .metrics{grid-template-columns:repeat(4,1fr)}
-.pillar,.market{background:#0F1A36;border:1px solid var(--border-subtle);border-radius:10px;padding:15px}
-.pillar strong{font-size:1.35rem;color:var(--green);font-variant-numeric:tabular-nums}
-.table-wrap,.table-card{margin-bottom:16px;clear:both;overflow-x:auto;border:1px solid var(--border-subtle);border-radius:10px}
+.pillar,.market{background:#0F1A36;border:1px solid var(--border-subtle);border-radius:10px;padding:12px 14px}
+.pillar strong{font-size:1.25rem;color:var(--green);font-variant-numeric:tabular-nums}
+.disclosure-drawer{background:#0B132B;border:1px solid var(--border-subtle);border-radius:10px;padding:10px 14px;margin-top:10px}
+.disclosure-drawer>summary,.disclosure-card>summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-weight:700;color:var(--text-primary);user-select:none}
+.disclosure-drawer>summary::-webkit-details-marker,.disclosure-card>summary::-webkit-details-marker{display:none}
+.disclosure-summary-title{display:flex;flex-direction:column;gap:2px}
+.disclosure-chevron{font-size:.76rem;color:var(--accent-sky);font-weight:800;padding:3px 9px;border-radius:999px;background:#0F1A36;border:1px solid var(--border-subtle);white-space:nowrap}
+details[open]>.disclosure-summary-row .disclosure-chevron{border-color:var(--accent-sky);color:#F8FAFC;background:var(--accent-sky-deep)}
+.disclosure-body{margin-top:12px;padding-top:10px;border-top:1px solid rgba(51,65,85,.7)}
+.orientation-drawers-stack{display:grid;gap:10px;margin-bottom:14px}
+.orientation-drawers-stack .card{margin-bottom:0}
+.table-wrap,.table-card{margin-bottom:14px;clear:both;overflow-x:auto;border:1px solid var(--border-subtle);border-radius:10px}
 table{width:100%;border-collapse:collapse;min-width:880px;background:#0F1A36}
-th,td{padding:11px;border-bottom:1px solid #243652}
-th{background:var(--bg-surface);color:var(--text-secondary);font-size:.74rem;text-transform:uppercase;text-align:right}
+th,td{padding:9px 10px;border-bottom:1px solid #243652}
+th{background:var(--bg-surface);color:var(--text-secondary);font-size:.72rem;text-transform:uppercase;text-align:right}
 th:first-child,td:first-child{text-align:left}
 td{text-align:right;font:12px ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-variant-numeric:tabular-nums;color:var(--text-primary)}
 .seed-title{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
-.projection-svg{width:100%;height:auto;margin:10px 0}
+.projection-svg{width:100%;height:auto;margin:8px 0}
 .chart-grid{stroke:#334155}
 .curve-low{fill:none;stroke:#38BDF8;stroke-width:3}
 .curve-high{fill:none;stroke:#4ade80;stroke-width:3}
-.fine{color:var(--text-muted);font-size:.84rem}
+.fine{color:var(--text-muted);font-size:.82rem}
 .cash-engine{border-left:4px solid var(--status-green)}
-.run-rate{font-size:clamp(1.6rem,4.5vw,2.6rem);font-weight:800;color:var(--green);font-variant-numeric:tabular-nums}
+.run-rate{font-size:clamp(1.35rem,3vw,2rem);font-weight:800;color:var(--green);font-variant-numeric:tabular-nums}
 code{background:#0B132B;color:var(--accent-sky);padding:2px 6px;border-radius:4px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
-.slot-rack{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.slot{padding:14px;min-height:95px;background:#0F1A36;border:1px solid var(--border-subtle);border-radius:9px}
+.slot-rack{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.slot{padding:10px;min-height:76px;background:#0F1A36;border:1px solid var(--border-subtle);border-radius:9px}
 .slot.active{border-color:var(--status-green)}
-.slot-id{color:var(--accent-sky);font-size:.73rem;font-weight:800}
-.slot-domain{font-weight:800;margin:8px 0;color:var(--text-primary)}
+.slot-id{color:var(--accent-sky);font-size:.7rem;font-weight:800}
+.slot-domain{font-weight:800;margin:4px 0;font-size:.84rem;color:var(--text-primary)}
 .split>*{flex:1}
 .range-row{display:flex;gap:12px;align-items:center}
 .range-row input{flex:1}
-.response,input[type=text]{width:100%;background:#0B132B;color:var(--text-primary);border:1px solid var(--border-subtle);border-radius:7px;padding:11px}
-.response{min-height:60px;margin-top:10px}
-.tier-key{display:flex;gap:12px;margin-bottom:8px}
+.response,input[type=text]{width:100%;background:#0B132B;color:var(--text-primary);border:1px solid var(--border-subtle);border-radius:7px;padding:9px 11px}
+.response{min-height:54px;margin-top:8px}
+.tier-key{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px;font-size:.84rem}
 .green{color:var(--green)}.yellow{color:var(--amber)}.red{color:var(--red)}
 .campus-link{color:#f7c967 !important;font-weight:800;white-space:nowrap}
-.status-banner{border-radius:10px;padding:14px 16px;margin-bottom:16px;border:1px solid var(--border-subtle);background:var(--bg-card)}
+.status-banner{border-radius:10px;padding:11px 14px;margin-bottom:12px;border:1px solid var(--border-subtle);background:var(--bg-card)}
 .status-banner.pending{border-color:var(--status-amber);background:rgba(217,119,6,.12)}
 .status-banner.certified{border-color:var(--status-green);background:rgba(5,150,105,.12)}
 .status-banner.error{border-color:var(--status-red);background:rgba(220,38,38,.14)}
-.status-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
-.badge-pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 11px;font-size:.75rem;font-weight:800;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+.status-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.badge-pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 10px;font-size:.73rem;font-weight:800;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
 .badge-pill.amber{background:rgba(217,119,6,.2);color:#FCD34D;border:1px solid var(--status-amber)}
 .badge-pill.green{background:rgba(5,150,105,.2);color:#6EE7B7;border:1px solid var(--status-green)}
 .badge-pill.sky{background:rgba(56,189,248,.16);color:var(--accent-sky);border:1px solid var(--accent-sky)}
-.cta-link{display:inline-block;background:var(--accent-sky-deep);color:#F8FAFC !important;text-decoration:none;border:1px solid var(--accent-sky);border-radius:8px;padding:9px 14px;font-weight:700;font-size:.88rem}
+.cta-link{display:inline-block;background:var(--accent-sky-deep);color:#F8FAFC !important;text-decoration:none;border:1px solid var(--accent-sky);border-radius:8px;padding:8px 13px;font-weight:700;font-size:.86rem}
 .cta-link:hover{background:#0369A1}
 .funding-card{border-color:var(--accent-sky);border-left:4px solid var(--accent-sky)}
-.funding-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:12px 0}
-.funding-tile{background:#0B132B;border:1px solid var(--border-subtle);border-radius:8px;padding:12px}
-.funding-tile .mono-val{display:block;margin-top:4px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-variant-numeric:tabular-nums;font-weight:700;color:var(--accent-sky);word-break:break-all}
-.disclosure-box{background:#0B132B;border:1px solid var(--status-amber);border-radius:8px;padding:10px 12px;color:#FDE68A;font-size:.84rem;margin:10px 0}
-.step-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.funding-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0}
+.funding-tile{background:#0B132B;border:1px solid var(--border-subtle);border-radius:8px;padding:10px 12px}
+.funding-tile .mono-val{display:block;margin-top:3px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-variant-numeric:tabular-nums;font-weight:700;color:var(--accent-sky);word-break:break-all}
+.disclosure-box{background:#0B132B;border:1px solid var(--status-amber);border-radius:8px;padding:8px 12px;color:#FDE68A;font-size:.82rem;margin:8px 0}
+.step-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .step-chip{font-size:.72rem;padding:4px 9px;border-radius:999px;border:1px solid var(--border-subtle);background:#0B132B;color:var(--text-muted);font-weight:700}
 .step-chip.done{border-color:var(--status-green);color:#6EE7B7}
 .step-chip.current{border-color:var(--status-amber);color:#FCD34D}
-.proj-chart-shell{background:#0B132B;border:1px solid var(--border-subtle);border-radius:10px;padding:16px;margin:14px 0 22px}
-.proj-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+.proj-chart-shell{background:#0B132B;border:1px solid var(--border-subtle);border-radius:10px;padding:12px 14px;margin:10px 0 8px}
+.proj-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px}
 .proj-controls{display:flex;flex-wrap:wrap;gap:6px}
-.proj-seg-btn{border:1px solid var(--border-subtle);border-radius:999px;background:var(--bg-surface);color:var(--text-secondary);padding:6px 12px;font-size:.78rem;font-weight:700;cursor:pointer}
+.proj-seg-btn{border:1px solid var(--border-subtle);border-radius:999px;background:var(--bg-surface);color:var(--text-secondary);padding:5px 11px;font-size:.76rem;font-weight:700;cursor:pointer}
 .proj-seg-btn.active,.proj-seg-btn:hover{background:var(--accent-sky-deep);border-color:var(--accent-sky);color:var(--text-primary)}
-.chart-legend{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
-.legend-pill{display:inline-flex;align-items:center;gap:7px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:999px;padding:5px 10px;font-size:.76rem;font-weight:700;color:var(--text-primary);font-variant-numeric:tabular-nums}
+.chart-legend{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+.legend-pill{display:inline-flex;align-items:center;gap:6px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:999px;padding:4px 9px;font-size:.74rem;font-weight:700;color:var(--text-primary);font-variant-numeric:tabular-nums}
 .legend-swatch{display:inline-block;width:16px;height:0;border-top:3px solid currentColor;border-radius:2px}
 .legend-swatch.dashed{border-top-style:dashed}
 .proj-svg-wrap{width:100%;overflow-x:auto}
-.proj-svg{display:block;width:100%;height:auto}
+.proj-svg{display:block;width:100%;max-height:270px;height:auto}
 .proj-grid{stroke:#1E293B;stroke-width:1}
 .proj-axis-line{stroke:#334155;stroke-width:1.2}
 .proj-axis{fill:#94A3B8;font:600 11px ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-variant-numeric:tabular-nums}
 .proj-cap-line{stroke:#D97706;stroke-width:1.6;stroke-dasharray:6 5}
 .proj-cap-label{fill:#FCD34D;font:700 11px -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-variant-numeric:tabular-nums}
-.seed-table-section{margin-top:20px}
+.seed-table-section{margin-top:16px}
 .seed-table-section:first-child{margin-top:0}
 .supervisory-lens-banner{width:100%;background:#D97706;color:#0B132B;border-bottom:2px solid #FCD34D;padding:12px 20px;font-weight:800;font-size:.9rem;letter-spacing:.03em;position:sticky;top:0;z-index:5000;box-shadow:0 4px 16px rgba(217,119,6,.35)}
-.supervisory-lens-inner{max-width:1240px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.supervisory-lens-inner{max-width:1280px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 .supervisory-lens-meta{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.78rem;background:rgba(11,19,43,.16);padding:4px 9px;border-radius:6px}
 .hat-modal-backdrop{position:fixed;inset:0;background:rgba(2,6,23,.85);display:grid;place-items:center;z-index:9000;padding:16px}
 .hat-modal-box{width:min(480px,94vw);background:var(--bg-card);border:1px solid #D97706;border-radius:12px;padding:22px;box-shadow:0 16px 40px rgba(0,0,0,.6)}
@@ -101,18 +110,18 @@ abbr.pdeue-term{position:relative;display:inline-flex;align-items:baseline;gap:3
 abbr.pdeue-term .pdeue-term-info{font-size:.78em;color:var(--accent-sky);font-style:normal;line-height:1;text-transform:none;user-select:none}
 abbr.pdeue-term::after{content:attr(data-tooltip);display:none;position:absolute;z-index:6000;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);width:max-content;max-width:min(280px,78vw);padding:9px 12px;border:1px solid var(--accent-sky);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:.78rem;font-weight:500;line-height:1.4;text-align:left;text-transform:none;letter-spacing:normal;white-space:normal;box-shadow:0 10px 24px rgba(0,0,0,.55);pointer-events:none;opacity:0;visibility:hidden}
 abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-visible::after{display:block;opacity:1;visibility:visible}
-.rm-banner{border-radius:10px;padding:13px 16px;margin:14px 0 16px;border:1px solid var(--border-subtle);background:var(--bg-card);display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px}
+.rm-banner{border-radius:10px;padding:9px 14px;margin:10px 0 12px;border:1px solid var(--border-subtle);background:var(--bg-card);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
 .rm-banner.rm-qualification_pending{border-color:var(--status-amber);border-left:5px solid var(--status-amber);background:rgba(217,119,6,.14)}
 .rm-banner.rm-trading_halted{border-color:var(--status-red);border-left:5px solid var(--status-red);background:rgba(220,38,38,.18)}
 .rm-banner.rm-degraded_retrying{border-color:var(--status-red);border-left:5px solid var(--status-amber);background:rgba(220,38,38,.14)}
-.rm-pill{display:inline-block;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.74rem;font-weight:800;padding:3px 9px;border-radius:999px;background:var(--bg-surface);border:1px solid var(--border-subtle);color:var(--text-primary)}
-.rm-headline{font-weight:800;color:var(--text-primary);font-size:.94rem;margin-top:4px}
-.rm-reason{color:var(--text-secondary);font-size:.84rem;margin-top:2px}
-.rm-meta{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.74rem;color:var(--text-muted)}
-.rm-halt-overlay{border:2px solid var(--status-red);background:rgba(220,38,38,.14);border-radius:10px;padding:14px 16px;margin-bottom:16px;color:#FECACA}
-.rings-svg{display:block;width:100%;max-width:240px;height:auto;margin:6px auto}
-.rings-legend{display:grid;gap:6px;margin-top:8px;font-size:.78rem}
-.rings-legend-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 8px;background:#0B132B;border:1px solid var(--border-subtle);border-radius:6px;font-variant-numeric:tabular-nums}
+.rm-pill{display:inline-block;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.72rem;font-weight:800;padding:2px 8px;border-radius:999px;background:var(--bg-surface);border:1px solid var(--border-subtle);color:var(--text-primary)}
+.rm-headline{font-weight:800;color:var(--text-primary);font-size:.88rem;margin-top:2px}
+.rm-reason{color:var(--text-secondary);font-size:.8rem;margin-top:1px}
+.rm-meta{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.72rem;color:var(--text-muted)}
+.rm-halt-overlay{border:2px solid var(--status-red);background:rgba(220,38,38,.14);border-radius:10px;padding:12px 15px;margin-bottom:14px;color:#FECACA}
+.rings-svg{display:block;width:100%;max-width:220px;height:auto;margin:4px auto}
+.rings-legend{display:grid;gap:5px;margin-top:6px;font-size:.76rem}
+.rings-legend-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 8px;background:#0B132B;border:1px solid var(--border-subtle);border-radius:6px;font-variant-numeric:tabular-nums}
 .rings-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;flex-shrink:0}
 .ring-center-val{fill:#F8FAFC;font:800 13px ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-variant-numeric:tabular-nums}
 .ring-center-sub{fill:#94A3B8;font:600 9px -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;text-transform:uppercase;letter-spacing:.06em}
@@ -128,30 +137,30 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
 .glossary-item p{margin:6px 0 6px;font-size:.84rem;color:var(--text-secondary);line-height:1.45}
 .glossary-aliases{display:flex;flex-wrap:wrap;gap:5px}
 .glossary-alias{font-size:.7rem;padding:2px 7px;border-radius:999px;background:var(--bg-surface);color:var(--text-muted);border:1px solid var(--border-subtle)}
-.tutor-header{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:10px}
-.tutor-prompts{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
-.tutor-chip{border:1px solid var(--border-subtle);border-radius:999px;background:var(--bg-surface);color:var(--text-secondary);padding:5px 11px;font-size:.76rem;font-weight:700;cursor:pointer}
+.tutor-header{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:8px}
+.tutor-prompts{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.tutor-chip{border:1px solid var(--border-subtle);border-radius:999px;background:var(--bg-surface);color:var(--text-secondary);padding:4px 10px;font-size:.75rem;font-weight:700;cursor:pointer}
 .tutor-chip:hover{background:var(--accent-sky-deep);border-color:var(--accent-sky);color:var(--text-primary)}
 .tutor-form-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .tutor-form-row input[type=text]{flex:1 1 240px;min-width:0}
-.tutor-meta-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px}
-.tutor-analogy{background:#0F1A36;border:1px solid var(--accent-sky);border-left:4px solid var(--accent-sky);border-radius:8px;padding:11px 13px;margin-top:10px;color:var(--text-secondary);font-size:.88rem}
-.tutor-citations{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.tutor-meta-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+.tutor-analogy{background:#0F1A36;border:1px solid var(--accent-sky);border-left:4px solid var(--accent-sky);border-radius:8px;padding:10px 12px;margin-top:8px;color:var(--text-secondary);font-size:.86rem}
+.tutor-citations{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .tutor-cite-btn{padding:4px 9px;font-size:.73rem;border-radius:999px;background:var(--bg-surface);border:1px solid var(--accent-sky);color:var(--accent-sky);cursor:pointer;font-weight:700}
 .tutor-cite-btn:hover{background:var(--accent-sky-deep);color:var(--text-primary)}
-.impact-card{background:#0F1A36;border:1px solid var(--status-amber);border-left:5px solid var(--status-amber);border-radius:10px;padding:14px 16px;margin-top:12px}
+.impact-card{background:#0F1A36;border:1px solid var(--status-amber);border-left:5px solid var(--status-amber);border-radius:10px;padding:12px 14px;margin-top:10px}
 .impact-card.tier-red{border-color:var(--status-red);border-left-color:var(--status-red)}
 .impact-card.tier-green{border-color:var(--status-green);border-left-color:var(--status-green)}
-.impact-card-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px}
-.impact-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:10px 0}
-.impact-tile{background:var(--bg-canvas);border:1px solid var(--border-subtle);border-radius:8px;padding:10px;min-width:0}
-.impact-tile .impact-val{display:block;margin-top:3px;font:700 .98rem ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-variant-numeric:tabular-nums;color:var(--text-primary)}
+.impact-card-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.impact-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0}
+.impact-tile{background:var(--bg-canvas);border:1px solid var(--border-subtle);border-radius:8px;padding:9px;min-width:0}
+.impact-tile .impact-val{display:block;margin-top:3px;font:700 .96rem ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-variant-numeric:tabular-nums;color:var(--text-primary)}
 .impact-tile .impact-val.amber{color:#FCD34D}
 .impact-tile .impact-val.green{color:#6EE7B7}
-.tutor-action-list{display:grid;gap:10px;margin-top:12px}
-.tutor-action-card{background:var(--bg-canvas);border:1px solid var(--border-subtle);border-left:4px solid var(--accent-sky);border-radius:9px;padding:12px 14px}
-.tutor-action-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px}
-.tutor-action-foot{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:10px}
+.tutor-action-list{display:grid;gap:8px;margin-top:10px}
+.tutor-action-card{background:var(--bg-canvas);border:1px solid var(--border-subtle);border-left:4px solid var(--accent-sky);border-radius:9px;padding:10px 13px}
+.tutor-action-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:5px}
+.tutor-action-foot{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:8px}
 .badge-pill.red{background:rgba(220,38,38,.2);color:#FCA5A5;border:1px solid var(--status-red)}
 [hidden]{display:none!important}
 .pillar-grid,.metrics,.future-grid,.funding-grid,.slot-rack,.impact-grid{min-width:0}
@@ -169,11 +178,12 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
 .brand-stack{display:flex;flex-direction:column;min-width:0;line-height:1.22}
 .brand-title{font-size:.78rem;font-weight:800;letter-spacing:.08em;color:#F8FAFC;white-space:normal}
 .brand-motto{font-size:.71rem;font-style:italic;color:#D8C48B;white-space:normal}
-.pdeue-colophon{margin-top:28px;padding:12px 4px;border-top:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;color:var(--text-muted);font-size:.76rem}
+.pdeue-colophon{margin-top:20px;padding:10px 4px;border-top:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;color:var(--text-muted);font-size:.76rem}
 .colophon-attr{color:var(--text-muted);letter-spacing:.02em}
 .colophon-mode-badge{display:inline-flex;align-items:center;gap:6px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.7rem;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--bg-surface);border:1px solid var(--border-subtle);color:var(--text-secondary)}
+@media(max-width:1024px){.slot-rack{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:850px){.pillar-grid,.metrics,.future-grid,.funding-grid,.impact-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.slot-rack{grid-template-columns:repeat(2,minmax(0,1fr))}.split{flex-direction:column;align-items:stretch}}
-@media(max-width:520px){.pillar-grid,.metrics,.future-grid,.funding-grid,.slot-rack,.impact-grid{grid-template-columns:minmax(0,1fr)}.shell{padding:12px}.workspace-switcher{flex-direction:column;align-items:stretch}.proj-chart-shell{padding:10px}.curr-btn{padding:7px 10px;font-size:.78rem}.brand-lockup{gap:8px}.brand-title{font-size:.72rem}.brand-motto{font-size:.66rem}}
+@media(max-width:520px){.pillar-grid,.metrics,.future-grid,.funding-grid,.slot-rack,.impact-grid{grid-template-columns:minmax(0,1fr)}.shell{padding:10px}.workspace-switcher{flex-direction:column;align-items:stretch}.proj-chart-shell{padding:10px}.curr-btn{padding:6px 9px;font-size:.76rem}.brand-lockup{gap:8px}.brand-title{font-size:.72rem}.brand-motto{font-size:.66rem}}
 </style></head><body><div style="display:none" id="legacyPortalHub">PDEUE PORTAL HUB</div>
 <div id="supervisoryAuditLensBanner" class="supervisory-lens-banner" hidden role="region" aria-label="Supervisory Audit Lens">
   <div class="supervisory-lens-inner">
@@ -278,12 +288,12 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
 
 <section class="pillar-grid" aria-label="87 10 3 covenant"><article class="pillar"><strong>87%</strong><h3>Personal Compounding (<abbr class="pdeue-term" tabindex="0" data-term="scma" data-tooltip="Your own private, walled-off family account. Your money grows inside your personal box, and if a trade ever loses money, that loss stays strictly inside your own account and never touches anyone else's savings.">SCMA<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>)</h3><p>Retained in your SCMA above High-Water Mark to compound future positions (100% kept during drawdown recovery).</p></article><article class="pillar"><strong>10%</strong><h3>Familial Treasury · <abbr class="pdeue-term" tabindex="0" data-term="cfcp" data-tooltip="The family's shared safety net and blessing fund. It receives 10% of brand-new profits above each member's personal record high to help relatives with emergencies and debt relief—and it is never risked on trades.">CFCP<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></h3><p>CFCP emergency shield, FSAP toxic-debt relief, and shared lineage resilience—funded strictly from new net profit above HWM.</p></article><article class="pillar"><strong>3%</strong><h3>System Stewardship · <abbr class="pdeue-term" tabindex="0" data-term="faep" data-tooltip="A 3% slice of brand-new profits that pays for servers, data feeds, and caring for the platform—so family members never get hit with monthly software bills or fees during a downturn.">FAEP<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></h3><p>Cloud servers and verified public data feeds, strictly from net profit above HWM: $0 on loss, $0 out-of-pocket.</p></article></section>
 
-<article class="card"><div class="label">N=12 production standard · illustrative, not guaranteed</div><h2>Dual-Seed 12-Month Numerical Projections ($100 vs $1,000)</h2><p class="fine">Complete schedules: $100.00 Starting Seed and $1,000.00 Starting Seed.</p><div class="disclosure-box"><strong>Explicit Non-Guarantee Disclosure:</strong> All $100 and $1,000 compounding scenarios below are illustrative mathematical simulations only—not a promise or guarantee of future returns. Actual live outcomes vary with market liquidity, fill quality, and drawdown cycles, and capital placed in event contracts is at risk of loss.</div><p>Each schedule separates capital working on-venue from cash swept into commercial-bank custody. Active float is hard-capped at <strong>$25,000</strong> to reduce order-book slippage while preserving the <abbr class="pdeue-term" tabindex="0" data-term="dry-powder-floor-40" data-tooltip="A permanent cash reserve rule that keeps at least 40% of your account safely on the sidelines in cash at all times, so you are never overextended and always ready for better opportunities.">40% Dry-Powder Floor<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>; excess gains sweep off-venue and earn an illustrative <strong>4.5% APY</strong>.</p>
+<article class="card"><div class="label">N=12 production standard · illustrative, not guaranteed</div><h2>Dual-Seed 12-Month Numerical Projections ($100 vs $1,000)</h2><div class="disclosure-box"><strong>Explicit Non-Guarantee Disclosure:</strong> All $100 and $1,000 compounding scenarios below are illustrative mathematical simulations only—not a promise or guarantee of future returns. Actual live outcomes vary with market liquidity, fill quality, and drawdown cycles, and capital placed in event contracts is at risk of loss.</div><p class="fine">Active float is hard-capped at <strong>$25,000</strong> while preserving the <abbr class="pdeue-term" tabindex="0" data-term="dry-powder-floor-40" data-tooltip="A permanent cash reserve rule that keeps at least 40% of your account safely on the sidelines in cash at all times, so you are never overextended and always ready for better opportunities.">40% Dry-Powder Floor<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>; excess gains sweep off-venue and earn an illustrative <strong>4.5% APY</strong>.</p>
 <div id="unifiedProjectionChart" class="proj-chart-shell">
   <div class="proj-header">
     <div>
       <div class="eyebrow" style="color:#38BDF8;">DATA-DRIVEN 12-MONTH CUMULATIVE WEALTH COMPARISON</div>
-      <div class="fine">Plotted directly from the capped numerical model below (exponential growth below $25,000 float cap, transitioning to steady post-cap bank sweeps + 4.5% APY).</div>
+      <div class="fine">Plotted directly from the capped numerical model (exponential growth below $25,000 float cap, transitioning to steady post-cap bank sweeps + 4.5% APY).</div>
     </div>
     <div class="proj-controls" role="group" aria-label="Projection chart seed filter">
       <button id="projModeAll" type="button" class="proj-seg-btn active" onclick="setProjectionMode('all')">All ($100 vs $1,000)</button>
@@ -294,25 +304,84 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
   <div id="projectionLegend" class="chart-legend" aria-label="Projection series legend"></div>
   <div class="proj-svg-wrap" id="projectionSvgHost"></div>
 </div>
-<div id="projectionTables"></div></article>
+<details id="projectionTablesDrawer" class="disclosure-drawer">
+  <summary class="disclosure-summary-row">
+    <span class="disclosure-summary-title">
+      <span>📊 Full 12-Month Exact-Cent Schedule Tables ($100.00 Starting Seed vs. $1,000.00 Starting Seed)</span>
+      <span class="fine">Month-by-month Conservative Pace (~10%/wk) vs. Bullish/Target Pace (~23%/wk) float, bank sweeps, and 4.5% APY breakdown</span>
+    </span>
+    <span class="disclosure-chevron">Expand / Collapse</span>
+  </summary>
+  <div class="disclosure-body">
+    <div id="projectionTables"></div>
+  </div>
+</details></article>
 
-<article class="card cash-engine"><div class="label">After the $25,000 active-float ceiling</div><h2>Steady-State Monthly Cash-Flow Engine</h2><div class="run-rate">$7,830–$11,310+ / month</div><p>The engine keeps the full $25,000 trading float intact while net personal profits above the ceiling sweep to protected bank cash. The illustrative range reflects conservative-to-target production after the 87/10/3 waterfall above High-Water Mark; swept reserves continue earning illustrative 4.5% APY without increasing venue exposure.</p></article>
+<div class="orientation-drawers-stack" aria-label="Additional orientation deep dives">
+  <details class="card cash-engine disclosure-card">
+    <summary class="disclosure-summary-row">
+      <span class="disclosure-summary-title">
+        <span class="label">After the $25,000 active-float ceiling</span>
+        <span style="font-size:1.05rem;">Steady-State Monthly Cash-Flow Engine · <strong style="color:var(--green);font-variant-numeric:tabular-nums;">$7,830–$11,310+ / month</strong></span>
+      </span>
+      <span class="disclosure-chevron">Read Details</span>
+    </summary>
+    <div class="disclosure-body">
+      <div class="run-rate">$7,830–$11,310+ / month</div>
+      <p>The engine keeps the full $25,000 trading float intact while net personal profits above the ceiling sweep to protected bank cash. The illustrative range reflects conservative-to-target production after the 87/10/3 waterfall above High-Water Mark; swept reserves continue earning illustrative 4.5% APY without increasing venue exposure.</p>
+    </div>
+  </details>
 
-<article class="card"><div class="label">Project FUTURE</div><h2>Multi-Market Diversification Blueprint</h2><p>At the $25,000 float ceiling, reusable underwriting intelligence progressively decouples from prediction markets:</p><div class="future-grid"><div class="market"><b>1 · Deep CME Futures &amp; Rates</b><p>SPAWN 2.0 routes E-mini S&amp;P, Treasury Notes, and SOFR.</p></div><div class="market"><b>2 · Sector Equities &amp; ETFs</b><p>Systematic XLE, XLF, and XLK dispersion.</p></div><div class="market"><b>3 · Global FX &amp; Currency Basis</b><p>G10 macro rate differentials with basis controls.</p></div><div class="market"><b>4 · Crypto Delta-Neutral Funding</b><p>Targeting 18%–35% APY funding basis without directional risk.</p></div><div class="market"><b>5 · Intraday Rapid Rotation</b><p>Flat by close to target zero overnight gap risk.</p></div></div></article>
+  <details class="card disclosure-card">
+    <summary class="disclosure-summary-row">
+      <span class="disclosure-summary-title">
+        <span class="label">Project FUTURE · Post-$25k Scaling Roadmap</span>
+        <span style="font-size:1.05rem;">Multi-Market Diversification Blueprint (5 Asset Pillars)</span>
+      </span>
+      <span class="disclosure-chevron">Read Blueprint</span>
+    </summary>
+    <div class="disclosure-body">
+      <p>At the $25,000 float ceiling, reusable underwriting intelligence progressively decouples from prediction markets:</p>
+      <div class="future-grid"><div class="market"><b>1 · Deep CME Futures &amp; Rates</b><p>SPAWN 2.0 routes E-mini S&amp;P, Treasury Notes, and SOFR.</p></div><div class="market"><b>2 · Sector Equities &amp; ETFs</b><p>Systematic XLE, XLF, and XLK dispersion.</p></div><div class="market"><b>3 · Global FX &amp; Currency Basis</b><p>G10 macro rate differentials with basis controls.</p></div><div class="market"><b>4 · Crypto Delta-Neutral Funding</b><p>Targeting 18%–35% APY funding basis without directional risk.</p></div><div class="market"><b>5 · Intraday Rapid Rotation</b><p>Flat by close to target zero overnight gap risk.</p></div></div>
+    </div>
+  </details>
 
-<article class="card"><div class="label">Lineage governance, custodial safeguards &amp; family covenant</div><h2>One lineage, governed accounts for every generation</h2><ul><li><b>Qualification:</b> participation remains inside statutory family-office safe harbors, including SEC Rule 202 and CFTC Rule 4.13 exemptions, subject to counsel and eligibility review.</li><li><b>Universal lineage:</b> every child, infant, and adult may hold a separately tracked SCMA.</li><li><b>Custodial minor safeguards:</b> minors operate through the Delaware Master Trust sub-ledger with <code>is_custodial: true</code>. Self-service risk changes and distributions are locked; the F2-H Head of Household governs conservative 0.50%–1.00% bounds and co-signs all sweeps.</li><li><b><abbr class="pdeue-term" tabindex="0" data-term="pay-it-forward-lccf" data-tooltip="Our family tradition of helping loved ones get out of high-interest debt and start building wealth. As early members grow, voluntary and common-pool support helps lift the next generation—who then pass that blessing forward.">Pay-It-Forward &amp; FSAP<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> Family Covenant (Phase II):</b> through the <strong>Familial Stability Advance Pool (FSAP)</strong>, the 10% CFCP pool supports direct-to-creditor toxic-debt relief, and a solvent member at the $25,000 ceiling may foster an incoming relative with seed funds from swept bank cash and serve as their F1 Peer Mentor.</li></ul></article>
+  <details class="card disclosure-card">
+    <summary class="disclosure-summary-row">
+      <span class="disclosure-summary-title">
+        <span class="label">Lineage governance, custodial safeguards &amp; family covenant</span>
+        <span style="font-size:1.05rem;">One Lineage, Governed Accounts (<code>is_custodial: true</code>) &amp; <abbr class="pdeue-term" tabindex="0" data-term="pay-it-forward-lccf" data-tooltip="Our family tradition of helping loved ones get out of high-interest debt and start building wealth. As early members grow, voluntary and common-pool support helps lift the next generation—who then pass that blessing forward.">Pay-It-Forward &amp; FSAP<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></span>
+      </span>
+      <span class="disclosure-chevron">Read Covenant</span>
+    </summary>
+    <div class="disclosure-body">
+      <ul><li><b>Qualification:</b> participation remains inside statutory family-office safe harbors, including SEC Rule 202 and CFTC Rule 4.13 exemptions, subject to counsel and eligibility review.</li><li><b>Universal lineage:</b> every child, infant, and adult may hold a separately tracked SCMA.</li><li><b>Custodial minor safeguards:</b> minors operate through the Delaware Master Trust sub-ledger with <code>is_custodial: true</code>. Self-service risk changes and distributions are locked; the F2-H Head of Household governs conservative 0.50%–1.00% bounds and co-signs all sweeps.</li><li><b>Pay-It-Forward &amp; FSAP Family Covenant (Phase II):</b> through the <strong>Familial Stability Advance Pool (FSAP)</strong>, the 10% CFCP pool supports direct-to-creditor toxic-debt relief, and a solvent member at the $25,000 ceiling may foster an incoming relative with seed funds from swept bank cash and serve as their F1 Peer Mentor.</li></ul>
+    </div>
+  </details>
+</div>
 </section>
 
 <section id="viewEngine" role="tabpanel" hidden><div id="quarantineBanner" class="card red" hidden><b>House quarantine active.</b> New exposure is paused.</div>
 <div id="memberHaltOverlay" class="rm-halt-overlay" hidden role="alert"><strong>TRADING HALTED — EXECUTIVE OVERRIDE</strong><div id="memberHaltOverlayDetail" class="fine" style="color:#FECACA;margin-top:4px;">TRADING HALTED: DIRECTIVE R-04 ENGAGED. Live execution telemetry and risk mutations are paused fail-closed until Chief Administrator resumption.</div></div>
 <section class="metrics"><article class="card"><div class="label">Cumulative Wealth</div><div class="run-rate" id="totalWealth">$0</div></article><article class="card"><div class="label">Active Float</div><h2 id="activeFloat">$0</h2><div class="fine">Hard cap $25,000</div></article><article class="card"><div class="label">Swept Bank Cash</div><h2 id="sweptCash">$0</h2></article><article class="card"><div class="label">4.5% Yield</div><h2 id="passiveYield">$0</h2></article></section>
-<article class="card"><div class="label">Performance ratios</div><h2>My Trajectory</h2><canvas id="trajectory-canvas" width="1" height="1" hidden></canvas><div class="future-grid"><div><b>Win / Loss Rate</b><p>74.2% (89W / 31L)</p></div><div><b>Profit Factor</b><p>2.84x</p></div><div><b>Sizing Model</b><p><abbr class="pdeue-term" tabindex="0" data-term="quarter-kelly" data-tooltip="A cautious bet-sizing rule that uses only one-quarter of what pure math says you could wager. It gives your account a wide safety cushion against surprises so a bad streak stays small.">Quarter-Kelly (0.25f*)<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></p></div><div><b>Max Drawdown</b><p>Defensive Ceiling: 5.0%</p></div></div>
+<article class="card"><div class="label">Performance ratios</div><h2>My Trajectory</h2><canvas id="trajectory-canvas" width="1" height="1" hidden></canvas><div class="metrics" style="margin-bottom:10px;"><div><b>Win / Loss Rate</b><p>74.2% (89W / 31L)</p></div><div><b>Profit Factor</b><p>2.84x</p></div><div><b>Sizing Model</b><p><abbr class="pdeue-term" tabindex="0" data-term="quarter-kelly" data-tooltip="A cautious bet-sizing rule that uses only one-quarter of what pure math says you could wager. It gives your account a wide safety cushion against surprises so a bad streak stays small.">Quarter-Kelly (0.25f*)<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></p></div><div><b>Max Drawdown</b><p>Defensive Ceiling: 5.0%</p></div></div>
 <div class="future-grid" aria-label="Member performance visualizations">
 <section id="asset-rings-view" class="market"><h3><abbr class="pdeue-term" tabindex="0" data-term="concentric-asset-rings" data-tooltip="A simple target-style ring picture of your money at a glance: the outer ring shows active working capital, the middle ring shows your 40% cash safety shield, and the inner ring shows the 87/10/3 profit-sharing split.">Asset Engine Rings<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></h3><svg id="member-asset-rings-svg" class="rings-svg" viewBox="0 0 240 200" role="img" aria-labelledby="asset-rings-title asset-rings-desc"><title id="asset-rings-title">Concentric asset engine allocation rings</title><desc id="asset-rings-desc">Concentric rings show active working margin, mandatory 40% dry-powder floor shield, and 87/10/3 SCMA/CFCP/FAEP waterfall split.</desc><circle cx="120" cy="100" r="76" fill="none" stroke="#1E293B" stroke-width="11"/><circle id="memberRingMargin" cx="120" cy="100" r="76" fill="none" stroke="#38BDF8" stroke-width="11" stroke-linecap="round" stroke-dasharray="140 478" transform="rotate(-90 120 100)"/><circle cx="120" cy="100" r="58" fill="none" stroke="#1E293B" stroke-width="11"/><circle id="memberRingShield" cx="120" cy="100" r="58" fill="none" stroke="#059669" stroke-width="11" stroke-linecap="round" stroke-dasharray="146 365" transform="rotate(-90 120 100)"/><circle cx="120" cy="100" r="40" fill="none" stroke="#1E293B" stroke-width="10"/><circle id="memberRingWfScma" cx="120" cy="100" r="40" fill="none" stroke="#38BDF8" stroke-width="10" stroke-dasharray="218.7 251.3" transform="rotate(-90 120 100)"/><circle id="memberRingWfCfcp" cx="120" cy="100" r="40" fill="none" stroke="#059669" stroke-width="10" stroke-dasharray="25.1 251.3" stroke-dashoffset="-218.7" transform="rotate(-90 120 100)"/><circle id="memberRingWfFaep" cx="120" cy="100" r="40" fill="none" stroke="#D97706" stroke-width="10" stroke-dasharray="7.5 251.3" stroke-dashoffset="-243.8" transform="rotate(-90 120 100)"/><text id="memberRingCenterVal" class="ring-center-val" x="120" y="98" text-anchor="middle">40% SHIELD</text><text id="memberRingCenterSub" class="ring-center-sub" x="120" y="113" text-anchor="middle">87/10/3 HWM</text></svg><div id="memberRingsLegend" class="rings-legend"><div class="rings-legend-row"><span><i class="rings-dot" style="background:#38BDF8"></i>Working Margin</span><strong id="legendWorkingMargin">—</strong></div><div class="rings-legend-row"><span><i class="rings-dot" style="background:#059669"></i>40% Dry-Powder Shield</span><strong id="legendDryPowder">—</strong></div><div class="rings-legend-row"><span><i class="rings-dot" style="background:#D97706"></i>Waterfall (SCMA/CFCP/FAEP)</span><strong id="legendWaterfall">87% / 10% / 3%</strong></div></div></section>
 <section id="trajectory-view" class="market"><h3>My Trajectory</h3><svg id="member-trajectory-svg" viewBox="0 0 240 180" role="img" aria-labelledby="trajectory-title trajectory-desc"><title id="trajectory-title">Member balance trajectory</title><desc id="trajectory-desc">An upward path represents growth from seed capital through the high-watermark sweep.</desc><defs><linearGradient id="trajectory-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#38bdf8" stop-opacity=".35"/><stop offset="1" stop-color="#38bdf8" stop-opacity="0"/></linearGradient></defs><path id="memberTrajectoryArea" d="M16 154 C55 145 72 128 102 119 S154 75 224 30 L224 164 L16 164 Z" fill="url(#trajectory-fill)"/><path id="memberTrajectoryLine" d="M16 154 C55 145 72 128 102 119 S154 75 224 30" fill="none" stroke="#38bdf8" stroke-width="5" stroke-linecap="round"/></svg><div id="memberTrajectoryMeta" class="fine" style="margin-top:6px;">Seed Capital → 40% Shield → High-Watermark Sweep</div></section>
 <section id="radar-view" class="market"><h3>High-Yield Radar</h3><svg viewBox="0 0 240 180" role="img" aria-labelledby="radar-title radar-desc"><title id="radar-title">Eighty-seven ten three distribution radar</title><desc id="radar-desc">The radar compares personal compounding, family shield, and platform operations allocations.</desc><polygon points="120,18 218,154 22,154" fill="none" stroke="#29405f" stroke-width="2"/><polygon points="120,30 181,145 91,116" fill="#42b8ef" fill-opacity=".22" stroke="#42b8ef" stroke-width="3"/><text id="wf87" x="120" y="15" font-size="11" fill="#eef6ff" text-anchor="middle">87% SCMA</text><text id="wf10" x="234" y="172" font-size="11" fill="#eef6ff" text-anchor="end">10% Family Shield</text><text id="wf3" x="6" y="172" font-size="11" fill="#eef6ff">3% Platform Ops</text></svg><div class="fine" style="margin-top:6px;">Applies strictly above <abbr class="pdeue-term" tabindex="0" data-term="high-water-mark-adr-012" data-tooltip="Your account's personal all-time high balance. If your account dips and then climbs back up, you keep 100% of every recovery dollar—profit sharing only resumes once you earn genuinely new gains above your old peak.">ADR-012 HWM<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>.</div></section>
 </div></article>
-<article class="card"><div class="label">Live transparency layer · Phase I Paper Mode</div><h2>Glass Engine · 12-Slot Concurrency Rack</h2><p class="fine"><span title="Strategy D places inside-maker orders and never pays retail taker pricing.">Strategy D wholesale maker ⓘ</span></p><div id="slotRack" class="slot-rack"><article class="slot" data-slot-id="1"><div class="slot-id">SLOT 01</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="2"><div class="slot-id">SLOT 02</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="3"><div class="slot-id">SLOT 03</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="4"><div class="slot-id">SLOT 04</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="5"><div class="slot-id">SLOT 05</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="6"><div class="slot-id">SLOT 06</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="7"><div class="slot-id">SLOT 07</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="8"><div class="slot-id">SLOT 08</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="9"><div class="slot-id">SLOT 09</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="10"><div class="slot-id">SLOT 10</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="11"><div class="slot-id">SLOT 11</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="12"><div class="slot-id">SLOT 12</div><div class="slot-domain">Slot Available</div></article></div></article><div hidden aria-hidden="true"><button class="regime">Traditional Index (~9%)</button><button class="regime">Steady Pace</button><button class="regime">Standard Pace</button></div>
+<details id="glassEngineRackDrawer" class="card disclosure-card">
+  <summary class="disclosure-summary-row">
+    <span class="disclosure-summary-title">
+      <span class="label">Live transparency layer · Phase I Paper Mode</span>
+      <span style="font-size:1.05rem;">Glass Engine · 12-Slot Concurrency Rack <span class="fine" title="Strategy D places inside-maker orders and never pays retail taker pricing.">(Strategy D wholesale maker ⓘ)</span></span>
+    </span>
+    <span class="disclosure-chevron">Toggle 12-Slot Rack</span>
+  </summary>
+  <div class="disclosure-body">
+    <div id="slotRack" class="slot-rack"><article class="slot" data-slot-id="1"><div class="slot-id">SLOT 01</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="2"><div class="slot-id">SLOT 02</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="3"><div class="slot-id">SLOT 03</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="4"><div class="slot-id">SLOT 04</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="5"><div class="slot-id">SLOT 05</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="6"><div class="slot-id">SLOT 06</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="7"><div class="slot-id">SLOT 07</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="8"><div class="slot-id">SLOT 08</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="9"><div class="slot-id">SLOT 09</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="10"><div class="slot-id">SLOT 10</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="11"><div class="slot-id">SLOT 11</div><div class="slot-domain">Slot Available</div></article><article class="slot" data-slot-id="12"><div class="slot-id">SLOT 12</div><div class="slot-domain">Slot Available</div></article></div>
+  </div>
+</details><div hidden aria-hidden="true"><button class="regime">Traditional Index (~9%)</button><button class="regime">Steady Pace</button><button class="regime">Standard Pace</button></div>
 <div class="split"><article class="card"><div class="label">Your Brake Pedal · Downward-Only Risk Governor</div><h2>Choose less exposure anytime</h2><p>Just like easing off the gas, you can lower your risk dial anytime from 2.00% down to 0.50% instantly. Turning it back up requires your F2-H Head of Household partner.</p><div class="range-row"><input id="riskSlider" type="range" min="50" max="200" value="100" aria-label="Risk dial percent"><b id="riskValue">1.00%</b></div><button id="saveRiskBtn" onclick="saveRiskDial()">Apply reduction</button><div id="riskStatus" class="fine"></div></article><article class="card"><div class="label">Three-Lane Withdrawals · 3-Tier Distribution Drawer</div><h2>Request personal cash safely</h2><div class="tier-key"><b class="green">● Green Express</b><b class="yellow">● Yellow Reflection</b><b class="red">● Red 24h Scam Shield</b></div><input id="distributionAmount" type="text" placeholder="Amount in dollars" aria-label="Distribution amount in dollars"><button id="distributionBtn">Review request</button><p id="distributionStatus" class="fine"></p></article></div>
 <article id="tutorCard" class="card" aria-label="Class M Member AI Literacy Tutor">
   <div class="tutor-header">
