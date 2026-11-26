@@ -1470,7 +1470,6 @@ class StreamingTapeWriterV2:
         self.record_count: int = 0
         self.record_type_counts: Dict[str, int] = {rt: 0 for rt in sorted(RECORD_TYPES)}
         self.venues: set[str] = set()
-        self.tickers: set[str] = set()
         self.first_captured_at_utc: Optional[str] = None
         self.last_captured_at_utc: Optional[str] = None
         self._last_ts_us: int = 0
@@ -1500,8 +1499,6 @@ class StreamingTapeWriterV2:
                     self.record_type_counts[rt] += 1
                 if rec.get("venue"):
                     self.venues.add(str(rec["venue"]))
-                if rec.get("contract_ticker"):
-                    self.tickers.add(str(rec["contract_ticker"]))
                 ts_str = rec.get("captured_at_utc")
                 if isinstance(ts_str, str):
                     if self.first_captured_at_utc is None:
@@ -1583,29 +1580,28 @@ class StreamingTapeWriterV2:
         self.record_type_counts[record_type] += 1
         if record.get("venue"):
             self.venues.add(str(record["venue"]))
-        if record.get("contract_ticker"):
-            self.tickers.add(str(record["contract_ticker"]))
         if self.first_captured_at_utc is None:
             self.first_captured_at_utc = ts_iso
         self.last_captured_at_utc = ts_iso
         return record
 
     def rolling_manifest(self) -> Dict[str, Any]:
-        """Return O(1)-RAM rolling SHA-256 manifest snapshot without re-reading tape.jsonl."""
+        """Return strictly O(1)-size rolling SHA-256 manifest snapshot without re-reading tape.jsonl."""
         return {
             "schema_version": SCHEMA_VERSION_V2,
             "data_provenance": "OBSERVED_L2",
             "tape_file": self.tape_path.name,
             "tape_manifest_sha256": self._rolling_sha256.copy().hexdigest(),
             "bytes_written": self.bytes_written,
+            "bytes_hashed": self.bytes_written,
             "record_count": self.record_count,
+            "records_hashed": self.record_count,
             "snapshot_count": self.record_type_counts["OBSERVED_L2"],
             "record_type_counts": dict(self.record_type_counts),
             "capture_sequence": self.capture_sequence,
             "collector_git_sha": self.collector_git_sha,
             "filter_config_hash": self.filter_config_hash,
             "venues": sorted(self.venues),
-            "tickers": sorted(self.tickers),
             "first_captured_at_utc": self.first_captured_at_utc,
             "last_captured_at_utc": self.last_captured_at_utc,
             "read_only_capture": True,
@@ -1738,6 +1734,7 @@ class ObservedL2CollectorV2:
         session_id: Optional[str] = None,
         collector_git_sha: Optional[str] = None,
         trade_dedup_max_entries: int = 50_000,
+        curated_fallback_batch_size: int = 16,
     ) -> None:
         self.venue_mode = assert_fail_closed_paper_mode()
         self.tape_root = Path(tape_root)
@@ -1792,6 +1789,7 @@ class ObservedL2CollectorV2:
         self.admission_interval_seconds = max(1, int(admission_interval_seconds))
         self.trades_window_seconds = max(10, int(trades_window_seconds))
         self.kalshi_baseline_count = max(0, int(kalshi_baseline_count))
+        self.curated_fallback_batch_size = max(1, int(curated_fallback_batch_size))
         self.poly_benchmark_cap = min(
             max(0, int(poly_benchmark_count)),
             int(self.tracker.config.get("max_polymarket_benchmark_contracts", MAX_POLYMARKET_BENCHMARK_CONTRACTS)),
@@ -1800,6 +1798,9 @@ class ObservedL2CollectorV2:
         self.baseline_kalshi_tickers: List[str] = []
         self.poly_tokens: List[str] = []
         self._dead_poly_tokens: set[str] = set()
+        self._kalshi_batch_orderbooks_unsupported: bool = False
+        self._logged_batch_400_body: bool = False
+        self._curated_rr_cursor: int = 0
 
         self._last_admission_mono: Optional[float] = None
         self._last_curated_mono: Optional[float] = None
@@ -2058,11 +2059,160 @@ class ObservedL2CollectorV2:
             "settlements": len(reconciled["settlements"]),
         }
 
+    def _log_kalshi_batch_fallback_once(self, resp: httpx.Response) -> None:
+        """Log first 200 chars of Kalshi batched orderbooks error body once and latch per-ticker fallback."""
+        self._kalshi_batch_orderbooks_unsupported = True
+        if self._logged_batch_400_body:
+            return
+        self._logged_batch_400_body = True
+        snippet = (resp.text or "")[:200]
+        self._log(
+            json.dumps(
+                {
+                    "event": "KALSHI_BATCH_ORDERBOOKS_FALLBACK",
+                    "http_status": resp.status_code,
+                    "body_snippet": snippet,
+                    "fallback_endpoint": "/markets/{ticker}/orderbook",
+                },
+                sort_keys=True,
+            )
+        )
+
+    def _poll_kalshi_orderbooks_per_ticker(
+        self,
+        tickers: Sequence[str],
+        *,
+        curated: bool,
+    ) -> Dict[str, Any]:
+        """Poll GET /markets/{ticker}/orderbook respecting <= 2 req/s governor with round-robin pacing."""
+        ticker_list = list(tickers)
+        if not ticker_list:
+            return {
+                "snapshots": 0,
+                "rate_limited": False,
+                "errors": [],
+                "mode": "per_ticker_fallback",
+            }
+
+        snapshots = 0
+        errors: List[str] = []
+        rate_limited = False
+
+        if curated:
+            n = len(ticker_list)
+            batch_len = min(n, self.curated_fallback_batch_size)
+            start = self._curated_rr_cursor % n
+            selected = [ticker_list[(start + i) % n] for i in range(batch_len)]
+        else:
+            start = 0
+            selected = ticker_list
+
+        for idx, tk in enumerate(selected):
+            url = f"{self.kalshi_base_url}/markets/{tk}/orderbook"
+            t_start = self._time_ns()
+            try:
+                resp, t_sent, t_recv = self._http_get(url)
+            except (httpx.TimeoutException, httpx.RequestError) as exc:
+                self._emit_data_gap(
+                    venue="KALSHI",
+                    endpoint=f"/markets/{tk}/orderbook",
+                    reason=f"TRANSPORT_ERROR:{type(exc).__name__}",
+                    affected_tickers=[tk],
+                    http_status=None,
+                    t_req_sent_ns=t_start,
+                    t_resp_recv_ns=self._time_ns(),
+                )
+                errors.append(f"KALSHI:{tk}:{type(exc).__name__}")
+                if curated:
+                    self._curated_rr_cursor = (start + idx + 1) % len(ticker_list)
+                continue
+
+            if resp.status_code == 429:
+                rate_limited = True
+                backoff = self.governor.record_http_429()
+                self._emit_data_gap(
+                    venue="KALSHI",
+                    endpoint=f"/markets/{tk}/orderbook",
+                    reason="HTTP_429_RATE_LIMIT",
+                    affected_tickers=selected[idx:],
+                    http_status=429,
+                    t_req_sent_ns=t_sent,
+                    t_resp_recv_ns=t_recv,
+                    backoff_info=backoff,
+                )
+                self._sleep_backoff_with_heartbeat(backoff["backoff_ms"])
+                errors.append(f"KALSHI:{tk}:HTTP_429")
+                break
+
+            if resp.status_code != 200:
+                self._emit_data_gap(
+                    venue="KALSHI",
+                    endpoint=f"/markets/{tk}/orderbook",
+                    reason=f"HTTP_{resp.status_code}",
+                    affected_tickers=[tk],
+                    http_status=resp.status_code,
+                    t_req_sent_ns=t_sent,
+                    t_resp_recv_ns=t_recv,
+                )
+                errors.append(f"KALSHI:{tk}:HTTP_{resp.status_code}")
+                if curated:
+                    self._curated_rr_cursor = (start + idx + 1) % len(ticker_list)
+                continue
+
+            try:
+                if curated:
+                    st = self.tracker.contracts.get(tk)
+                    meta = st.market_meta if st is not None else None
+                    snap = normalize_kalshi_l2_v2(
+                        tk,
+                        resp.json(),
+                        source_url=url,
+                        market_meta=meta,
+                    )
+                    record_payload = self.tracker.evaluate_snapshot_tradeability(tk, snap)
+                    record_payload["polling_tier"] = "CURATED_10S"
+                else:
+                    record_payload = normalize_kalshi_l2_v2(
+                        tk,
+                        resp.json(),
+                        source_url=url,
+                    )
+                    record_payload["classification"] = "BROAD_BASELINE"
+                    record_payload["live_execution_eligible"] = False
+                    record_payload["strategy_d_eligible"] = False
+                    record_payload["strategy_d_replay_variant_eligible"] = False
+                    record_payload["polling_tier"] = "BASELINE_60S"
+
+                self.writer.append_record(
+                    "OBSERVED_L2",
+                    record_payload,
+                    t_req_sent_ns=t_sent,
+                    t_resp_recv_ns=t_recv,
+                    http_status=resp.status_code,
+                    raw_payload_bytes=resp.content,
+                )
+                snapshots += 1
+            except Exception as exc:
+                errors.append(f"KALSHI:{tk}:{type(exc).__name__}:{exc}")
+
+            if curated:
+                self._curated_rr_cursor = (start + idx + 1) % len(ticker_list)
+
+        return {
+            "snapshots": snapshots,
+            "rate_limited": rate_limited,
+            "errors": errors,
+            "mode": "per_ticker_fallback",
+        }
+
     def poll_curated_kalshi_orderbooks(self) -> Dict[str, Any]:
-        """Poll curated Kalshi basket (<= 32 tickers) via batched GET /markets/orderbooks?tickers=..."""
+        """Poll curated Kalshi basket (<= 32 tickers), falling back to /markets/{ticker}/orderbook on HTTP 400."""
         tickers = self.tracker.active_tickers()
         if not tickers:
-            return {"snapshots": 0, "rate_limited": False, "errors": []}
+            return {"snapshots": 0, "rate_limited": False, "errors": [], "mode": "idle"}
+
+        if self._kalshi_batch_orderbooks_unsupported:
+            return self._poll_kalshi_orderbooks_per_ticker(tickers, curated=True)
 
         url = f"{self.kalshi_base_url}/markets/orderbooks"
         t_start = self._time_ns()
@@ -2094,6 +2244,10 @@ class ObservedL2CollectorV2:
             )
             self._sleep_backoff_with_heartbeat(backoff["backoff_ms"])
             return {"snapshots": 0, "rate_limited": True, "errors": ["KALSHI_BATCH:HTTP_429"]}
+
+        if resp.status_code in {400, 401, 403, 404, 405}:
+            self._log_kalshi_batch_fallback_once(resp)
+            return self._poll_kalshi_orderbooks_per_ticker(tickers, curated=True)
 
         if resp.status_code != 200:
             self._emit_data_gap(
@@ -2138,18 +2292,23 @@ class ObservedL2CollectorV2:
             except Exception as exc:
                 errors.append(f"KALSHI:{tk}:{type(exc).__name__}:{exc}")
 
-        return {"snapshots": snapshots, "rate_limited": False, "errors": errors}
+        return {"snapshots": snapshots, "rate_limited": False, "errors": errors, "mode": "batch"}
 
     def poll_kalshi_public_trades(self, *, max_pages: int = 50) -> Dict[str, Any]:
-        """Poll GET /markets/trades with overlapping 120s [min_ts, max_ts] window, full cursor pagination, dedup."""
+        """Poll GET /markets/trades with overlapping 120s window, strictly filtered to curated Kalshi basket."""
         now_dt = self._now_utc()
         max_ts = int(now_dt.timestamp())
         min_ts = max_ts - self.trades_window_seconds
+
+        active_curated_kalshi_tickers = self.tracker.active_tickers()
+        curated_set = frozenset(active_curated_kalshi_tickers)
         url = f"{self.kalshi_base_url}/markets/trades"
 
         cursor: Optional[str] = None
         pages_fetched = 0
-        raw_trades_collected: List[Tuple[Dict[str, Any], int, int, int, bytes]] = []
+        raw_trades_seen = 0
+        non_curated_dropped = 0
+        curated_trades_collected: List[Tuple[Dict[str, Any], int, int, int, bytes]] = []
         incomplete = False
         rate_limited = False
         errors: List[str] = []
@@ -2169,7 +2328,7 @@ class ObservedL2CollectorV2:
                     venue="KALSHI",
                     endpoint="/markets/trades",
                     reason=f"INCOMPLETE_TRADE_WINDOW:{type(exc).__name__}",
-                    affected_tickers=self.tracker.active_tickers(),
+                    affected_tickers=active_curated_kalshi_tickers,
                     http_status=None,
                     t_req_sent_ns=t_start,
                     t_resp_recv_ns=self._time_ns(),
@@ -2185,7 +2344,7 @@ class ObservedL2CollectorV2:
                     venue="KALSHI",
                     endpoint="/markets/trades",
                     reason="HTTP_429_RATE_LIMIT",
-                    affected_tickers=self.tracker.active_tickers(),
+                    affected_tickers=active_curated_kalshi_tickers,
                     http_status=429,
                     t_req_sent_ns=t_sent,
                     t_resp_recv_ns=t_recv,
@@ -2201,7 +2360,7 @@ class ObservedL2CollectorV2:
                     venue="KALSHI",
                     endpoint="/markets/trades",
                     reason=f"INCOMPLETE_TRADE_WINDOW:HTTP_{resp.status_code}",
-                    affected_tickers=self.tracker.active_tickers(),
+                    affected_tickers=active_curated_kalshi_tickers,
                     http_status=resp.status_code,
                     t_req_sent_ns=t_sent,
                     t_resp_recv_ns=t_recv,
@@ -2214,8 +2373,14 @@ class ObservedL2CollectorV2:
             raw_bytes = resp.content
             if isinstance(page_trades, list):
                 for tr in page_trades:
-                    if isinstance(tr, dict):
-                        raw_trades_collected.append((tr, t_sent, t_recv, resp.status_code, raw_bytes))
+                    if not isinstance(tr, dict):
+                        continue
+                    raw_trades_seen += 1
+                    ticker = str(tr.get("ticker", tr.get("market_ticker", ""))).strip()
+                    if ticker not in curated_set:
+                        non_curated_dropped += 1
+                        continue
+                    curated_trades_collected.append((tr, t_sent, t_recv, resp.status_code, raw_bytes))
 
             next_cursor = data.get("cursor") or None
             if not next_cursor:
@@ -2230,7 +2395,7 @@ class ObservedL2CollectorV2:
                 venue="KALSHI",
                 endpoint="/markets/trades",
                 reason="INCOMPLETE_TRADE_WINDOW:MAX_PAGES_EXCEEDED",
-                affected_tickers=self.tracker.active_tickers(),
+                affected_tickers=active_curated_kalshi_tickers,
                 http_status=200,
                 t_req_sent_ns=self._time_ns(),
                 t_resp_recv_ns=self._time_ns(),
@@ -2238,7 +2403,7 @@ class ObservedL2CollectorV2:
 
         if incomplete:
             window_status = "INCOMPLETE"
-        elif len(raw_trades_collected) == 0:
+        elif len(curated_trades_collected) == 0:
             window_status = "EMPTY_COMPLETE"
         else:
             window_status = "COMPLETE"
@@ -2247,7 +2412,7 @@ class ObservedL2CollectorV2:
 
         emitted = 0
         duplicates_skipped = 0
-        for raw_tr, t_sent, t_recv, status_code, raw_bytes in raw_trades_collected:
+        for raw_tr, t_sent, t_recv, status_code, raw_bytes in curated_trades_collected:
             tid = str(raw_tr.get("trade_id", "")).strip()
             if not tid:
                 continue
@@ -2277,7 +2442,9 @@ class ObservedL2CollectorV2:
         return {
             "trades_emitted": emitted,
             "duplicates_skipped": duplicates_skipped,
-            "raw_trades_seen": len(raw_trades_collected),
+            "non_curated_dropped": non_curated_dropped,
+            "raw_trades_seen": raw_trades_seen,
+            "curated_trades_seen": len(curated_trades_collected),
             "pages_fetched": pages_fetched,
             "window_min_ts": min_ts,
             "window_max_ts": max_ts,
@@ -2356,63 +2523,79 @@ class ObservedL2CollectorV2:
         errors: List[str] = []
         rate_limited = False
 
-        # 1. Broad Kalshi baseline (batched if multiple)
+        # 1. Broad Kalshi baseline (batched if supported, else per-ticker /markets/{ticker}/orderbook)
         if self.baseline_kalshi_tickers:
-            url = f"{self.kalshi_base_url}/markets/orderbooks"
-            t_start = self._time_ns()
-            try:
-                resp, t_sent, t_recv = self._http_get(
-                    url, params={"tickers": ",".join(self.baseline_kalshi_tickers)}
-                )
-                if resp.status_code == 429:
+            if self._kalshi_batch_orderbooks_unsupported:
+                base_fb = self._poll_kalshi_orderbooks_per_ticker(self.baseline_kalshi_tickers, curated=False)
+                snapshots += base_fb["snapshots"]
+                if base_fb["rate_limited"]:
                     rate_limited = True
-                    backoff = self.governor.record_http_429()
+                errors.extend(base_fb["errors"])
+            else:
+                url = f"{self.kalshi_base_url}/markets/orderbooks"
+                t_start = self._time_ns()
+                try:
+                    resp, t_sent, t_recv = self._http_get(
+                        url, params={"tickers": ",".join(self.baseline_kalshi_tickers)}
+                    )
+                    if resp.status_code == 429:
+                        rate_limited = True
+                        backoff = self.governor.record_http_429()
+                        self._emit_data_gap(
+                            venue="KALSHI",
+                            endpoint="/markets/orderbooks",
+                            reason="HTTP_429_RATE_LIMIT",
+                            affected_tickers=self.baseline_kalshi_tickers,
+                            http_status=429,
+                            t_req_sent_ns=t_sent,
+                            t_resp_recv_ns=t_recv,
+                            backoff_info=backoff,
+                        )
+                        self._sleep_backoff_with_heartbeat(backoff["backoff_ms"])
+                        errors.append("KALSHI_BASELINE:HTTP_429")
+                    elif resp.status_code in {400, 401, 403, 404, 405}:
+                        self._log_kalshi_batch_fallback_once(resp)
+                        base_fb = self._poll_kalshi_orderbooks_per_ticker(
+                            self.baseline_kalshi_tickers, curated=False
+                        )
+                        snapshots += base_fb["snapshots"]
+                        if base_fb["rate_limited"]:
+                            rate_limited = True
+                        errors.extend(base_fb["errors"])
+                    elif resp.status_code == 200:
+                        books = _extract_batched_orderbooks(resp.json(), self.baseline_kalshi_tickers)
+                        for tk, ob in books.items():
+                            try:
+                                snap = normalize_kalshi_l2_v2(tk, ob, source_url=f"{url}?tickers={tk}")
+                                snap["classification"] = "BROAD_BASELINE"
+                                snap["live_execution_eligible"] = False
+                                snap["strategy_d_eligible"] = False
+                                snap["strategy_d_replay_variant_eligible"] = False
+                                snap["polling_tier"] = "BASELINE_60S"
+                                self.writer.append_record(
+                                    "OBSERVED_L2",
+                                    snap,
+                                    t_req_sent_ns=t_sent,
+                                    t_resp_recv_ns=t_recv,
+                                    http_status=200,
+                                    raw_payload_bytes=resp.content,
+                                )
+                                snapshots += 1
+                            except Exception as exc:
+                                errors.append(f"KALSHI_BASELINE:{tk}:{type(exc).__name__}")
+                    else:
+                        errors.append(f"KALSHI_BASELINE:HTTP_{resp.status_code}")
+                except (httpx.TimeoutException, httpx.RequestError) as exc:
                     self._emit_data_gap(
                         venue="KALSHI",
                         endpoint="/markets/orderbooks",
-                        reason="HTTP_429_RATE_LIMIT",
+                        reason=f"TRANSPORT_ERROR:{type(exc).__name__}",
                         affected_tickers=self.baseline_kalshi_tickers,
-                        http_status=429,
-                        t_req_sent_ns=t_sent,
-                        t_resp_recv_ns=t_recv,
-                        backoff_info=backoff,
+                        http_status=None,
+                        t_req_sent_ns=t_start,
+                        t_resp_recv_ns=self._time_ns(),
                     )
-                    self._sleep_backoff_with_heartbeat(backoff["backoff_ms"])
-                    errors.append("KALSHI_BASELINE:HTTP_429")
-                elif resp.status_code == 200:
-                    books = _extract_batched_orderbooks(resp.json(), self.baseline_kalshi_tickers)
-                    for tk, ob in books.items():
-                        try:
-                            snap = normalize_kalshi_l2_v2(tk, ob, source_url=f"{url}?tickers={tk}")
-                            snap["classification"] = "BROAD_BASELINE"
-                            snap["live_execution_eligible"] = False
-                            snap["strategy_d_eligible"] = False
-                            snap["strategy_d_replay_variant_eligible"] = False
-                            snap["polling_tier"] = "BASELINE_60S"
-                            self.writer.append_record(
-                                "OBSERVED_L2",
-                                snap,
-                                t_req_sent_ns=t_sent,
-                                t_resp_recv_ns=t_recv,
-                                http_status=200,
-                                raw_payload_bytes=resp.content,
-                            )
-                            snapshots += 1
-                        except Exception as exc:
-                            errors.append(f"KALSHI_BASELINE:{tk}:{type(exc).__name__}")
-                else:
-                    errors.append(f"KALSHI_BASELINE:HTTP_{resp.status_code}")
-            except (httpx.TimeoutException, httpx.RequestError) as exc:
-                self._emit_data_gap(
-                    venue="KALSHI",
-                    endpoint="/markets/orderbooks",
-                    reason=f"TRANSPORT_ERROR:{type(exc).__name__}",
-                    affected_tickers=self.baseline_kalshi_tickers,
-                    http_status=None,
-                    t_req_sent_ns=t_start,
-                    t_resp_recv_ns=self._time_ns(),
-                )
-                errors.append(f"KALSHI_BASELINE:{type(exc).__name__}")
+                    errors.append(f"KALSHI_BASELINE:{type(exc).__name__}")
 
         # 2. Polymarket read-only benchmarks (cap <= 16, retains 1c spreads, always BENCHMARK_ONLY)
         if self.poly_benchmark_cap > 0 and len(self.poly_tokens) < self.poly_benchmark_cap:
@@ -2496,6 +2679,14 @@ class ObservedL2CollectorV2:
         cycle_errors: int,
     ) -> Dict[str, Any]:
         rolling = self.writer.write_manifest_file()
+        o1_rolling_manifest = {
+            "tape_manifest_sha256": rolling["tape_manifest_sha256"],
+            "records_hashed": rolling["record_count"],
+            "bytes_hashed": rolling["bytes_written"],
+            "bytes_written": rolling["bytes_written"],
+            "record_type_counts": dict(rolling["record_type_counts"]),
+        }
+        bounded_last_error = self.last_error[:200] if isinstance(self.last_error, str) else None
         heartbeat = {
             "event": "OBSERVED_L2_HEARTBEAT",
             "schema_version": SCHEMA_VERSION_V2,
@@ -2519,13 +2710,16 @@ class ObservedL2CollectorV2:
             "curated_kalshi_active_count": len(self.tracker.active_tickers()),
             "polymarket_benchmark_active_count": len(self.poly_tokens),
             "last_trade_window_status": self.last_trade_window_status,
-            "last_error": self.last_error,
+            "last_error": bounded_last_error,
             "collector_git_sha": self.writer.collector_git_sha,
             "filter_config_hash": self.filter_config_hash,
             "session_dir": str(self.session_dir),
             "tape_path": str(self.writer.tape_path),
             "tape_manifest_sha256": rolling["tape_manifest_sha256"],
-            "rolling_manifest": rolling,
+            "records_hashed": rolling["record_count"],
+            "bytes_hashed": rolling["bytes_written"],
+            "record_type_counts": dict(rolling["record_type_counts"]),
+            "rolling_manifest": o1_rolling_manifest,
         }
         payload = json.dumps(heartbeat, sort_keys=True)
         tmp_path = self.heartbeat_path.with_suffix(".json.tmp")
