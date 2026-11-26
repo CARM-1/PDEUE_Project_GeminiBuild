@@ -1,0 +1,119 @@
+name: Layer A — Gemini PR Auditor
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [ring1-alpha]
+
+concurrency:
+  group: gemini-pr-auditor-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  gemini-pr-audit:
+    name: Autonomous Invariant Audit (Read-Only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check GEMINI_API_KEY availability
+        id: check_secret
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          if [ -n "${GEMINI_API_KEY}" ]; then
+            echo "enabled=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "enabled=false" >> "${GITHUB_OUTPUT}"
+            echo "::notice::GEMINI_API_KEY is empty (e.g., forked PR or secret not configured). Skipping Gemini PR Auditor gracefully."
+          fi
+
+      - name: Checkout repository (read-only)
+        if: steps.check_secret.outputs.enabled == 'true'
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Ensure origin/ring1-alpha ref is present
+        if: steps.check_secret.outputs.enabled == 'true'
+        run: |
+          if ! git rev-parse --verify origin/ring1-alpha >/dev/null 2>&1; then
+            git fetch --no-tags origin ring1-alpha:refs/remotes/origin/ring1-alpha
+          fi
+
+      - name: Run Gemini PR Auditor (Read-Only)
+        id: gemini_auditor
+        if: steps.check_secret.outputs.enabled == 'true'
+        uses: google-github-actions/run-gemini-cli@v0
+        env:
+          GEMINI_CLI_TRUST_WORKSPACE: 'true'
+          # Keep GitHub write tokens out of the LLM execution environment;
+          # comment posting is handled deterministically in the next step.
+          GITHUB_TOKEN: ''
+        with:
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          gemini_model: ${{ vars.GEMINI_MODEL || 'gemini-3.8-flash' }}
+          workflow_name: gemini-pr-auditor
+          github_pr_number: ${{ github.event.pull_request.number }}
+          settings: |-
+            {
+              "model": {
+                "maxSessionTurns": 15
+              },
+              "tools": {
+                "exclude": [
+                  "write_file",
+                  "replace"
+                ]
+              }
+            }
+          prompt: |
+            You are the PDEUE Layer A Autonomous PR Auditor operating strictly in READ-ONLY mode.
+            NEVER modify files, commit changes, push branches, or merge PRs.
+
+            Follow these exact steps:
+            1. Read `GEMINI.md` in full (Sections 1–4, including Brief #01 Microstructure & Statistical Invariants).
+            2. Inspect the Pull Request diff against `ring1-alpha` by running:
+               - `git diff --stat origin/ring1-alpha...HEAD`
+               - `git diff origin/ring1-alpha...HEAD`
+            3. Audit the diff for ANY violation of:
+               - **ADR-008 & Brief #01 3-Unit Exact Integers:** Any `float()` arithmetic or float casting on prices, sizes, balances, or fees; verify exact integers (`price_pips`, `qty_centi`, `micro_dollars`, 64-bit integer cents) and v1 uniform 1c-grid zero-maker-fee Kalshi series scope.
+               - **ADR-011 Banking Air-Gap:** Any bank routing numbers, account numbers, SWIFT/IBAN codes, or banking API credentials.
+               - **ADR-012 / Rule A14:** Any weakening of the 87/10/3 High-Water Mark waterfall or 100% SCMA loss isolation.
+               - **Zero Synthetic Fills:** Any violation of "No print, no fill" or promotion of public prints (`OBSERVED_TRADE`) to `CONFIRMED_OWN_FILL`.
+               - **Brief #01 Guardrails:** Strategy D spread band (4c–10c default; 3c replay only; 1c–2c observation only), short-horizon Crypto `BENCHMARK_ONLY` (never live-traded), and G2A/G2B/G2C governance splits ($5 max order / $10 max cumulative loss micro-pilot; G2C `e >= 20`).
+               - **Protected Boundaries:** Accidental `main` targeting/overwrites, unauthorized AWS Lightsail or production infrastructure mutations, Gate G1 fail-closed weakening (`HOLD_OBSERVATIONS_ONLY`, `paper` mode), live exchange credential hooks, or external CDN `<script>`/`<link>` tags in `backend/` HTML templates.
+            4. Return a concise, plain-English audit comment for the PR with:
+               - A short summary of files audited.
+               - Bulleted invariant findings (or confirmation that each checked invariant passed).
+               - A final verdict line matching EXACTLY one of:
+                 `VERDICT: PASS`
+                 `VERDICT: RETRY`
+                 `VERDICT: ESCALATE`
+
+      - name: Post PR Audit Comment
+        if: steps.check_secret.outputs.enabled == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          AUDIT_BODY: ${{ steps.gemini_auditor.outputs.summary }}
+        run: |
+          set -euo pipefail
+          if [ -z "$(printf '%s' "${AUDIT_BODY}" | tr -d '[:space:]')" ]; then
+            echo "::warning::Gemini PR Auditor returned an empty response; skipping PR comment."
+            exit 0
+          fi
+          COMMENT_FILE="$(mktemp)"
+          trap 'rm -f "${COMMENT_FILE}"' EXIT
+          {
+            echo "## PDEUE Layer A Autonomous PR Audit"
+            echo ""
+            printf '%s\n' "${AUDIT_BODY}"
+          } > "${COMMENT_FILE}"
+          gh pr comment "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" --body-file "${COMMENT_FILE}"

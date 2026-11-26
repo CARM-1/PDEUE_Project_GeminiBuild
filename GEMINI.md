@@ -48,3 +48,29 @@ Automated agents (Jules, Gemini CLI, CI bots) MUST NOT modify or bypass any of t
    - Run `cd backend && pytest -q` (must pass 100% with zero regressions from the 767-test baseline).
    - Follow `DESIGN_TOKENS.md` for all frontend work and attach rendered Playwright screenshots for UI PRs.
    - Update `docs/PDEUE_MASTER_CHECKLIST.md` ONLY for items whose verification gate has actually passed.
+
+---
+
+## 4. Brief #01 Microstructure & Statistical Invariants (Ratified)
+
+All trading collectors, replay engines, underwriting strategies, and automated PR audits targeting `ring1-alpha` MUST enforce the ratified Staff Consultation Brief #01 invariants:
+
+1. **3-Unit Exact Integers:** Represent market microstructure quantities strictly with exact integer units:
+   - `price_pips` (`$0.0001` per pip)
+   - `qty_centi` (`0.01` contracts per centi-contract)
+   - `micro_dollars` (`$0.000001` per micro-dollar)
+   - Zero `float()` arithmetic or casting on prices, sizes, or fees.
+   - v1 live execution is strictly restricted to uniform 1c-grid, zero-maker-fee Kalshi series.
+2. **Zero Synthetic Fills:** *"No print, no fill."* Never fabricate or infer own fills from book movement, and NEVER promote public prints (`OBSERVED_TRADE`) to `CONFIRMED_OWN_FILL`.
+3. **Strategy D Spread & Crypto Guardrails:**
+   - Default Strategy D spread band is **4c–10c** (`3c` is replay variant only; `1c–2c` is observation only).
+   - Short-horizon Crypto markets are strictly `BENCHMARK_ONLY` (never live-traded).
+4. **G2A / G2B / G2C Governance Split:**
+   - **G2A (Offline Certification):** Certified strictly on a 14-day observed tape split into **Days 1–8 Train / Day 9 Embargo / Days 10–14 Sealed Holdout**.
+   - **G2B ($100 Founder Micro-Pilot):** Owner-gated live validation using fixed minimum lots (**$5 max order / $10 max cumulative loss**).
+   - **G2C (Scaling):** Capital scaling beyond G2B requires an anytime-valid e-process crossing **`e >= 20`**.
+5. **PR Audit Verdict Format:** Every automated PR review targeting `ring1-alpha` MUST provide concise, plain-English bulleted invariant findings and end with a single unambiguous verdict line:
+   - `VERDICT: PASS` — Zero invariant violations detected; eligible for Founder review/merge.
+   - `VERDICT: RETRY` — Correctable invariant or hygiene defect found; author/agent must remediate within the 3-retry circuit breaker.
+   - `VERDICT: ESCALATE` — Protected boundary touched (live credentials, AWS Lightsail/production mutation, Gate G1 fail-closed weakening, `main` target/overwrite, or repeated circuit-breaker trip); halt and escalate to Founder.
+
