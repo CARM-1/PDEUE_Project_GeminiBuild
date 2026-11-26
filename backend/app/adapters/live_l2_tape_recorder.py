@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 
-KALSHI_PUBLIC_BASE = "https://api.elections.kalshi.com/trade-api/v2"
+KALSHI_PUBLIC_BASE = "https://external-api.kalshi.com/trade-api/v2"
 POLYMARKET_PUBLIC_BASE = "https://clob.polymarket.com"
 POLYMARKET_GAMMA_BASE = "https://gamma-api.polymarket.com"
 
@@ -358,7 +358,12 @@ class ReadOnlyL2TapeRecorder:
         self.require_non_empty_book = bool(require_non_empty_book)
         self.tape_path = self.output_dir / "tape.jsonl"
         self.manifest_path = self.output_dir / "tape_manifest.json"
-        self._records: List[Dict[str, Any]] = []
+        self._rolling_sha256 = hashlib.sha256()
+        self._snapshot_count: int = 0
+        self._venues: set[str] = set()
+        self._tickers: set[str] = set()
+        self._first_captured_at_utc: Optional[str] = None
+        self._last_captured_at_utc: Optional[str] = None
 
     def close(self) -> None:
         if self._owns_client:
@@ -387,37 +392,47 @@ class ReadOnlyL2TapeRecorder:
         return snap
 
     def _append(self, snapshot: Dict[str, Any]) -> None:
-        line = json.dumps(snapshot, sort_keys=True, separators=(",", ":")) + "\n"
-        with self.tape_path.open("a", encoding="utf-8") as fh:
-            fh.write(line)
-        self._records.append(snapshot)
+        line_bytes = (json.dumps(snapshot, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
+        with self.tape_path.open("ab") as fh:
+            fh.write(line_bytes)
+        self._rolling_sha256.update(line_bytes)
+        self._snapshot_count += 1
+        self._venues.add(str(snapshot["venue"]))
+        self._tickers.add(str(snapshot["contract_ticker"]))
+        if self._first_captured_at_utc is None:
+            self._first_captured_at_utc = snapshot["captured_at_utc"]
+        self._last_captured_at_utc = snapshot["captured_at_utc"]
 
     def finalize_manifest(self) -> Dict[str, Any]:
-        if not self.tape_path.exists() or not self._records:
+        if not self.tape_path.exists() or self._snapshot_count == 0:
             raise ValueError("Cannot finalize manifest: zero L2 snapshots captured")
-        raw_bytes = self.tape_path.read_bytes()
-        digest = hashlib.sha256(raw_bytes).hexdigest()
+        digest = self._rolling_sha256.copy().hexdigest()
         manifest = {
             "schema_version": "1.1.0-certified-candidate",
             "data_provenance": "OBSERVED_L2",
             "tape_file": self.tape_path.name,
             "tape_manifest_sha256": digest,
-            "snapshot_count": len(self._records),
-            "venues": sorted({r["venue"] for r in self._records}),
-            "tickers": sorted({r["contract_ticker"] for r in self._records}),
-            "first_captured_at_utc": self._records[0]["captured_at_utc"],
-            "last_captured_at_utc": self._records[-1]["captured_at_utc"],
+            "snapshot_count": self._snapshot_count,
+            "venues": sorted(self._venues),
+            "tickers": sorted(self._tickers),
+            "first_captured_at_utc": self._first_captured_at_utc,
+            "last_captured_at_utc": self._last_captured_at_utc,
             "read_only_capture": True,
             "synthetic_fills_present": False,
         }
-        self.manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        tmp_path = self.manifest_path.with_suffix(".json.tmp")
+        tmp_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        tmp_path.replace(self.manifest_path)
         return manifest
 
 
 def verify_tape_manifest(manifest_path: Path, *, require_non_empty_book: bool = True) -> Dict[str, Any]:
-    """Fail-closed verifier for OBSERVED_L2 tape manifests: validates SHA-256, integer cents, depth, and monotonic UTC."""
+    """Fail-closed verifier for OBSERVED_L2 tape manifests (v1.1 and Schema v2.0.0)."""
     mpath = Path(manifest_path)
     manifest = json.loads(mpath.read_text(encoding="utf-8"))
+    if manifest.get("schema_version") == "2.0.0":
+        from app.adapters.collector_v2 import verify_v2_tape_manifest
+        return verify_v2_tape_manifest(mpath)
     if manifest.get("data_provenance") != "OBSERVED_L2":
         raise ValueError("Manifest provenance must be OBSERVED_L2")
     if manifest.get("synthetic_fills_present") is not False:

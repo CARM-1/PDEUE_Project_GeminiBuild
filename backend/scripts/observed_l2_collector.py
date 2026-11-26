@@ -19,6 +19,16 @@ from typing import Any, Callable, Dict, List, Optional
 
 import httpx
 
+from app.adapters.collector_v2 import (
+    ADMISSION_INTERVAL_SECONDS,
+    BASELINE_POLL_INTERVAL_SECONDS,
+    KALSHI_EXTERNAL_API_BASE,
+    MAX_CURATED_KALSHI_CONTRACTS,
+    MAX_POLYMARKET_BENCHMARK_CONTRACTS,
+    ObservedL2CollectorV2,
+    SCHEMA_VERSION_V2,
+    TRADES_OVERLAP_WINDOW_SECONDS,
+)
 from app.adapters.live_l2_tape_recorder import (
     ReadOnlyL2TapeRecorder,
     discover_liquid_kalshi_tickers,
@@ -299,6 +309,12 @@ class ObservedL2Collector:
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
+        "--schema-version",
+        type=str,
+        default=os.getenv("PDEUE_COLLECTOR_SCHEMA_VERSION", SCHEMA_VERSION_V2),
+        help="Collector tape schema version ('2.0.0' default, or legacy '1.1.0').",
+    )
+    parser.add_argument(
         "--tape-dir",
         type=Path,
         default=Path(os.getenv("PDEUE_TAPE_DIR", "/var/lib/pdeue/tapes")),
@@ -306,21 +322,57 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
     parser.add_argument(
         "--interval-seconds",
-        type=float,
-        default=float(os.getenv("PDEUE_L2_POLL_INTERVAL_SECONDS", "60")),
-        help="Respectful polling interval in seconds between public read-only snapshots.",
+        type=int,
+        default=int(os.getenv("PDEUE_L2_POLL_INTERVAL_SECONDS", str(BASELINE_POLL_INTERVAL_SECONDS))),
+        help="Broad baseline polling interval in seconds (default 60s).",
+    )
+    parser.add_argument(
+        "--curated-interval-seconds",
+        type=int,
+        default=int(os.getenv("PDEUE_L2_CURATED_INTERVAL_SECONDS", "10")),
+        help="Curated Kalshi batched orderbook polling interval in seconds (default 10s).",
+    )
+    parser.add_argument(
+        "--trades-interval-seconds",
+        type=int,
+        default=int(os.getenv("PDEUE_L2_TRADES_INTERVAL_SECONDS", "10")),
+        help="Kalshi public trades polling interval in seconds (default 10s).",
+    )
+    parser.add_argument(
+        "--admission-interval-seconds",
+        type=int,
+        default=int(os.getenv("PDEUE_L2_ADMISSION_INTERVAL_SECONDS", str(ADMISSION_INTERVAL_SECONDS))),
+        help="Kalshi CQP-001-v0.1 admission scan interval in seconds (default 900s = 15m).",
+    )
+    parser.add_argument(
+        "--trades-window-seconds",
+        type=int,
+        default=int(os.getenv("PDEUE_L2_TRADES_WINDOW_SECONDS", str(TRADES_OVERLAP_WINDOW_SECONDS))),
+        help="Overlapping lookback window in seconds for GET /markets/trades (default 120s).",
     )
     parser.add_argument(
         "--kalshi-count",
         type=int,
         default=int(os.getenv("PDEUE_L2_KALSHI_COUNT", "2")),
-        help="Number of liquid Kalshi markets to discover and observe.",
+        help="Number of broad baseline Kalshi markets to observe.",
     )
     parser.add_argument(
         "--poly-count",
         type=int,
-        default=int(os.getenv("PDEUE_L2_POLY_COUNT", "2")),
-        help="Number of liquid Polymarket contracts to discover and observe.",
+        default=int(os.getenv("PDEUE_L2_POLY_COUNT", str(MAX_POLYMARKET_BENCHMARK_CONTRACTS))),
+        help="Number of read-only Polymarket benchmark contracts to observe (hard-capped at 16).",
+    )
+    parser.add_argument(
+        "--max-req-per-sec",
+        type=int,
+        default=int(os.getenv("PDEUE_L2_MAX_REQ_PER_SEC", "2")),
+        help="Hard cap on total outbound HTTP requests per second (default 2 req/s).",
+    )
+    parser.add_argument(
+        "--kalshi-base-url",
+        type=str,
+        default=os.getenv("PDEUE_KALSHI_PUBLIC_BASE", KALSHI_EXTERNAL_API_BASE),
+        help="Public read-only Kalshi REST v2 base URL.",
     )
     parser.add_argument(
         "--max-cycles",
@@ -330,12 +382,26 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    collector = ObservedL2Collector(
-        args.tape_dir,
-        kalshi_count=args.kalshi_count,
-        poly_count=args.poly_count,
-        interval_seconds=args.interval_seconds,
-    )
+    if str(args.schema_version).strip().startswith("1"):
+        collector: Any = ObservedL2Collector(
+            args.tape_dir,
+            kalshi_count=args.kalshi_count,
+            poly_count=args.poly_count,
+            interval_seconds=args.interval_seconds,
+        )
+    else:
+        collector = ObservedL2CollectorV2(
+            args.tape_dir,
+            kalshi_base_url=args.kalshi_base_url,
+            curated_interval_seconds=args.curated_interval_seconds,
+            trades_interval_seconds=args.trades_interval_seconds,
+            baseline_interval_seconds=args.interval_seconds,
+            admission_interval_seconds=args.admission_interval_seconds,
+            trades_window_seconds=args.trades_window_seconds,
+            kalshi_baseline_count=args.kalshi_count,
+            poly_benchmark_count=min(args.poly_count, MAX_POLYMARKET_BENCHMARK_CONTRACTS),
+            max_req_per_sec=args.max_req_per_sec,
+        )
 
     def _handle_signal(_signum: int, _frame: Any) -> None:
         collector.request_stop()
