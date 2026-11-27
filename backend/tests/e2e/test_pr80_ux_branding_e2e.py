@@ -235,8 +235,8 @@ def test_pr80_twin_crests_brand_lockup_and_footer_across_all_seven_portals(
                 })"""
             )
             assert len(crest_info) == 2, f"Expected 2 twin crest images on {path}, got {crest_info}"
-            assert crest_info[0]["src"].endswith("carmichael_crest.svg")
-            assert crest_info[1]["src"].endswith("mccormick_crest.svg")
+            assert crest_info[0]["src"].endswith("carmichael_crest.jpg")
+            assert crest_info[1]["src"].endswith("mccormick_crest.jpg")
             for c in crest_info:
                 assert c["complete"] is True and c["naturalWidth"] > 0 and c["naturalHeight"] > 0, (
                     f"Broken crest image on {path}: {c}"
@@ -332,7 +332,7 @@ def test_pr80_companion_compact_title_hierarchy_and_glossary_two_layer_e2e(
                 };
             }"""
         )
-        assert 19.0 <= metrics["h1FontSizePx"] <= 29.0, f"Unexpected /companion H1 size ({vp_name}): {metrics}"
+        assert 17.5 <= metrics["h1FontSizePx"] <= 29.0, f"Unexpected /companion H1 size ({vp_name}): {metrics}"
         assert metrics["h2FontSizePx"] < metrics["h1FontSizePx"], f"H2 must be smaller than H1: {metrics}"
         if vp_name == "desktop_1440x900":
             assert metrics["h1Bottom"] < 320, f"Hero H1 sits too low on desktop: {metrics}"

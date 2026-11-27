@@ -50,6 +50,7 @@ jobs:
       - name: Run Gemini PR Auditor (Read-Only)
         id: gemini_auditor
         if: steps.check_secret.outputs.enabled == 'true'
+        continue-on-error: true
         uses: google-github-actions/run-gemini-cli@v0
         env:
           GEMINI_CLI_TRUST_WORKSPACE: 'true'
@@ -97,8 +98,39 @@ jobs:
                  `VERDICT: RETRY`
                  `VERDICT: ESCALATE`
 
+      - name: Handle Gemini PR Auditor Error (Graceful 429/503)
+        id: handle_auditor_error
+        if: steps.check_secret.outputs.enabled == 'true' && steps.gemini_auditor.outcome == 'failure'
+        env:
+          AUDIT_ERROR: ${{ steps.gemini_auditor.outputs.error }}
+          AUDIT_SUMMARY: ${{ steps.gemini_auditor.outputs.summary }}
+        run: |
+          set -euo pipefail
+          ERR_BLOB="${AUDIT_ERROR:-}"
+          if [ -n "${AUDIT_SUMMARY:-}" ]; then
+            ERR_BLOB="${ERR_BLOB}"$'\n'"${AUDIT_SUMMARY}"
+          fi
+          for f in /tmp/gemini-client-error-*.json; do
+            if [ -f "$f" ]; then
+              ERR_BLOB="${ERR_BLOB}"$'\n'"$(cat "$f" 2>/dev/null || true)"
+            fi
+          done
+          if printf '%s' "${ERR_BLOB}" | grep -Eqi '("?(code|status)"?[[:space:]]*[:=][[:space:]]*(429|503)([^0-9]|$)|HTTP[[:space:]]*(429|503)([^0-9]|$)|exhausted your daily quota|quota exceeded|experiencing high demand|RetryableQuotaError|TerminalQuotaError|RESOURCE_EXHAUSTED|Service Unavailable|Too Many Requests)'; then
+            echo "::warning title=Gemini PR Auditor Skipped (Transient HTTP 429/503)::Upstream Gemini API returned a transient HTTP 429 (quota) or HTTP 503 (high demand) error. Skipping automated Layer A audit gracefully without failing the PR check."
+            if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+              {
+                echo "### Layer A Gemini PR Auditor — Skipped (Transient API 429/503)"
+                echo ""
+                echo "Upstream Gemini API returned a transient HTTP 429 (quota) or HTTP 503 (high demand) error. Check exited green with a warning."
+              } >> "${GITHUB_STEP_SUMMARY}"
+            fi
+            exit 0
+          fi
+          echo "::error title=Gemini PR Auditor Failed::Gemini PR Auditor failed with a non-transient error."
+          exit 1
+
       - name: Post PR Audit Comment
-        if: steps.check_secret.outputs.enabled == 'true'
+        if: steps.check_secret.outputs.enabled == 'true' && steps.gemini_auditor.outcome == 'success'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
