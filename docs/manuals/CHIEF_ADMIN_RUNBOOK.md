@@ -186,3 +186,25 @@ No House, communal body, or named voter seat may EVER propose or amend the platf
 
 ### 1-Click SHTF Snap-Back Protocol
 During an acute crisis, legal threat, venue failure, or compromised committee process, the Chief Administrator may execute the **1-Click SHTF Snap-Back** (`POST /api/v1/governance/shtf-snapback`) from `/dashboard` Tab 4. Execution instantaneously returns `governance_mode` to `EXECUTIVE_COMMAND`, immediately strips voting/veto buttons from House desks, blocks voting mutations (`HTTP 403`), and records an immutable `GOVERNANCE_SHTF_SNAPBACK` entry in `GovernanceAuditLog`.
+
+---
+
+## 8. Apex Passphrase + MFA Command Sign-In & Lost-Device Session Revocation Checklist
+
+**In Plain English:** Regular family members and routine officers enjoy effortless 6-digit email codes and Magic Links with zero passwords to forget. By contrast, the three highest-privilege seats—**Chief Administrator (`CHIEF_ADMIN`)**, **Chief Technical Officer (`T3`)**, and **Chief Risk Officer (`F3`)**—are permanently locked to **Command Passphrase + 6-Digit MFA** (or FIDO2/WebAuthn hardware key), and `/dashboard` Tab 4 gives you an instant **1-click Revoke Device** button whenever any relative loses a phone or leaves a shared laptop signed in.
+
+### 8.1 Apex & Tier-3 Sign-In Guardrails (`CHIEF_ADMIN`, `T3`, `F3`)
+1. **Passwordless Shortcut Blocked (`HTTP 403 · APEX_MFA_REQUIRED`):** Attempting `/api/v1/auth/request-code` for an Apex or Tier-3 email fails closed with zero codes generated and logs `AUTH_PASSWORDLESS_REJECTED_APEX` to `GovernanceAuditLog`.
+2. **Command Verification (`POST /api/v1/auth/apex-login`):** Open `/login` → expand **Apex & Tier-3 Command Sign-In** → authenticate with salted PBKDF2-HMAC-SHA256 Passphrase + 6-digit MFA code (or FIDO2/WebAuthn assertion hook).
+3. **Strict Session Window:** All Officers and Apex seats enforce an **8-hour absolute active window** and **30-minute idle timeout** (`pdeue_session` signed `HttpOnly`, `SameSite=Lax`, `Secure` over HTTPS).
+4. **Directive R-06 Server-Side Active-Hat Rotation (`POST /api/v1/auth/switch-hat`):** Rotating between `CHIEF_ADMINISTRATOR` and `PERSONAL_SCMA` validates strictly against `auth_users.authorized_hats`, updates `auth_sessions.active_hat` server-side, and logs `ACTIVE_HAT_SWITCH`. Passwordless sessions can never escalate into Apex/Tier-3 hats.
+5. **Server-Side Tenant Jailing & Supervisory Audit Lens:** Authenticated Class M sessions are strictly jailed to their own `scma_id` (`?scma_id=` tampering fails closed with `HTTP 403`). Chief Admin preserves read-only Supervisory Audit Lens inspection across subordinate portals without mutating member state.
+
+### 8.2 Lost-Device Instant Session Revocation Checklist (Tab 4)
+When a family member reports a lost phone, stolen tablet, or forgotten sign-in on a shared computer:
+1. Open `/dashboard` → **Tab 4 (Governance & Dual-Control)** → scroll to **Active Family Sessions & Lost-Device Revocation** (`#active-sessions-card`) and click **Refresh Sessions** (`#btn-refresh-sessions`).
+2. Locate the affected relative's `session_id`, email, `active_hat`, and `last_activity_at` timestamp.
+3. Click **Revoke Device** (`POST /api/v1/auth/sessions/{session_id}/revoke`). *(Note: `CHIEF_ADMIN_DEPUTY` can inspect active sessions read-only, while revocation requires live `CHIEF_ADMIN` authority.)*
+4. Confirm the status flips to **`REVOKED`** and record the `audit_event_id` logged to `GovernanceAuditLog` (`AUTH_SESSION_REVOKED`). Any subsequent request using that device's cookie fails closed immediately (`HTTP 401` on APIs / redirect to `/login?reason=session_expired` on HTML portals).
+5. Reassure the relative that their SCMA capital and IFAS banking air-gap (`ADR-011`) remain completely untouched, and guide them to sign in on their new device via `/login` using a fresh 6-digit email code.
+

@@ -499,6 +499,48 @@ class FamilyTreeRelationshipModel(Base):
     updated_at_utc = Column(String, nullable=False, default=_now)
 
 
+class AuthUserModel(Base):
+    """PR #98: Private family allowlist user record (zero public registration)."""
+    __tablename__ = 'auth_users'
+    user_id = Column(String, primary_key=True, index=True)
+    email = Column(String, unique=True, nullable=False, index=True)
+    display_name = Column(String, nullable=False)
+    scma_id = Column(String, nullable=True, index=True)
+    house_id = Column(String, nullable=False, default='HOUSE-01', index=True)
+    authorized_hats = Column(Text, nullable=False, default='["MEMBER_USER"]')
+    is_apex_tier3 = Column(Integer, nullable=False, default=0, index=True)
+    passphrase_hash = Column(String, nullable=True)
+    mfa_secret_hash = Column(String, nullable=True)
+    active = Column(Integer, nullable=False, default=1, index=True)
+
+
+class AuthLoginChallengeModel(Base):
+    """PR #98: Single-use 6-digit email code & Magic Link challenge (SHA-256 hashes only)."""
+    __tablename__ = 'auth_login_challenges'
+    challenge_id = Column(String, primary_key=True, index=True)
+    user_id = Column(String, ForeignKey('auth_users.user_id'), nullable=False, index=True)
+    code_hash = Column(String, nullable=False, index=True)
+    magic_token_hash = Column(String, nullable=False, index=True)
+    expires_at = Column(String, nullable=False)
+    attempts = Column(Integer, nullable=False, default=0)
+    consumed_at = Column(String, nullable=True)
+
+
+class AuthSessionModel(Base):
+    """PR #98: Server-tracked authenticated session with Active-Hat lock, idle timeout, and revocation."""
+    __tablename__ = 'auth_sessions'
+    session_id = Column(String, primary_key=True, index=True)
+    user_id = Column(String, ForeignKey('auth_users.user_id'), nullable=False, index=True)
+    scma_id = Column(String, nullable=True, index=True)
+    active_hat = Column(String, nullable=False, index=True)
+    issued_at = Column(String, nullable=False)
+    last_activity_at = Column(String, nullable=False)
+    expires_at = Column(String, nullable=False)
+    idle_timeout_seconds = Column(Integer, nullable=False, default=7200)
+    revoked_at = Column(String, nullable=True)
+    revoked_by = Column(String, nullable=True)
+
+
 UserRoleAssignment = UserRoleAssignmentModel
 CustodialAssignment = CustodialAssignmentModel
 EnclavePolicyControl = EnclavePolicyControlModel
@@ -509,6 +551,10 @@ HeritageSurnameRecord = HeritageSurnameRecordModel
 CommunityNotification = CommunityNotificationModel
 FamilyTreePerson = FamilyTreePersonModel
 FamilyTreeRelationship = FamilyTreeRelationshipModel
+AuthUser = AuthUserModel
+AuthLoginChallenge = AuthLoginChallengeModel
+AuthSession = AuthSessionModel
+
 
 
 

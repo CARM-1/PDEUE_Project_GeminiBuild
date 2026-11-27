@@ -1378,6 +1378,152 @@
           ]
         }
       ]
+    },
+    {
+      "playbook_id": "class_m_private_signin_and_sessions",
+      "title": "How to Sign In · Private Family Sign-In, Universal 6-Digit Email Code & Magic Link",
+      "summary": "How to sign in at /login with zero passwords using a 10-minute single-use 6-digit email code or same-device Magic Link, understand returning visits and idle locks, and learn why Apex seats use Passphrase + MFA.",
+      "role_classes": [
+        "CLASS_M",
+        "H1",
+        "H2",
+        "HOUSE_GENEALOGIST",
+        "F1",
+        "F2-H",
+        "F2-A",
+        "F3",
+        "T1",
+        "T2",
+        "T2-HOUSEHOLD",
+        "T3",
+        "CHIEF_ADMIN",
+        "CHIEF_ADMIN_DEPUTY"
+      ],
+      "scenario_type": "routine",
+      "portal_route": "/login",
+      "control_ids": [
+        "loginEmailInput",
+        "sendCodeBtn",
+        "loginCodeInput",
+        "verifyCodeBtn",
+        "apexLoginDrawer",
+        "signinHowToDrawer"
+      ],
+      "manual_anchor": "docs/manuals/USER_QUICKSTART.md#12-how-to-sign-in--stay-safe-no-passwords-magic-links--lost-devices",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Open /login and enter your approved family email in #loginEmailInput, then click Send My Sign-In Code (#sendCodeBtn)",
+          "effect": "Private allowlist dispatches an R-12 safe email (zero balances or SCMA IDs) containing a single-use 6-digit code and one-tap Magic Link valid for 10 minutes."
+        },
+        {
+          "step": 2,
+          "action": "On the same device tap the Magic Link in your email, or on a second device type the 6 digits into #loginCodeInput and click Verify 6-Digit Code & Sign In (#verifyCodeBtn)",
+          "effect": "Permanently burns the single-use code, issues a signed HttpOnly session cookie jailed strictly to your own SCMA account (7-day active / 2-hour idle lock for Class M; 8-hour / 30-minute idle lock for Officers)."
+        },
+        {
+          "step": 3,
+          "action": "For Apex & Tier-3 command seats (CHIEF_ADMIN, T3, F3), expand #apexLoginDrawer and authenticate with your Command Passphrase + 6-digit MFA code; click Sign Out when leaving a shared computer",
+          "effect": "Enforces stronger command verification, blocks passwordless shortcuts for Apex seats, and preserves Directive R-06 one-hat-at-a-time isolation."
+        }
+      ],
+      "media_assets": [
+        {
+          "asset_id": "diag-signin-security-flow",
+          "media_type": "diagram_svg",
+          "path": "/static/media/playbooks/signin_security_flow.svg",
+          "caption": "Private Family Sign-In flow showing zero-password 6-digit codes & Magic Links, signed HttpOnly tenant-jailed sessions, Apex Passphrase + MFA, and 1-click lost-device revocation.",
+          "narrated": false,
+          "replaceable": true,
+          "callout_legend": [
+            {
+              "badge": 1,
+              "control_id": "loginEmailInput",
+              "label": "Private Family Allowlist (Zero Passwords)",
+              "note": "No public registration; unknown emails receive a calm generic 200 with zero messages sent."
+            },
+            {
+              "badge": 2,
+              "control_id": "loginCodeInput",
+              "label": "6-Digit Code & Same-Device Magic Link",
+              "note": "10-minute TTL, max 5 attempts, permanent single-use burn, R-12 safe payload."
+            },
+            {
+              "badge": 3,
+              "control_id": "verifyCodeBtn",
+              "label": "Signed HttpOnly Session & SCMA Tenant Jail",
+              "note": "Server strictly ignores ?scma_id= tampering and locks your session to your own account."
+            },
+            {
+              "badge": 4,
+              "control_id": "apexLoginDrawer",
+              "label": "Apex & Tier-3 Passphrase + MFA",
+              "note": "CHIEF_ADMIN, T3, and F3 require salted PBKDF2 passphrase + 6-digit MFA."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "playbook_id": "chief_admin_lost_device_session_revocation",
+      "title": "Lost Phone or Laptop · Incident: Instant 1-Click Session Revocation & Device Lockout",
+      "summary": "Respond calmly when a family member loses a phone or leaves a shared laptop active: contact the Chief Administrator to inspect Active Family Sessions on /dashboard Tab 4 and immediately revoke the lost device.",
+      "role_classes": [
+        "CHIEF_ADMIN",
+        "CLASS_M",
+        "F2-H",
+        "H2"
+      ],
+      "scenario_type": "outlier_incident",
+      "portal_route": "/dashboard",
+      "control_ids": [
+        "active-sessions-card",
+        "btn-refresh-sessions",
+        "dashboardSignOutBtn"
+      ],
+      "manual_anchor": "docs/manuals/USER_QUICKSTART.md#12-how-to-sign-in--stay-safe-no-passwords-magic-links--lost-devices",
+      "steps": [
+        {
+          "step": 1,
+          "action": "If you lose your phone or laptop, stay calm (no banking logins are stored in PDEUE and /member auto-locks after 2 hours idle) and contact the Chief Administrator (or your F2-H / H2 leader) right away",
+          "effect": "Alerts leadership to terminate the missing device's session without touching your SCMA balance or IFAS custody records."
+        },
+        {
+          "step": 2,
+          "action": "Chief Administrator opens /dashboard Tab 4 (#active-sessions-card), clicks Refresh Sessions (#btn-refresh-sessions), and locates the affected relative's active session",
+          "effect": "Displays live active sessions, Active Hat, last activity timestamp, and idle lock window."
+        },
+        {
+          "step": 3,
+          "action": "Chief Administrator clicks Revoke Device on the lost device's row (POST /api/v1/auth/sessions/{session_id}/revoke)",
+          "effect": "Immediately invalidates that device's cookie (HTTP 401 / redirect to /login), logs AUTH_SESSION_REVOKED to GovernanceAuditLog, and lets the relative reconnect safely on a replacement phone or laptop."
+        }
+      ],
+      "media_assets": [
+        {
+          "asset_id": "diag-lost-device-revocation",
+          "media_type": "diagram_svg",
+          "path": "/static/media/playbooks/signin_security_flow.svg",
+          "caption": "Lost phone or laptop incident workflow showing instant Chief Admin 1-click session revocation on /dashboard Tab 4 and immediate HTTP 401 cookie invalidation.",
+          "narrated": false,
+          "replaceable": true,
+          "callout_legend": [
+            {
+              "badge": 5,
+              "control_id": "active-sessions-card",
+              "label": "Lost Phone / Laptop Instant Revocation",
+              "note": "Chief Admin revokes the compromised session in 1 click and records an immutable audit event."
+            },
+            {
+              "badge": 3,
+              "control_id": "dashboardSignOutBtn",
+              "label": "Shared-Device Session Closure",
+              "note": "Self-service logout immediately revokes your active session and clears the browser cookie."
+            }
+          ]
+        }
+      ]
     }
   ]
 }
+

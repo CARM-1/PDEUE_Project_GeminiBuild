@@ -6,7 +6,7 @@ PDEUE Phase 1 Integrity Remediation Router
 - Directive R-06: Split-Hat Role Mapping on /member
 - Directive R-12: Redacted Telemetry Plane on /admin/tech
 """
-from fastapi import APIRouter, Header, HTTPException, Query
+from fastapi import APIRouter, Header, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
@@ -32,6 +32,7 @@ from app.domain.authority_tiers import (
     get_ca_override_manager,
     get_directive_r04_controller,
     get_governance_audit_log,
+    is_chief_admin_deputy_role,
     is_chief_admin_role,
     is_class_t_role,
     is_founder_target,
@@ -1168,9 +1169,79 @@ def _member_concurrency_slots() -> List[Dict[str, Any]]:
     ]
 
 
+def _enforce_session_member_jail(
+    request: Optional[Request],
+    *,
+    requested_scma_id: Optional[str] = None,
+    requested_user_id: Optional[str] = None,
+    action: str = "MEMBER_PORTAL_READ",
+) -> tuple[Optional[str], Optional[str]]:
+    """Jail authenticated non-admin sessions strictly to their bound SCMA ID."""
+    if request is None:
+        return requested_scma_id, requested_user_id
+    auth_session = getattr(request.state, "auth_session", None)
+    if auth_session is None:
+        return requested_scma_id, requested_user_id
+    if is_chief_admin_role(auth_session.active_hat) or is_chief_admin_deputy_role(auth_session.active_hat):
+        # Preserve Chief Admin Supervisory Audit Lens inspection across SCMAs.
+        return requested_scma_id, requested_user_id
+
+    bound_scma = (auth_session.scma_id or "").strip()
+    if requested_scma_id and requested_scma_id.strip() and requested_scma_id.strip() != bound_scma:
+        get_governance_audit_log().record(
+            event_type="TENANT_JAIL_VIOLATION",
+            actor_id=auth_session.user_id,
+            actor_role=auth_session.active_hat,
+            target_id=requested_scma_id.strip(),
+            action=action,
+            outcome="DENIED_CROSS_MEMBER_SCMA",
+            http_status=403,
+            detail=(
+                f"Blocked cross-member SCMA access ({requested_scma_id.strip()}) for session "
+                f"jailed to {bound_scma or 'UNASSIGNED'}."
+            ),
+        )
+        raise HTTPException(
+            status_code=403,
+            detail="SESSION ACCESS DENIED (HTTP 403): Your session is strictly jailed to your own assigned SCMA account.",
+        )
+    if requested_user_id and requested_user_id.strip() and requested_user_id.strip() != auth_session.user_id:
+        get_governance_audit_log().record(
+            event_type="TENANT_JAIL_VIOLATION",
+            actor_id=auth_session.user_id,
+            actor_role=auth_session.active_hat,
+            target_id=requested_user_id.strip(),
+            action=action,
+            outcome="DENIED_CROSS_MEMBER_USER",
+            http_status=403,
+            detail=f"Blocked cross-member user_id lookup ({requested_user_id.strip()}) for {auth_session.user_id}.",
+        )
+        raise HTTPException(
+            status_code=403,
+            detail="SESSION ACCESS DENIED (HTTP 403): Your session is strictly jailed to your own assigned account.",
+        )
+    if not bound_scma:
+        raise HTTPException(
+            status_code=403,
+            detail="SESSION ACCESS DENIED (HTTP 403): No personal SCMA account is bound to this session.",
+        )
+    return bound_scma, auth_session.user_id
+
+
 @router.get("/api/v1/portal/member/state")
-def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str] = Query(None)) -> Dict[str, Any]:
+def get_member_state(
+    request: Request = None,
+    user_id: Optional[str] = Query(None),
+    scma_id: Optional[str] = Query(None),
+) -> Dict[str, Any]:
     from app.domain.member_onboarding import IFAS_PORTAL_HOST, STATUS_PENDING_CERT, get_onboarding_service
+
+    scma_id, user_id = _enforce_session_member_jail(
+        request,
+        requested_scma_id=scma_id,
+        requested_user_id=user_id,
+        action="MEMBER_STATE_READ",
+    )
 
     target = None
     lineage_member = None
@@ -1397,21 +1468,27 @@ def get_member_state(user_id: Optional[str] = Query(None), scma_id: Optional[str
     }
 
 @router.get("/api/v1/portal/member/{scma_id}")
-def get_member_telemetry(scma_id: str) -> Dict[str, Any]:
+def get_member_telemetry(scma_id: str, request: Request) -> Dict[str, Any]:
     """Return the fail-closed member read model, including all 12 engine slots."""
-    return get_member_state(scma_id=scma_id)
+    return get_member_state(request=request, scma_id=scma_id)
 
 
 @router.post("/api/v1/portal/member/risk-dial")
 def update_current_member_risk_dial(
     req: RiskUpdateRequest,
+    request: Request,
     authorization: Optional[str] = Header(None, alias="Authorization"),
     x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
     x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
     x_supervisory_mode: Optional[str] = Header(None, alias="X-Supervisory-Mode"),
 ):
     """Apply the member HUD's 50–200 bps, downward-only governor."""
-    scma_id = req.scma_id or "SCMA-ELEANOR_-B2B31C9E"
+    jailed_scma, _ = _enforce_session_member_jail(
+        request,
+        requested_scma_id=req.scma_id,
+        action="MEMBER_RISK_DIAL_UPDATE",
+    )
+    scma_id = jailed_scma or req.scma_id or "SCMA-ELEANOR_-B2B31C9E"
     _enforce_portal_boundary(
         allowed_hats={"MEMBER_USER", "PERSONAL_SCMA"},
         action="MEMBER_RISK_DIAL_UPDATE",
@@ -1536,15 +1613,22 @@ def update_member_risk_dial(scma_id: str, req: RiskUpdateRequest):
 @router.post("/api/v1/portal/member/request-distribution")
 def request_capital_distribution(
     req: DistributionRequest,
+    request: Request,
     authorization: Optional[str] = Header(None, alias="Authorization"),
     x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
     x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
     x_supervisory_mode: Optional[str] = Header(None, alias="X-Supervisory-Mode"),
 ):
+    jailed_scma, _ = _enforce_session_member_jail(
+        request,
+        requested_scma_id=req.scma_id,
+        action="MEMBER_DISTRIBUTION_REQUEST",
+    )
+    target_scma = jailed_scma or req.scma_id
     _enforce_portal_boundary(
         allowed_hats={"MEMBER_USER", "PERSONAL_SCMA"},
         action="MEMBER_DISTRIBUTION_REQUEST",
-        target_id=req.scma_id,
+        target_id=target_scma,
         authorization=authorization,
         x_active_hat=x_active_hat,
         x_actor_role=x_actor_role,
@@ -1554,7 +1638,7 @@ def request_capital_distribution(
     )
     for house in LINEAGE_DATA.values():
         for acct in house["accounts"]:
-            if acct["scma_id"] == req.scma_id and acct.get("is_custodial"):
+            if acct["scma_id"] == target_scma and acct.get("is_custodial"):
                 raise HTTPException(
                     status_code=403,
                     detail="Custodial accounts require F2-H Head of Household authorization",
@@ -2505,16 +2589,16 @@ def co_sign_distribution(
 
 # --- Scoped Copilots ---
 @router.post("/api/v1/portal/member/ai-tutor")
-def member_ai_tutor(query: AssistantQuery, scma_id: Optional[str] = Query(None)):
+def member_ai_tutor(query: AssistantQuery, request: Request = None, scma_id: Optional[str] = Query(None)):
     prompt = query.query or query.question or ""
     target_scma_id = (query.scma_id or scma_id or "").strip() or None
-    member_state = get_member_state(user_id=None, scma_id=target_scma_id)
+    member_state = get_member_state(request=request, user_id=None, scma_id=target_scma_id)
     return _member_literacy_tutor.answer_member_query(prompt, member_state=member_state)
 
 @router.post("/api/v1/portal/member/tutor")
-def member_tutor(query: AssistantQuery, scma_id: Optional[str] = Query(None)):
+def member_tutor(query: AssistantQuery, request: Request = None, scma_id: Optional[str] = Query(None)):
     """Stable novice-facing alias used by the Member Desktop."""
-    return member_ai_tutor(query, scma_id=scma_id)
+    return member_ai_tutor(query, request=request, scma_id=scma_id)
 
 @router.post("/api/v1/portal/advisor/copilot")
 def advisor_copilot(

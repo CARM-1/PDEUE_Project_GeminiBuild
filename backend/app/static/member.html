@@ -226,6 +226,7 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
         <button id="memberSwitchHatBtn" type="button" class="curr-btn" hidden onclick="openMemberHatSwitchModal()">Switch Active Hat</button>
         <button id="currBtnClean" class="curr-btn active" onclick="setCurrencyMode('clean')">$ USD (Clean)</button>
         <button id="currBtnExact" class="curr-btn" onclick="setCurrencyMode('exact')">$ USD.¢¢ (Exact Cents)</button>
+        <button id="memberSignOutBtn" type="button" class="curr-btn" onclick="signOutMemberSession()">Sign Out</button>
       </div>
     </div>
   </nav>
@@ -917,6 +918,15 @@ async function loadState(){
   const suffix=activeScmaId?`?scma_id=${encodeURIComponent(activeScmaId)}`:'';
   try{
     const response=await fetch('/api/v1/portal/member/state'+suffix);
+    if(response.status===401){
+      window.location.assign('/login?reason=session_expired');
+      return;
+    }
+    if(response.status===403){
+      const errBody=await response.json().catch(()=>({}));
+      renderMemberReadModelEnvelope({status:'DEGRADED_RETRYING',banner_headline:'SESSION ACCESS DENIED (HTTP 403)',banner_detail:errBody.detail||'Your session is jailed strictly to your own assigned SCMA account.',updated_at_utc:new Date().toISOString()});
+      return;
+    }
     if(!response.ok){
       renderMemberReadModelEnvelope({status:'DEGRADED_RETRYING',banner_headline:'UNAVAILABLE — ENGINE UNREACHABLE',banner_detail:`Member state endpoint returned HTTP ${response.status}; retrying fail-closed without placeholder figures.`,updated_at_utc:new Date().toISOString()});
       return;
@@ -937,6 +947,17 @@ async function loadState(){
   }catch(_err){
     renderMemberReadModelEnvelope({status:'DEGRADED_RETRYING',banner_headline:'UNAVAILABLE — ENGINE UNREACHABLE',banner_detail:'Unable to reach PDEUE engine read model; retrying fail-closed with zero placeholder numbers.',updated_at_utc:new Date().toISOString()});
   }
+}
+async function signOutMemberSession(){
+  try{
+    await fetch('/api/v1/auth/logout',{method:'POST'});
+  }catch(_err){}
+  try{
+    sessionStorage.removeItem('pdeue_active_hat_token');
+    sessionStorage.removeItem('pdeue_active_hat_event');
+    sessionStorage.removeItem('pdeue_active_hat_role');
+  }catch(_err){}
+  window.location.assign('/login?reason=signed_out');
 }
 function showRisk(){riskValue.textContent=(Number(riskSlider.value)/100).toFixed(2)+'%'}
 riskSlider.addEventListener('input',showRisk);

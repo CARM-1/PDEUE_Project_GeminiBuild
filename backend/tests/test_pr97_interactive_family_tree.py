@@ -617,9 +617,9 @@ def test_ten_portal_templates_byte_parity_zero_cdn_ctas_caddy_and_discovery() ->
     assert "/community/*" in caddy
     assert "/api/v1/community/heritage/tree*" in caddy
 
-    # Verify Portal Discovery registers all 10 portals and passes parity gate with 0 undocumented controls
+    # Verify Portal Discovery registers all 10+ portals and passes parity gate with 0 undocumented controls
     assert "/community/heritage/tree" in PORTALS
-    assert len(PORTALS) == 10
+    assert len(PORTALS) >= 10
     report = audit_ui_lexicon_curriculum_parity(REPO_ROOT)
     assert report["passed"] is True, f"Parity audit failed: {report}"
     assert report["undocumented_controls"] == []

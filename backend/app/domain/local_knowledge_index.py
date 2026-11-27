@@ -91,6 +91,7 @@ _INTERNAL_PDEUE_ANCHORS: Tuple[re.Pattern[str], ...] = (
     re.compile(r"\b(?:autonomousscanworker|settlementreconciler|daemon\s+cycle|velocity\s+radar|subordinate)\b", re.IGNORECASE),
     re.compile(r"\b(?:tab\s+[1-4]|dashboard|lineage\s+house|house\s+(?:0?[1-9]|1[0-2])|12\s+houses|enclave)\b", re.IGNORECASE),
     re.compile(r"\b(?:playbook|runbook|manual|lexicon|glossary|chancellor|fiduciary\s+copilot|devops\s+copilot)\b", re.IGNORECASE),
+    re.compile(r"\b(?:sign[- ]?in|log[- ]?in|magic\s+link|6-?digit\s+code|passphrase|mfa|passwordless|where\s+is\s+my\s+password|lost\s+(?:my\s+)?(?:phone|laptop|device)|revoke\s+(?:session|device))\b", re.IGNORECASE),
 )
 
 # Pure external public-market research patterns (Lane 2)
@@ -150,6 +151,19 @@ _QUERY_SYNONYMS: Dict[str, Tuple[str, ...]] = {
     "onboard": ("onboarding", "delegated", "ratification", "invite"),
     "onboarding": ("delegated", "ratification", "invite"),
     "roll": ("h1", "secretary", "roster", "lineage"),
+    "sign": ("sign-in", "login", "6-digit", "magic-link", "passwordless", "code"),
+    "signin": ("sign-in", "login", "6-digit", "magic-link", "passwordless", "code"),
+    "sign-in": ("login", "6-digit", "magic-link", "passwordless", "code"),
+    "login": ("sign-in", "6-digit", "magic-link", "passwordless", "code"),
+    "password": ("passwordless", "sign-in", "6-digit", "magic-link", "passphrase", "mfa", "login"),
+    "passwords": ("passwordless", "sign-in", "6-digit", "magic-link", "login"),
+    "passphrase": ("apex", "mfa", "sign-in", "chief-admin", "t3", "f3"),
+    "mfa": ("apex", "passphrase", "sign-in", "6-digit"),
+    "lost": ("lost-device", "revoke", "session", "phone", "laptop", "revocation", "chief-admin"),
+    "phone": ("lost-device", "revoke", "session", "revocation", "device"),
+    "laptop": ("lost-device", "revoke", "session", "revocation", "device"),
+    "device": ("lost-device", "revoke", "session", "revocation"),
+    "revoke": ("revocation", "session", "lost-device", "chief-admin"),
 }
 
 

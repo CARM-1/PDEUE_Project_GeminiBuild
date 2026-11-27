@@ -171,3 +171,29 @@ Even in Stage 2 and Stage 3, **no vote or petition may alter the family's core m
 * **House Isolation:** Each House (`HOUSE-01` through `HOUSE-12`) can inspect only its own branch; cross-house access is blocked server-side (`HTTP 403`).
 * **H1 Secretary vs. H2 House Head:** `H1` Secretaries assist with roll call and literacy progress while individual member balances stay masked (`$****.**` under Directive R-12) and circuit breakers/voting remain locked out. `H2` House Heads manage downward-only subordinate circuit breakers (while the Founder's SCMA remains Sovereign Immune) and participate in voting only when Stage 2 or Stage 3 is active. Class T technical operators have zero House governance authority.
 * **Emergency Safety Snap-Back *(technical `SHTF` Snap-Back protocol)*:** In an emergency, the Chief Administrator can return governance to Stage 1 (`EXECUTIVE_COMMAND`) in one click, immediately pausing voting while logging a permanent audit record.
+
+## 12. How to Sign In & Stay Safe (No Passwords, Magic Links & Lost Devices)
+
+Signing in to our private Carmichael / McCormick family platform is designed to be calm, effortless, and safe for every generation—from teens to grandparents—with **zero passwords to memorize, write on sticky notes, or accidentally leak**.
+
+### Why There Is No Password (Universal 6-Digit Email Code & Magic Link)
+* **Private Family Allowlist Only:** There is no public sign-up page. Only approved family email addresses added by leadership can receive a sign-in code. If a stranger types an unknown email on `/login`, the system shows the exact same calm generic message and sends nothing.
+* **Same Device (One-Tap Magic Link):** If you check your email on the same phone, tablet, or computer you are using right now, simply tap the one-time **Magic Link** button in your email to step straight into your family workspace.
+* **Two Devices (6-Digit Email Code):** If you open `/login` on a laptop or iPad and read your email on your phone, simply type the **6-digit code** into the code box and click **Verify 6-Digit Code & Sign In**.
+* **Built-In Safety Limits:** Every 6-digit code and Magic Link **expires after 10 minutes**, locks out after **5 wrong guesses**, and **burns permanently after one use** so nobody can reuse an old email. Sign-in emails never contain dollar balances, bank details, or SCMA account numbers (`Directive R-12`).
+
+### Returning Visits & Automatic Idle Protection
+* **Staying Signed In on Your Personal Device:** Once you sign in as a Class M family member, your private signed session stays active on that device for up to **7 days**, while automatically locking your `/member` wealth vault after **2 hours of inactivity** (`2-hour idle timeout`).
+* **Signing Out or Switching Devices:** If you click **Sign Out**—or open the portal on a brand-new phone or computer—simply visit `/login` and request a fresh 6-digit code. Always click **Sign Out** when finishing on a shared family computer.
+* **Private Account Protection (Server-Side Tenant Jailing):** Your session is locked strictly to your own personal SCMA account on the server. Even if someone edits the web address (`?scma_id=`), the server blocks cross-member viewing fail-closed (`HTTP 403`).
+
+### Why Apex & Tier-3 Officers Use Passphrase + MFA & One Hat at a Time
+* **Stronger Locks for Command Seats (`CHIEF_ADMIN`, `T3` CTO, `F3` CRO):** Platform command seats cannot use passwordless email codes. They require a verified long **Command Passphrase** plus a **6-digit MFA code** (with FIDO2/WebAuthn hardware key support) and stay signed in for at most **8 hours** with a **30-minute idle timeout**.
+* **One Active Hat at a Time (`Directive R-06`):** Routine officers (`H1`, `H2`, `HOUSE_GENEALOGIST`, `F1`, `F2-H`, `F2-A`, `T1`, `T2`) also use the 8-hour / 30-minute officer session window. If a relative serves in an officer seat as well as holding a personal account, they switch Active Hats explicitly so personal savings and officer duties never blend.
+
+### What to Do If You Lose Your Phone or Laptop
+1. **Stay Calm—Your Funds Are Protected:** PDEUE never stores banking logins or bank routing numbers (`ADR-011`), your `/member` vault auto-locks after 2 hours of inactivity, and no member can unilaterally move pooled capital or bypass withdrawal tiers.
+2. **Contact the Chief Administrator Immediately:** Call or message the Chief Administrator (or alert your `F2-H` Head of Household / `H2` House Leader to escalate right away).
+3. **Instant 1-Click Session Revocation:** From `/dashboard` Tab 4 (**Active Family Sessions & Lost-Device Revocation**), the Chief Administrator clicks **Revoke Device** on your lost phone or laptop. That device's session cookie is invalidated immediately (forced back to `/login`) and logged permanently in `GovernanceAuditLog`.
+4. **Sign Back In Safely on Your New Device:** Once your new phone or computer is ready, visit `/login`, request a fresh 6-digit code to your family email, and continue right where you left off.
+

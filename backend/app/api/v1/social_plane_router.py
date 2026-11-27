@@ -28,7 +28,7 @@ import html
 import pathlib
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Header, HTTPException, Query
+from fastapi import APIRouter, Header, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
@@ -303,6 +303,7 @@ def get_portal_planes() -> Dict[str, Any]:
 # ----------------------------------------------------------------------
 @social_plane_router.get("/home", response_class=HTMLResponse)
 def get_family_home_hub(
+    request: Request,
     authorization: Optional[str] = Header(None, alias="Authorization"),
     x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
     x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
@@ -319,6 +320,15 @@ def get_family_home_hub(
         x_actor_id=x_actor_id,
         x_house_id=x_house_id,
     )
+    auth_session = getattr(request.state, "auth_session", None)
+    if auth_session is not None and not role:
+        role = normalize_role_token(getattr(auth_session, "active_hat", ""))
+        actor_id = actor_id or str(getattr(auth_session, "user_id", ""))
+        if claimed_house is None and getattr(auth_session, "house_id", None):
+            try:
+                claimed_house = int(str(auth_session.house_id).upper().replace("HOUSE-", ""))
+            except ValueError:
+                claimed_house = None
     fifth_card = _build_scoped_fifth_doorway_card(
         role=role,
         actor_id=actor_id,
