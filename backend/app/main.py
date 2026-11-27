@@ -1,5 +1,6 @@
 import os
 import pathlib
+from urllib.parse import quote
 try:
     from app.api.v1.portal_router import portal_router
 except ImportError:
@@ -8,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from app.api.v1.health_router import health_router
 from app.api.v1.accounting_router import router as accounting_router
 from app.api.v1.copilot_router import router as copilot_router
+from app.api.v1.auth_router import auth_router
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel
@@ -16,7 +18,16 @@ from app.domain.paper_session import PaperSessionManager
 from app.domain.decision_packet import DecisionPacketBuilder
 from app.domain.authority_tiers import (
     get_governance_audit_log,
+    is_chief_admin_deputy_role,
     resolve_deputy_observer_flag,
+)
+from app.domain.session_auth_service import (
+    SESSION_COOKIE_NAME,
+    authorize_session_for_request,
+    get_session_auth_service,
+    is_auth_exempt_path,
+    is_html_portal_path,
+    is_session_auth_enforced,
 )
 
 app = FastAPI(title="PDEUE Operator Workspace API", version="1.0.0")
@@ -30,6 +41,7 @@ _DEPUTY_READ_ONLY_ALLOWED_POST_PATHS = frozenset(
         "/api/v1/operator/copilot/chat",
         "/operator/copilot/chat",
         "/api/v1/portal/lineage/tutor",
+        "/api/v1/auth/logout",
     }
 )
 
@@ -38,15 +50,23 @@ _DEPUTY_READ_ONLY_ALLOWED_POST_PATHS = frozenset(
 async def enforce_chief_admin_deputy_read_only(request: Request, call_next):
     """Fail-closed HTTP 403 lock on all mutating endpoints when operating as CHIEF_ADMIN_DEPUTY."""
     if request.method.upper() in {"POST", "PUT", "PATCH", "DELETE"}:
-        is_deputy = resolve_deputy_observer_flag(
-            role=request.query_params.get("role"),
-            x_pdeue_role=request.headers.get("X-PDEUE-Role"),
-            x_actor_role=request.headers.get("X-Actor-Role"),
-            x_active_hat=request.headers.get("X-Active-Hat"),
-            authorization=request.headers.get("Authorization"),
+        auth_session = getattr(request.state, "auth_session", None)
+        is_deputy = (
+            bool(auth_session and is_chief_admin_deputy_role(auth_session.active_hat))
+            or resolve_deputy_observer_flag(
+                role=request.query_params.get("role"),
+                x_pdeue_role=request.headers.get("X-PDEUE-Role"),
+                x_actor_role=request.headers.get("X-Actor-Role"),
+                x_active_hat=request.headers.get("X-Active-Hat"),
+                authorization=request.headers.get("Authorization"),
+            )
         )
         if is_deputy and request.url.path not in _DEPUTY_READ_ONLY_ALLOWED_POST_PATHS:
-            actor_id = request.headers.get("X-Actor-ID") or "CHIEF_ADMIN_DEPUTY"
+            actor_id = (
+                (auth_session.user_id if auth_session else None)
+                or request.headers.get("X-Actor-ID")
+                or "CHIEF_ADMIN_DEPUTY"
+            )
             get_governance_audit_log().record(
                 event_type="DEPUTY_READ_ONLY_MUTATION_BLOCKED",
                 actor_id=actor_id,
@@ -73,6 +93,96 @@ async def enforce_chief_admin_deputy_read_only(request: Request, call_next):
                     "path": request.url.path,
                 },
             )
+    return await call_next(request)
+
+
+@app.middleware("http")
+async def enforce_session_auth_and_tenant_jail(request: Request, call_next):
+    """Fail-closed PR #98 session cookie validation, Active-Hat lock, and server-side tenant jailing."""
+    path = request.url.path
+    if is_auth_exempt_path(path):
+        return await call_next(request)
+
+    cookie_val = request.cookies.get(SESSION_COOKIE_NAME)
+    strict_mode = is_session_auth_enforced()
+
+    if cookie_val:
+        ctx, err = get_session_auth_service().validate_session_cookie(cookie_val, touch=True)
+        if ctx is None:
+            get_governance_audit_log().record(
+                event_type="AUTH_SESSION_REJECTED",
+                actor_id="session_cookie",
+                actor_role="UNAUTHENTICATED",
+                target_id=path,
+                action=f"{request.method.upper()} {path}",
+                outcome=f"DENIED_{err or 'INVALID_SESSION'}",
+                http_status=401,
+                detail=f"Rejected invalid, expired, idle-timed-out, or revoked session cookie ({err}).",
+            )
+            if is_html_portal_path(path):
+                resp = RedirectResponse(url="/login?reason=session_expired", status_code=302)
+            else:
+                resp = JSONResponse(
+                    status_code=401,
+                    content={
+                        "detail": "Session expired, revoked, or invalid. Please sign in again.",
+                        "error_code": err or "SESSION_INVALID",
+                    },
+                )
+            resp.delete_cookie(key=SESSION_COOKIE_NAME, path="/")
+            return resp
+
+        request.state.auth_session = ctx
+        allowed, err_code, detail = authorize_session_for_request(
+            ctx,
+            path=path,
+            query_params=dict(request.query_params),
+            method=request.method,
+        )
+        if not allowed:
+            get_governance_audit_log().record(
+                event_type="TENANT_JAIL_VIOLATION" if err_code == "TENANT_JAIL_VIOLATION" else "ACTIVE_HAT_DENIED",
+                actor_id=ctx.user_id,
+                actor_role=ctx.active_hat,
+                target_id=path,
+                action=f"{request.method.upper()} {path}",
+                outcome=f"DENIED_{err_code}",
+                http_status=403,
+                detail=detail,
+            )
+            return JSONResponse(
+                status_code=403,
+                content={
+                    "detail": detail,
+                    "error_code": err_code,
+                    "active_hat": ctx.active_hat,
+                    "path": path,
+                },
+            )
+        return await call_next(request)
+
+    if strict_mode:
+        get_governance_audit_log().record(
+            event_type="AUTH_UNAUTHENTICATED_BLOCKED",
+            actor_id="anonymous",
+            actor_role="UNAUTHENTICATED",
+            target_id=path,
+            action=f"{request.method.upper()} {path}",
+            outcome="DENIED_AUTH_REQUIRED",
+            http_status=401,
+            detail="Blocked unauthenticated request while PDEUE_ENFORCE_SESSION_AUTH=true.",
+        )
+        if is_html_portal_path(path):
+            next_param = quote(path, safe="/")
+            return RedirectResponse(url=f"/login?next={next_param}", status_code=302)
+        return JSONResponse(
+            status_code=401,
+            content={
+                "detail": "Authentication required. Please sign in at /login.",
+                "error_code": "AUTH_REQUIRED",
+            },
+        )
+
     return await call_next(request)
 
 
@@ -162,6 +272,7 @@ app.include_router(copilot_router)
 
 
 app.include_router(health_router)
+app.include_router(auth_router)
 
 
 # Mount air-gapped social/heritage/comms router, shadow hunch router, portal router, and static assets

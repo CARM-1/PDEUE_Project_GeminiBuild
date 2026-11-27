@@ -1,0 +1,702 @@
+<!doctype html>
+<html lang="en" data-text-scale="standard">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Private Family Sign-In · Carmichael / McCormick Enclave</title>
+  <link rel="stylesheet" href="/static/css/senior_a11y.css">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg-canvas: #0B132B;
+      --bg-card: #1C2541;
+      --bg-surface: #1E293B;
+      --border-subtle: #334155;
+      --text-primary: #F8FAFC;
+      --text-secondary: #CBD5E1;
+      --text-muted: #94A3B8;
+      --accent-sky: #38BDF8;
+      --accent-sky-deep: #0284C7;
+      --status-green: #059669;
+      --status-amber: #D97706;
+      --status-red: #DC2626;
+      --gold: #E4BB63;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at 20% 0, #192B52 0, var(--bg-canvas) 56%);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      font-size: 16px;
+      line-height: 1.55;
+    }
+    .shell {
+      width: min(820px, 94vw);
+      margin: 0 auto;
+      padding: 16px 0 40px;
+    }
+    .top-brand-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding-bottom: 14px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .brand-lockup {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      text-decoration: none;
+      color: inherit;
+      min-width: 0;
+      max-width: 100%;
+    }
+    .brand-crests { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .brand-crest {
+      width: 40px;
+      height: 46px;
+      aspect-ratio: 5 / 6;
+      object-fit: contain;
+      border: 1px solid rgba(212, 175, 55, 0.65);
+      border-radius: 5px;
+      background: rgba(11, 19, 43, 0.88);
+      padding: 2px;
+      display: block;
+      flex-shrink: 0;
+    }
+    .brand-crest-divider {
+      width: 1px;
+      height: 34px;
+      background: linear-gradient(180deg, transparent, rgba(212, 175, 55, 0.78), transparent);
+      flex-shrink: 0;
+    }
+    .brand-stack { display: flex; flex-direction: column; min-width: 0; line-height: 1.24; }
+    .brand-title { font-size: 0.78rem; font-weight: 800; letter-spacing: 0.08em; color: #F8FAFC; }
+    .brand-motto { font-size: 0.71rem; font-style: italic; color: #D8C48B; }
+
+    .auth-hero {
+      background: linear-gradient(135deg, #1B2C4E 0%, #141E36 100%);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: clamp(18px, 3vw, 26px);
+      margin-bottom: 18px;
+      box-shadow: 0 14px 32px rgba(0, 0, 0, 0.34);
+    }
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 11px;
+      border-radius: 999px;
+      font-size: 0.76rem;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+    }
+    .pill-green {
+      background: rgba(5, 150, 105, 0.18);
+      border: 1px solid #34D399;
+      color: #A7F3D0;
+    }
+    .pill-sky {
+      background: rgba(56, 189, 248, 0.14);
+      border: 1px solid var(--accent-sky);
+      color: #BAE6FD;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    .auth-hero h1 {
+      margin: 4px 0 8px;
+      font-size: clamp(1.45rem, 2.8vw, 1.85rem);
+      line-height: 1.2;
+      color: var(--text-primary);
+    }
+    .auth-hero p {
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 0.96rem;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: clamp(18px, 3vw, 24px);
+      margin-bottom: 16px;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+    }
+    .card h2 {
+      margin: 0 0 8px;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .step-label {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--accent-sky);
+      margin-bottom: 6px;
+    }
+    .field-group {
+      margin-bottom: 14px;
+    }
+    .field-group label {
+      display: block;
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+    .text-input {
+      width: 100%;
+      min-height: 48px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1.5px solid var(--border-subtle);
+      background: var(--bg-canvas);
+      color: var(--text-primary);
+      font-size: 1rem;
+      line-height: 1.4;
+    }
+    .text-input:focus {
+      outline: 2px solid var(--accent-sky);
+      outline-offset: 2px;
+      border-color: var(--accent-sky);
+    }
+    .code-input {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 1.35rem;
+      letter-spacing: 0.28em;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+    .btn-primary,
+    .btn-green,
+    .btn-amber {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      min-height: 50px;
+      padding: 12px 18px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.1s ease;
+    }
+    .btn-primary {
+      background: var(--accent-sky-deep);
+      border-color: var(--accent-sky);
+      color: #F8FAFC;
+    }
+    .btn-primary:hover, .btn-primary:focus-visible { background: #0369A1; }
+    .btn-green {
+      background: var(--status-green);
+      border-color: #34D399;
+      color: #F8FAFC;
+    }
+    .btn-green:hover, .btn-green:focus-visible { background: #047857; }
+    .btn-amber {
+      background: var(--status-amber);
+      border-color: #FCD34D;
+      color: #0B132B;
+    }
+    .btn-amber:hover, .btn-amber:focus-visible { background: #F59E0B; }
+
+    .divider {
+      border: 0;
+      border-top: 1px solid var(--border-subtle);
+      margin: 18px 0;
+    }
+    .note-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-left: 4px solid var(--accent-sky);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-top: 12px;
+    }
+    .status-box {
+      min-height: 22px;
+      margin-top: 12px;
+      padding: 10px 13px;
+      border-radius: 10px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      display: none;
+    }
+    .status-box.visible { display: block; }
+    .status-box.ok {
+      background: rgba(5, 150, 105, 0.16);
+      border: 1px solid #34D399;
+      color: #A7F3D0;
+    }
+    .status-box.warn {
+      background: rgba(217, 119, 6, 0.16);
+      border: 1px solid #FBBF24;
+      color: #FDE68A;
+    }
+    .status-box.err {
+      background: rgba(220, 38, 38, 0.16);
+      border: 1px solid #F87171;
+      color: #FECACA;
+    }
+
+    details.auth-drawer {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+    }
+    details.auth-drawer summary {
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      min-height: 48px;
+      font-weight: 800;
+      color: var(--text-primary);
+      font-size: 1rem;
+    }
+    details.auth-drawer summary::-webkit-details-marker { display: none; }
+    .drawer-chevron {
+      font-size: 0.8rem;
+      color: var(--accent-sky);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 999px;
+      padding: 4px 10px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .drawer-body {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border-subtle);
+    }
+    .howto-list {
+      margin: 8px 0 0;
+      padding-left: 20px;
+      color: var(--text-secondary);
+    }
+    .howto-list li {
+      margin-bottom: 10px;
+    }
+    .howto-list strong {
+      color: var(--text-primary);
+    }
+    .footer-colophon {
+      margin-top: 24px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+    }
+    .footer-colophon a { color: var(--accent-sky); text-decoration: none; font-weight: 700; }
+    .footer-colophon a:hover { text-decoration: underline; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+
+    @media (max-width: 520px) {
+      .shell { width: 94vw; padding: 12px 0 32px; }
+      .brand-title { font-size: 0.72rem; }
+      .brand-motto { font-size: 0.66rem; }
+      details.auth-drawer { padding: 14px 14px; }
+      .card { padding: 16px 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div style="display:none" id="legacyPortalHub">PDEUE PORTAL HUB</div>
+  <main class="shell">
+    <header class="top-brand-bar" role="banner">
+      <a href="/home" class="brand-lockup" data-plane-doorway="home" aria-label="FUTURE Carmichael-McCormick Family Home Hub">
+        <span class="brand-crests">
+          <img class="brand-crest" src="/static/assets/crests/carmichael_crest.jpg" alt="Carmichael Family Crest" width="40" height="46" loading="eager">
+          <span class="brand-crest-divider" aria-hidden="true"></span>
+          <img class="brand-crest" src="/static/assets/crests/mccormick_crest.jpg" alt="McCormick Family Crest" width="40" height="46" loading="eager">
+        </span>
+        <span class="brand-stack">
+          <span class="brand-title">FUTURE · CARMICHAEL — McCORMICK</span>
+          <span class="brand-motto">Generational Love, Harmony, Resilience, and Wealth</span>
+        </span>
+      </a>
+      <div class="senior-a11y-controls">
+        <div id="textScaleGroup" class="text-scale-group" role="group" aria-label="Text size controls">
+          <button type="button" class="text-scale-btn active" data-scale="standard" aria-pressed="true" aria-label="Standard text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('standard')">A</button>
+          <button type="button" class="text-scale-btn" data-scale="large" aria-pressed="false" aria-label="Large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('large')">A+</button>
+          <button type="button" class="text-scale-btn" data-scale="xlarge" aria-pressed="false" aria-label="Extra large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('xlarge')">A++</button>
+        </div>
+      </div>
+    </header>
+
+    <section class="auth-hero" aria-label="Private Family Sign-In Introduction">
+      <div class="badge-row">
+        <span class="pill pill-green">PRIVATE FAMILY ALLOWLIST ONLY · ZERO PUBLIC SIGN-UP</span>
+        <span class="pill pill-sky">NO PASSWORDS FOR MEMBERS</span>
+      </div>
+      <h1>Welcome Back — Private Family Sign-In</h1>
+      <p>
+        Enter your family email address to receive a single-use 6-digit sign-in code and Magic Link.
+        There is no password to memorize, write down, or lose.
+      </p>
+      <div id="sessionReasonBanner" class="status-box warn" role="status" aria-live="polite"></div>
+    </section>
+
+    <section class="card" aria-label="Universal 6-Digit Email Code Sign-In">
+      <span class="step-label">Step 1 of 2 · Request Your Single-Use Code</span>
+      <h2>Sign In with Your Family Email</h2>
+      <div class="field-group">
+        <label for="loginEmailInput">Family Roster Email Address</label>
+        <input
+          id="loginEmailInput"
+          class="text-input"
+          type="email"
+          autocomplete="email"
+          inputmode="email"
+          aria-label="Family roster email address"
+          placeholder="name@carmichael-family.local"
+          onchange="syncEmailState()"
+        >
+      </div>
+      <button id="sendCodeBtn" type="button" class="btn-primary" onclick="requestSignInCode()">
+        Send My Sign-In Code
+      </button>
+      <div id="codeRequestStatus" class="status-box" role="status" aria-live="polite"></div>
+      <div class="note-box">
+        <strong>Two easy ways to finish:</strong> Check your email inbox on <em>this same device</em> and click the one-tap
+        <strong>Magic Link</strong> button — or read the <strong>6-digit code</strong> on your phone and type it below.
+        Every code expires after 10 minutes and burns permanently after one use.
+      </div>
+
+      <hr class="divider">
+
+      <span class="step-label">Step 2 of 2 · Enter Your 6-Digit Code</span>
+      <div class="field-group">
+        <label for="loginCodeInput">6-Digit Single-Use Code</label>
+        <input
+          id="loginCodeInput"
+          class="text-input code-input"
+          type="text"
+          inputmode="numeric"
+          autocomplete="one-time-code"
+          maxlength="6"
+          aria-label="Six-digit single-use sign-in code"
+          placeholder="000000"
+          oninput="sanitizeCodeInput(this)"
+        >
+      </div>
+      <button id="verifyCodeBtn" type="button" class="btn-green" onclick="verifySignInCode()">
+        Verify 6-Digit Code &amp; Sign In
+      </button>
+      <div id="codeVerifyStatus" class="status-box" role="status" aria-live="polite"></div>
+    </section>
+
+    <details id="apexLoginDrawer" class="auth-drawer">
+      <summary>
+        <span>🛡️ Apex &amp; Tier-3 Command Sign-In (CHIEF_ADMIN · T3 · F3)</span>
+        <span class="drawer-chevron">Passphrase + MFA</span>
+      </summary>
+      <div class="drawer-body">
+        <p style="margin-top:0;color:var(--text-secondary);font-size:0.92rem;">
+          Platform command seats (<span class="mono">CHIEF_ADMIN</span>, <span class="mono">T3</span> CTO, and <span class="mono">F3</span> CRO)
+          cannot use passwordless email codes. Enter your verified Command Passphrase and 6-digit MFA code below
+          (FIDO2 / WebAuthn hardware security keys supported).
+        </p>
+        <div class="field-group">
+          <label for="apexEmailInput">Command Seat Email</label>
+          <input
+            id="apexEmailInput"
+            class="text-input"
+            type="email"
+            autocomplete="username"
+            aria-label="Apex command seat email"
+            placeholder="founder@carmichael-family.local"
+            onchange="clearApexStatus()"
+          >
+        </div>
+        <div class="field-group">
+          <label for="apexPassphraseInput">Command Passphrase</label>
+          <input
+            id="apexPassphraseInput"
+            class="text-input"
+            type="password"
+            autocomplete="current-password"
+            aria-label="Apex command passphrase"
+            placeholder="Enter your long Command Passphrase"
+            onchange="clearApexStatus()"
+          >
+        </div>
+        <div class="field-group">
+          <label for="apexMfaInput">6-Digit MFA Verification Code</label>
+          <input
+            id="apexMfaInput"
+            class="text-input code-input"
+            type="text"
+            inputmode="numeric"
+            maxlength="6"
+            autocomplete="one-time-code"
+            aria-label="Apex six-digit MFA code"
+            placeholder="000000"
+            oninput="sanitizeCodeInput(this)"
+          >
+        </div>
+        <button id="apexLoginBtn" type="button" class="btn-amber" onclick="submitApexLogin()">
+          Sign In to Command Seat (Passphrase + MFA)
+        </button>
+        <div id="apexLoginStatus" class="status-box" role="status" aria-live="polite"></div>
+      </div>
+    </details>
+
+    <details id="signinHowToDrawer" class="auth-drawer">
+      <summary>
+        <span>📘 How Private Family Sign-In Works (Plain-English Guide)</span>
+        <span class="drawer-chevron">Read Help</span>
+      </summary>
+      <div class="drawer-body">
+        <ul class="howto-list">
+          <li>
+            <strong>Zero Passwords to Memorize or Leak:</strong> Family members (Class M) and routine House/Advisory/Technical
+            officers never create or manage a password. Simply enter your approved family email to get a fresh 6-digit code.
+          </li>
+          <li>
+            <strong>10-Minute Single-Use Codes &amp; Magic Links:</strong> Each email contains both a 6-digit number (great if
+            you read email on your phone while signing in on a computer) and a one-click Magic Link (great on the same device).
+            Codes expire in 10 minutes, lock after 5 wrong guesses, and burn immediately after one use.
+          </li>
+          <li>
+            <strong>Returning Visits &amp; Idle Protection:</strong> Class M members stay comfortably signed in on a trusted
+            device for up to <strong>7 days</strong>, with an automatic <strong>2-hour idle lock</strong> on the private
+            <span class="mono">/member</span> vault. Officers and Apex command seats stay signed in for up to
+            <strong>8 hours</strong> with a <strong>30-minute idle lock</strong>.
+          </li>
+          <li>
+            <strong>One Hat at a Time (<abbr class="pdeue-term" tabindex="0" data-term="active-hat-r06" data-tooltip="One role at a time. Even if a family leader holds two jobs—like personal member and platform steward—they must intentionally switch hats so personal money and leadership tools never mix by accident.">Directive R-06<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>):</strong>
+            Your session is locked strictly to your own private account and your current Active Hat.
+          </li>
+          <li>
+            <strong>Lost Your Phone or Laptop?</strong> Contact the <strong>Chief Administrator</strong> right away. From
+            <span class="mono">/dashboard</span> Tab 4, leadership can revoke that device's session in one click—signing it out
+            instantly without affecting your account or savings.
+          </li>
+        </ul>
+      </div>
+    </details>
+
+    <footer class="footer-colophon" role="contentinfo">
+      <span>Powered by CARM Aerotech Corporation · Private Family Allowlist Only</span>
+      <span><a href="/companion" data-plane-doorway="companion">🎓 PDEUE University Guides</a></span>
+    </footer>
+  </main>
+
+  <script src="/static/js/senior_a11y.js"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      function showStatus(elId, kind, text) {
+        var el = document.getElementById(elId);
+        if (!el) return;
+        el.className = 'status-box visible ' + kind;
+        el.textContent = text;
+      }
+
+      function clearStatus(elId) {
+        var el = document.getElementById(elId);
+        if (!el) return;
+        el.className = 'status-box';
+        el.textContent = '';
+      }
+
+      window.syncEmailState = function () {
+        clearStatus('codeRequestStatus');
+        clearStatus('codeVerifyStatus');
+      };
+
+      window.clearApexStatus = function () {
+        clearStatus('apexLoginStatus');
+      };
+
+      window.sanitizeCodeInput = function (inputEl) {
+        if (!inputEl) return;
+        inputEl.value = String(inputEl.value || '').replace(/[^0-9]/g, '').slice(0, 6);
+      };
+
+      function safeNextPath(fallbackUrl) {
+        try {
+          var params = new URLSearchParams(window.location.search);
+          var next = params.get('next') || '';
+          if (next && next.charAt(0) === '/' && next.indexOf('//') !== 0 && next !== '/login') {
+            return next;
+          }
+        } catch (_err) {
+          /* ignore */
+        }
+        return fallbackUrl || '/member';
+      }
+
+      window.requestSignInCode = async function () {
+        var emailEl = document.getElementById('loginEmailInput');
+        var btn = document.getElementById('sendCodeBtn');
+        var email = (emailEl ? emailEl.value : '').trim();
+        clearStatus('codeVerifyStatus');
+        if (!email || email.indexOf('@') < 1) {
+          showStatus('codeRequestStatus', 'err', 'Please enter a valid family email address.');
+          if (emailEl) emailEl.focus();
+          return;
+        }
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = 'Sending Sign-In Code…';
+        }
+        try {
+          var resp = await fetch('/api/v1/auth/request-code', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email })
+          });
+          var data = await resp.json().catch(function () { return {}; });
+          if (resp.status === 403) {
+            showStatus('codeRequestStatus', 'warn', data.detail || 'Apex & Tier-3 command accounts must sign in below using Passphrase + MFA.');
+            var apexDrawer = document.getElementById('apexLoginDrawer');
+            var apexEmail = document.getElementById('apexEmailInput');
+            if (apexDrawer) apexDrawer.open = true;
+            if (apexEmail && !apexEmail.value) apexEmail.value = email;
+            return;
+          }
+          if (!resp.ok) {
+            showStatus('codeRequestStatus', 'err', data.detail || 'Unable to send sign-in code right now.');
+            return;
+          }
+          showStatus('codeRequestStatus', 'ok', data.message || 'If your email is on the family roster, a sign-in code has been sent.');
+          var codeEl = document.getElementById('loginCodeInput');
+          if (codeEl) codeEl.focus();
+        } catch (_err) {
+          showStatus('codeRequestStatus', 'err', 'Network error while requesting sign-in code. Please try again.');
+        } finally {
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Send My Sign-In Code';
+          }
+        }
+      };
+
+      window.verifySignInCode = async function () {
+        var emailEl = document.getElementById('loginEmailInput');
+        var codeEl = document.getElementById('loginCodeInput');
+        var btn = document.getElementById('verifyCodeBtn');
+        var email = (emailEl ? emailEl.value : '').trim();
+        var code = (codeEl ? codeEl.value : '').trim();
+        if (!email || email.indexOf('@') < 1) {
+          showStatus('codeVerifyStatus', 'err', 'Please enter your family email address in Step 1 first.');
+          if (emailEl) emailEl.focus();
+          return;
+        }
+        if (!/^\d{6}$/.test(code)) {
+          showStatus('codeVerifyStatus', 'err', 'Please enter the exact 6-digit number from your email.');
+          if (codeEl) codeEl.focus();
+          return;
+        }
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = 'Verifying Code…';
+        }
+        try {
+          var resp = await fetch('/api/v1/auth/verify-code', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email, code: code })
+          });
+          var data = await resp.json().catch(function () { return {}; });
+          if (!resp.ok) {
+            showStatus('codeVerifyStatus', 'err', data.detail || 'Sign-in code verification failed.');
+            return;
+          }
+          showStatus('codeVerifyStatus', 'ok', 'Signed in cleanly. Redirecting to your family workspace…');
+          window.location.assign(safeNextPath(data.redirect_to || '/member'));
+        } catch (_err) {
+          showStatus('codeVerifyStatus', 'err', 'Unable to verify sign-in code right now. Please retry.');
+        } finally {
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Verify 6-Digit Code & Sign In';
+          }
+        }
+      };
+
+      window.submitApexLogin = async function () {
+        var email = (document.getElementById('apexEmailInput')?.value || '').trim();
+        var passphrase = document.getElementById('apexPassphraseInput')?.value || '';
+        var mfaCode = (document.getElementById('apexMfaInput')?.value || '').trim();
+        var btn = document.getElementById('apexLoginBtn');
+        if (!email || !passphrase || !/^\d{6}$/.test(mfaCode)) {
+          showStatus('apexLoginStatus', 'err', 'Enter your Command Seat email, Passphrase, and 6-digit MFA code.');
+          return;
+        }
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = 'Verifying Command Credentials…';
+        }
+        try {
+          var resp = await fetch('/api/v1/auth/apex-login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email, passphrase: passphrase, mfa_code: mfaCode })
+          });
+          var data = await resp.json().catch(function () { return {}; });
+          if (!resp.ok) {
+            showStatus('apexLoginStatus', 'err', data.detail || 'Command sign-in rejected.');
+            return;
+          }
+          showStatus('apexLoginStatus', 'ok', 'Command seat verified. Opening authorized workspace…');
+          window.location.assign(safeNextPath(data.redirect_to || '/dashboard'));
+        } catch (_err) {
+          showStatus('apexLoginStatus', 'err', 'Network error during Apex sign-in.');
+        } finally {
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Sign In to Command Seat (Passphrase + MFA)';
+          }
+        }
+      };
+
+      // Display helpful reason banner when redirected after session expiry/sign-out
+      try {
+        var params = new URLSearchParams(window.location.search);
+        var reason = params.get('reason') || '';
+        if (reason === 'session_expired') {
+          showStatus('sessionReasonBanner', 'warn', 'Your previous session expired or was signed out for your protection. Request a fresh 6-digit code below.');
+        } else if (reason === 'signed_out') {
+          showStatus('sessionReasonBanner', 'ok', 'You have been safely signed out. Close any shared browser window or sign in again below.');
+        }
+      } catch (_err) {
+        /* ignore */
+      }
+    })();
+  </script>
+</body>
+</html>

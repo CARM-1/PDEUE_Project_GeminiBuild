@@ -299,6 +299,7 @@
       <div class="header-controls portal-action-strip">
         <span id="activeHatBadge" class="badge-mode" style="background:#1E293B;color:#F8FAFC;border-color:#38BDF8;"><abbr class="pdeue-term" tabindex="0" data-term="active-hat-r06" data-tooltip="One role at a time. Even if a family leader holds two jobs—like personal member and platform steward—they must intentionally switch hats so personal money and leadership tools never mix by accident.">Active Hat: CHIEF_ADMIN<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr></span>
         <button id="openHatSwitchBtn" type="button" class="btn-batch" onclick="openHatSwitchModal()">Switch Active Hat</button>
+        <button id="dashboardSignOutBtn" type="button" class="btn-batch" onclick="signOutSession()">Sign Out</button>
         <span class="badge-mode">MODE: PAPER</span>
         <button id="emergencyKillSwitchBtn" class="btn-kill" type="button" onclick="confirmKillSwitch()">EMERGENCY KILL SWITCH</button>
       </div>
@@ -833,7 +834,7 @@
     </div>
 
     <!-- PETITION INTAKE & RATIFICATION QUEUE -->
-    <div class="card">
+    <div class="card" style="margin-bottom: 20px;">
       <div class="card-title" style="color: #38bdf8; margin-bottom: 12px;">ACTIVE HOUSE &amp; ENCLAVE PETITIONS AWAITING DETERMINATION</div>
       <div id="gov-petition-status" role="status" aria-live="polite" style="font-size: 12px; color: #38bdf8; margin-bottom: 8px; min-height: 16px;"></div>
       <div class="table-card"><table style="width: 100%; margin-bottom: 32px; border-collapse: collapse; display: table;">
@@ -844,6 +845,31 @@
           <tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 15px;">Loading governance petitions...</td></tr>
         </tbody>
       </table></div>
+    </div>
+
+    <!-- PR #98: ACTIVE SESSIONS & LOST-DEVICE REVOCATION -->
+    <div id="active-sessions-card" class="card" style="border-color: #334155;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+        <div>
+          <div class="card-title" style="color:#38bdf8;margin:0;">ACTIVE FAMILY SESSIONS &amp; LOST-DEVICE REVOCATION</div>
+          <p style="font-size:12px;color:#94a3b8;margin:4px 0 0;">Inspect active family member, officer, and Apex sessions. If a phone or laptop is lost or shared, click <b>Revoke Device</b> to terminate that session immediately and record an immutable audit trail.</p>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <span id="active-sessions-count-badge" class="badge-mode" style="font-size:11px;padding:4px 10px;">ACTIVE SESSIONS: 0</span>
+          <button id="btn-refresh-sessions" type="button" onclick="loadActiveSessions()" style="background:#1e293b;color:#38bdf8;border:1px solid #38bdf8;padding:7px 12px;border-radius:6px;cursor:pointer;font-weight:700;font-size:12px;">Refresh Sessions</button>
+        </div>
+      </div>
+      <div id="sessions-action-status" role="status" aria-live="polite" style="font-size:12px;color:#38bdf8;min-height:16px;margin-bottom:8px;"></div>
+      <div class="table-card">
+        <table style="width:100%;border-collapse:collapse;display:table;">
+          <thead>
+            <tr><th>SESSION ID</th><th>FAMILY MEMBER</th><th>ACTIVE HAT &amp; SCMA</th><th>LAST ACTIVITY &amp; IDLE LOCK</th><th>STATUS</th><th>REVOKE DEVICE</th></tr>
+          </thead>
+          <tbody id="active-sessions-tbody">
+            <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:12px;">Loading active family sessions...</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -2167,8 +2193,78 @@
       }).join("");
     }
 
+    async function loadActiveSessions() {
+      const tbody = document.getElementById("active-sessions-tbody");
+      const badge = document.getElementById("active-sessions-count-badge");
+      try {
+        const res = await fetch("/api/v1/auth/sessions");
+        if (!res.ok) {
+          if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:12px;">Session list unavailable (HTTP ' + res.status + ').</td></tr>';
+          return;
+        }
+        const data = await res.json();
+        const sessions = data.sessions || [];
+        if (badge) badge.textContent = `ACTIVE SESSIONS: ${data.active_count || 0}`;
+        if (!tbody) return;
+        if (!sessions.length) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:12px;">No family sessions recorded yet.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = sessions.map(s => {
+          const statusColor = s.is_active ? "#34d399" : "#f87171";
+          const idleMins = Math.round((Number(s.idle_timeout_seconds) || 0) / 60);
+          return `
+            <tr>
+              <td style="font-family:monospace;color:#38bdf8;font-size:11px;">${_escGov(s.session_id)}</td>
+              <td><b>${_escGov(s.display_name || s.user_id)}</b><br><span style="font-size:11px;color:#94a3b8;">${_escGov(s.email || s.user_id)}</span></td>
+              <td><span style="background:#1e293b;color:#cbd5e1;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:700;">${_escGov(s.active_hat)}</span><br><span style="font-family:monospace;font-size:11px;color:#94a3b8;">${_escGov(s.scma_id || "—")}</span></td>
+              <td style="font-size:11px;color:#cbd5e1;">${_escGov((s.last_activity_at || "").slice(0, 19).replace("T", " "))} UTC<br><span style="color:#94a3b8;">Idle lock: ${idleMins} min</span></td>
+              <td><span style="color:${statusColor};font-weight:700;">${_escGov(s.status || (s.is_active ? "ACTIVE" : "REVOKED"))}</span></td>
+              <td>${s.is_active ? (isDeputyObserverMode ? deputyReadOnlyBadgeHtml() : `<button type="button" onclick="revokeUserSession('${_escGov(s.session_id)}')" style="background:#dc2626;color:#f8fafc;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:700;">Revoke Device</button>`) : `<span style="font-size:11px;color:#64748b;">${_escGov(s.revoked_by ? "Revoked by " + s.revoked_by : "Ended")}</span>`}</td>
+            </tr>
+          `;
+        }).join("");
+      } catch (err) {
+        if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:12px;">Unable to load sessions.</td></tr>';
+      }
+    }
+
+    async function revokeUserSession(sessionId) {
+      if (guardDeputyMutation("Session revocation")) return;
+      const statusEl = document.getElementById("sessions-action-status");
+      try {
+        const res = await fetch(`/api/v1/auth/sessions/${encodeURIComponent(sessionId)}/revoke`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reason: "Revoked via Chief Admin Dashboard Tab 4 (lost/shared device)" })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          if (statusEl) statusEl.textContent = `Session ${sessionId} revoked immediately (Audit ${data.audit_event_id || "logged"}).`;
+          await loadActiveSessions();
+        } else {
+          if (statusEl) statusEl.textContent = `Revocation rejected (HTTP ${res.status}): ${data.detail || "Denied"}`;
+        }
+      } catch (err) {
+        if (statusEl) statusEl.textContent = `Session revocation error: ${err.message}`;
+      }
+    }
+
+    async function signOutSession() {
+      try {
+        await fetch("/api/v1/auth/logout", { method: "POST" });
+      } catch (_err) {}
+      try {
+        sessionStorage.removeItem("pdeue_active_hat_token");
+        sessionStorage.removeItem("pdeue_active_hat_event");
+        sessionStorage.removeItem("pdeue_active_hat_role");
+      } catch (_err) {}
+      window.location.assign("/login?reason=signed_out");
+    }
+
     async function loadGovernanceProposals() {
       await loadGovernanceState();
+      await loadActiveSessions();
     }
 
     async function setGovernanceMode(targetMode) {

@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 460" role="img" aria-label="Private Family Sign-In, Active-Hat Lock, and Lost-Device Session Revocation Flow">
+  <rect width="960" height="460" rx="16" fill="#0B132B"/>
+  <rect x="18" y="18" width="924" height="424" rx="14" fill="#1C2541" stroke="#334155" stroke-width="2"/>
+  <text x="40" y="54" fill="#E4BB63" font-family="system-ui,sans-serif" font-size="13.5" font-weight="800" letter-spacing="1.2">ZERO-CDN PRIVATE FAMILY SIGN-IN · DIRECTIVE R-06 ACTIVE-HAT LOCK</text>
+  <text x="40" y="82" fill="#F8FAFC" font-family="system-ui,sans-serif" font-size="22" font-weight="800">Universal 6-Digit Email Code, Apex MFA &amp; Instant Session Revocation</text>
+
+  <!-- Step 1: Private Allowlist -->
+  <rect x="40" y="108" width="268" height="122" rx="12" fill="#101A36" stroke="#38BDF8" stroke-width="1.8"/>
+  <circle cx="64" cy="132" r="13" fill="#0284C7"/>
+  <text x="64" y="137" text-anchor="middle" fill="#F8FAFC" font-family="system-ui,sans-serif" font-size="13" font-weight="800">1</text>
+  <text x="86" y="137" fill="#38BDF8" font-family="system-ui,sans-serif" font-size="14" font-weight="800">Private Family Allowlist</text>
+  <text x="56" y="162" fill="#F8FAFC" font-family="system-ui,sans-serif" font-size="12.5" font-weight="700">Zero Passwords · Zero Public Sign-Up</text>
+  <text x="56" y="183" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="11.5">Enter family email on /login. Unknown</text>
+  <text x="56" y="200" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="11.5">emails get a calm generic 200 with</text>
+  <text x="56" y="217" fill="#94A3B8" font-family="system-ui,sans-serif" font-size="11.5">0 emails sent (no roster leakage).</text>
+
+  <!-- Arrow 1 -> 2 -->
+  <path d="M 308 169 L 342 169" stroke="#38BDF8" stroke-width="2.5" fill="none"/>
+  <polygon points="342,163 352,169 342,175" fill="#38BDF8"/>
+
+  <!-- Step 2: 6-Digit Code / Magic Link -->
+  <rect x="352" y="108" width="268" height="122" rx="12" fill="#101A36" stroke="#059669" stroke-width="1.8"/>
+  <circle cx="376" cy="132" r="13" fill="#059669"/>
+  <text x="376" y="137" text-anchor="middle" fill="#F8FAFC" font-family="system-ui,sans-serif" font-size="13" font-weight="800">2</text>
+  <text x="398" y="137" fill="#6EE7B7" font-family="system-ui,sans-serif" font-size="14" font-weight="800">6-Digit Code or Magic Link</text>
+  <text x="368" y="162" fill="#F8FAFC" font-family="system-ui,sans-serif" font-size="12.5" font-weight="700">10-Min TTL · Max 5 Tries · 1-Use Burn</text>
+  <text x="368" y="183" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="11.5">Same device: tap Magic Link button.</text>
+  <text x="368" y="200" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="11.5">Two devices: type 6-digit code.</text>
+  <text x="368" y="217" fill="#94A3B8" font-family="system-ui,sans-serif" font-size="11.5">R-12 safe email: 0 balances or SCMA IDs.</text>
+
+  <!-- Arrow 2 -> 3 -->
+  <path d="M 620 169 L 654 169" stroke="#059669" stroke-width="2.5" fill="none"/>
+  <polygon points="654,163 664,169 654,175" fill="#059669"/>
+
+  <!-- Step 3: Signed Cookie & Tenant Jail -->
+  <rect x="664" y="108" width="256" height="122" rx="12" fill="#101A36" stroke="#38BDF8" stroke-width="1.8"/>
+  <circle cx="688" cy="132" r="13" fill="#0284C7"/>
+  <text x="688" y="137" text-anchor="middle" fill="#F8FAFC" font-family="system-ui,sans-serif" font-size="13" font-weight="800">3</text>
+  <text x="710" y="137" fill="#38BDF8" font-family="system-ui,sans-serif" font-size="14" font-weight="800">Signed HttpOnly Session</text>
+  <text x="680" y="162" fill="#F8FAFC" font-family="system-ui,sans-serif" font-size="12.5" font-weight="700">Server-Side SCMA Tenant Jail</text>
+  <text x="680" y="183" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="11.5">Class M: 7d active / 2h vault idle lock.</text>
+  <text x="680" y="200" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="11.5">Officers: 8h active / 30m idle lock.</text>
+  <text x="680" y="217" fill="#94A3B8" font-family="system-ui,sans-serif" font-size="11.5">Foreign ?scma_id= blocked HTTP 403.</text>
+
+  <!-- Bottom Left: Apex Command MFA -->
+  <rect x="40" y="254" width="428" height="162" rx="12" fill="#231D14" stroke="#D97706" stroke-width="1.8"/>
+  <circle cx="66" cy="280" r="13" fill="#D97706"/>
+  <text x="66" y="285" text-anchor="middle" fill="#0B132B" font-family="system-ui,sans-serif" font-size="13" font-weight="800">4</text>
+  <text x="88" y="285" fill="#FCD34D" font-family="system-ui,sans-serif" font-size="15" font-weight="800">Apex &amp; Tier-3 Command Lock (CHIEF_ADMIN · T3 · F3)</text>
+  <text x="58" y="312" fill="#F8FAFC" font-family="system-ui,sans-serif" font-size="12.5" font-weight="700">Passwordless Email Shortcut Permanently Blocked (HTTP 403)</text>
+  <text x="58" y="335" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="12">• Salted PBKDF2-HMAC-SHA256 Passphrase + 6-Digit MFA (FIDO2 hook).</text>
+  <text x="58" y="356" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="12">• Directive R-06 Active-Hat switch rotates privileges server-side.</text>
+  <text x="58" y="377" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="12">• 8-hour active window with 30-minute idle timeout lock.</text>
+  <text x="58" y="398" fill="#FDE68A" font-family="system-ui,sans-serif" font-size="11.5">Supervisory Audit Lens remains read-only for inspecting family views.</text>
+
+  <!-- Bottom Right: Lost Device Instant Revocation -->
+  <rect x="492" y="254" width="428" height="162" rx="12" fill="#2A1418" stroke="#DC2626" stroke-width="1.8"/>
+  <circle cx="518" cy="280" r="13" fill="#DC2626"/>
+  <text x="518" y="285" text-anchor="middle" fill="#F8FAFC" font-family="system-ui,sans-serif" font-size="13" font-weight="800">5</text>
+  <text x="540" y="285" fill="#FCA5A5" font-family="system-ui,sans-serif" font-size="15" font-weight="800">Lost Phone or Laptop? Instant 1-Click Revocation</text>
+  <text x="510" y="312" fill="#F8FAFC" font-family="system-ui,sans-serif" font-size="12.5" font-weight="700">Contact Chief Administrator Immediately</text>
+  <text x="510" y="335" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="12">• Open /dashboard Tab 4 → Active Family Sessions &amp; Revoke Device.</text>
+  <text x="510" y="356" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="12">• Revoked cookie fails closed (HTTP 401 / redirect to /login) instantly.</text>
+  <text x="510" y="377" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="12">• Every login, failure, hat-switch, &amp; revoke writes GovernanceAuditLog.</text>
+  <text x="510" y="398" fill="#FECACA" font-family="system-ui,sans-serif" font-size="11.5">Your private SCMA funds and IFAS bank records stay 100% untouched.</text>
+</svg>
