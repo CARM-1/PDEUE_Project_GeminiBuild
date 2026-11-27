@@ -999,17 +999,36 @@ def get_companion_state() -> Dict[str, Any]:
 
 @router.get("/api/v1/portal/companion/manual/{manual_name}", response_class=PlainTextResponse)
 def get_companion_manual(manual_name: str) -> PlainTextResponse:
-    """Serve only the four canonical, repository-backed University manuals."""
+    """Serve only the five canonical, repository-backed University manuals."""
     allowed = {
         "USER_QUICKSTART.md",
         "CLASS_F_FINANCIAL_MANUAL.md",
         "CLASS_T_TECHNICAL_MANUAL.md",
+        "CLASS_H_LINEAGE_AND_HERITAGE_MANUAL.md",
         "CHIEF_ADMIN_RUNBOOK.md",
     }
     if manual_name not in allowed:
         raise HTTPException(status_code=404, detail="Canonical manual not found")
     manual = pathlib.Path(__file__).resolve().parents[4] / "docs" / "manuals" / manual_name
     return PlainTextResponse(manual.read_text(encoding="utf-8"), media_type="text/markdown")
+
+
+@router.get("/api/v1/portal/companion/playbooks")
+def get_companion_playbooks(
+    role: Optional[str] = Query(None, description="Filter by canonical role token or family (e.g. F2-H, H2, CLASS_H, CHIEF_ADMIN)"),
+    scenario_type: Optional[str] = Query(None, description="Filter by scenario type: routine or outlier_incident"),
+    media_type: Optional[str] = Query(None, description="Optional filter by media type: annotated_screenshot, diagram_svg, slide_deck, motion_clip"),
+    portal_route: Optional[str] = Query(None, description="Optional filter by portal route (e.g. /member, /dashboard)"),
+) -> Dict[str, Any]:
+    """Return read-only Role How-To Playbooks and upgradeable local media assets for PDEUE University."""
+    from app.domain.training_media_registry import list_playbooks
+
+    return list_playbooks(
+        role=role,
+        scenario_type=scenario_type,
+        media_type=media_type,
+        portal_route=portal_route,
+    )
 
 def _is_chief_admin_portal_viewer(
     *,

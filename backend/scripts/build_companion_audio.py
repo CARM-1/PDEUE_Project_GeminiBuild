@@ -52,7 +52,17 @@ _MOCK_MP3_FRAME_DURATION_S = 1152.0 / 44100.0
 _MPEG1_L3_BITRATES_KBPS = (
     0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0
 )
+_MPEG2_L3_BITRATES_KBPS = (
+    0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0
+)
 _MPEG1_SAMPLE_RATES = (44100, 48000, 32000, 0)
+_MPEG2_SAMPLE_RATES = (22050, 24000, 16000, 0)
+_MPEG25_SAMPLE_RATES = (11025, 12000, 8000, 0)
+_MPEG_SAMPLE_RATES_BY_VERSION: Dict[int, Tuple[int, int, int, int]] = {
+    3: _MPEG1_SAMPLE_RATES,   # MPEG Version 1
+    2: _MPEG2_SAMPLE_RATES,   # MPEG Version 2
+    0: _MPEG25_SAMPLE_RATES,  # MPEG Version 2.5
+}
 
 
 @dataclass(frozen=True)
@@ -203,7 +213,7 @@ def build_mock_mp3_bytes(duration_seconds: float = 1.2) -> bytes:
 
 
 def estimate_mp3_duration_seconds(mp3_bytes: bytes, fallback_text: str) -> float:
-    """Compute MP3 duration by scanning MPEG-1 Layer 3 frame headers (pure Python)."""
+    """Compute MP3 duration by scanning MPEG-1, MPEG-2, and MPEG-2.5 Layer III frame headers (pure Python)."""
     if not mp3_bytes:
         return estimate_speech_duration_seconds(fallback_text)
 
@@ -221,9 +231,14 @@ def estimate_mp3_duration_seconds(mp3_bytes: bytes, fallback_text: str) -> float
         )
         idx = min(total_len, 10 + id3_size)
 
+    # Exclude optional trailing 128-byte ID3v1 tag if present
+    end_idx = total_len
+    if end_idx - idx >= 128 and mp3_bytes[end_idx - 128 : end_idx - 125] == b"TAG":
+        end_idx -= 128
+
     frames = 0
     total_seconds = 0.0
-    while idx + 4 <= total_len:
+    while idx + 4 <= end_idx:
         b0 = mp3_bytes[idx]
         b1 = mp3_bytes[idx + 1]
         if b0 != 0xFF or (b1 & 0xE0) != 0xE0:
@@ -236,14 +251,18 @@ def estimate_mp3_duration_seconds(mp3_bytes: bytes, fallback_text: str) -> float
         sample_idx = (b2 >> 2) & 0x03
         padding = (b2 >> 1) & 0x01
 
-        if version_bits == 3 and layer_bits == 1:  # MPEG-1 Layer III
-            bitrate_kbps = _MPEG1_L3_BITRATES_KBPS[bitrate_idx]
-            sample_rate = _MPEG1_SAMPLE_RATES[sample_idx]
+        if version_bits in _MPEG_SAMPLE_RATES_BY_VERSION and layer_bits == 1:  # MPEG-1/2/2.5 Layer III
+            is_mpeg1 = version_bits == 3
+            bitrate_table = _MPEG1_L3_BITRATES_KBPS if is_mpeg1 else _MPEG2_L3_BITRATES_KBPS
+            bitrate_kbps = bitrate_table[bitrate_idx]
+            sample_rate = _MPEG_SAMPLE_RATES_BY_VERSION[version_bits][sample_idx]
             if bitrate_kbps > 0 and sample_rate > 0:
-                frame_len = int((144 * bitrate_kbps * 1000) / sample_rate) + padding
-                if frame_len >= 4 and idx + frame_len <= total_len:
+                samples_per_frame = 1152 if is_mpeg1 else 576
+                frame_coef = 144 if is_mpeg1 else 72
+                frame_len = ((frame_coef * bitrate_kbps * 1000) // sample_rate) + padding
+                if frame_len >= 4 and idx + frame_len <= end_idx:
                     frames += 1
-                    total_seconds += 1152.0 / sample_rate
+                    total_seconds += samples_per_frame / sample_rate
                     idx += frame_len
                     continue
         idx += 1
@@ -750,6 +769,149 @@ def build_companion_audio(
     }
 
 
+def resync_companion_vtt_only(
+    *,
+    companion_html_path: Path = DEFAULT_COMPANION_HTML,
+    output_dir: Path = DEFAULT_OUTPUT_DIR,
+    url_prefix: str = DEFAULT_URL_PREFIX,
+    voice_ids: Optional[Sequence[str]] = None,
+    only_beat_ids: Optional[Sequence[str]] = None,
+    dry_run: bool = False,
+) -> Dict[str, Any]:
+    """Re-measure existing local `.mp3` tracks and regenerate synced `.vtt` captions + manifest.json ($0 API cost)."""
+    beats = extract_narration_beats(companion_html_path)
+    if only_beat_ids:
+        wanted = {b.strip() for b in only_beat_ids if b.strip()}
+        beats = [b for b in beats if b.id in wanted]
+        if not beats:
+            raise ValueError(f"No matching narration beats found for --only={sorted(wanted)}")
+
+    selected_voices: List[VoiceProfile] = []
+    if voice_ids:
+        for vid in voice_ids:
+            cleaned = vid.strip()
+            if cleaned not in VOICE_BY_ID:
+                raise ValueError(f"Unknown voice id {cleaned!r}; valid voices: {sorted(VOICE_BY_ID)}")
+            selected_voices.append(VOICE_BY_ID[cleaned])
+    else:
+        selected_voices = list(VOICE_PROFILES)
+
+    output_dir = output_dir.resolve()
+    manifest_path = output_dir / "manifest.json"
+    existing_manifest = _load_existing_manifest(manifest_path)
+    existing_tracks = (
+        existing_manifest.get("tracks") if isinstance(existing_manifest.get("tracks"), dict) else {}
+    )
+    existing_voices_by_id: Dict[str, Dict[str, Any]] = {}
+    if isinstance(existing_manifest.get("voices"), list):
+        for entry in existing_manifest["voices"]:
+            if isinstance(entry, dict) and entry.get("id"):
+                existing_voices_by_id[str(entry["id"])] = entry
+
+    manifest_provider = str(existing_manifest.get("provider") or "local_static")
+    clean_prefix = url_prefix.rstrip("/")
+    tracks_manifest: Dict[str, Dict[str, Dict[str, Any]]] = {}
+    # Preserve untouched voices/tracks when running with --voices or --only
+    for vid, vmap in existing_tracks.items():
+        if isinstance(vmap, dict):
+            tracks_manifest[vid] = {k: dict(v) for k, v in vmap.items() if isinstance(v, dict)}
+
+    resynced_count = 0
+    for voice in selected_voices:
+        voice_dir = output_dir / voice.id
+        prev_voice_tracks = (
+            existing_tracks.get(voice.id) if isinstance(existing_tracks.get(voice.id), dict) else {}
+        )
+        prev_voice_meta = existing_voices_by_id.get(voice.id, {})
+        voice_tracks: Dict[str, Dict[str, Any]] = dict(tracks_manifest.get(voice.id, {}))
+
+        for beat in beats:
+            mp3_path = voice_dir / f"{beat.id}.mp3"
+            vtt_path = voice_dir / f"{beat.id}.vtt"
+            if not mp3_path.is_file() or mp3_path.stat().st_size == 0:
+                raise FileNotFoundError(
+                    f"Existing MP3 track missing or empty for --resync-vtt-only: {mp3_path}"
+                )
+
+            mp3_bytes = mp3_path.read_bytes()
+            duration_s = estimate_mp3_duration_seconds(mp3_bytes, beat.text)
+            vtt_content = generate_webvtt(beat.text, duration_s)
+
+            if not dry_run:
+                vtt_path.write_text(vtt_content, encoding="utf-8")
+
+            prev_entry = prev_voice_tracks.get(beat.id) if isinstance(prev_voice_tracks.get(beat.id), dict) else {}
+            track_provider = str(prev_entry.get("provider") or prev_voice_meta.get("provider") or manifest_provider)
+            track_model = str(
+                prev_entry.get("model") or prev_voice_meta.get("model") or voice.deepgram_default_model
+            )
+
+            voice_tracks[beat.id] = {
+                "id": beat.id,
+                "title": beat.title,
+                "kind": beat.kind,
+                "chapter": beat.chapter,
+                "mp3": f"{clean_prefix}/{voice.id}/{beat.id}.mp3",
+                "vtt": f"{clean_prefix}/{voice.id}/{beat.id}.vtt",
+                "provider": track_provider,
+                "model": track_model,
+                "duration_seconds": duration_s,
+                "bytes": len(mp3_bytes),
+                "sha256": hashlib.sha256(mp3_bytes).hexdigest(),
+                "vtt_sha256": hashlib.sha256(vtt_content.encode("utf-8")).hexdigest(),
+                "text_sha256": beat.text_sha256,
+            }
+            resynced_count += 1
+
+        tracks_manifest[voice.id] = voice_tracks
+
+    generated_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    voices_manifest = []
+    for voice in VOICE_PROFILES:
+        v_tracks = tracks_manifest.get(voice.id, {})
+        prev_voice_meta = existing_voices_by_id.get(voice.id, {})
+        sample_track = next(iter(v_tracks.values()), {}) if v_tracks else {}
+        voices_manifest.append(
+            {
+                "id": voice.id,
+                "label": voice.label,
+                "description": voice.description,
+                "provider": sample_track.get("provider") or prev_voice_meta.get("provider") or (manifest_provider if v_tracks else None),
+                "model": sample_track.get("model") or prev_voice_meta.get("model") or (voice.deepgram_default_model if v_tracks else None),
+                "audio_ready": bool(v_tracks) and not dry_run,
+                "track_count": len(v_tracks),
+            }
+        )
+
+    manifest: Dict[str, Any] = {
+        "schema_version": "1.0",
+        "status": "studio_audio_ready" if any(tracks_manifest.values()) else "ready_for_batch4_audio",
+        "provider": manifest_provider,
+        "generated_at_utc": generated_at,
+        "zero_runtime_tts_api": True,
+        "track_count_per_voice": max((len(v) for v in tracks_manifest.values()), default=len(beats)),
+        "voices": voices_manifest,
+        "tracks": tracks_manifest,
+    }
+
+    if not dry_run:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        tmp_path = output_dir / "manifest.json.tmp"
+        tmp_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        os.replace(tmp_path, manifest_path)
+
+    return {
+        "manifest": manifest,
+        "manifest_path": str(manifest_path),
+        "resynced_count": resynced_count,
+        "synthesized_count": 0,
+        "skipped_cached_count": 0,
+        "beat_count": len(beats),
+        "voice_count": len(selected_voices),
+        "dry_run": dry_run,
+    }
+
+
 def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Build PDEUE University local static Studio Mentor audio (.mp3) and WebVTT captions (.vtt)."
@@ -822,6 +984,11 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         action="store_true",
         help="Parse beats and plan outputs without making API calls or writing files.",
     )
+    parser.add_argument(
+        "--resync-vtt-only",
+        action="store_true",
+        help="Read existing local .mp3 files without API calls, recompute exact durations, update manifest.json, and regenerate synced .vtt captions.",
+    )
     return parser.parse_args(argv)
 
 
@@ -829,6 +996,22 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     args = parse_args(argv)
     voice_ids = [v.strip() for v in args.voices.split(",") if v.strip()] or None
     only_beats = [b.strip() for b in args.only.split(",") if b.strip()] or None
+
+    if args.resync_vtt_only:
+        summary = resync_companion_vtt_only(
+            companion_html_path=args.companion_html,
+            output_dir=args.output_dir,
+            url_prefix=args.url_prefix,
+            voice_ids=voice_ids,
+            only_beat_ids=only_beats,
+            dry_run=args.dry_run,
+        )
+        print(
+            f"[PDEUE Batch 4 Audio] mode=resync_vtt_only beats={summary['beat_count']} "
+            f"voices={summary['voice_count']} resynced={summary['resynced_count']} "
+            f"dry_run={summary['dry_run']} manifest={summary['manifest_path']}"
+        )
+        return 0
 
     if args.dry_run and args.provider != "mock":
         # Dry-run never contacts external APIs or requires live credentials
