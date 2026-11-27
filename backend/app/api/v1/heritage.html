@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Hall of Arms &amp; Family Heritage — Carmichael / McCormick</title>
   <link rel="stylesheet" href="/static/css/senior_a11y.css">
+  <link rel="stylesheet" href="/static/css/tutor_media_cards.css">
   <style>
     :root {
       color-scheme: dark;
@@ -441,12 +442,39 @@
     </details>
   </section>
 
+  <section id="heritageTutorPanel" class="lineage-tutor-panel" aria-label="House and Heritage Instructional Aid">
+    <details id="heritageTutorDrawer" open>
+      <summary>
+        <div>
+          <div class="eyebrow" style="margin-top:0;">HOUSE GENEALOGIST LOCAL-FIRST GUIDE · ZERO INTERNET · ZERO FINANCIAL DATA</div>
+          <h2 style="margin:3px 0 0;font-size:1.14rem;color:#F8FAFC;">House &amp; Heritage Instructional Aid (HOUSE_GENEALOGIST)</h2>
+        </div>
+        <span class="tutor-local-badge" data-answered-locally="true">Local Library · Zero Internet</span>
+      </summary>
+      <p class="summary-line" style="margin-top:8px;">Ask how to curate House chronicles, understand Scottish Bordure Differencing across all 12 Houses, or complete Delegated Onboarding &amp; Genealogical Admissions Board ratification. Answered strictly from local manuals &amp; illustrated playbooks.</p>
+      <div class="lineage-tutor-chips" role="group" aria-label="Quick Genealogist guidance topics">
+        <button type="button" id="heritageChipCurate" class="lineage-tutor-chip" onclick="askPresetHeritageTutor('How do I curate House chronicles and allied surnames in Hall of Arms?')">Curating Chronicles &amp; Surnames</button>
+        <button type="button" id="heritageChipBordure" class="lineage-tutor-chip" onclick="askPresetHeritageTutor('How does Scottish Bordure Differencing work across all 12 Houses?')">Scottish Bordure Differencing</button>
+        <button type="button" id="heritageChipRatify" class="lineage-tutor-chip" onclick="askPresetHeritageTutor('How does Delegated Onboarding and Genealogical Ratification work?')">Delegated Onboarding &amp; Ratification</button>
+      </div>
+      <form id="heritageTutorForm" class="lineage-tutor-form" onsubmit="submitHeritageTutor(event)">
+        <input id="heritageTutorInput" type="text" required placeholder="Ask about Hall of Arms curation, Bordure Differencing, or HTTP 403 boundaries…" aria-label="Ask House and Heritage Instructional Aid">
+        <button id="askHeritageTutorBtn" type="submit" class="lineage-tutor-ask-btn">Ask Local Guide</button>
+        <button id="clearHeritageTutorBtn" type="button" class="lineage-tutor-clear-btn" onclick="clearHeritageTutor()">Clear Answer</button>
+      </form>
+      <div id="heritageTutorOutput" class="lineage-tutor-output" role="region" aria-live="polite">
+        Your local-first Genealogist &amp; Heritage guidance, annotated screenshots, and step checklist will appear here.
+      </div>
+    </details>
+  </section>
+
   <footer class="pdeue-colophon" role="contentinfo">
     <span class="colophon-attr">Powered by CARM Aerotech Corporation</span>
     <span class="colophon-mode-badge">HALL OF ARMS · ZERO FINANCIAL DATA · GATE G1</span>
   </footer>
 </main>
 
+<script src="/static/js/tutor_media_cards.js"></script>
 <script src="/static/js/senior_a11y.js"></script>
 <script>
 const $=id=>document.getElementById(id);
@@ -456,11 +484,53 @@ function makeEl(tag,className,textVal){
   if(textVal!==undefined)el.textContent=textVal;
   return el;
 }
+function _escHeritage(v){
+  return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 
 function resetHeritageFilters(){
   $('heritageSearchInput').value='';
   $('heritageHouseFilter').value='';
   loadHeritageGallery();
+}
+
+async function submitHeritageTutor(event){
+  if(event&&typeof event.preventDefault==='function')event.preventDefault();
+  const input=$('heritageTutorInput'),out=$('heritageTutorOutput');
+  const q=input?input.value.trim():'';
+  if(!q||!out)return;
+  out.textContent='Consulting local Heritage & Genealogist manuals…';
+  try{
+    const resp=await fetch('/api/v1/portal/lineage/tutor',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Actor-Role':'HOUSE_GENEALOGIST'},
+      body:JSON.stringify({query:q,role:'HOUSE_GENEALOGIST',house_id:1})
+    });
+    const data=await resp.json();
+    if(!resp.ok){
+      out.innerHTML='<div style="color:#FCA5A5;"><strong>Access Restricted (HTTP '+resp.status+'):</strong> '+_escHeritage(data.detail||'Forbidden')+'</div>';
+      return;
+    }
+    const localBadge=window.PDEUEVisualTutor?window.PDEUEVisualTutor.renderLocalBadge(data):'';
+    const visualHtml=window.PDEUEVisualTutor?window.PDEUEVisualTutor.renderVisualAidBlock(data):'';
+    out.innerHTML=
+      '<div class="lineage-tutor-meta">'+localBadge+'<span class="lineage-tutor-pill">ROLE: '+_escHeritage(data.active_role||'HOUSE_GENEALOGIST')+'</span><span class="lineage-tutor-pill amber">R-12 ZERO FINANCIAL DATA</span><span class="lineage-tutor-pill">UNILATERAL=FALSE</span></div>'+
+      '<p style="margin:0 0 6px;color:#F8FAFC;">'+_escHeritage(data.answer||data.response||'')+'</p>'+
+      visualHtml;
+  }catch(_err){
+    out.textContent='Instructional Aid temporarily unreachable — no archive entries were modified.';
+  }
+}
+function askPresetHeritageTutor(promptText){
+  const drawer=$('heritageTutorDrawer'),input=$('heritageTutorInput');
+  if(drawer)drawer.open=true;
+  if(input)input.value=promptText;
+  submitHeritageTutor();
+}
+function clearHeritageTutor(){
+  const input=$('heritageTutorInput'),out=$('heritageTutorOutput');
+  if(out)out.textContent='Your local-first Genealogist & Heritage guidance, annotated screenshots, and step checklist will appear here.';
+  if(input){input.value='';input.focus();}
 }
 
 async function loadHeritageGallery(){

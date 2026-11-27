@@ -29,6 +29,7 @@ _DEPUTY_READ_ONLY_ALLOWED_POST_PATHS = frozenset(
         "/api/v1/operator/ai-chat",
         "/api/v1/operator/copilot/chat",
         "/operator/copilot/chat",
+        "/api/v1/portal/lineage/tutor",
     }
 )
 

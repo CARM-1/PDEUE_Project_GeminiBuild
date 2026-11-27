@@ -21,13 +21,20 @@ import re
 from typing import Any, Dict, List, Optional
 import uuid
 
-from app.domain.ai_clients import BaseLLMClient, get_llm_client
+from app.domain.ai_clients import (
+    BaseLLMClient,
+    get_llm_client,
+    inspect_user_input,
+    sanitize_action_cards,
+    sanitize_output_text,
+)
 from app.domain.authority_tiers import get_directive_r04_controller
 from app.domain.enclave_governance import (
     IMMUTABLE_CORE_INVARIANTS,
     MODE_EXECUTIVE_COMMAND,
     get_enclave_governance_service,
 )
+from app.domain.local_knowledge_index import get_local_knowledge_index
 
 CHANCELLOR_SYSTEM_PROMPT = (
     "You are the PDEUE Chief Administrator AI Chancellor Coach on `/dashboard`. "
@@ -601,10 +608,11 @@ def build_constrained_policy_decision_matrix(
 
 
 class ChiefAdminChancellorCoach:
-    """Chief Administrator AI Chancellor Coach wired through BaseLLMClient + guardrails.py (Milestone F4)."""
+    """Chief Administrator AI Chancellor Coach with local-first knowledge/media short-circuit (Milestone F4 + PR #96)."""
 
-    def __init__(self, llm_client: Optional[BaseLLMClient] = None):
+    def __init__(self, llm_client: Optional[BaseLLMClient] = None, *, local_first: bool = True):
         self._injected_client = llm_client
+        self._local_first = bool(local_first)
 
     def _client(self) -> BaseLLMClient:
         return self._injected_client if self._injected_client is not None else get_llm_client()
@@ -617,7 +625,108 @@ class ChiefAdminChancellorCoach:
         live_context: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         ctx = build_chancellor_context(live_context=live_context)
-        draft_pack = build_constrained_policy_decision_matrix(query, ctx)
+        verdict = inspect_user_input(
+            query,
+            actor_role="CHIEF_ADMINISTRATOR",
+            actor_id=actor_id,
+        )
+        if verdict.blocked:
+            refusal = verdict.refusal_message or "Request refused under PDEUE constitutional guardrails."
+            return {
+                "answer_text": refusal,
+                "response_text": refusal,
+                "citations": ["constitutional-guardrails"],
+                "action_cards": [],
+                "risk_telemetry": {
+                    "current_risk_pct": ctx["current_risk_pct"],
+                    "dry_powder_cents": ctx["dry_powder_cents"],
+                    "downward_only_locked": ctx["downward_only_locked"],
+                },
+                "provider_used": "guardrails",
+                "model_used": "policy-v1",
+                "fallback_used": False,
+                "unilateral_execution": False,
+                "auth_tier": "AUTH-01",
+                "guard_blocked": True,
+                "guard_category": verdict.category,
+                "audit_event_id": verdict.audit_event_id,
+                "policy_decision_matrix": None,
+                "governance_posture": {
+                    "governance_mode": ctx["governance_mode"],
+                    "governance_stage": ctx["governance_stage"],
+                    "directive_r04_status": ctx["directive_r04_status"],
+                    "gate_g1_status": ctx["gate_g1_status"],
+                    "venue_mode": ctx["venue_mode"],
+                },
+                "answered_locally": True,
+                "media_refs": [],
+                "playbook_steps": [],
+                "manual_citations": [],
+                "lineage_context": {
+                    "governance_mode": ctx["governance_mode"],
+                    "directive_r04_status": ctx["directive_r04_status"],
+                    "auth_tier": "AUTH-01",
+                    "guard_blocked": True,
+                    "model_prob": 0.27,
+                },
+            }
+
+        draft_pack = build_constrained_policy_decision_matrix(verdict.sanitized_text, ctx)
+        local_hit = (
+            get_local_knowledge_index().query(verdict.sanitized_text, role="CHIEF_ADMIN")
+            if self._local_first
+            else None
+        )
+        if self._local_first and local_hit is not None and local_hit.matched:
+            safe_text = sanitize_output_text(
+                draft_pack["content"],
+                actor_role="CHIEF_ADMINISTRATOR",
+            )
+            safe_cards = sanitize_action_cards(
+                draft_pack.get("action_cards") or [],
+                actor_role="CHIEF_ADMINISTRATOR",
+            )
+            matrix = draft_pack.get("policy_decision_matrix")
+            posture = (matrix or {}).get("governance_posture") or {
+                "governance_mode": ctx["governance_mode"],
+                "governance_stage": ctx["governance_stage"],
+                "directive_r04_status": ctx["directive_r04_status"],
+                "gate_g1_status": ctx["gate_g1_status"],
+                "venue_mode": ctx["venue_mode"],
+            }
+            return {
+                "answer_text": safe_text,
+                "response_text": safe_text,
+                "citations": list(draft_pack.get("citations") or ["live-context"]),
+                "action_cards": safe_cards,
+                "risk_telemetry": {
+                    "current_risk_pct": ctx["current_risk_pct"],
+                    "dry_powder_cents": ctx["dry_powder_cents"],
+                    "downward_only_locked": ctx["downward_only_locked"],
+                },
+                "provider_used": "local_knowledge_index",
+                "model_used": "local-index-v1",
+                "fallback_used": False,
+                "unilateral_execution": False,
+                "auth_tier": draft_pack.get("auth_tier") or "AUTH-01",
+                "guard_blocked": False,
+                "guard_category": None,
+                "audit_event_id": None,
+                "policy_decision_matrix": matrix,
+                "governance_posture": posture,
+                "answered_locally": True,
+                "media_refs": list(local_hit.media_refs),
+                "playbook_steps": list(local_hit.playbook_steps),
+                "manual_citations": list(local_hit.manual_citations),
+                "lineage_context": {
+                    "governance_mode": ctx["governance_mode"],
+                    "directive_r04_status": ctx["directive_r04_status"],
+                    "auth_tier": draft_pack.get("auth_tier") or "AUTH-01",
+                    "guard_blocked": False,
+                    "model_prob": 0.27,
+                },
+            }
+
         copilot_draft = {
             "content": draft_pack["content"],
             "auth_tier": draft_pack["auth_tier"],
@@ -662,6 +771,10 @@ class ChiefAdminChancellorCoach:
                 "gate_g1_status": ctx["gate_g1_status"],
                 "venue_mode": ctx["venue_mode"],
             },
+            "answered_locally": False,
+            "media_refs": list(llm_resp.media_refs),
+            "playbook_steps": list(llm_resp.playbook_steps),
+            "manual_citations": list(llm_resp.manual_citations),
             "lineage_context": {
                 "governance_mode": ctx["governance_mode"],
                 "directive_r04_status": ctx["directive_r04_status"],

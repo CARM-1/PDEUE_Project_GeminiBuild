@@ -1,5 +1,6 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PDEUE Member User Desktop</title>
 <link rel="stylesheet" href="/static/css/senior_a11y.css">
+<link rel="stylesheet" href="/static/css/tutor_media_cards.css">
 <style>
 :root{color-scheme:dark;--bg-canvas:#0B132B;--bg-card:#1C2541;--bg-surface:#1E293B;--border-subtle:#334155;--text-primary:#F8FAFC;--text-secondary:#CBD5E1;--text-muted:#94A3B8;--accent-sky:#38BDF8;--accent-sky-deep:#0284C7;--status-green:#059669;--status-amber:#D97706;--status-red:#DC2626;--bg:#0B132B;--panel:#1C2541;--line:#334155;--muted:#94A3B8;--blue:#38BDF8;--green:#4ade80;--amber:#fbbf24;--red:#f87171}
 *{box-sizing:border-box}
@@ -407,7 +408,8 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
   </form>
   <div id="tutorMetaBar" class="tutor-meta-bar" hidden aria-live="polite">
     <span id="tutorLanePill" class="badge-pill green">LANE 1 · LOCAL PDEUE CANON</span>
-    <span id="tutorProviderPill" class="badge-pill sky">PROVIDER: mock</span>
+    <span id="tutorLocalBadgePill" class="tutor-local-badge" hidden data-answered-locally="true">Local Library · Zero Internet</span>
+    <span id="tutorProviderPill" class="badge-pill sky">PROVIDER: local_knowledge_index</span>
     <span id="tutorAuthTierPill" class="badge-pill green">AUTH-01</span>
     <span id="tutorGuardPill" class="badge-pill amber" hidden>GUARDRAIL REFUSAL</span>
   </div>
@@ -417,6 +419,7 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
   <div id="tutorAnalogyBox" class="tutor-analogy" hidden><strong style="color:#38BDF8;">Everyday Analogy:</strong> <span id="tutorAnalogyText"></span></div>
   <div id="tutorWebCitationsHost" class="tutor-analogy" hidden aria-label="Grounded public research citations"></div>
   <div id="tutorCitationsHost" class="tutor-citations" aria-label="Lexicon v0.5 citations"></div>
+  <div id="tutorVisualAidHost" aria-live="polite" aria-label="Visual media and playbook steps"></div>
   <div id="tutorImpactCardHost" aria-live="polite"></div>
   <div id="tutorActionCardsHost" class="tutor-action-list" aria-label="Staged non-executing Action Cards"></div>
 </article>
@@ -997,7 +1000,7 @@ function renderTutorCitations(ids){
     return `<button type="button" class="tutor-cite-btn" onclick="openGlossaryForTerm('${escHtml(id)}')">📖 ${escHtml(label)}</button>`;
   }).join('');
 }
-function clearTutorAnswer(){tutorResponse.textContent='Your educational answer will appear here.';tutorInput.value='';tutorMetaBar.hidden=true;tutorAnalogyBox.hidden=true;tutorAnalogyText.textContent='';const dx=document.getElementById('tutorDollarExampleBox');if(dx)dx.hidden=true;const up=document.getElementById('tutorUniversityPointerBox');if(up)up.hidden=true;if(up)up.textContent='';const wc=document.getElementById('tutorWebCitationsHost');if(wc)wc.hidden=true;if(wc)wc.innerHTML='';tutorCitationsHost.innerHTML='';tutorImpactCardHost.innerHTML='';tutorActionCardsHost.innerHTML='';lastTutorActionCards=[];tutorInput.focus()}
+function clearTutorAnswer(){tutorResponse.textContent='Your educational answer will appear here.';tutorInput.value='';tutorMetaBar.hidden=true;const lb=document.getElementById('tutorLocalBadgePill');if(lb)lb.hidden=true;tutorAnalogyBox.hidden=true;tutorAnalogyText.textContent='';const dx=document.getElementById('tutorDollarExampleBox');if(dx)dx.hidden=true;const up=document.getElementById('tutorUniversityPointerBox');if(up)up.hidden=true;if(up)up.textContent='';const wc=document.getElementById('tutorWebCitationsHost');if(wc)wc.hidden=true;if(wc)wc.innerHTML='';const va=document.getElementById('tutorVisualAidHost');if(va)va.innerHTML='';tutorCitationsHost.innerHTML='';tutorImpactCardHost.innerHTML='';tutorActionCardsHost.innerHTML='';lastTutorActionCards=[];tutorInput.focus()}
 clearTutorBtn.addEventListener('click',clearTutorAnswer);
 distributionBtn.addEventListener('click',()=>{if(isSupervisoryLens){distributionStatus.textContent='Supervisory Audit Lens is read-only.';return}distributionStatus.textContent=Number(distributionAmount.value)>0?'Request ready for Green / Yellow / Red safeguard review.':'Enter a valid amount.'});
 async function submitTutorQuery(questionText){
@@ -1005,12 +1008,15 @@ async function submitTutorQuery(questionText){
   if(!q)return;
   tutorResponse.textContent='Thinking…';
   tutorMetaBar.hidden=true;
+  const lb=document.getElementById('tutorLocalBadgePill');
+  if(lb)lb.hidden=true;
   tutorAnalogyBox.hidden=true;
   const dxBox=document.getElementById('tutorDollarExampleBox'),dxTxt=document.getElementById('tutorDollarExampleText');
-  const upBox=document.getElementById('tutorUniversityPointerBox'),wcHost=document.getElementById('tutorWebCitationsHost');
+  const upBox=document.getElementById('tutorUniversityPointerBox'),wcHost=document.getElementById('tutorWebCitationsHost'),vaHost=document.getElementById('tutorVisualAidHost');
   if(dxBox)dxBox.hidden=true;
   if(upBox){upBox.hidden=true;upBox.textContent=''}
   if(wcHost){wcHost.hidden=true;wcHost.innerHTML=''}
+  if(vaHost)vaHost.innerHTML='';
   tutorCitationsHost.innerHTML='';
   tutorImpactCardHost.innerHTML='';
   tutorActionCardsHost.innerHTML='';
@@ -1020,6 +1026,7 @@ async function submitTutorQuery(questionText){
     const d=await r.json();
     tutorResponse.textContent=d.response||d.answer||'Tutor unavailable.';
     tutorMetaBar.hidden=false;
+    if(lb)lb.hidden=d.answered_locally!==true;
     const lanePill=document.getElementById('tutorLanePill');
     if(lanePill){
       if(d.lane==='PUBLIC_WEB_RESEARCH'){
@@ -1045,6 +1052,7 @@ async function submitTutorQuery(questionText){
       wcHost.hidden=false;
     }
     renderTutorCitations(d.lexicon_citations);
+    if(vaHost&&window.PDEUEVisualTutor){vaHost.innerHTML=window.PDEUEVisualTutor.renderVisualAidBlock(d)}
     renderTutorImpactCard(d.impact_card);
     renderTutorActionCards(d.action_cards);
   }catch(_err){
@@ -1204,4 +1212,4 @@ switchMemberView(query.get('invite_token')?'orientation':(localStorage.getItem('
     <p>Loading family alerts…</p>
   </div>
 </aside>
-<script src="/static/js/senior_a11y.js"></script></body></html>
+<script src="/static/js/tutor_media_cards.js"></script><script src="/static/js/senior_a11y.js"></script></body></html>

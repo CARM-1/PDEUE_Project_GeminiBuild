@@ -56,6 +56,10 @@ async def query_copilot(query: CopilotQuery) -> CopilotResponse:
             audit_event_id=result.get("audit_event_id"),
             policy_decision_matrix=result.get("policy_decision_matrix"),
             governance_posture=result.get("governance_posture"),
+            answered_locally=bool(result.get("answered_locally", False)),
+            media_refs=list(result.get("media_refs") or []),
+            playbook_steps=list(result.get("playbook_steps") or []),
+            manual_citations=list(result.get("manual_citations") or []),
         )
     return await copilot_engine.generate_response(query)
 

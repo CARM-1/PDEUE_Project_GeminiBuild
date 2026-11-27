@@ -32,6 +32,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from app.domain.lexicon_v05 import LEXICON_BY_ID, LEXICON_VERSION
 from app.domain.llm_client import BaseLLMClient, LLMResponse, get_llm_client
+from app.domain.local_knowledge_index import get_local_knowledge_index
 from app.domain.regulatory_filter import (
     PROHIBITED_CODE,
     REGULATORY_CITATION,
@@ -477,10 +478,11 @@ def is_public_market_research_query(query: str) -> bool:
 
 
 class DualLaneTutor:
-    """Safe, modular Dual-Lane AI Tutor (Local Canon + Grounded Public Web Research)."""
+    """Safe, modular Dual-Lane AI Tutor (Local Canon + Local Media Playbooks + Grounded Public Web Research)."""
 
-    def __init__(self, llm_client: Optional[BaseLLMClient] = None):
+    def __init__(self, llm_client: Optional[BaseLLMClient] = None, *, local_first: bool = True):
         self._llm_client = llm_client
+        self._local_first = bool(local_first)
 
     def _resolve_client(self) -> BaseLLMClient:
         if self._llm_client is not None:
@@ -493,13 +495,12 @@ class DualLaneTutor:
         query: str,
         member_id: str,
     ) -> Dict[str, Any]:
-        """Answer a Community Academy Tutor prompt via Lane 1 (Canon) or Lane 2 (Public Web Research).
+        """Answer a Community Academy Tutor prompt via Lane 1 (Local Canon/Playbooks) or Lane 2 (Public Web Research).
 
         Note: Caller (`social_plane_router.py`) checks `is_academy_balance_or_trade_request`
         and raises HTTP 403 before invoking this method.
         """
         cleaned_query = (query or "").strip()
-        client = self._resolve_client()
 
         # 1. Nov 2026 CFTC / DEATH BETS Act Regulatory Content Filter (FAIL-CLOSED)
         reg = check_regulatory_content(cleaned_query)
@@ -525,35 +526,89 @@ class DualLaneTutor:
                 "provider_used": "regulatory_filter",
                 "model_used": "policy-v1",
                 "fallback_used": False,
+                "answered_locally": True,
+                "media_refs": [],
+                "playbook_steps": [],
+                "manual_citations": [],
             }
 
-        # 2. Lane 1 — Local PDEUE Canon (grounded strictly in LEXICON_BY_ID + ratified policy)
+        # 2. Lane 1 — Local-First PDEUE Canon + Role-Scoped Playbooks/Manuals (ZERO outbound LLM calls)
         canon = match_local_canon_topic(cleaned_query)
-        if canon is not None:
+        local_hit = (
+            get_local_knowledge_index().query(cleaned_query, role="CLASS_M")
+            if self._local_first
+            else None
+        )
+        if canon is not None or (local_hit is not None and local_hit.matched):
+            media_refs = list(local_hit.media_refs) if local_hit and local_hit.matched else []
+            playbook_steps = list(local_hit.playbook_steps) if local_hit and local_hit.matched else []
+            manual_citations = list(local_hit.manual_citations) if local_hit and local_hit.matched else []
+            if canon is not None:
+                lex_cites = list(canon["lexicon_citations"])
+                if local_hit and local_hit.lexicon_ids:
+                    for lid in local_hit.lexicon_ids:
+                        if lid in LEXICON_BY_ID and lid not in lex_cites:
+                            lex_cites.append(lid)
+                return {
+                    "member_id": member_id,
+                    "query": cleaned_query,
+                    "answer": canon["answer"],
+                    "concept": canon["concept"],
+                    "mode": "EDUCATIONAL_ONLY",
+                    "lane": LANE_LOCAL_CANON,
+                    "lane_badge": LOCAL_CANON_BADGE,
+                    "disclaimer_badge": None,
+                    "dollar_example": canon["dollar_example"],
+                    "university_pointer": canon["university_pointer"],
+                    "lexicon_citations": lex_cites,
+                    "citations": [],
+                    "unilateral_execution": False,
+                    "guard_blocked": False,
+                    "guard_category": None,
+                    "regulatory_blocked": False,
+                    "prohibited_category": None,
+                    "provider_used": "local_knowledge_index",
+                    "model_used": f"local-index-{LEXICON_VERSION}",
+                    "fallback_used": False,
+                    "answered_locally": True,
+                    "media_refs": media_refs,
+                    "playbook_steps": playbook_steps,
+                    "manual_citations": manual_citations,
+                }
+
+            assert local_hit is not None
             return {
                 "member_id": member_id,
                 "query": cleaned_query,
-                "answer": canon["answer"],
-                "concept": canon["concept"],
+                "answer": local_hit.answer,
+                "concept": (local_hit.top_playbook_id or "LOCAL_PLAYBOOK").upper().replace("-", "_"),
                 "mode": "EDUCATIONAL_ONLY",
                 "lane": LANE_LOCAL_CANON,
                 "lane_badge": LOCAL_CANON_BADGE,
                 "disclaimer_badge": None,
-                "dollar_example": canon["dollar_example"],
-                "university_pointer": canon["university_pointer"],
-                "lexicon_citations": canon["lexicon_citations"],
+                "dollar_example": (
+                    "Example: Every monetary rule referenced in our local manuals uses exact integer cents "
+                    "(ADR-008)—for instance, $1,000.00 is tracked as 100,000¢ with a $400.00 (40%) Dry-Powder Floor."
+                ),
+                "university_pointer": "Try this in PDEUE University: Role Playbooks & Illustrated Manuals (/companion)",
+                "lexicon_citations": [lid for lid in local_hit.lexicon_ids if lid in LEXICON_BY_ID],
                 "citations": [],
                 "unilateral_execution": False,
                 "guard_blocked": False,
                 "guard_category": None,
                 "regulatory_blocked": False,
                 "prohibited_category": None,
-                "provider_used": "local_canon",
-                "model_used": f"lexicon-{LEXICON_VERSION}",
+                "provider_used": "local_knowledge_index",
+                "model_used": f"local-index-{LEXICON_VERSION}",
                 "fallback_used": False,
+                "answered_locally": True,
+                "media_refs": media_refs,
+                "playbook_steps": playbook_steps,
+                "manual_citations": manual_citations,
             }
 
-        # 3. Lane 2 — Grounded Public Market Research via BaseLLMClient
+        # 3. Lane 2 — Grounded Public Market Research via BaseLLMClient (strictly external/unmatched queries)
+        client = self._resolve_client()
         llm_resp: LLMResponse = client.research_public_web(
             cleaned_query,
             actor_role="MEMBER",
@@ -581,6 +636,10 @@ class DualLaneTutor:
                 "provider_used": llm_resp.provider,
                 "model_used": llm_resp.model,
                 "fallback_used": bool(llm_resp.fallback_used),
+                "answered_locally": False,
+                "media_refs": [],
+                "playbook_steps": [],
+                "manual_citations": [],
             }
 
         web_citations = list(llm_resp.web_citations or [])
@@ -613,6 +672,10 @@ class DualLaneTutor:
             "provider_used": llm_resp.provider,
             "model_used": llm_resp.model,
             "fallback_used": bool(llm_resp.fallback_used),
+            "answered_locally": False,
+            "media_refs": [],
+            "playbook_steps": [],
+            "manual_citations": [],
         }
 
     def answer_public_market_research(
@@ -654,6 +717,10 @@ class DualLaneTutor:
             "lane": LANE_PUBLIC_WEB_RESEARCH,
             "lane_badge": PUBLIC_RESEARCH_DISCLAIMER_BADGE,
             "unilateral_execution": False,
+            "answered_locally": False,
+            "media_refs": [],
+            "playbook_steps": [],
+            "manual_citations": [],
         }
 
 

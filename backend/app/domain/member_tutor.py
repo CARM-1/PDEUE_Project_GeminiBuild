@@ -20,6 +20,8 @@ from app.domain.ai_clients import (
     LLMResponse,
     get_llm_client,
     inspect_user_input,
+    sanitize_action_cards,
+    sanitize_output_text,
 )
 from app.domain.dual_lane_tutor import (
     LANE_LOCAL_CANON,
@@ -32,6 +34,7 @@ from app.domain.dual_lane_tutor import (
     match_local_canon_topic,
 )
 from app.domain.lexicon_v05 import LEXICON_BY_ID, LEXICON_VERSION, get_lexicon_payload
+from app.domain.local_knowledge_index import get_local_knowledge_index
 from app.domain.regulatory_filter import PROHIBITED_CODE, check_regulatory_content
 
 MEMBER_TUTOR_SYSTEM_PROMPT = (
@@ -871,14 +874,16 @@ def _build_deterministic_tutor_draft(
         ],
         "citations": ["scma", "tpw-waterfall", "dry-powder-floor-40"],
         "lane": LANE_LOCAL_CANON,
+        "is_fallback": True,
     }
 
 
 class MemberLiteracyTutor:
-    """Class M Member Dual-Lane AI Literacy Tutor wired through the pluggable BaseLLMClient layer."""
+    """Class M Member Dual-Lane AI Literacy Tutor with local-first knowledge/media short-circuit."""
 
-    def __init__(self, llm_client: Optional[BaseLLMClient] = None):
+    def __init__(self, llm_client: Optional[BaseLLMClient] = None, *, local_first: bool = True):
         self._llm_client = llm_client
+        self._local_first = bool(local_first)
 
     def _resolve_client(self) -> BaseLLMClient:
         if self._llm_client is not None:
@@ -890,10 +895,9 @@ class MemberLiteracyTutor:
         query: str,
         member_state: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        """Answer a Class M member literacy question with Dual-Lane routing, strict isolation & zero mutations."""
+        """Answer a Class M member literacy question with local-first short-circuit, Dual-Lane routing & zero mutations."""
         prompt = (query or "").strip()
         member_ctx = build_member_tutor_context(member_state)
-        client = self._resolve_client()
 
         # 1. Input prompt-injection, role-scope, secret, and cross-member guard runs FIRST.
         verdict = inspect_user_input(
@@ -919,9 +923,9 @@ class MemberLiteracyTutor:
                 "dollar_example": None,
                 "university_pointer": None,
                 "citations": [],
-                "provider_used": client.provider_name if client.is_configured else "mock",
-                "model_used": client.model_name if client.is_configured else "mock-v1",
-                "fallback_used": not client.is_configured,
+                "provider_used": "guardrails",
+                "model_used": "policy-v1",
+                "fallback_used": False,
                 "guard_blocked": True,
                 "guard_category": verdict.category,
                 "guard_reason": verdict.reason,
@@ -931,6 +935,10 @@ class MemberLiteracyTutor:
                 "lexicon_citations": [],
                 "impact_card": None,
                 "action_cards": [],
+                "answered_locally": True,
+                "media_refs": [],
+                "playbook_steps": [],
+                "manual_citations": [],
                 "member_scope": {
                     "scma_id": member_ctx["scma_id"],
                     "isolated": True,
@@ -967,6 +975,10 @@ class MemberLiteracyTutor:
                 "lexicon_citations": [],
                 "impact_card": None,
                 "action_cards": [],
+                "answered_locally": True,
+                "media_refs": [],
+                "playbook_steps": [],
+                "manual_citations": [],
                 "member_scope": {
                     "scma_id": member_ctx["scma_id"],
                     "isolated": True,
@@ -975,8 +987,9 @@ class MemberLiteracyTutor:
 
         draft = _build_deterministic_tutor_draft(verdict.sanitized_text, member_ctx)
 
-        # 3. Lane 2 — Grounded Public Market Research (unforeseen general economic/oracle/probability questions)
+        # 3. Lane 2 — Grounded Public Market Research (strictly external economic/oracle/probability questions)
         if draft.get("lane") == LANE_PUBLIC_WEB_RESEARCH:
+            client = self._resolve_client()
             llm_resp = client.research_public_web(
                 verdict.sanitized_text,
                 actor_role="MEMBER",
@@ -1021,13 +1034,17 @@ class MemberLiteracyTutor:
                 "lexicon_citations": [],
                 "impact_card": None,
                 "action_cards": [],
+                "answered_locally": False,
+                "media_refs": [],
+                "playbook_steps": [],
+                "manual_citations": [],
                 "member_scope": {
                     "scma_id": member_ctx["scma_id"],
                     "isolated": True,
                 },
             }
 
-        # 4. Lane 1 — Local PDEUE Canon (grounded in LEXICON_BY_ID + member's isolated SCMA snapshot)
+        # 4. Lane 1 — Local-First Short-Circuit (manuals + playbooks/media + Lexicon v0.5 + exact-cent member draft)
         canon_meta = match_local_canon_topic(verdict.sanitized_text) or {}
         dollar_example = draft.get("dollar_example") or canon_meta.get("dollar_example") or (
             f"Example: On your current {format_exact_cents(member_ctx['cash_cents'])} SCMA balance, "
@@ -1037,6 +1054,67 @@ class MemberLiteracyTutor:
             "Try this in PDEUE University: Chapter 1 — PDEUE Canonical Rules & Safety Tour (/companion?chapter=1)"
         )
 
+        local_hit = (
+            get_local_knowledge_index().query(verdict.sanitized_text, role="CLASS_M")
+            if self._local_first
+            else None
+        )
+        if self._local_first and ((local_hit is not None and local_hit.matched) or not draft.get("is_fallback")):
+            raw_text = (
+                local_hit.answer
+                if (draft.get("is_fallback") and local_hit is not None and local_hit.matched and local_hit.answer)
+                else draft["content"]
+            )
+            safe_text = sanitize_output_text(
+                raw_text,
+                actor_role="MEMBER",
+                allowed_scma_id=member_ctx["scma_id"],
+            )
+            safe_cards = sanitize_action_cards(draft.get("action_cards") or [], actor_role="MEMBER")
+            citations = [cid for cid in (draft.get("citations") or []) if cid in LEXICON_BY_ID]
+            if local_hit and local_hit.lexicon_ids:
+                for lid in local_hit.lexicon_ids:
+                    if lid in LEXICON_BY_ID and lid not in citations:
+                        citations.append(lid)
+            return {
+                "role": "MEMBER_TUTOR",
+                "query": prompt,
+                "response": safe_text,
+                "answer": safe_text,
+                "analogy": draft.get("analogy"),
+                "unilateral_execution": False,
+                "auth_tier": draft.get("auth_tier") or "AUTH-01",
+                "lane": LANE_LOCAL_CANON,
+                "lane_badge": LOCAL_CANON_BADGE,
+                "disclaimer_badge": None,
+                "dollar_example": dollar_example,
+                "university_pointer": university_pointer,
+                "citations": [],
+                "provider_used": "local_knowledge_index",
+                "model_used": f"local-index-{LEXICON_VERSION}",
+                "fallback_used": False,
+                "requested_provider": None,
+                "guard_blocked": False,
+                "guard_category": None,
+                "guard_reason": None,
+                "regulatory_blocked": False,
+                "audit_event_id": None,
+                "lexicon_version": LEXICON_VERSION,
+                "lexicon_citations": citations,
+                "impact_card": draft.get("impact_card"),
+                "action_cards": safe_cards,
+                "answered_locally": True,
+                "media_refs": list(local_hit.media_refs) if local_hit and local_hit.matched else [],
+                "playbook_steps": list(local_hit.playbook_steps) if local_hit and local_hit.matched else [],
+                "manual_citations": list(local_hit.manual_citations) if local_hit and local_hit.matched else [],
+                "member_scope": {
+                    "scma_id": member_ctx["scma_id"],
+                    "isolated": True,
+                },
+            }
+
+        # 5. Fallback BaseLLMClient path (only when local_first is disabled or unmatched non-PDEUE query)
+        client = self._resolve_client()
         llm_context = dict(member_ctx)
         llm_context["tutor_draft"] = draft
 
@@ -1083,6 +1161,10 @@ class MemberLiteracyTutor:
             "lexicon_citations": citations,
             "impact_card": impact_card,
             "action_cards": action_cards,
+            "answered_locally": False,
+            "media_refs": list(llm_resp.media_refs),
+            "playbook_steps": list(llm_resp.playbook_steps),
+            "manual_citations": list(llm_resp.manual_citations),
             "member_scope": {
                 "scma_id": member_ctx["scma_id"],
                 "isolated": True,

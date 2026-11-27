@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Class H Sovereign Desk — __HOUSE_CODE__</title>
   <link rel="stylesheet" href="/static/css/senior_a11y.css">
+  <link rel="stylesheet" href="/static/css/tutor_media_cards.css">
   <style>
     :root {
       --bg-canvas: #0B132B;
@@ -362,6 +363,31 @@
       <div id="custodial-lookup-drawer" class="custodial-lookup-drawer" hidden role="region" aria-live="polite"></div>
     </section>
     __ROLE_DESK__
+    <section id="lineageTutorPanel" class="lineage-tutor-panel" aria-label="House and Heritage Instructional Aid">
+      <details id="lineageTutorDrawer" open>
+        <summary>
+          <div>
+            <div style="font-size:0.74rem;font-weight:800;letter-spacing:0.08em;color:#38BDF8;text-transform:uppercase;">LOCAL-FIRST INSTRUCTIONAL AID · ZERO OUTBOUND INTERNET · UNILATERAL=FALSE</div>
+            <h2 style="margin:3px 0 0;font-size:1.12rem;color:#F8FAFC;">House &amp; Heritage Instructional Aid (__HOUSE_CODE__ · __ACTIVE_ROLE__)</h2>
+          </div>
+          <span class="tutor-local-badge" data-answered-locally="true">Local Library · Zero Internet</span>
+        </summary>
+        <p class="muted-note" style="margin:8px 0 0;">Ask calm, plain-English questions about __ACTIVE_ROLE__ duties, Directive R-12 privacy blinds, subordinate circuit breakers, or Bicameral Stage 1–3 governance. Answers come strictly from local manuals &amp; illustrated playbooks with zero internet calls.</p>
+        <div class="lineage-tutor-chips" role="group" aria-label="Quick Class H guidance topics">
+          <button type="button" id="lineageChipR12" class="lineage-tutor-chip" onclick="askPresetLineageTutor('How does H1 House Secretary R-12 masking work during weekly roll call?')">H1 R-12 Privacy &amp; Roll Call</button>
+          <button type="button" id="lineageChipFreeze" class="lineage-tutor-chip" onclick="askPresetLineageTutor('How do I freeze a subordinate dial in an emergency?')">Emergency Subordinate Freeze</button>
+          <button type="button" id="lineageChipBicameral" class="lineage-tutor-chip" onclick="askPresetLineageTutor('How do Bicameral Stage 1, Stage 2, and Stage 3 votes and SHTF snap-back work?')">Bicameral Stages &amp; SHTF</button>
+        </div>
+        <form id="lineageTutorForm" class="lineage-tutor-form" onsubmit="submitLineageTutor(event)">
+          <input id="lineageTutorInput" type="text" required placeholder="Ask about H1 R-12 masking, H2 circuit breakers, or Bicameral governance…" aria-label="Ask House and Heritage Instructional Aid">
+          <button id="askLineageTutorBtn" type="submit" class="lineage-tutor-ask-btn">Ask Local Guide</button>
+          <button id="clearLineageTutorBtn" type="button" class="lineage-tutor-clear-btn" onclick="clearLineageTutor()">Clear Answer</button>
+        </form>
+        <div id="lineageTutorOutput" class="lineage-tutor-output" role="region" aria-live="polite">
+          Your local-first House &amp; Heritage guidance, illustrated screenshots, and step checklist will appear here.
+        </div>
+      </details>
+    </section>
   </main>
   <!-- DISCOVERY_CONTROLS_START --><div hidden><button id="lineage-freeze" onclick="openFreezeModal('SCMA')">Freeze Dial</button><button id="lineage-vote" onclick="castVote('AYE')">Aye</button></div><!-- DISCOVERY_CONTROLS_END -->
   <div style="display:none" id="legacyPortalHub">PDEUE PORTAL HUB</div>
@@ -419,6 +445,54 @@
       if (input) { input.value = ''; input.focus(); }
       if (drawer) { drawer.hidden = true; drawer.innerHTML = ''; }
     }
+    async function submitLineageTutor(event) {
+      if (event && typeof event.preventDefault === 'function') event.preventDefault();
+      const input = document.getElementById('lineageTutorInput');
+      const out = document.getElementById('lineageTutorOutput');
+      const q = input ? input.value.trim() : '';
+      if (!q || !out) return;
+      out.textContent = 'Consulting local House & Heritage manuals…';
+      try {
+        const res = await fetch('/api/v1/portal/lineage/tutor', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-House-ID': String(houseId),
+            'X-Actor-Role': activeRole
+          },
+          body: JSON.stringify({ query: q, role: activeRole, house_id: houseId })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          out.innerHTML = `<div style="color:#FCA5A5;"><strong>Access Restricted (HTTP ${res.status}):</strong> ${_escHtml(data.detail || 'Forbidden')}</div>`;
+          return;
+        }
+        const localBadge = window.PDEUEVisualTutor ? window.PDEUEVisualTutor.renderLocalBadge(data) : '';
+        const visualHtml = window.PDEUEVisualTutor ? window.PDEUEVisualTutor.renderVisualAidBlock(data) : '';
+        const r12Pill = data.r12_masked
+          ? '<span class="lineage-tutor-pill amber">R-12 MASKED ($****.**)</span>'
+          : '<span class="lineage-tutor-pill">H2 HOUSE SCOPE</span>';
+        out.innerHTML =
+          `<div class="lineage-tutor-meta">${localBadge}<span class="lineage-tutor-pill">ROLE: ${_escHtml(data.active_role || activeRole)}</span><span class="lineage-tutor-pill">${_escHtml(data.lineage_code || ('HOUSE-' + String(houseId).padStart(2, '0')))}</span>${r12Pill}<span class="lineage-tutor-pill">UNILATERAL=FALSE</span></div>` +
+          `<p style="margin:0 0 6px;color:#F8FAFC;">${_escHtml(data.answer || data.response || '')}</p>` +
+          visualHtml;
+      } catch (_err) {
+        out.textContent = 'Instructional Aid temporarily unreachable — no House settings were modified.';
+      }
+    }
+    function askPresetLineageTutor(promptText) {
+      const input = document.getElementById('lineageTutorInput');
+      const drawer = document.getElementById('lineageTutorDrawer');
+      if (drawer) drawer.open = true;
+      if (input) input.value = promptText;
+      submitLineageTutor();
+    }
+    function clearLineageTutor() {
+      const input = document.getElementById('lineageTutorInput');
+      const out = document.getElementById('lineageTutorOutput');
+      if (out) out.textContent = 'Your local-first House & Heritage guidance, illustrated screenshots, and step checklist will appear here.';
+      if (input) { input.value = ''; input.focus(); }
+    }
     async function post(path, body) {
       return fetch(`/api/v1/portal/lineage/house/${houseId}/${path}?role=${activeRole}`, {
         method: 'POST',
@@ -472,6 +546,7 @@
       }
     }
   </script>
+  <script src="/static/js/tutor_media_cards.js"></script>
   <script src="/static/js/senior_a11y.js"></script>
 </body>
 </html>

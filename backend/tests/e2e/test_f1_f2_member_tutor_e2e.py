@@ -236,7 +236,7 @@ def test_f1_f2_member_tutor_queries_impact_card_action_card_and_zero_network_cle
             "() => document.getElementById('tutorResponse').textContent.includes('ADR-012')"
         )
         assert page.locator("#tutorAnalogyBox").is_visible()
-        assert "PROVIDER: mock" in page.locator("#tutorProviderPill").inner_text()
+        assert "PROVIDER: local_knowledge_index" in page.locator("#tutorProviderPill").inner_text()
         assert "UNILATERAL=FALSE" in page.locator("#tutorAuthTierPill").inner_text()
         assert page.locator("#tutorCitationsHost .tutor-cite-btn").count() >= 1
 

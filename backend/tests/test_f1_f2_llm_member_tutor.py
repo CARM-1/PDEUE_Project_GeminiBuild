@@ -296,7 +296,8 @@ def test_f2_member_tutor_lexicon_v05_novice_analogies(question, required_terms, 
     assert data["role"] == "MEMBER_TUTOR"
     assert data["unilateral_execution"] is False
     assert data["guard_blocked"] is False
-    assert data["provider_used"] == "mock"
+    assert data["provider_used"] == "local_knowledge_index"
+    assert data["answered_locally"] is True
     assert data["lexicon_version"] == "v0.5"
     assert expected_citation in data["lexicon_citations"]
     assert data["analogy"] and len(data["analogy"]) > 30
@@ -436,7 +437,7 @@ def test_f2_member_tutor_injectable_custom_llm_client():
                 unilateral_execution=False,
             )
 
-    tutor = MemberLiteracyTutor(llm_client=StubClient())
+    tutor = MemberLiteracyTutor(llm_client=StubClient(), local_first=False)
     out = tutor.answer_member_query(
         "Explain the 87/10/3 waterfall",
         member_state={"scma_id": "SCMA-TEST-001", "name": "Test Member", "cash_cents": 100_000},
