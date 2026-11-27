@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 480" role="img" aria-label="End-to-End Family Invite Activation, Allowlist Provisioning, and Two-Party Admission Flow">
+  <rect width="960" height="480" rx="16" fill="#0B132B"/>
+  <rect x="18" y="18" width="924" height="444" rx="14" fill="#1C2541" stroke="#334155" stroke-width="2"/>
+  <text x="40" y="54" fill="#E4BB63" font-family="system-ui,sans-serif" font-size="13.5" font-weight="800" letter-spacing="1.2">ZERO-CDN FAMILY ONBOARDING · ADR-011 AIR-GAP · TWO-PARTY CO-SIGN</text>
+  <text x="40" y="82" fill="#F8FAFC" font-family="system-ui,sans-serif" font-size="22" font-weight="800">Invite Activation (/activate), Private Allowlist &amp; Admission Governance</text>
+
+  <!-- Step 1: 48h Invite Activation Portal -->
+  <rect x="40" y="108" width="268" height="134" rx="12" fill="#101A36" stroke="#38BDF8" stroke-width="1.8"/>
+  <circle cx="64" cy="132" r="13" fill="#0284C7"/>
+  <text x="64" y="137" text-anchor="middle" fill="#F8FAFC" font-family="system-ui,sans-serif" font-size="13" font-weight="800">1</text>
+  <text x="86" y="137" fill="#38BDF8" font-family="system-ui,sans-serif" font-size="14" font-weight="800">48h Invite Portal (/activate)</text>
+  <text x="56" y="162" fill="#F8FAFC" font-family="system-ui,sans-serif" font-size="12.5" font-weight="700">3 Calm Senior-Friendly Steps</text>
+  <text x="56" y="183" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="11.5">• Confirm name, House &amp; family email.</text>
+  <text x="56" y="200" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="11.5">• Review ADR-011 Zero-Bank Pledge.</text>
+  <text x="56" y="217" fill="#94A3B8" font-family="system-ui,sans-serif" font-size="11.5">Expired/used links fail closed (HTTP 410).</text>
+
+  <!-- Arrow 1 -> 2 -->
+  <path d="M 308 175 L 342 175" stroke="#38BDF8" stroke-width="2.5" fill="none"/>
+  <polygon points="342,169 352,175 342,181" fill="#38BDF8"/>
+
+  <!-- Step 2: Private Allowlist Provisioning -->
+  <rect x="352" y="108" width="268" height="134" rx="12" fill="#101A36" stroke="#059669" stroke-width="1.8"/>
+  <circle cx="376" cy="132" r="13" fill="#059669"/>
+  <text x="376" y="137" text-anchor="middle" fill="#F8FAFC" font-family="system-ui,sans-serif" font-size="13" font-weight="800">2</text>
+  <text x="398" y="137" fill="#6EE7B7" font-family="system-ui,sans-serif" font-size="14" font-weight="800">Private Allowlist (CLASS_M)</text>
+  <text x="368" y="162" fill="#F8FAFC" font-family="system-ui,sans-serif" font-size="12.5" font-weight="700">Auto-Enrolled in AuthUserModel</text>
+  <text x="368" y="183" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="11.5">• Zero passwords; is_apex_tier3 = False.</text>
+  <text x="368" y="200" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="11.5">• Immediate 6-digit email code at /login.</text>
+  <text x="368" y="217" fill="#94A3B8" font-family="system-ui,sans-serif" font-size="11.5">Audited: ONBOARDING_AUTH_ALLOWLIST.</text>
+
+  <!-- Arrow 2 -> 3 -->
+  <path d="M 620 175 L 654 175" stroke="#059669" stroke-width="2.5" fill="none"/>
+  <polygon points="654,169 664,175 654,181" fill="#059669"/>
+
+  <!-- Step 3: University & Tenant-Jailed Member Account -->
+  <rect x="664" y="108" width="256" height="134" rx="12" fill="#101A36" stroke="#38BDF8" stroke-width="1.8"/>
+  <circle cx="688" cy="132" r="13" fill="#0284C7"/>
+  <text x="688" y="137" text-anchor="middle" fill="#F8FAFC" font-family="system-ui,sans-serif" font-size="13" font-weight="800">3</text>
+  <text x="710" y="137" fill="#38BDF8" font-family="system-ui,sans-serif" font-size="14" font-weight="800">University &amp; My Account</text>
+  <text x="680" y="162" fill="#F8FAFC" font-family="system-ui,sans-serif" font-size="12.5" font-weight="700">Tenant-Jailed Private SCMA</text>
+  <text x="680" y="183" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="11.5">• Start PDEUE University (/companion).</text>
+  <text x="680" y="200" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="11.5">• Open My Account (/member, jailed).</text>
+  <text x="680" y="217" fill="#94A3B8" font-family="system-ui,sans-serif" font-size="11.5">Phase I Paper Mode · Gate G1 active.</text>
+
+  <!-- Bottom Left: House Delegated Intake & Board -->
+  <rect x="40" y="266" width="428" height="172" rx="12" fill="#101A36" stroke="#38BDF8" stroke-width="1.8"/>
+  <circle cx="66" cy="292" r="13" fill="#0284C7"/>
+  <text x="66" y="297" text-anchor="middle" fill="#F8FAFC" font-family="system-ui,sans-serif" font-size="13" font-weight="800">4</text>
+  <text x="88" y="297" fill="#38BDF8" font-family="system-ui,sans-serif" font-size="15" font-weight="800">House Delegated Intake (/lineage/house/{id})</text>
+  <text x="58" y="324" fill="#F8FAFC" font-family="system-ui,sans-serif" font-size="12.5" font-weight="700">H2 &amp; HOUSE_GENEALOGIST Only (Stripped for H1)</text>
+  <text x="58" y="347" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="12">• Scoped strictly to X-House-ID (cross-house blocked HTTP 403).</text>
+  <text x="58" y="368" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="12">• Displays calm notice when ADMIN_ONLY default mode is active.</text>
+  <text x="58" y="389" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="12">• Staged dossiers enter PENDING_RATIFICATION (zero SCMA yet).</text>
+  <text x="58" y="410" fill="#BAE6FD" font-family="system-ui,sans-serif" font-size="11.5">Optional Genealogical Admissions Board votes: APPROVE / PROOF / REJECT.</text>
+
+  <!-- Bottom Right: Solo Default vs Two-Party Co-Sign -->
+  <rect x="492" y="266" width="428" height="172" rx="12" fill="#231D14" stroke="#D97706" stroke-width="1.8"/>
+  <circle cx="518" cy="292" r="13" fill="#D97706"/>
+  <text x="518" y="297" text-anchor="middle" fill="#0B132B" font-family="system-ui,sans-serif" font-size="13" font-weight="800">5</text>
+  <text x="540" y="297" fill="#FCD34D" font-family="system-ui,sans-serif" font-size="15" font-weight="800">Solo Default vs. Toggleable Two-Party Co-Sign</text>
+  <text x="510" y="324" fill="#F8FAFC" font-family="system-ui,sans-serif" font-size="12.5" font-weight="700">Controlled by Chief Admin on /dashboard Tab 4</text>
+  <text x="510" y="347" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="12">• Default: CHIEF_ADMIN_SOLO admits cleanly in Ring 1 Alpha.</text>
+  <text x="510" y="368" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="12">• TWO_PARTY_COSIGN: blocks solo ratify (HTTP 409) until F2-H</text>
+  <text x="510" y="387" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="12">  co-signs on /advisor for their assigned House.</text>
+  <text x="510" y="410" fill="#FDE68A" font-family="system-ui,sans-serif" font-size="11.5">Ratification emits HMAC-SHA256 MEMBER_ADMISSION_RATIFIED to IFAS.</text>
+</svg>

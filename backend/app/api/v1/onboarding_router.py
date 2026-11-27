@@ -12,9 +12,10 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Union
 
-from fastapi import APIRouter, Body, Header, HTTPException, Query
+from fastapi import APIRouter, Body, Header, HTTPException, Query, Request, Response
 from pydantic import BaseModel
 
+from app.api.v1.auth_router import _set_session_cookie
 from app.domain.authority_tiers import get_active_hat_gateway, normalize_role_token
 from app.domain.member_onboarding import (
     ALLOWED_HOUSES,
@@ -24,12 +25,15 @@ from app.domain.member_onboarding import (
     get_onboarding_service,
 )
 from app.domain.role_custody_service import get_role_custody_service
+from app.domain.session_auth_service import get_session_auth_service, parse_house_number
 
 onboarding_router = APIRouter(prefix="/api/v1/onboarding", tags=["Onboarding"])
 
 
 class ActivateInviteRequest(BaseModel):
     token: str
+    email: Optional[str] = None
+    issue_session: bool = True
 
 
 class CertifyMemberRequest(BaseModel):
@@ -48,9 +52,19 @@ def _resolve_onboarding_actor(
     x_house_id: Optional[str],
     authorization: Optional[str],
     payload: Optional[Dict[str, Any]] = None,
+    request: Optional[Request] = None,
 ) -> tuple[str, str, Optional[int]]:
-    role = x_actor_role or (str(payload.get("actor_role") or "") if isinstance(payload, dict) else "")
-    actor_id = x_actor_id or (str(payload.get("actor_id") or "") if isinstance(payload, dict) else "")
+    auth_session = getattr(request.state, "auth_session", None) if request is not None else None
+    role = (
+        x_actor_role
+        or (auth_session.active_hat if auth_session is not None else "")
+        or (str(payload.get("actor_role") or "") if isinstance(payload, dict) else "")
+    )
+    actor_id = (
+        x_actor_id
+        or (auth_session.user_id if auth_session is not None else "")
+        or (str(payload.get("actor_id") or "") if isinstance(payload, dict) else "")
+    )
     if authorization and authorization.lower().startswith("bearer "):
         from app.core.security import decode_access_token
 
@@ -64,12 +78,16 @@ def _resolve_onboarding_actor(
         role = hat
         actor_id = str(claims.get("sub") or claims.get("user_id") or actor_id or "jwt_principal")
     actor_house: Optional[int] = None
-    raw_h = x_house_id or (payload.get("actor_house_id") if isinstance(payload, dict) else None)
+    raw_h = (
+        x_house_id
+        or (payload.get("actor_house_id") if isinstance(payload, dict) else None)
+        or (auth_session.house_id if auth_session is not None else None)
+    )
     if raw_h is not None and raw_h != "":
-        try:
-            actor_house = int(str(raw_h).strip().upper().replace("HOUSE-", ""))
-        except ValueError as err:
-            raise HTTPException(status_code=403, detail="Invalid X-House-ID header") from err
+        parsed_h = parse_house_number(str(raw_h))
+        if parsed_h is None:
+            raise HTTPException(status_code=403, detail="Invalid X-House-ID header")
+        actor_house = parsed_h
     return normalize_role_token(role), (actor_id or normalize_role_token(role) or "anonymous"), actor_house
 
 
@@ -142,17 +160,61 @@ def provision_batch_members(
         raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
 
 
+@onboarding_router.get("/invite-preview")
+def preview_member_invite(token: str = Query(..., min_length=4)) -> Dict[str, Any]:
+    """Read-only Stage 2 invite preview for the senior-friendly /activate portal."""
+    svc = get_onboarding_service()
+    try:
+        return svc.preview_invite_token(token)
+    except InviteTokenError as exc:
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail={"message": str(exc), "code": exc.code},
+        ) from exc
+
+
 @onboarding_router.post("/activate")
-def activate_member_invite(req: ActivateInviteRequest) -> Dict[str, Any]:
+def activate_member_invite(
+    req: ActivateInviteRequest,
+    request: Request,
+    response: Response,
+) -> Dict[str, Any]:
     """
     Stage 2: Validate and consume a single-use 48-hour invite activation token.
-    Rejects unknown, expired, or already-used tokens fail-closed.
+    Automatically provisions the member on PR #98's private family allowlist (`AuthUserModel`),
+    optionally sets a signed HttpOnly `pdeue_session` cookie bound strictly to their SCMA,
+    and rejects unknown, expired, or already-used tokens fail-closed.
     """
     svc = get_onboarding_service()
     try:
-        return svc.activate_invite_token(req.token)
+        result = svc.activate_invite_token(req.token, email=req.email)
     except InviteTokenError as exc:
         raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+
+    session_issued = False
+    session_dict: Optional[Dict[str, Any]] = None
+    if req.issue_session:
+        auth_svc = get_session_auth_service()
+        if getattr(auth_svc, "_engine", None) is getattr(svc, "_engine", None):
+            issued = auth_svc.issue_session_for_user(
+                result["member"]["member_id"],
+                auth_method="INVITE_ACTIVATION",
+            )
+            if issued is not None:
+                ctx, signed_cookie = issued
+                _set_session_cookie(
+                    response,
+                    request=request,
+                    signed_cookie=signed_cookie,
+                    active_hat=ctx.active_hat,
+                )
+                session_issued = True
+                session_dict = ctx.to_dict()
+
+    result["session_issued"] = session_issued
+    if session_dict is not None:
+        result["session"] = session_dict
+    return result
 
 
 @onboarding_router.post("/certify")
@@ -176,34 +238,37 @@ def certify_member_stewardship(req: CertifyMemberRequest) -> Dict[str, Any]:
 
 
 # =============================================================================
-# PR #81 — 3-STAGE DELEGATED ONBOARDING & GENEALOGICAL RATIFICATION ENDPOINTS
+# PR #81 / PR #99 — 3-STAGE DELEGATED ONBOARDING, TWO-PARTY CO-SIGN & RATIFICATION
 # =============================================================================
 
 
 @onboarding_router.get("/delegation-config")
 def get_delegated_onboarding_config() -> Dict[str, Any]:
-    """Return Chief Admin delegation scope (ADMIN_ONLY default), per-House flags, and Genealogical Board state."""
+    """Return Chief Admin delegation scope (ADMIN_ONLY default), admission authority mode (CHIEF_ADMIN_SOLO default), per-House flags, and Genealogical Board state."""
     return get_role_custody_service().get_policy_controls()
 
 
 @onboarding_router.post("/delegation-config")
 def update_delegated_onboarding_config(
+    request: Request,
     payload: Dict[str, Any] = Body(...),
     x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
     x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
     x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
     authorization: Optional[str] = Header(None, alias="Authorization"),
 ) -> Dict[str, Any]:
-    """Chief Administrator controls for delegated intake scope, per-House toggles, and Genealogical Board."""
+    """Chief Administrator controls for delegated intake scope, admission authority mode, per-House toggles, and Genealogical Board."""
     actor_role, actor_id, _ = _resolve_onboarding_actor(
         x_actor_role=x_actor_role,
         x_actor_id=x_actor_id,
         x_house_id=x_house_id,
         authorization=authorization,
         payload=payload,
+        request=request,
     )
     return get_role_custody_service().update_delegation_config(
         delegated_onboarding_scope=payload.get("delegated_onboarding_scope"),
+        admission_authority_mode=payload.get("admission_authority_mode"),
         house_delegation_flags=payload.get("house_delegation_flags"),
         genealogical_board_enabled=payload.get("genealogical_board_enabled"),
         genealogical_board_quorum=payload.get("genealogical_board_quorum"),
@@ -215,6 +280,7 @@ def update_delegated_onboarding_config(
 
 @onboarding_router.post("/delegated-submit", status_code=201)
 def submit_delegated_onboarding_dossier(
+    request: Request,
     payload: Dict[str, Any] = Body(...),
     x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
     x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
@@ -228,6 +294,7 @@ def submit_delegated_onboarding_dossier(
         x_house_id=x_house_id,
         authorization=authorization,
         payload=payload,
+        request=request,
     )
     return get_role_custody_service().submit_delegated_dossier(
         payload,
@@ -256,6 +323,7 @@ def get_onboarding_dossier(dossier_id: str) -> Dict[str, Any]:
 @onboarding_router.post("/dossiers/{dossier_id}/board-vote")
 def cast_genealogical_board_vote(
     dossier_id: str,
+    request: Request,
     payload: Dict[str, Any] = Body(...),
     x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
     x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
@@ -263,12 +331,13 @@ def cast_genealogical_board_vote(
     authorization: Optional[str] = Header(None, alias="Authorization"),
 ) -> Dict[str, Any]:
     """Stage 2 (Optional): Genealogical Admissions Board vote by HOUSE_GENEALOGIST / H2."""
-    actor_role, actor_id, _ = _resolve_onboarding_actor(
+    actor_role, actor_id, actor_house = _resolve_onboarding_actor(
         x_actor_role=x_actor_role,
         x_actor_id=x_actor_id,
         x_house_id=x_house_id,
         authorization=authorization,
         payload=payload,
+        request=request,
     )
     return get_role_custody_service().cast_board_vote(
         dossier_id=dossier_id,
@@ -276,6 +345,36 @@ def cast_genealogical_board_vote(
         rationale=str(payload.get("rationale") or ""),
         actor_role=actor_role,
         actor_id=actor_id,
+        actor_house_id=actor_house,
+    )
+
+
+@onboarding_router.post("/dossiers/{dossier_id}/cosign")
+def cosign_onboarding_dossier(
+    dossier_id: str,
+    request: Request,
+    payload: Optional[Dict[str, Any]] = Body(default=None),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+) -> Dict[str, Any]:
+    """PR #99 Two-Party Admission Co-Sign strictly for authorized F2-H (assigned House) or CHIEF_ADMIN audit inspection."""
+    body = payload or {}
+    actor_role, actor_id, actor_house = _resolve_onboarding_actor(
+        x_actor_role=x_actor_role,
+        x_actor_id=x_actor_id,
+        x_house_id=x_house_id,
+        authorization=authorization,
+        payload=body,
+        request=request,
+    )
+    return get_role_custody_service().cosign_dossier(
+        dossier_id=dossier_id,
+        notes=str(body.get("notes") or body.get("reason") or ""),
+        actor_role=actor_role,
+        actor_id=actor_id,
+        actor_house_id=actor_house,
     )
 
 

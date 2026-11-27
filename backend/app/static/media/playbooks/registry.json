@@ -1523,6 +1523,82 @@
           ]
         }
       ]
+    },
+    {
+      "playbook_id": "onboarding_invite_and_admission_flow",
+      "title": "How to Activate Your Family Invite & Two-Party Admission Governance",
+      "summary": "Walk through activating a 48-hour single-use family invite on /activate (3 calm steps), automatic private allowlist enrollment (CLASS_M) for 6-digit email sign-in, House delegated intake on /lineage/house/{id}, and Chief Admin Solo vs. toggleable Two-Party Co-Sign admission (F2-H + CHIEF_ADMIN).",
+      "role_classes": [
+        "CLASS_M",
+        "H2",
+        "HOUSE_GENEALOGIST",
+        "F2-H",
+        "CHIEF_ADMIN"
+      ],
+      "scenario_type": "routine",
+      "portal_route": "/activate",
+      "control_ids": [
+        "activateTokenInput",
+        "activateEmailInput",
+        "covenantAckCheckbox",
+        "activateAccountBtn",
+        "admission-authority-mode-select",
+        "houseDelegatedSubmitBtn"
+      ],
+      "manual_anchor": "docs/manuals/USER_QUICKSTART.md#13-activating-your-family-invite--two-party-admission-governance",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Open your 48-hour single-use invite link at /activate?token=... (or paste your code in #activateTokenInput) and verify your name, House assignment, and family email (#activateEmailInput)",
+          "effect": "Loads your read-only invite preview with zero banking details exposed; expired or already-used tokens show a calm HTTP 410 notice."
+        },
+        {
+          "step": 2,
+          "action": "Review the plain-English Lineage Covenant, ADR-011 Zero-Bank-Storage Pledge, and Phase I Paper Mode summary, tick #covenantAckCheckbox, and click Activate Private Account (#activateAccountBtn)",
+          "effect": "Consumes the single-use token, enrolls your active CLASS_M record on PR #98's private family allowlist (is_apex_tier3=False), logs ONBOARDING_AUTH_ALLOWLIST_PROVISIONED, and unlocks Start PDEUE University (/companion) and Open My Account (/member)."
+        },
+        {
+          "step": 3,
+          "action": "For House delegated admissions, H2 or HOUSE_GENEALOGIST stages dossiers on /lineage/house/{id} (when enabled beyond ADMIN_ONLY), F2-H co-signs on /advisor when TWO_PARTY_COSIGN is active, and Chief Admin ratifies on /dashboard Tab 4",
+          "effect": "Default CHIEF_ADMIN_SOLO admits cleanly in Ring 1 Alpha; toggling TWO_PARTY_COSIGN enforces HTTP 409 until the assigned House's F2-H co-signs, then provisions the SCMA + AuthUserModel allowlist and emits a signed HMAC-SHA256 MEMBER_ADMISSION_RATIFIED IFAS outbox event."
+        }
+      ],
+      "media_assets": [
+        {
+          "asset_id": "diag-onboarding-admission-flow",
+          "media_type": "diagram_svg",
+          "path": "/static/media/playbooks/onboarding_admission_flow.svg",
+          "caption": "End-to-end family invite activation (/activate), automatic CLASS_M allowlist enrollment, House delegated intake, and toggleable Two-Party Co-Sign admission flow.",
+          "narrated": false,
+          "replaceable": true,
+          "callout_legend": [
+            {
+              "badge": 1,
+              "control_id": "activateTokenInput",
+              "label": "48-Hour Single-Use Invite Portal (/activate)",
+              "note": "3 calm senior-friendly steps with ADR-011 pledge and calm HTTP 410 expired/used handling."
+            },
+            {
+              "badge": 2,
+              "control_id": "activateAccountBtn",
+              "label": "Automatic Private Allowlist Provisioning",
+              "note": "Enrolls CLASS_M on PR #98's allowlist so 6-digit email sign-in works immediately with zero passwords."
+            },
+            {
+              "badge": 3,
+              "control_id": "houseDelegatedSubmitBtn",
+              "label": "House Delegated Intake & Board",
+              "note": "Scoped strictly to X-House-ID for H2 and HOUSE_GENEALOGIST (stripped for H1)."
+            },
+            {
+              "badge": 4,
+              "control_id": "admission-authority-mode-select",
+              "label": "Solo Default vs. Two-Party Co-Sign",
+              "note": "Ring 1 Alpha defaults to CHIEF_ADMIN_SOLO; toggling TWO_PARTY_COSIGN requires F2-H co-sign before Chief Admin ratification."
+            }
+          ]
+        }
+      ]
     }
   ]
 }

@@ -575,6 +575,43 @@ class SessionAuthService:
         finally:
             db.close()
 
+    def issue_session_for_user(
+        self,
+        user_id: str,
+        *,
+        requested_hat: Optional[str] = None,
+        auth_method: str = "INVITE_ACTIVATION",
+    ) -> Optional[Tuple[AuthenticatedSessionContext, str]]:
+        """Issue a signed Class M / non-Apex session for a newly activated allowlisted member."""
+        clean_uid = (user_id or "").strip()
+        if not clean_uid:
+            return None
+        db: Session = self._session_factory()
+        try:
+            user = (
+                db.query(AuthUserModel)
+                .filter(AuthUserModel.user_id == clean_uid)
+                .first()
+            )
+            if user is None or not user.active:
+                return None
+            hats = _parse_authorized_hats(user.authorized_hats)
+            if bool(user.is_apex_tier3) or _has_apex_hat(hats):
+                return None
+            chosen_hat = self._select_initial_hat(
+                hats,
+                requested_hat=requested_hat,
+                is_apex=False,
+            )
+            return self._issue_session_row(
+                db,
+                user,
+                active_hat=chosen_hat,
+                auth_method=auth_method,
+            )
+        finally:
+            db.close()
+
     # ------------------------------------------------------------------
     # Universal Passwordless Sign-In (6-Digit Code & Single-Use Magic Link)
     # ------------------------------------------------------------------
@@ -1537,6 +1574,7 @@ class SessionAuthService:
 
 _EXEMPT_EXACT_PATHS: Set[str] = {
     "/login",
+    "/activate",
     "/health",
     "/healthz",
     "/metrics",
@@ -1550,7 +1588,113 @@ _EXEMPT_EXACT_PATHS: Set[str] = {
     "/api/v1/auth/apex-login",
     "/api/v1/auth/logout",
     "/api/v1/auth/me",
+    "/api/v1/onboarding/invite-preview",
+    "/api/v1/onboarding/activate",
 }
+
+
+def provision_member_auth_allowlist_in_session(
+    db: Session,
+    *,
+    user_id: str,
+    email: str,
+    display_name: str,
+    scma_id: str,
+    house_id: str,
+    actor_id: str = "SYSTEM",
+    source: str = "ONBOARDING",
+) -> Dict[str, Any]:
+    """Upsert a standard Class M AuthUserModel allowlist record inside an active DB session.
+
+    Never marks standard members as `is_apex_tier3=True`, stores zero banking/SSN PII,
+    and records `ONBOARDING_AUTH_ALLOWLIST_PROVISIONED` in GovernanceAuditLog.
+    """
+    norm_email = normalize_email(email)
+    if not norm_email or "@" not in norm_email:
+        safe_slug = re.sub(r"[^a-z0-9._-]+", "", (user_id or "member").lower()) or "member"
+        norm_email = f"{safe_slug}@carmichael-family.local"
+
+    clean_house = str(house_id or "HOUSE-01").strip().upper()
+    if clean_house.isdigit():
+        clean_house = f"HOUSE-{int(clean_house):02d}"
+
+    row = db.query(AuthUserModel).filter(AuthUserModel.user_id == user_id).first()
+    if row is None:
+        email_holder = db.query(AuthUserModel).filter(AuthUserModel.email == norm_email).first()
+        if email_holder is not None and email_holder.user_id != user_id:
+            # Avoid UNIQUE constraint failure if two test records share a placeholder email
+            local_part, _, domain_part = norm_email.partition("@")
+            suffix = re.sub(r"[^a-z0-9]+", "", user_id.lower())[-8:] or uuid.uuid4().hex[:6]
+            norm_email = f"{local_part}+{suffix}@{domain_part}"
+        row = AuthUserModel(
+            user_id=user_id,
+            email=norm_email,
+            display_name=display_name,
+            scma_id=scma_id,
+            house_id=clean_house,
+            authorized_hats=json.dumps(["CLASS_M"]),
+            is_apex_tier3=0,
+            passphrase_hash=None,
+            mfa_secret_hash=None,
+            active=1,
+        )
+        db.add(row)
+        stored_hats = ["CLASS_M"]
+    else:
+        email_holder = (
+            db.query(AuthUserModel)
+            .filter(AuthUserModel.email == norm_email, AuthUserModel.user_id != user_id)
+            .first()
+        )
+        if email_holder is None:
+            row.email = norm_email
+        row.display_name = display_name
+        row.scma_id = scma_id
+        row.house_id = clean_house
+        row.active = 1
+        # Standard members are never elevated to Apex Tier-3 via onboarding
+        if not bool(row.is_apex_tier3):
+            row.is_apex_tier3 = 0
+            row.authorized_hats = json.dumps(["CLASS_M"])
+            stored_hats = ["CLASS_M"]
+        else:
+            stored_hats = json.loads(row.authorized_hats or '["CLASS_M"]')
+
+    db.flush()
+
+    audit_evt = get_governance_audit_log().record(
+        event_type="ONBOARDING_AUTH_ALLOWLIST_PROVISIONED",
+        actor_id=actor_id or user_id,
+        actor_role="CHIEF_ADMINISTRATOR" if source == "DELEGATED_RATIFICATION" else "CLASS_M",
+        target_id=user_id,
+        action=f"PROVISION_AUTH_ALLOWLIST_{source}",
+        outcome="ALLOWLIST_ACTIVE",
+        http_status=200,
+        detail=(
+            f"Provisioned private family allowlist login for {display_name} "
+            f"({clean_house}) via {source}; authorized_hats={stored_hats}, is_apex_tier3=False."
+        ),
+        metadata={
+            "user_id": user_id,
+            "scma_id": scma_id,
+            "house_id": clean_house,
+            "authorized_hats": stored_hats,
+            "is_apex_tier3": bool(row.is_apex_tier3),
+            "source": source,
+        },
+    )
+
+    return {
+        "user_id": row.user_id,
+        "email": row.email,
+        "display_name": row.display_name,
+        "scma_id": row.scma_id,
+        "house_id": row.house_id,
+        "authorized_hats": stored_hats,
+        "is_apex_tier3": bool(row.is_apex_tier3),
+        "active": bool(row.active),
+        "audit_event_id": audit_evt["event_id"],
+    }
 
 _HTML_PORTAL_PREFIXES: Tuple[str, ...] = (
     "/home",

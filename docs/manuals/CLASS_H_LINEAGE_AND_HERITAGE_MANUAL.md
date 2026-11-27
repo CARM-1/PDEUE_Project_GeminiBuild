@@ -197,3 +197,14 @@ Your House desk adapts dynamically to the platform's live constitutional stage s
 - **Surgical First, Never Global:** `H2` freezes or cancels orders on one specific subordinate SCMA—never disrupting healthy siblings or the other 11 Houses.
 - **Founder Root Immunity:** Subordinate circuit breakers can never target the Founder / Chief Administrator root SCMA (`FOUNDER_APEX_IMMUNITY_VIOLATION`).
 - **No Unilateral Capital Movement:** Even a `9 / 12` ratified petition in Stage 2 or a `HOUSE_GENEALOGIST` onboarding dossier never moves a dollar or activates bank custody without explicit human ratification and `ADR-011` air-gapped handoff to IFAS.
+
+---
+
+## 9. House Delegated Onboarding Intake, Admissions Board & Two-Party Co-Sign
+
+Authorized **`H2` House Leaders** and **`HOUSE_GENEALOGIST`** historians have access to a collapsible **House Delegated Onboarding Intake & Admissions Board** panel directly on `/lineage/house/{id}` (strictly stripped from `H1` House Secretary desks and non-house roles):
+
+1. **Respecting Chief Admin Delegation Scope (`ADMIN_ONLY` / `PER_HOUSE` / `ENCLAVE_WIDE`):** When the enclave is in its fail-closed `ADMIN_ONLY` default, the panel displays a calm notice explaining that delegated intake is paused. Once the Chief Administrator enables `PER_HOUSE` (for your House) or `ENCLAVE_WIDE` on `/dashboard` Tab 4, `H2` and `HOUSE_GENEALOGIST` can submit kinship-verified dossiers (`POST /api/v1/onboarding/delegated-submit`) strictly for their own assigned `X-House-ID` (cross-house attempts fail closed `HTTP 403`).
+2. **Staged Safely in `PENDING_RATIFICATION`:** Submitting a House dossier or casting a Genealogical Admissions Board ballot (`APPROVE`, `REQUEST_PROOF`, or `REJECT` via `/board-vote`) never creates an SCMA or moves capital unilaterally. Zero banking credentials or SSNs may ever be entered (`ADR-011`—opaque `EXT-REF-...` tokens only).
+3. **Chief Admin Solo Default vs. Toggleable Two-Party Co-Sign (`TWO_PARTY_COSIGN`):** By default in Ring 1 Alpha (`CHIEF_ADMIN_SOLO`), the Chief Administrator ratifies dossiers directly. When the Chief Administrator toggles `TWO_PARTY_COSIGN` on `/dashboard` Tab 4, solo ratification fails closed (`HTTP 409`, `TWO_PARTY_COSIGN_REQUIRED`) until an authorized **`F2-H` Head of Household** for that exact House records their co-sign attestation from `/advisor` (**Pending Member Admission Co-Signs**). Once ratified, the new relative's SCMA and `CLASS_M` private allowlist login are provisioned automatically, a 48-hour invite link is issued for `/activate`, and a signed HMAC-SHA256 `MEMBER_ADMISSION_RATIFIED` event crosses to IFAS.
+

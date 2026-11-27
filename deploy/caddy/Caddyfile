@@ -124,7 +124,7 @@ vault.narratixai.io {
 	}
 
 	@vault_allowed {
-		path /member /member/* /advisor /advisor/* /lineage/* /static/* /api/v1/portal/* /api/v1/member/* /api/v1/advisor/* /api/v1/lineage/* /api/v1/lexicon /api/v1/lexicon/* /api/v1/onboarding/* /api/v1/hunch /api/v1/hunch/* /health
+		path /activate /member /member/* /advisor /advisor/* /lineage/* /static/* /api/v1/portal/* /api/v1/member/* /api/v1/advisor/* /api/v1/lineage/* /api/v1/lexicon /api/v1/lexicon/* /api/v1/onboarding/* /api/v1/hunch /api/v1/hunch/* /health
 	}
 
 	route {

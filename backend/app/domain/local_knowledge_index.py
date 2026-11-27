@@ -92,6 +92,7 @@ _INTERNAL_PDEUE_ANCHORS: Tuple[re.Pattern[str], ...] = (
     re.compile(r"\b(?:tab\s+[1-4]|dashboard|lineage\s+house|house\s+(?:0?[1-9]|1[0-2])|12\s+houses|enclave)\b", re.IGNORECASE),
     re.compile(r"\b(?:playbook|runbook|manual|lexicon|glossary|chancellor|fiduciary\s+copilot|devops\s+copilot)\b", re.IGNORECASE),
     re.compile(r"\b(?:sign[- ]?in|log[- ]?in|magic\s+link|6-?digit\s+code|passphrase|mfa|passwordless|where\s+is\s+my\s+password|lost\s+(?:my\s+)?(?:phone|laptop|device)|revoke\s+(?:session|device))\b", re.IGNORECASE),
+    re.compile(r"\b(?:activate\s+(?:my\s+)?invite|invite\s+(?:activation|link|token|code)|two[- ]?party\s+(?:admission|co[- ]?sign)|chief_admin_solo|two_party_cosign|/activate)\b", re.IGNORECASE),
 )
 
 # Pure external public-market research patterns (Lane 2)
@@ -148,8 +149,15 @@ _QUERY_SYNONYMS: Dict[str, Tuple[str, ...]] = {
     "daemon": ("autonomousscanworker", "settlementreconciler", "worker", "telemetry"),
     "latency": ("websocket", "telemetry", "worker", "rate-limit"),
     "succession": ("deputy", "chief_admin_deputy", "handoff"),
-    "onboard": ("onboarding", "delegated", "ratification", "invite"),
-    "onboarding": ("delegated", "ratification", "invite"),
+    "onboard": ("onboarding", "delegated", "ratification", "invite", "activate", "admission"),
+    "onboarding": ("delegated", "ratification", "invite", "activate", "admission"),
+    "invite": ("activate", "onboarding", "48-hour", "allowlist", "admission"),
+    "activate": ("invite", "onboarding", "48-hour", "allowlist", "admission"),
+    "activation": ("invite", "activate", "onboarding", "allowlist", "admission"),
+    "admission": ("onboarding", "two-party", "cosign", "f2-h", "ratification", "chief_admin_solo"),
+    "two-party": ("cosign", "admission", "f2-h", "two_party_cosign", "ratification"),
+    "cosign": ("two-party", "admission", "f2-h", "two_party_cosign", "ratification"),
+    "co-sign": ("two-party", "admission", "f2-h", "two_party_cosign", "ratification"),
     "roll": ("h1", "secretary", "roster", "lineage"),
     "sign": ("sign-in", "login", "6-digit", "magic-link", "passwordless", "code"),
     "signin": ("sign-in", "login", "6-digit", "magic-link", "passwordless", "code"),

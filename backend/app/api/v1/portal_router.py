@@ -409,9 +409,11 @@ def _community_text(value: str, *, field: str, maximum: int) -> str:
 
 
 def _lineage_role(role: str) -> str:
-    normalized = role.upper()
-    if normalized not in {"H1", "H2"}:
-        raise HTTPException(status_code=400, detail="role must be H1 or H2")
+    normalized = role.strip().upper().replace("-", "_")
+    if normalized == "GENEALOGIST":
+        normalized = "HOUSE_GENEALOGIST"
+    if normalized not in {"H1", "H2", "HOUSE_GENEALOGIST"}:
+        raise HTTPException(status_code=400, detail="role must be H1, H2, or HOUSE_GENEALOGIST")
     return normalized
 
 
@@ -486,13 +488,22 @@ def get_lineage_house_portal(
     )
     banner_hidden_attr = "hidden" if envelope.status.value == "OK" else ""
     banner_class = f"rm-banner rm-{envelope.status.value.lower()}"
+    active_hat_label = (
+        "HOUSE_LEADER (H2_SOVEREIGN)"
+        if role == "H2"
+        else (
+            "HOUSE_GENEALOGIST (LINEAGE_HISTORIAN)"
+            if role == "HOUSE_GENEALOGIST"
+            else "HOUSE_ASSISTANT (H1_SECRETARIAL)"
+        )
+    )
     replacements = {
         "__HOUSE_ID__": str(house_id),
         "__HOUSE_CODE__": house["lineage_code"],
         "__HOUSE_NAME__": house["name"],
         "__HOUSE_STATUS__": house["status"],
         "__ACTIVE_ROLE__": role,
-        "__ACTIVE_HAT__": "HOUSE_LEADER (H2_SOVEREIGN)" if role == "H2" else "HOUSE_ASSISTANT (H1_SECRETARIAL)",
+        "__ACTIVE_HAT__": active_hat_label,
         "__GOVERNANCE_MODE__": mode_state["governance_mode"],
         "__GOVERNANCE_BADGE__": mode_state["badge_text"],
         "__RM_BANNER_CLASS__": banner_class,
@@ -508,12 +519,14 @@ def get_lineage_house_portal(
     discovery_end = page.find("<!-- DISCOVERY_CONTROLS_END -->")
     if discovery_start >= 0 and discovery_end >= 0:
         page = page[:discovery_start] + page[discovery_end + len("<!-- DISCOVERY_CONTROLS_END -->"):]
-    page = page.replace(
-        "__ROLE_DESK__",
-        _render_lineage_h2_desk(house, mode_state, petitions)
-        if role == "H2"
-        else _render_lineage_h1_desk(house, mode_state),
-    )
+    if role == "H2":
+        desk_html = _render_lineage_h2_desk(house, mode_state, petitions) + _render_house_delegated_onboarding_panel(house, role="H2")
+    elif role == "HOUSE_GENEALOGIST":
+        desk_html = _render_lineage_h1_desk(house, mode_state) + _render_house_delegated_onboarding_panel(house, role="HOUSE_GENEALOGIST")
+    else:
+        # H1 strictly stripped of delegated onboarding intake & admissions board controls
+        desk_html = _render_lineage_h1_desk(house, mode_state)
+    page = page.replace("__ROLE_DESK__", desk_html)
     return HTMLResponse(page)
 
 
@@ -531,6 +544,7 @@ def get_lineage_house_state(
     _lineage_claim(house_id, x_house_id, actor_house_id)
     house = _lineage_service.get_house_summary(house_id)
     mode_state = _enclave_gov.get_governance_mode()
+    is_masked = role in {"H1", "HOUSE_GENEALOGIST"}
     members = []
     for source in house["members"]:
         member = {
@@ -540,8 +554,8 @@ def get_lineage_house_state(
             "literacy_completion_pct": 85 if "Apprentice" in source["role_tag"] else 100,
             "is_sovereign_immune": _lineage_service._is_sovereign_settlor(source),
         }
-        member["notional_cents"] = "$****.**" if role == "H1" else int(source["cash_cents"])
-        member["cash_display"] = "$****.**" if role == "H1" else format_cents(int(source["cash_cents"]))
+        member["notional_cents"] = "$****.**" if is_masked else int(source["cash_cents"])
+        member["cash_display"] = "$****.**" if is_masked else format_cents(int(source["cash_cents"]))
         members.append(member)
     proposals = _enclave_gov.list_petitions()
     r04_snapshot = get_directive_r04_controller().snapshot()
@@ -558,7 +572,7 @@ def get_lineage_house_state(
     return {
         "house_id": house_id, "house_code": house["lineage_code"], "house_name": house["name"],
         "house_status": house["status"],
-        "active_role": role, "r12_masked": role == "H1",
+        "active_role": role, "r12_masked": is_masked,
         "governance_mode": mode_state["governance_mode"],
         "governance_stage": mode_state["stage"],
         "voting_enabled": mode_state["voting_enabled"] and role == "H2",
@@ -846,6 +860,76 @@ def _render_lineage_h1_desk(house: Dict[str, Any], mode_state: Dict[str, Any]) -
 <p>Secretarial observation only; legislative submission, voting, veto, and circuit-breaker authorities are stripped from H1 desks and blocked server-side (HTTP 403).</p></section>
 <section class="secretarial"><article><h2>Meeting Scheduler Log</h2><p>Next Senate session: 2026-10-05 18:00 UTC</p></article><article><h2>Lineage Roll-Call Registry</h2><p>RC-2026-09 — QUORUM MET</p></article><article><h2>AI Tutor / Literacy Completion</h2>{literacy}</article></section>'''
 
+
+def _render_house_delegated_onboarding_panel(house: Dict[str, Any], *, role: str) -> str:
+    """PR #99: Collapsible House Delegated Onboarding Intake & Admissions Board panel (H2 & HOUSE_GENEALOGIST only)."""
+    house_code = html.escape(str(house["lineage_code"]))
+    safe_role = html.escape(str(role))
+    return f'''<section id="houseDelegatedOnboardingPanel" class="house-onboarding-panel" aria-label="House Delegated Onboarding Intake and Admissions Board">
+  <details id="houseDelegatedOnboardingDrawer">
+    <summary style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;list-style:none;">
+      <div>
+        <div style="font-size:0.74rem;font-weight:800;letter-spacing:0.08em;color:#38BDF8;text-transform:uppercase;">SCOPED TO {house_code} · ROLE: {safe_role} · ZERO BANK CREDENTIALS (ADR-011)</div>
+        <h2 style="margin:3px 0 0;font-size:1.05rem;color:#F8FAFC;">House Delegated Onboarding Intake &amp; Admissions Board</h2>
+      </div>
+      <span id="houseDelegationStatusPill" class="house-pill">Checking Policy…</span>
+    </summary>
+    <div id="houseDelegationModeNotice" class="delegation-notice" role="status" aria-live="polite">
+      Loading Chief Administrator delegation policy for {house_code}…
+    </div>
+    <form id="houseDelegatedIntakeForm" class="intake-grid" onsubmit="submitHouseDelegatedDossier(event)">
+      <label>Applicant Full Name
+        <input id="intakeApplicantName" class="intake-input" type="text" required placeholder="e.g. Nadia Carmichael-McCormick">
+      </label>
+      <label>Applicant Family Email (Private Allowlist)
+        <input id="intakeApplicantEmail" class="intake-input" type="email" required placeholder="nadia@carmichael-family.local">
+      </label>
+      <label>Kinship Verification Summary
+        <input id="intakeKinshipProof" class="intake-input" type="text" required placeholder="Verified lineage branch &amp; elder attestation">
+      </label>
+      <label>Custodial Status
+        <select id="intakeCustodialStatus" class="intake-input" aria-label="Applicant custodial status">
+          <option value="ADULT">ADULT (Independent Member)</option>
+          <option value="MINOR_CUSTODIAL">MINOR_CUSTODIAL (Apprentice)</option>
+        </select>
+      </label>
+      <label>Starting Seed (Exact Integer Cents · ADR-008)
+        <input id="intakeSeedCents" class="intake-input" type="number" min="0" step="1" required value="50000">
+      </label>
+      <label>Risk Dial Ceiling % (0.50–2.00)
+        <input id="intakeRiskDialPct" class="intake-input" type="number" min="0.50" max="2.00" step="0.05" required value="1.25">
+      </label>
+      <label>Opaque Bank Ref Token (ADR-011 Only)
+        <input id="intakeBankRefToken" class="intake-input mono" type="text" required value="EXT-REF-PENFED-****4821" placeholder="EXT-REF-ENTITY-****1234">
+      </label>
+      <label>Signed Due-Diligence Attestation
+        <input id="intakeAttestation" class="intake-input" type="text" required value="Confirmed direct lineage kinship and zero banking credentials entered.">
+      </label>
+      <div style="grid-column:1 / -1;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button id="houseDelegatedSubmitBtn" type="submit" class="btn-intake">Stage Dossier for Chief Admin Ratification</button>
+        <button id="refreshHouseDossiersBtn" type="button" class="btn-lookup-clear" onclick="loadHouseDelegatedOnboarding()">Refresh {house_code} Dossiers</button>
+      </div>
+    </form>
+    <div id="houseDelegatedFeedback" class="status-feedback" role="status" aria-live="polite"></div>
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid #334155;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+        <strong style="font-size:0.94rem;color:#F8FAFC;">{house_code} Pending Dossiers &amp; Genealogical Admissions Board</strong>
+        <span id="houseBoardStatePill" class="house-pill">Board Status: Checking…</span>
+      </div>
+      <div id="houseDossiersList" role="region" aria-live="polite" style="display:grid;gap:8px;">
+        <div class="muted-note" style="margin:0;">Loading {house_code} admission dossiers…</div>
+      </div>
+    </div>
+  </details>
+</section>'''
+
+
+@router.get("/activate", response_class=HTMLResponse)
+def get_invite_activation_portal():
+    """Serve the senior-friendly 48-hour single-use invite activation portal (zero prior session required)."""
+    return _load_html("activate.html")
+
+
 @router.get("/member", response_class=HTMLResponse)
 def get_member_portal():
     return _load_html("member.html")
@@ -1092,9 +1176,13 @@ def get_advisor_portal(
                     )
 
     page = _load_html("advisor.html").body.decode("utf-8")
+    effective_advisor_role = normalize_advisor_role(role) if role else "F2-H"
     if is_admin:
-        page = page.replace("<!-- CHIEF_ADMIN_ROLE_SWITCHER_START -->", "").replace(
-            "<!-- CHIEF_ADMIN_ROLE_SWITCHER_END -->", ""
+        page = (
+            page.replace("<!-- CHIEF_ADMIN_ROLE_SWITCHER_START -->", "")
+            .replace("<!-- CHIEF_ADMIN_ROLE_SWITCHER_END -->", "")
+            .replace("<!-- F2H_ADMISSION_COSIGN_START -->", "")
+            .replace("<!-- F2H_ADMISSION_COSIGN_END -->", "")
         )
     else:
         page = _strip_marked_block(
@@ -1102,6 +1190,16 @@ def get_advisor_portal(
             "<!-- CHIEF_ADMIN_ROLE_SWITCHER_START -->",
             "<!-- CHIEF_ADMIN_ROLE_SWITCHER_END -->",
         )
+        if effective_advisor_role == "F2-H":
+            page = page.replace("<!-- F2H_ADMISSION_COSIGN_START -->", "").replace(
+                "<!-- F2H_ADMISSION_COSIGN_END -->", ""
+            )
+        else:
+            page = _strip_marked_block(
+                page,
+                "<!-- F2H_ADMISSION_COSIGN_START -->",
+                "<!-- F2H_ADMISSION_COSIGN_END -->",
+            )
     return HTMLResponse(page)
 
 
