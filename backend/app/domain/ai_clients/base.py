@@ -34,6 +34,10 @@ class LLMResponse:
     web_citations: List[Dict[str, str]] = field(default_factory=list)
     grounding_used: bool = False
     structured_data: Optional[Dict[str, Any]] = None
+    answered_locally: bool = False
+    media_refs: List[Dict[str, Any]] = field(default_factory=list)
+    playbook_steps: List[str] = field(default_factory=list)
+    manual_citations: List[Dict[str, Any]] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         if self.unilateral_execution is not False:
@@ -195,4 +199,8 @@ class BaseLLMClient(ABC):
             web_citations=list(raw_response.web_citations),
             grounding_used=bool(raw_response.grounding_used),
             structured_data=raw_response.structured_data,
+            answered_locally=bool(raw_response.answered_locally),
+            media_refs=list(raw_response.media_refs),
+            playbook_steps=list(raw_response.playbook_steps),
+            manual_citations=list(raw_response.manual_citations),
         )

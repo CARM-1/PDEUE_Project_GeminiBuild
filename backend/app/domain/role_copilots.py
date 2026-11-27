@@ -23,10 +23,12 @@ import uuid
 from app.domain.ai_clients import (
     BaseLLMClient,
     get_llm_client,
+    inspect_user_input,
     sanitize_action_cards,
     sanitize_output_text,
 )
 from app.domain.authority_tiers import normalize_advisor_role, normalize_tech_tier
+from app.domain.local_knowledge_index import get_local_knowledge_index
 from app.domain.member_tutor import (
     _project_6m_exact_cents,
     format_exact_cents,
@@ -404,10 +406,11 @@ def compute_f3_macro_what_if(
 
 
 class ClassFFinancialCopilot:
-    """Class F Financial Copilot wired through BaseLLMClient + guardrails.py (Milestone F3)."""
+    """Class F Financial Copilot with local-first knowledge/media short-circuit (Milestone F3 + PR #96)."""
 
-    def __init__(self, llm_client: Optional[BaseLLMClient] = None):
+    def __init__(self, llm_client: Optional[BaseLLMClient] = None, *, local_first: bool = True):
         self._injected_client = llm_client
+        self._local_first = bool(local_first)
 
     def _client(self) -> BaseLLMClient:
         return self._injected_client if self._injected_client is not None else get_llm_client()
@@ -811,7 +814,93 @@ class ClassFFinancialCopilot:
             directive_r04_snapshot=directive_r04_snapshot,
             dual_sig_overrides=dual_sig_overrides,
         )
-        draft = self._build_draft(query, ctx)
+        verdict = inspect_user_input(
+            query,
+            actor_role=ctx["tier"],
+            actor_id=f"CLASS_F_{ctx['tier']}",
+            assigned_household_id=ctx.get("assigned_household_id"),
+            forbidden_scma_ids=ctx.get("forbidden_scma_ids"),
+        )
+        if verdict.blocked:
+            refusal = verdict.refusal_message or "Request refused under PDEUE constitutional guardrails."
+            return {
+                "role": "FIDUCIARY_COPILOT",
+                "tier": ctx["tier"],
+                "household_scope": ctx["household_id"],
+                "disclaimer": "EDUCATIONAL_NOT_ADVICE",
+                "response_text": refusal,
+                "response": refusal,
+                "unilateral_execution": False,
+                "auth_tier": "AUTH-01",
+                "provider_used": "guardrails",
+                "model_used": "policy-v1",
+                "fallback_used": False,
+                "guard_blocked": True,
+                "guard_category": verdict.category,
+                "audit_event_id": verdict.audit_event_id,
+                "action_cards": [],
+                "what_if_simulation": None,
+                "audit_summary": None,
+                "citations": [],
+                "answered_locally": True,
+                "media_refs": [],
+                "playbook_steps": [],
+                "manual_citations": [],
+                "cards": [
+                    {
+                        "title": f"Guardrail Refusal ({verdict.category})",
+                        "body": refusal,
+                        "classification": "GUARDRAIL_REFUSAL",
+                    }
+                ],
+            }
+
+        draft = self._build_draft(verdict.sanitized_text, ctx)
+        local_hit = (
+            get_local_knowledge_index().query(verdict.sanitized_text, role=ctx["tier"])
+            if self._local_first
+            else None
+        )
+        if self._local_first and local_hit is not None and local_hit.matched:
+            safe_text = sanitize_output_text(
+                draft["content"],
+                actor_role=ctx["tier"],
+                forbidden_scma_ids=ctx.get("forbidden_scma_ids"),
+            )
+            safe_cards = sanitize_action_cards(draft.get("action_cards") or [], actor_role=ctx["tier"])
+            structured = dict(draft.get("structured_data") or {})
+            return {
+                "role": "FIDUCIARY_COPILOT",
+                "tier": ctx["tier"],
+                "household_scope": ctx["household_id"],
+                "disclaimer": "EDUCATIONAL_NOT_ADVICE",
+                "response_text": safe_text,
+                "response": safe_text,
+                "unilateral_execution": False,
+                "auth_tier": draft.get("auth_tier") or "AUTH-01",
+                "provider_used": "local_knowledge_index",
+                "model_used": "local-index-v1",
+                "fallback_used": False,
+                "guard_blocked": False,
+                "guard_category": None,
+                "audit_event_id": None,
+                "action_cards": safe_cards,
+                "what_if_simulation": structured.get("what_if_simulation"),
+                "audit_summary": structured.get("audit_summary"),
+                "citations": list(draft.get("citations") or []),
+                "answered_locally": True,
+                "media_refs": list(local_hit.media_refs),
+                "playbook_steps": list(local_hit.playbook_steps),
+                "manual_citations": list(local_hit.manual_citations),
+                "cards": [
+                    {
+                        "title": f"Fiduciary analysis ({ctx['tier']})",
+                        "body": safe_text,
+                        "classification": "EDUCATIONAL_NOT_ADVICE",
+                    }
+                ],
+            }
+
         ctx_with_draft = {**ctx, "copilot_draft": draft}
         llm_resp = self._client().generate_safe_response(
             system_prompt=CLASS_F_SYSTEM_PROMPT,
@@ -842,6 +931,10 @@ class ClassFFinancialCopilot:
             "what_if_simulation": structured.get("what_if_simulation"),
             "audit_summary": structured.get("audit_summary"),
             "citations": list(llm_resp.citations),
+            "answered_locally": False,
+            "media_refs": list(llm_resp.media_refs),
+            "playbook_steps": list(llm_resp.playbook_steps),
+            "manual_citations": list(llm_resp.manual_citations),
             "cards": [
                 {
                     "title": (
@@ -923,10 +1016,11 @@ def build_class_t_context(
 
 
 class ClassTDevOpsCopilot:
-    """Class T DevOps Telemetry Copilot wired through BaseLLMClient + guardrails.py (Milestone F3)."""
+    """Class T DevOps Telemetry Copilot with local-first knowledge/media short-circuit (Milestone F3 + PR #96)."""
 
-    def __init__(self, llm_client: Optional[BaseLLMClient] = None):
+    def __init__(self, llm_client: Optional[BaseLLMClient] = None, *, local_first: bool = True):
         self._injected_client = llm_client
+        self._local_first = bool(local_first)
 
     def _client(self) -> BaseLLMClient:
         return self._injected_client if self._injected_client is not None else get_llm_client()
@@ -1158,7 +1252,96 @@ class ClassTDevOpsCopilot:
             override_grant=override_grant,
             directive_r04_snapshot=directive_r04_snapshot,
         )
-        draft = self._build_draft(query, ctx)
+        verdict = inspect_user_input(
+            query,
+            actor_role=ctx["tier"],
+            actor_id=f"CLASS_T_{ctx['tier']}",
+            assigned_household_id=ctx.get("assigned_household_id"),
+            r12_unredacted=bool(ctx["r12_unredacted"]),
+        )
+        if verdict.blocked:
+            refusal = verdict.refusal_message or "Request refused under PDEUE constitutional guardrails."
+            return {
+                "role": "DEVOPS_COPILOT",
+                "tier": ctx["tier"],
+                "telemetry_scope": ctx["telemetry_scope"],
+                "assigned_household_id": ctx["assigned_household_id"],
+                "r12_masked": not bool(ctx["r12_unredacted"]),
+                "override_grant_id": ctx["override_grant_id"],
+                "query": query,
+                "response": refusal,
+                "response_text": refusal,
+                "unilateral_execution": False,
+                "auth_tier": "AUTH-01",
+                "provider_used": "guardrails",
+                "model_used": "policy-v1",
+                "fallback_used": False,
+                "guard_blocked": True,
+                "guard_category": verdict.category,
+                "audit_event_id": verdict.audit_event_id,
+                "action_cards": [],
+                "citations": [],
+                "answered_locally": True,
+                "media_refs": [],
+                "playbook_steps": [],
+                "manual_citations": [],
+                "telemetry": {
+                    "cycle_count": ctx["cycle_count"],
+                    "settled_count": ctx["settled_count"],
+                    "ws_latency_ms": dict(ctx["ws_latency_ms"]),
+                    "token_buckets": ctx["token_buckets"],
+                    "r12_masked": not bool(ctx["r12_unredacted"]),
+                    "assigned_household_id": ctx["assigned_household_id"],
+                },
+            }
+
+        draft = self._build_draft(verdict.sanitized_text, ctx)
+        local_hit = (
+            get_local_knowledge_index().query(verdict.sanitized_text, role=ctx["tier"])
+            if self._local_first
+            else None
+        )
+        if self._local_first and local_hit is not None and local_hit.matched:
+            safe_text = sanitize_output_text(
+                draft["content"],
+                actor_role=ctx["tier"],
+                r12_unredacted=bool(ctx["r12_unredacted"]),
+            )
+            safe_cards = sanitize_action_cards(draft.get("action_cards") or [], actor_role=ctx["tier"])
+            return {
+                "role": "DEVOPS_COPILOT",
+                "tier": ctx["tier"],
+                "telemetry_scope": ctx["telemetry_scope"],
+                "assigned_household_id": ctx["assigned_household_id"],
+                "r12_masked": not bool(ctx["r12_unredacted"]),
+                "override_grant_id": ctx["override_grant_id"],
+                "query": query,
+                "response": safe_text,
+                "response_text": safe_text,
+                "unilateral_execution": False,
+                "auth_tier": draft.get("auth_tier") or "AUTH-01",
+                "provider_used": "local_knowledge_index",
+                "model_used": "local-index-v1",
+                "fallback_used": False,
+                "guard_blocked": False,
+                "guard_category": None,
+                "audit_event_id": None,
+                "action_cards": safe_cards,
+                "citations": list(draft.get("citations") or []),
+                "answered_locally": True,
+                "media_refs": list(local_hit.media_refs),
+                "playbook_steps": list(local_hit.playbook_steps),
+                "manual_citations": list(local_hit.manual_citations),
+                "telemetry": {
+                    "cycle_count": ctx["cycle_count"],
+                    "settled_count": ctx["settled_count"],
+                    "ws_latency_ms": dict(ctx["ws_latency_ms"]),
+                    "token_buckets": ctx["token_buckets"],
+                    "r12_masked": not bool(ctx["r12_unredacted"]),
+                    "assigned_household_id": ctx["assigned_household_id"],
+                },
+            }
+
         ctx_with_draft = {**ctx, "copilot_draft": draft}
         llm_resp = self._client().generate_safe_response(
             system_prompt=CLASS_T_SYSTEM_PROMPT,
@@ -1197,6 +1380,10 @@ class ClassTDevOpsCopilot:
             "audit_event_id": llm_resp.audit_event_id,
             "action_cards": safe_cards,
             "citations": list(llm_resp.citations),
+            "answered_locally": False,
+            "media_refs": list(llm_resp.media_refs),
+            "playbook_steps": list(llm_resp.playbook_steps),
+            "manual_citations": list(llm_resp.manual_citations),
             "telemetry": {
                 "cycle_count": ctx["cycle_count"],
                 "settled_count": ctx["settled_count"],

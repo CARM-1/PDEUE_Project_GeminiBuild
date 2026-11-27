@@ -4,6 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Lineage Community Hearth &amp; Educational Academy</title>
 <link rel="stylesheet" href="/static/css/senior_a11y.css">
+<link rel="stylesheet" href="/static/css/tutor_media_cards.css">
 <style>
 :root{--ink:#f8f3e7;--muted:#c9c3b5;--coal:#111813;--panel:#1b2920;--leaf:#79b88a;--gold:#e4bb63;--ember:#ce714a;--line:#385143;--accent-sky:#38BDF8;--bg-surface:#1E293B;--text-primary:#F8FAFC}
 *{box-sizing:border-box}
@@ -467,6 +468,12 @@ $('tutorForm').addEventListener('submit',async event=>{
     }
     wrap.append(badge);
   }
+  if(data.answered_locally===true&&window.PDEUEVisualTutor){
+    const localBadgeWrap=document.createElement('span');
+    localBadgeWrap.style.marginLeft='6px';
+    localBadgeWrap.innerHTML=window.PDEUEVisualTutor.renderLocalBadge(data);
+    wrap.append(localBadgeWrap);
+  }
   wrap.append(text('p','Tutor: '+(data.answer||data.detail)));
   if(data.dollar_example){
     const ex=text('p',data.dollar_example);
@@ -479,6 +486,14 @@ $('tutorForm').addEventListener('submit',async event=>{
     ptr.style.color='#94a3b8';
     ptr.style.fontSize='0.84rem';
     wrap.append(ptr);
+  }
+  if(window.PDEUEVisualTutor){
+    const visualHtml=window.PDEUEVisualTutor.renderVisualAidBlock(data);
+    if(visualHtml){
+      const visualBox=document.createElement('div');
+      visualBox.innerHTML=visualHtml;
+      wrap.append(visualBox);
+    }
   }
   if(Array.isArray(data.citations)&&data.citations.length){
     const citeWrap=document.createElement('div');
@@ -510,4 +525,5 @@ $('tutorForm').addEventListener('submit',async event=>{
 loadFeed();
 loadLessons();
 </script>
+<script src="/static/js/tutor_media_cards.js"></script>
 </body></html>

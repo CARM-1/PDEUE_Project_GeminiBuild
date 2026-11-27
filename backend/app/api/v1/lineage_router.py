@@ -1329,3 +1329,116 @@ def assign_custodial_mentor(
     )
 
 
+@lineage_router.post("/api/v1/portal/lineage/tutor")
+def lineage_house_tutor(
+    payload: Dict[str, Any],
+    role: Optional[str] = Query(None),
+    house_id: Optional[int] = Query(None),
+    x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+):
+    """Local-first AI Tutor for H1, H2, and HOUSE_GENEALOGIST (zero internet, R-12 masked for H1)."""
+    from app.domain.lineage_tutor import ALLOWED_LINEAGE_TUTOR_ROLES, get_class_h_lineage_tutor
+    from app.domain.local_knowledge_index import normalize_knowledge_role
+
+    prompt = str(payload.get("query") or payload.get("question") or "").strip()
+    if not prompt:
+        raise HTTPException(status_code=422, detail="Query must not be blank.")
+
+    raw_role = (
+        x_actor_role
+        or role
+        or payload.get("role")
+        or payload.get("actor_role")
+        or "H1"
+    )
+    resolved_role, actor_id = _resolve_actor_context(
+        x_actor_role=str(raw_role),
+        x_actor_id=x_actor_id,
+        authorization=authorization,
+        payload=payload,
+    )
+    if resolved_role and is_class_t_role(resolved_role):
+        get_governance_audit_log().record(
+            event_type="ROLE_BOUNDARY_DENIED",
+            actor_id=actor_id,
+            actor_role=resolved_role,
+            target_id="LINEAGE_TUTOR",
+            action="LINEAGE_TUTOR_QUERY",
+            outcome="DENIED_CLASS_T_ZERO_HOUSE_AUTHORITY",
+            http_status=403,
+            detail="Class T technical roles have zero House or household authority.",
+        )
+        raise HTTPException(
+            status_code=403,
+            detail="Class T technical roles have zero House or household authority.",
+        )
+
+    norm_role = normalize_knowledge_role(resolved_role or raw_role)
+    if norm_role not in ALLOWED_LINEAGE_TUTOR_ROLES:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Role '{resolved_role or raw_role}' is not authorized for the Class H / Genealogist tutor.",
+        )
+
+    raw_house_id = house_id if house_id is not None else payload.get("house_id")
+    if raw_house_id is None and x_house_id:
+        try:
+            raw_house_id = int(str(x_house_id).strip().upper().replace("HOUSE-", ""))
+        except ValueError as err:
+            raise HTTPException(status_code=403, detail="Invalid House identity claim") from err
+    target_house_id = int(raw_house_id or 1)
+    if target_house_id < 1 or target_house_id > 12:
+        raise HTTPException(status_code=400, detail="House ID must be between 1 and 12.")
+
+    _enforce_cross_house_boundary(
+        target_house_id,
+        x_house_id=x_house_id,
+        actor_role=norm_role,
+        action="LINEAGE_TUTOR_QUERY",
+    )
+
+    house_summary = None
+    if norm_role != "HOUSE_GENEALOGIST":
+        try:
+            summary = _lineage_service.get_house_summary(target_house_id)
+            if norm_role == "H1":
+                # Strip all financial figures before passing context to H1 tutor (Directive R-12)
+                house_summary = {
+                    "house_id": summary.get("house_id", target_house_id),
+                    "house_name": summary.get("house_name", f"House {target_house_id:02d}"),
+                    "lineage_code": summary.get("lineage_code", f"HOUSE-{target_house_id:02d}"),
+                    "members": [
+                        {
+                            "name": m.get("name"),
+                            "scma_id": "SCMA-MEM-****",
+                            "cash_display": "$****.**",
+                            "status": m.get("status", "ACTIVE"),
+                        }
+                        for m in (summary.get("members") or [])
+                    ],
+                }
+            else:
+                house_summary = summary
+        except Exception:
+            house_summary = None
+
+    gov_state = None
+    try:
+        gov_state = _enclave_gov.get_state()
+    except Exception:
+        gov_state = None
+
+    return get_class_h_lineage_tutor().answer_lineage_query(
+        prompt,
+        role=norm_role,
+        house_id=target_house_id,
+        house_summary=house_summary,
+        governance_state=gov_state,
+        actor_id=actor_id,
+    )
+
+
+

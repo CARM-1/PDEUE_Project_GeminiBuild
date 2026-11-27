@@ -387,7 +387,10 @@ def test_e5_fail_closed_read_model_banners_halt_and_fault_injection(
         page.locator("#emergencyKillSwitchBtn").click()
         page.locator("#kill-switch-modal").wait_for(state="visible")
         page.locator("#confirmKillSwitchExecuteBtn").click()
-        page.wait_for_timeout(400)
+        page.wait_for_function(
+            "() => document.getElementById('readModelStatusBanner')?.getAttribute('data-rm-status') === 'TRADING_HALTED'",
+            timeout=5000,
+        )
 
         assert banner.get_attribute("data-rm-status") == "TRADING_HALTED"
         assert "TRADING HALTED — EXECUTIVE OVERRIDE" in banner.inner_text()
@@ -416,7 +419,10 @@ def test_e5_fail_closed_read_model_banners_halt_and_fault_injection(
         page.goto(f"{live_server}/dashboard", wait_until="networkidle")
         page.wait_for_timeout(300)
         page.locator("#resumeFromHaltBtn").click()
-        page.wait_for_timeout(400)
+        page.wait_for_function(
+            "() => document.getElementById('readModelStatusBanner')?.getAttribute('data-rm-status') === 'QUALIFICATION_PENDING'",
+            timeout=5000,
+        )
         assert page.locator("#readModelStatusBanner").get_attribute("data-rm-status") == "QUALIFICATION_PENDING"
         assert not page.locator("#dashboardHaltOverlay").is_visible()
         _assert_layout_and_hygiene(page, diagnostics)

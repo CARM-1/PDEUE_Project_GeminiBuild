@@ -80,3 +80,7 @@ class CopilotResponse(BaseModel):
     audit_event_id: Optional[str] = None
     policy_decision_matrix: Optional[Dict[str, Any]] = None
     governance_posture: Optional[Dict[str, Any]] = None
+    answered_locally: bool = False
+    media_refs: List[Dict[str, Any]] = Field(default_factory=list)
+    playbook_steps: List[str] = Field(default_factory=list)
+    manual_citations: List[Dict[str, Any]] = Field(default_factory=list)

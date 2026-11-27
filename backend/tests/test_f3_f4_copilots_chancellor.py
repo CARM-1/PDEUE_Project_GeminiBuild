@@ -395,7 +395,8 @@ def test_f4_chancellor_coach_policy_decision_matrix_and_auth_action_cards():
     assert resp.status_code == 200
     data = resp.json()
     assert data["unilateral_execution"] is False
-    assert data["provider_used"] == "mock"
+    assert data["provider_used"] == "local_knowledge_index"
+    assert data["answered_locally"] is True
     assert data["auth_tier"] == "AUTH-03"
     assert data["guard_blocked"] is False
 

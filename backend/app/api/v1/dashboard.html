@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PDEUE Chief Administrator Workspace</title>
   <link rel="stylesheet" href="/static/css/senior_a11y.css">
+  <link rel="stylesheet" href="/static/css/tutor_media_cards.css">
   <style>
     :root {
       --bg-canvas: #0B132B;
@@ -2656,11 +2657,13 @@
     }
     function renderCopilotResponse(result) {
       lastChancellorActionCards = result.action_cards || [];
-      const meta = `<div class="chancellor-meta-bar"><span class="chancellor-pill sky">PROVIDER: ${escapeCopilot(result.provider_used || 'mock')}</span><span class="chancellor-pill amber">${escapeCopilot(result.auth_tier || 'AUTH-01')}</span><span class="chancellor-pill green">UNILATERAL=FALSE</span>${result.guard_blocked ? `<span id="chancellorGuardPill" class="chancellor-pill red">GUARDRAIL REFUSAL: ${escapeCopilot(result.guard_category || 'BLOCKED')}</span>` : ''}</div>`;
+      const localBadge = window.PDEUEVisualTutor ? window.PDEUEVisualTutor.renderLocalBadge(result) : '';
+      const meta = `<div class="chancellor-meta-bar">${localBadge}<span class="chancellor-pill sky">PROVIDER: ${escapeCopilot(result.provider_used || 'mock')}</span><span class="chancellor-pill amber">${escapeCopilot(result.auth_tier || 'AUTH-01')}</span><span class="chancellor-pill green">UNILATERAL=FALSE</span>${result.guard_blocked ? `<span id="chancellorGuardPill" class="chancellor-pill red">GUARDRAIL REFUSAL: ${escapeCopilot(result.guard_category || 'BLOCKED')}</span>` : ''}</div>`;
+      const visualHtml = window.PDEUEVisualTutor ? window.PDEUEVisualTutor.renderVisualAidBlock(result) : '';
       const citations = (result.citations || []).map(item => `<li>${escapeCopilot(item)}</li>`).join('') || '<span style="color:#64748b">No citations returned.</span>';
       const actions = lastChancellorActionCards.map((item, idx) => `<article class="chancellor-action-card" data-auth-tier="${escapeCopilot(item.auth_tier || 'AUTH-01')}" data-executed="false" data-unilateral-execution="false"><div style="display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;align-items:center;"><b>${escapeCopilot(item.title)}</b><div><span class="chancellor-pill amber">${escapeCopilot(item.auth_tier || 'AUTH-01')}</span> <span class="chancellor-pill green">STAGED · NOT EXECUTED</span></div></div><div style="color:#94a3b8;margin-top:4px;">${escapeCopilot(item.description || 'Pre-staged administrative proposal requiring explicit human confirmation.')}</div><button type="button" class="chancellor-stage-btn" onclick="stageChancellorAction(${idx})">Pre-Stage in Cockpit (No Auto-Exec)</button></article>`).join('') || '<span style="color:#64748b">No action proposals.</span>';
       const telemetry = result.risk_telemetry || {};
-      return `${meta}<section class="copilot-card"><div class="copilot-card-label">Answer Text</div>${escapeCopilot(result.answer_text)}</section>${renderPolicyMatrix(result.policy_decision_matrix)}<section class="copilot-card"><div class="copilot-card-label">Pre-Staged Action Cards (AUTH-01–AUTH-04)</div>${actions}<div id="chancellorStageStatus" style="margin-top:6px;color:#38BDF8;font-size:11px;"></div></section><section class="copilot-card"><div class="copilot-card-label">Citations</div><ul style="padding-left:18px;margin:4px 0;">${citations}</ul></section><section class="copilot-card"><div class="copilot-card-label">Telemetry</div><span class="telemetry-badge">Risk ${Number(telemetry.current_risk_pct || 0).toFixed(1)}%</span><span class="telemetry-badge">Dry Powder ${money(telemetry.dry_powder_cents || 0)}</span><span class="telemetry-badge">${telemetry.downward_only_locked ? 'Downward-only locked' : 'Unlocked'}</span></section>`;
+      return `${meta}<section class="copilot-card"><div class="copilot-card-label">Answer Text</div>${escapeCopilot(result.answer_text)}</section>${visualHtml}${renderPolicyMatrix(result.policy_decision_matrix)}<section class="copilot-card"><div class="copilot-card-label">Pre-Staged Action Cards (AUTH-01–AUTH-04)</div>${actions}<div id="chancellorStageStatus" style="margin-top:6px;color:#38BDF8;font-size:11px;"></div></section><section class="copilot-card"><div class="copilot-card-label">Citations</div><ul style="padding-left:18px;margin:4px 0;">${citations}</ul></section><section class="copilot-card"><div class="copilot-card-label">Telemetry</div><span class="telemetry-badge">Risk ${Number(telemetry.current_risk_pct || 0).toFixed(1)}%</span><span class="telemetry-badge">Dry Powder ${money(telemetry.dry_powder_cents || 0)}</span><span class="telemetry-badge">${telemetry.downward_only_locked ? 'Downward-only locked' : 'Unlocked'}</span></section>`;
     }
     async function submitStage2Copilot(event) {
       event.preventDefault();
@@ -2817,6 +2820,7 @@
       }
     }
   </script>
+  <script src="/static/js/tutor_media_cards.js"></script>
   <script src="/static/js/senior_a11y.js"></script>
 </body>
 </html>
