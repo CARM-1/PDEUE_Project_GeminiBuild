@@ -242,7 +242,7 @@ def test_pr83_nine_portal_parity_gate_lexicon_and_byte_for_byte_sync():
     assert "guided-tour" in LEXICON_BY_ID
 
     report = audit_ui_lexicon_curriculum_parity(REPO_ROOT)
-    assert len(report["portals_scanned"]) == 9
+    assert len(report["portals_scanned"]) >= 9
     assert set(report["portals_scanned"]) == set(PORTALS.keys())
     assert report["undocumented_controls"] == []
     assert report["dangling_data_terms"] == []

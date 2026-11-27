@@ -38,6 +38,7 @@ from app.domain.authority_tiers import (
     is_class_t_role,
     normalize_role_token,
 )
+from app.domain.family_tree_service import get_family_tree_service
 from app.domain.heritage_community_service import (
     get_heritage_community_service,
     resolve_heraldic_asset_path,
@@ -96,6 +97,54 @@ class NotificationBroadcastRequest(BaseModel):
     action_url: Optional[str] = "/community"
     channels: Optional[List[str]] = None
     strict_r12_reject: bool = False
+    actor_id: Optional[str] = None
+    actor_role: Optional[str] = None
+
+
+class FamilyTreePersonCreateRequest(BaseModel):
+    person_id: Optional[str] = None
+    full_name: str
+    given_name: Optional[str] = None
+    surname: Optional[str] = ""
+    suffix: Optional[str] = ""
+    nickname: Optional[str] = ""
+    house_id: str = "HOUSE-01"
+    generation: int = 2
+    is_deceased: bool = False
+    birth_year: Optional[int] = None
+    death_year: Optional[int] = None
+    bio_notes: Optional[str] = ""
+    source_tag: Optional[str] = "GENEALOGIST_ENTRY"
+    review_flag: Optional[str] = ""
+    is_reference_branch: bool = False
+    actor_id: Optional[str] = None
+    actor_role: Optional[str] = None
+
+
+class FamilyTreePersonUpdateRequest(BaseModel):
+    full_name: Optional[str] = None
+    given_name: Optional[str] = None
+    surname: Optional[str] = None
+    suffix: Optional[str] = None
+    nickname: Optional[str] = None
+    house_id: Optional[str] = None
+    generation: Optional[int] = None
+    is_deceased: Optional[bool] = None
+    birth_year: Optional[int] = None
+    death_year: Optional[int] = None
+    bio_notes: Optional[str] = None
+    source_tag: Optional[str] = None
+    review_flag: Optional[str] = None
+    actor_id: Optional[str] = None
+    actor_role: Optional[str] = None
+
+
+class FamilyTreeRelationshipCreateRequest(BaseModel):
+    rel_type: str
+    person_a_id: str
+    person_b_id: str
+    notes: Optional[str] = ""
+    source_tag: Optional[str] = "GENEALOGIST_ENTRY"
     actor_id: Optional[str] = None
     actor_role: Optional[str] = None
 
@@ -713,3 +762,198 @@ def broadcast_community_notification_api(
         actor_id=actor_id,
         strict_r12_reject=request.strict_r12_reject,
     )
+
+
+# ----------------------------------------------------------------------
+# Interactive Zero-CDN Family Tree (/community/heritage/tree) & APIs
+# ----------------------------------------------------------------------
+_CURATION_START_MARKER = "<!-- __TREE_CURATION_START__ -->"
+_CURATION_END_MARKER = "<!-- __TREE_CURATION_END__ -->"
+
+
+@social_plane_router.get("/community/heritage/tree", response_class=HTMLResponse)
+def get_interactive_family_tree_portal(
+    role: Optional[str] = Query(None, description="Optional role preview query (HOUSE_GENEALOGIST / CHIEF_ADMIN)"),
+    house_id: Optional[str] = Query(None, description="Optional House scope query (HOUSE-01..HOUSE-12)"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_pdeue_role: Optional[str] = Header(None, alias="X-PDEUE-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
+):
+    """Serve the zero-CDN Interactive Family Tree & Relationship Calculator portal.
+
+    The collapsible Genealogist Tree Curation Drawer is rendered ONLY for
+    HOUSE_GENEALOGIST and CHIEF_ADMIN callers; standard members receive a clean
+    read-only view with mutation forms stripped server-side.
+    """
+    resolved_role, resolved_actor, claimed_house = _resolve_social_caller(
+        authorization=authorization,
+        x_active_hat=x_active_hat or x_pdeue_role,
+        x_actor_role=x_actor_role or role,
+        x_actor_id=x_actor_id,
+        x_house_id=x_house_id or house_id,
+    )
+    can_curate = is_chief_admin_role(resolved_role) or resolved_role == "HOUSE_GENEALOGIST"
+    assigned_house_code = (
+        f"HOUSE-{claimed_house:02d}"
+        if (claimed_house is not None and 1 <= claimed_house <= 12)
+        else ""
+    )
+
+    markup = _load_social_html("heritage_tree.html")
+    if not can_curate and _CURATION_START_MARKER in markup and _CURATION_END_MARKER in markup:
+        before, rest = markup.split(_CURATION_START_MARKER, 1)
+        _, after = rest.split(_CURATION_END_MARKER, 1)
+        readonly_notice = (
+            '<section id="treeReadOnlyBanner" class="readonly-curation-banner" aria-label="Read-Only Family Tree Notice">'
+            '<strong>🔒 Read-Only Family View:</strong> Living-member privacy protection is active. '
+            'Adding or editing people and relationships is restricted to assigned <strong>House Genealogists</strong> '
+            '(within their own House) and the <strong>Chief Administrator</strong>.'
+            '</section>'
+        )
+        markup = before + readonly_notice + after
+
+    markup = markup.replace("__TREE_ACTIVE_ROLE__", html.escape(resolved_role or "MEMBER_USER", quote=True))
+    markup = markup.replace("__TREE_ASSIGNED_HOUSE__", html.escape(assigned_house_code, quote=True))
+    markup = markup.replace("__TREE_ACTOR_ID__", html.escape(resolved_actor, quote=True))
+    markup = markup.replace("__TREE_CAN_CURATE__", "true" if can_curate else "false")
+    return HTMLResponse(markup)
+
+
+@social_plane_router.get("/api/v1/community/heritage/tree/data")
+def get_family_tree_data_api(
+    house_id: Optional[str] = Query(None, description="Filter by HOUSE-01..HOUSE-12, FOUNDERS, or REFERENCE"),
+    surname: Optional[str] = Query(None, description="Filter by exact surname"),
+    q: Optional[str] = Query(None, description="Search by name, House, surname, or notes"),
+    include_reference: bool = Query(False, description="Include disconnected historical reference branches"),
+) -> Dict[str, Any]:
+    return get_family_tree_service().get_tree_data(
+        house_id=house_id,
+        surname=surname,
+        q=q,
+        include_reference=include_reference,
+    )
+
+
+@social_plane_router.get("/api/v1/community/heritage/tree/relationship")
+def compute_family_tree_relationship_api(
+    person_a: str = Query(..., description="First person_id (e.g. P0004)"),
+    person_b: str = Query(..., description="Second person_id (e.g. P0019)"),
+) -> Dict[str, Any]:
+    return get_family_tree_service().compute_relationship(person_a, person_b)
+
+
+@social_plane_router.post("/api/v1/community/heritage/tree/person", status_code=201)
+def create_family_tree_person_api(
+    request: FamilyTreePersonCreateRequest,
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_pdeue_role: Optional[str] = Header(None, alias="X-PDEUE-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
+) -> Dict[str, Any]:
+    role, actor_id, claimed_house = _resolve_social_caller(
+        authorization=authorization,
+        x_active_hat=x_active_hat or x_pdeue_role,
+        x_actor_role=x_actor_role,
+        x_actor_id=x_actor_id,
+        x_house_id=x_house_id,
+        body_role=request.actor_role,
+        body_actor_id=request.actor_id,
+    )
+    return get_family_tree_service().create_person(
+        person_id=request.person_id,
+        full_name=request.full_name,
+        given_name=request.given_name,
+        surname=request.surname or "",
+        suffix=request.suffix or "",
+        nickname=request.nickname or "",
+        house_id=request.house_id,
+        generation=request.generation,
+        is_deceased=request.is_deceased,
+        birth_year=request.birth_year,
+        death_year=request.death_year,
+        bio_notes=request.bio_notes or "",
+        source_tag=request.source_tag or "GENEALOGIST_ENTRY",
+        review_flag=request.review_flag or "",
+        is_reference_branch=request.is_reference_branch,
+        actor_role=role,
+        actor_id=actor_id,
+        claimed_house_id=claimed_house,
+    )
+
+
+@social_plane_router.patch("/api/v1/community/heritage/tree/person/{person_id}")
+def update_family_tree_person_api(
+    person_id: str,
+    request: FamilyTreePersonUpdateRequest,
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_pdeue_role: Optional[str] = Header(None, alias="X-PDEUE-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
+) -> Dict[str, Any]:
+    role, actor_id, claimed_house = _resolve_social_caller(
+        authorization=authorization,
+        x_active_hat=x_active_hat or x_pdeue_role,
+        x_actor_role=x_actor_role,
+        x_actor_id=x_actor_id,
+        x_house_id=x_house_id,
+        body_role=request.actor_role,
+        body_actor_id=request.actor_id,
+    )
+    return get_family_tree_service().update_person(
+        person_id=person_id,
+        full_name=request.full_name,
+        given_name=request.given_name,
+        surname=request.surname,
+        suffix=request.suffix,
+        nickname=request.nickname,
+        house_id=request.house_id,
+        generation=request.generation,
+        is_deceased=request.is_deceased,
+        birth_year=request.birth_year,
+        death_year=request.death_year,
+        bio_notes=request.bio_notes,
+        source_tag=request.source_tag,
+        review_flag=request.review_flag,
+        actor_role=role,
+        actor_id=actor_id,
+        claimed_house_id=claimed_house,
+    )
+
+
+@social_plane_router.post("/api/v1/community/heritage/tree/relationship", status_code=201)
+def create_family_tree_relationship_api(
+    request: FamilyTreeRelationshipCreateRequest,
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_active_hat: Optional[str] = Header(None, alias="X-Active-Hat"),
+    x_actor_role: Optional[str] = Header(None, alias="X-Actor-Role"),
+    x_pdeue_role: Optional[str] = Header(None, alias="X-PDEUE-Role"),
+    x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
+    x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
+) -> Dict[str, Any]:
+    role, actor_id, claimed_house = _resolve_social_caller(
+        authorization=authorization,
+        x_active_hat=x_active_hat or x_pdeue_role,
+        x_actor_role=x_actor_role,
+        x_actor_id=x_actor_id,
+        x_house_id=x_house_id,
+        body_role=request.actor_role,
+        body_actor_id=request.actor_id,
+    )
+    return get_family_tree_service().create_relationship(
+        rel_type=request.rel_type,
+        person_a_id=request.person_a_id,
+        person_b_id=request.person_b_id,
+        notes=request.notes or "",
+        source_tag=request.source_tag or "GENEALOGIST_ENTRY",
+        actor_role=role,
+        actor_id=actor_id,
+        claimed_house_id=claimed_house,
+    )
+

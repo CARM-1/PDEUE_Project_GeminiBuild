@@ -28,7 +28,7 @@ PLANE_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "label": "Family Hub & Heritage",
         "plane_badge": "Family Social Space — No Financial Data",
         "financial_data_present": False,
-        "routes": ["/home", "/community", "/community/heritage"],
+        "routes": ["/home", "/community", "/community/heritage", "/community/heritage/tree"],
     },
     "university": {
         "env_var": "UNIVERSITY_BASE_URL",
@@ -127,6 +127,7 @@ def get_plane_config() -> Dict[str, Any]:
         "home": join_plane_url(family_base, "/home"),
         "community": join_plane_url(family_base, "/community"),
         "heritage": join_plane_url(family_base, "/community/heritage"),
+        "heritage_tree": join_plane_url(family_base, "/community/heritage/tree"),
         "genealogist_desk": f"{join_plane_url(family_base, '/community/heritage')}#genealogist-desk",
         "companion": join_plane_url(uni_base, "/companion"),
         "member": join_plane_url(vault_base, "/member"),

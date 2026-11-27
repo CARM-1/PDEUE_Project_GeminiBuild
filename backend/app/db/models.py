@@ -464,6 +464,41 @@ class CommunityNotificationModel(Base):
     created_at_utc = Column(String, nullable=False, default=_now)
 
 
+class FamilyTreePersonModel(Base):
+    """PR #97: Normalized Family Tree person record (social-plane only, zero financial/contact PII)."""
+    __tablename__ = 'family_tree_people'
+    person_id = Column(String, primary_key=True, index=True)
+    full_name = Column(String, nullable=False, index=True)
+    given_name = Column(String, nullable=False, default='')
+    surname = Column(String, nullable=False, default='', index=True)
+    suffix = Column(String, nullable=False, default='')
+    nickname = Column(String, nullable=False, default='')
+    house_id = Column(String, nullable=False, default='FOUNDERS', index=True)
+    generation = Column(Integer, nullable=False, default=0, index=True)
+    is_deceased = Column(Integer, nullable=False, default=0)
+    birth_year = Column(Integer, nullable=True)
+    death_year = Column(Integer, nullable=True)
+    bio_notes = Column(Text, nullable=False, default='')
+    source_tag = Column(String, nullable=False, default='SEED_V1')
+    review_flag = Column(String, nullable=False, default='')
+    is_reference_branch = Column(Integer, nullable=False, default=0, index=True)
+    updated_by = Column(String, nullable=False, default='SYSTEM_SEED')
+    updated_at_utc = Column(String, nullable=False, default=_now)
+
+
+class FamilyTreeRelationshipModel(Base):
+    """PR #97: Normalized Family Tree relationship edge (parent | spouse)."""
+    __tablename__ = 'family_tree_relationships'
+    rel_id = Column(String, primary_key=True, index=True)
+    rel_type = Column(String, nullable=False, index=True)
+    person_a_id = Column(String, ForeignKey('family_tree_people.person_id'), nullable=False, index=True)
+    person_b_id = Column(String, ForeignKey('family_tree_people.person_id'), nullable=False, index=True)
+    notes = Column(Text, nullable=False, default='')
+    source_tag = Column(String, nullable=False, default='SEED_V1')
+    updated_by = Column(String, nullable=False, default='SYSTEM_SEED')
+    updated_at_utc = Column(String, nullable=False, default=_now)
+
+
 UserRoleAssignment = UserRoleAssignmentModel
 CustodialAssignment = CustodialAssignmentModel
 EnclavePolicyControl = EnclavePolicyControlModel
@@ -472,6 +507,8 @@ AccountingOutboxEvent = AccountingOutboxEventModel
 HeritageHouseProfile = HeritageHouseProfileModel
 HeritageSurnameRecord = HeritageSurnameRecordModel
 CommunityNotification = CommunityNotificationModel
+FamilyTreePerson = FamilyTreePersonModel
+FamilyTreeRelationship = FamilyTreeRelationshipModel
 
 
 

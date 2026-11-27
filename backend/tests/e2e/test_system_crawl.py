@@ -57,6 +57,7 @@ EXPECTED_HTML_ROUTES = {
     "/lineage/house",
     "/community",
     "/community/heritage",
+    "/community/heritage/tree",
     "/community/heritage/house/{house_id}",
     "/community/heritage/surname/{slug}",
 }
@@ -208,6 +209,13 @@ CRAWL_TARGETS: tuple[CrawlTarget, ...] = (
         path="/community/heritage",
         route_template="/community/heritage",
         role_scope="CLASS_C_HERITAGE",
+        forbidden_visible_href_prefixes=("/dashboard", "/member", "/advisor", "/admin/tech", "/lineage/house"),
+    ),
+    CrawlTarget(
+        slug="interactive_family_tree",
+        path="/community/heritage/tree",
+        route_template="/community/heritage/tree",
+        role_scope="CLASS_C_HERITAGE_TREE",
         forbidden_visible_href_prefixes=("/dashboard", "/member", "/advisor", "/admin/tech", "/lineage/house"),
     ),
     CrawlTarget(
