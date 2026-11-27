@@ -12,6 +12,7 @@ from app.domain.lexicon_v05 import (
     LEXICON_TERMS,
     REQUIRED_CANONICAL_TERM_IDS,
 )
+from app.domain.training_media_registry import summarize_playbook_coverage
 
 PORTALS = {
     "/home": "app/api/v1/home.html",
@@ -65,7 +66,7 @@ CANONICAL_CONCEPT_PATTERNS: dict[str, tuple[str, ...]] = {
 
 
 class ComponentParser(HTMLParser):
-    """Collect interactive elements, headings, labels, tooltips, and visible text without third-party packages."""
+    """Collect interactive elements (button, input, select, textarea, details), headings, labels, tooltips, and visible text."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -75,6 +76,9 @@ class ComponentParser(HTMLParser):
         self.abbr_terms: list[dict[str, str]] = []
         self._text_chunks: list[str] = []
         self._button: dict[str, str] | None = None
+        self._details_stack: list[dict[str, str]] = []
+        self._in_summary: bool = False
+        self._summary_buf: list[str] = []
         self._heading: dict[str, str] | None = None
         self._in_label: bool = False
         self._label_buf: list[str] = []
@@ -99,8 +103,34 @@ class ComponentParser(HTMLParser):
                 "kind": "slider" if values.get("type") == "range" else "input",
                 "id": values.get("id", ""),
                 "label": values.get("aria-label") or values.get("placeholder", ""),
+                "onclick": values.get("onchange") or values.get("oninput", ""),
+            })
+        elif tag == "select":
+            self.components.append({
+                "kind": "select",
+                "id": values.get("id", ""),
+                "label": values.get("aria-label") or values.get("name", ""),
                 "onclick": values.get("onchange", ""),
             })
+        elif tag == "textarea":
+            self.components.append({
+                "kind": "textarea",
+                "id": values.get("id", ""),
+                "label": values.get("aria-label") or values.get("placeholder") or values.get("name", ""),
+                "onclick": values.get("oninput") or values.get("onchange", ""),
+            })
+        elif tag == "details":
+            details_comp = {
+                "kind": "details",
+                "id": values.get("id", ""),
+                "label": values.get("aria-label", ""),
+                "onclick": values.get("ontoggle", ""),
+            }
+            self.components.append(details_comp)
+            self._details_stack.append(details_comp)
+        elif tag == "summary" and self._details_stack:
+            self._in_summary = True
+            self._summary_buf = []
         elif tag in {"h1", "h2", "h3", "h4"}:
             self._heading = {"level": tag, "text": ""}
         elif tag == "label":
@@ -120,6 +150,8 @@ class ComponentParser(HTMLParser):
             self._text_chunks.append(cleaned)
         if self._button is not None:
             self._button["label"] += (" " if self._button["label"] and cleaned else "") + cleaned
+        if self._in_summary and cleaned:
+            self._summary_buf.append(cleaned)
         if self._heading is not None and cleaned:
             self._heading["text"] += (" " if self._heading["text"] else "") + cleaned
         if self._in_label and cleaned:
@@ -135,6 +167,14 @@ class ComponentParser(HTMLParser):
             self._button["label"] = re.sub(r"\s+", " ", self._button["label"]).strip()
             self.components.append(self._button)
             self._button = None
+        elif tag == "summary" and self._in_summary:
+            summary_text = re.sub(r"\s+", " ", " ".join(self._summary_buf)).strip()
+            if self._details_stack and summary_text and not self._details_stack[-1]["label"]:
+                self._details_stack[-1]["label"] = summary_text
+            self._in_summary = False
+            self._summary_buf = []
+        elif tag == "details" and self._details_stack:
+            self._details_stack.pop()
         elif tag in {"h1", "h2", "h3", "h4"} and self._heading is not None:
             text = re.sub(r"\s+", " ", self._heading["text"]).strip()
             if text:
@@ -191,13 +231,23 @@ def _matches_any(text: str, patterns: tuple[str, ...]) -> bool:
     return any(re.search(pat, text, re.IGNORECASE) for pat in patterns)
 
 
+def _component_handler(source: str, component: dict[str, str], identity: str) -> str:
+    if component["onclick"]:
+        return component["onclick"]
+    if component["kind"] == "details":
+        return "native disclosure toggle"
+    return "addEventListener / delegated listener" if identity in source else "native form/navigation"
+
+
 def audit_ui_lexicon_curriculum_parity(repo_root: Path) -> dict[str, Any]:
-    """Cross-check all served portal controls, acronyms, Lexicon two-layer entries, and PDEUE University coverage."""
+    """Cross-check all served portal controls, acronyms, Lexicon two-layer entries, Playbook coverage, and PDEUE University coverage."""
     undocumented_controls: list[dict[str, str]] = []
     dangling_data_terms: list[dict[str, str]] = []
     jargon_violations: list[dict[str, str]] = []
     portal_catalog: dict[str, dict[str, Any]] = {}
     term_portals: dict[str, list[str]] = {term_id: [] for term_id in CANONICAL_CONCEPT_PATTERNS}
+    playbook_coverage = summarize_playbook_coverage(repo_root=repo_root)
+    pb_by_portal = playbook_coverage.get("by_portal", {})
 
     companion_visible_text = ""
 
@@ -206,9 +256,11 @@ def audit_ui_lexicon_curriculum_parity(repo_root: Path) -> dict[str, Any]:
         parser = ComponentParser()
         parser.feed(source)
 
+        kind_counts: dict[str, int] = {}
         for component in parser.components:
+            kind_counts[component["kind"]] = kind_counts.get(component["kind"], 0) + 1
             identity = component["id"] or re.sub(r"\s+", " ", component["label"]).strip() or component["kind"]
-            handler = component["onclick"] or ("addEventListener / delegated listener" if identity in source else "native form/navigation")
+            handler = _component_handler(source, component, identity)
             is_stub = not handler or "alert(" in handler or handler.strip() in {"", "return false"}
             is_empty_button = component["kind"] == "button" and not component["label"]
             if is_stub or is_empty_button:
@@ -234,14 +286,18 @@ def audit_ui_lexicon_curriculum_parity(repo_root: Path) -> dict[str, Any]:
                 detected_terms.append(term_id)
                 term_portals[term_id].append(route)
 
+        pb_info = pb_by_portal.get(route, {})
         portal_catalog[route] = {
             "source_file": relative,
             "control_count": len(parser.components),
+            "control_kind_counts": kind_counts,
             "heading_count": len(parser.headings),
             "headings": [f"{h['level'].upper()}: {h['text']}" for h in parser.headings],
             "label_count": len(parser.labels),
             "abbr_tooltip_count": len(parser.abbr_terms),
             "detected_canonical_terms": detected_terms,
+            "playbook_count": int(pb_info.get("playbook_count", 0)),
+            "playbook_taught_controls": int(pb_info.get("taught_control_count", 0)),
         }
 
     # Verify every Lexicon term's plain_english is jargon-free and has non-empty plain_english + technical_spec
@@ -295,6 +351,7 @@ def audit_ui_lexicon_curriculum_parity(repo_root: Path) -> dict[str, Any]:
         "uncovered_curriculum_terms": uncovered_curriculum_terms,
         "portal_catalog": portal_catalog,
         "parity_matrix": parity_matrix,
+        "playbook_coverage": playbook_coverage,
         "passed": passed,
     }
 
@@ -308,7 +365,7 @@ def generate_inventory(repo_root: Path) -> str:
         for component in parser.components:
             identity = component["id"] or re.sub(r"\s+", " ", component["label"]).strip() or component["kind"]
             target = _target(source, component)
-            handler = component["onclick"] or ("addEventListener / delegated listener" if identity in source else "native form/navigation")
+            handler = _component_handler(source, component, identity)
             stub = not handler or "alert(" in handler or handler.strip() in {"", "return false"}
             status = "[STUB]" if stub else "[COMPLETE]"
             rows.append(f"| {route} | `{identity}` | {handler} | `{target}` | {status} | {_pillar(route, identity)} |")
@@ -317,7 +374,7 @@ def generate_inventory(repo_root: Path) -> str:
 
     header = """# Portal Component Inventory
 
-Generated by `backend/app/portal_discovery.py`. The catalog covers all nine registered portal surfaces (`/home`, `/dashboard`, `/member`, `/admin/tech`, `/advisor`, `/lineage/house/1`, `/community`, `/community/heritage`, `/companion`), maps controls to the ratified 16-pillar ecosystem taxonomy, and enforces automated UI-to-Lexicon-to-Curriculum parity.
+Generated by `backend/app/portal_discovery.py`. The catalog covers all nine registered portal surfaces (`/home`, `/dashboard`, `/member`, `/admin/tech`, `/advisor`, `/lineage/house/1`, `/community`, `/community/heritage`, `/companion`), inventories `<button>`, `<input>`, `<select>`, `<textarea>`, and `<details>` controls, maps controls to the ratified 16-pillar ecosystem taxonomy, reports Role Playbook coverage, and enforces automated UI-to-Lexicon-to-Curriculum parity.
 
 ## Ratified taxonomy
 
@@ -326,14 +383,30 @@ Generated by `backend/app/portal_discovery.py`. The catalog covers all nine regi
     table = "\n\n## Interactive component wiring\n\n| Portal Route | Element ID / Label | Event Handler | Target API | Status | System Pillar Map |\n|---|---|---|---|---|---|\n"
 
     portal_summary_rows = [
-        f"| {route} | `{info['source_file']}` | {info['heading_count']} | {info['label_count']} | {info['control_count']} | {info['abbr_tooltip_count']} | {len(info['detected_canonical_terms'])} |"
+        f"| {route} | `{info['source_file']}` | {info['heading_count']} | {info['label_count']} | {info['control_count']} | {info['abbr_tooltip_count']} | {len(info['detected_canonical_terms'])} | {info['playbook_count']} |"
         for route, info in parity["portal_catalog"].items()
     ]
     portal_summary = (
-        "\n\n## Portal surface catalog (headings, labels, controls & tooltips)\n\n"
-        "| Portal Route | Template Source | Headings | Labels | Interactive Controls | Pure-CSS Tooltips | Canonical Terms Detected |\n"
-        "|---|---|---:|---:|---:|---:|---:|\n"
+        "\n\n## Portal surface catalog (headings, labels, controls, tooltips & playbooks)\n\n"
+        "| Portal Route | Template Source | Headings | Labels | Interactive Controls | Pure-CSS Tooltips | Canonical Terms Detected | Linked Playbooks |\n"
+        "|---|---|---:|---:|---:|---:|---:|---:|\n"
         + "\n".join(portal_summary_rows)
+    )
+
+    pb_cov = parity.get("playbook_coverage", {})
+    pb_fam_rows = [
+        f"| `{fam}` | {counts['routine']} | {counts['outlier_incident']} | {'PASS' if (counts['routine'] > 0 and counts['outlier_incident'] > 0) else 'GAP'} |"
+        for fam, counts in pb_cov.get("by_role_family", {}).items()
+    ]
+    playbook_section = (
+        "\n\n## Playbook & Visual Media Registry Coverage\n\n"
+        f"- **Registry present:** `{pb_cov.get('registry_present', False)}`\n"
+        f"- **Total Role Playbooks:** {pb_cov.get('total_playbooks', 0)}\n"
+        f"- **Unique Control IDs Taught:** {pb_cov.get('covered_control_count', 0)}\n"
+        f"- **Unique Local Media Assets Referenced:** {pb_cov.get('media_asset_count', 0)}\n\n"
+        "| Role Family | Routine Playbooks | Outlier / Emergency Playbooks | Dual-Scenario Coverage |\n"
+        "|---|---:|---:|---|\n"
+        + "\n".join(pb_fam_rows)
     )
 
     matrix_rows = [
@@ -359,7 +432,7 @@ Generated by `backend/app/portal_discovery.py`. The catalog covers all nine regi
         + "\n".join(matrix_rows)
     )
 
-    return header + table + "\n".join(rows) + portal_summary + parity_section + "\n"
+    return header + table + "\n".join(rows) + portal_summary + playbook_section + parity_section + "\n"
 
 
 def write_inventory(repo_root: Path) -> Path:

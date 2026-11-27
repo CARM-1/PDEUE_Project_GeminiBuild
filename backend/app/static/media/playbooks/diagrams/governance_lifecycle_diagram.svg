@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" role="img" aria-label="PDEUE Three-Stage Governance Lifecycle and Five Role Classes">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0B132B"/>
+      <stop offset="100%" stop-color="#132242"/>
+    </linearGradient>
+    <marker id="arrowSky" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#38BDF8"/>
+    </marker>
+    <marker id="arrowRed" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#F87171"/>
+    </marker>
+  </defs>
+
+  <rect width="960" height="360" rx="14" fill="url(#bgGrad)" stroke="#334155" stroke-width="2"/>
+  <text x="28" y="34" fill="#FCD34D" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="800" letter-spacing="1.4">LOCAL ZERO-CDN ARCHITECTURE DIAGRAM · THREE-STAGE CONSTITUTIONAL GOVERNANCE</text>
+  <text x="28" y="58" fill="#F8FAFC" font-family="system-ui,-apple-system,sans-serif" font-size="19" font-weight="800">Executive Command -&gt; Advisory Petition Filter -&gt; Configurable Bicameral Veto</text>
+
+  <!-- Stage 1 -->
+  <rect x="28" y="84" width="276" height="148" rx="10" fill="#1C2541" stroke="#38BDF8" stroke-width="2"/>
+  <rect x="42" y="96" width="128" height="22" rx="11" fill="#0F2544" stroke="#38BDF8"/>
+  <text x="106" y="111" text-anchor="middle" fill="#BAE6FD" font-family="ui-monospace,monospace" font-size="11" font-weight="800">STAGE 1 · DEFAULT</text>
+  <text x="42" y="142" fill="#F8FAFC" font-family="system-ui,sans-serif" font-size="15" font-weight="800">EXECUTIVE_COMMAND</text>
+  <text x="42" y="164" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="12">• Fail-closed fledgling &amp; SHTF posture</text>
+  <text x="42" y="183" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="12">• House voting controls stripped (403)</text>
+  <text x="42" y="202" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="12">• H2 surgical Freeze/Cancel remains live</text>
+  <text x="42" y="220" fill="#94A3B8" font-family="system-ui,sans-serif" font-size="11">Authority: Chief Admin (+ Deputy Read-Only)</text>
+
+  <!-- Arrow 1->2 -->
+  <line x1="304" y1="158" x2="340" y2="158" stroke="#38BDF8" stroke-width="2.5" marker-end="url(#arrowSky)"/>
+
+  <!-- Stage 2 -->
+  <rect x="342" y="84" width="276" height="148" rx="10" fill="#1C2541" stroke="#D97706" stroke-width="2"/>
+  <rect x="356" y="96" width="144" height="22" rx="11" fill="#302305" stroke="#D97706"/>
+  <text x="428" y="111" text-anchor="middle" fill="#FCD34D" font-family="ui-monospace,monospace" font-size="11" font-weight="800">STAGE 2 · ADVISORY</text>
+  <text x="356" y="142" fill="#F8FAFC" font-family="system-ui,sans-serif" font-size="15" font-weight="800">ADVISORY_PETITION_FILTER</text>
+  <text x="356" y="164" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="12">• 9/12 House Aye -&gt; RATIFIED_PENDING</text>
+  <text x="356" y="183" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="12">• Zero unilateral capital movement</text>
+  <text x="356" y="202" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="12">• Absolute Founder Veto preserved</text>
+  <text x="356" y="220" fill="#94A3B8" font-family="system-ui,sans-serif" font-size="11">Unlocked exclusively by Chief Admin</text>
+
+  <!-- Arrow 2->3 -->
+  <line x1="618" y1="158" x2="654" y2="158" stroke="#38BDF8" stroke-width="2.5" marker-end="url(#arrowSky)"/>
+
+  <!-- Stage 3 -->
+  <rect x="656" y="84" width="276" height="148" rx="10" fill="#1C2541" stroke="#059669" stroke-width="2"/>
+  <rect x="670" y="96" width="150" height="22" rx="11" fill="#07251D" stroke="#059669"/>
+  <text x="745" y="111" text-anchor="middle" fill="#6EE7B7" font-family="ui-monospace,monospace" font-size="11" font-weight="800">STAGE 3 · BICAMERAL</text>
+  <text x="670" y="142" fill="#F8FAFC" font-family="system-ui,sans-serif" font-size="15" font-weight="800">BICAMERAL_VETO_ACTIVE</text>
+  <text x="670" y="164" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="12">• Configurable Enclave bodies &amp; seats</text>
+  <text x="670" y="183" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="12">• Binding VETOED_BY_BICAMERAL_CHAMBER</text>
+  <text x="670" y="202" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="12">• Immutable Core Invariants non-amendable</text>
+  <text x="670" y="220" fill="#94A3B8" font-family="system-ui,sans-serif" font-size="11">1-Click SHTF Snap-Back always available</text>
+
+  <!-- SHTF Snap-Back return arc -->
+  <path d="M 794 232 L 794 256 L 166 256 L 166 236" fill="none" stroke="#F87171" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arrowRed)"/>
+  <rect x="366" y="244" width="228" height="22" rx="11" fill="#300D18" stroke="#DC2626"/>
+  <text x="480" y="259" text-anchor="middle" fill="#FCA5A5" font-family="ui-monospace,monospace" font-size="11" font-weight="800">1-CLICK SHTF EMERGENCY SNAP-BACK</text>
+
+  <!-- Immutable Guardrails Bar -->
+  <rect x="28" y="282" width="904" height="56" rx="10" fill="#1E293B" stroke="#475569"/>
+  <text x="44" y="304" fill="#FCD34D" font-family="system-ui,sans-serif" font-size="12" font-weight="800">IMMUTABLE CORE INVARIANTS (PROTECTED IN ALL 3 STAGES — HTTP 403 IMMUTABLE_CORE_INVARIANT)</text>
+  <text x="44" y="324" fill="#E2E8F0" font-family="system-ui,sans-serif" font-size="12">ADR-008 Exact Cents (87/10/3) · ADR-012 High-Water Mark · Rule A14 100% SCMA Loss Isolation · Quarter-Kelly &amp; 40% Floor · ADR-011 Banking Air-Gap · Directive R-04 Kill Switch</text>
+</svg>

@@ -1,0 +1,1309 @@
+{
+  "schema_version": "1.0",
+  "zero_cdn": true,
+  "supported_media_types": [
+    "annotated_screenshot",
+    "diagram_svg",
+    "slide_deck",
+    "motion_clip"
+  ],
+  "role_classes": [
+    "CHIEF_ADMIN",
+    "CHIEF_ADMIN_DEPUTY",
+    "T1",
+    "T2",
+    "T2-HOUSEHOLD",
+    "T3",
+    "F1",
+    "F2-H",
+    "F2-A",
+    "F3",
+    "H1",
+    "H2",
+    "HOUSE_GENEALOGIST",
+    "CLASS_M"
+  ],
+  "playbooks": [
+    {
+      "playbook_id": "pb-m-routine-home-orientation",
+      "title": "Class M · Routine: Family Home Hub Orientation & Senior Accessibility",
+      "summary": "Navigate cleanly from the calm 4-card Family Home Hub (/home) using senior readability scaling without ever touching financial or admin complexity.",
+      "role_classes": [
+        "CLASS_M"
+      ],
+      "scenario_type": "routine",
+      "portal_route": "/home",
+      "control_ids": [
+        "textScaleGroup",
+        "doorwayMyAccount",
+        "doorwayFamilyHearth",
+        "doorwayHallOfArms",
+        "doorwayUniversity"
+      ],
+      "manual_anchor": "docs/manuals/USER_QUICKSTART.md#1-what-this-workspace-is-phase-i-paper-mode--safe-view",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Click A, A+, or A++ in the Senior Text Scale bar (#textScaleGroup)",
+          "effect": "Persists enlarged high-contrast typography across all 9 portals immediately."
+        },
+        {
+          "step": 2,
+          "action": "Click My Account (#doorwayMyAccount) or PDEUE University (#doorwayUniversity)",
+          "effect": "Routes directly to your ring-fenced /member Wealth Desktop or interactive /companion Academy."
+        },
+        {
+          "step": 3,
+          "action": "Click Family Hearth (#doorwayFamilyHearth) or Hall of Arms (#doorwayHallOfArms)",
+          "effect": "Opens the zero-financial family social space and Carmichael-McCormick heraldic gallery."
+        }
+      ],
+      "media_assets": [
+        {
+          "asset_id": "shot-home-hub",
+          "media_type": "annotated_screenshot",
+          "path": "/static/media/playbooks/screenshots/home_hub.png",
+          "caption": "Family Home Hub (/home) showing Senior Text Scale controls and the 4 primary family doorways.",
+          "narrated": false,
+          "replaceable": true,
+          "callout_legend": [
+            {
+              "badge": 1,
+              "control_id": "textScaleGroup",
+              "label": "Senior Text Scale (A | A+ | A++)",
+              "note": "Adjusts text size cleanly across every portal without external scripts."
+            },
+            {
+              "badge": 2,
+              "control_id": "doorwayMyAccount",
+              "label": "My Account (/member)",
+              "note": "Opens your personal ring-fenced SCMA desktop."
+            },
+            {
+              "badge": 3,
+              "control_id": "doorwayFamilyHearth",
+              "label": "Family Hearth (/community)",
+              "note": "Zero-financial family board, Jitsi rooms, and Dual-Lane AI Tutor."
+            },
+            {
+              "badge": 4,
+              "control_id": "doorwayHallOfArms",
+              "label": "Hall of Arms (/community/heritage)",
+              "note": "Carmichael & McCormick crests, 12 Houses, and allied surname chronicles."
+            },
+            {
+              "badge": 5,
+              "control_id": "doorwayUniversity",
+              "label": "PDEUE University (/companion)",
+              "note": "Interactive 6-chapter simulator, studio mentor audio, manuals, and certification."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "playbook_id": "pb-m-routine-member-engine-tutor",
+      "title": "Class M · Routine: Wealth Engine, Downward Risk Dial & Dual-Lane AI Tutor",
+      "summary": "Switch between Orientation and Wealth Engine views, adjust your downward-only safety dial, stage a Green-tier withdrawal, and consult the non-executing AI Tutor.",
+      "role_classes": [
+        "CLASS_M"
+      ],
+      "scenario_type": "routine",
+      "portal_route": "/member",
+      "control_ids": [
+        "tabBtnOrientation",
+        "tabBtnEngine",
+        "riskSlider",
+        "saveRiskBtn",
+        "distributionAmount",
+        "distributionBtn",
+        "tutorInput",
+        "askTutorBtn",
+        "clearTutorBtn"
+      ],
+      "manual_anchor": "docs/manuals/USER_QUICKSTART.md#3-your-brake-pedal-the-downward-only-risk-governor--40-cash-cushion",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Click Wealth Engine (#tabBtnEngine) or Orientation (#tabBtnOrientation)",
+          "effect": "Toggles calmly between compounding projections and live SCMA safety controls."
+        },
+        {
+          "step": 2,
+          "action": "Slide #riskSlider downward and click Save Risk Dial (#saveRiskBtn)",
+          "effect": "Immediately lowers your active risk watermark with zero waiting (upward restoration requires F2-H approval)."
+        },
+        {
+          "step": 3,
+          "action": "Enter a Green-tier amount in #distributionAmount and click #distributionBtn",
+          "effect": "Evaluates Directive R-15 tiering in exact integer cents (ADR-008) without exposing bank logins."
+        },
+        {
+          "step": 4,
+          "action": "Ask a policy question in #tutorInput -> click #askTutorBtn -> click Clear (#clearTutorBtn)",
+          "effect": "Returns a non-executing plain-English answer (unilateral_execution = False), then resets the DOM client-side with zero network calls."
+        }
+      ],
+      "media_assets": [
+        {
+          "asset_id": "shot-member-engine",
+          "media_type": "annotated_screenshot",
+          "path": "/static/media/playbooks/screenshots/member_orientation_engine.png",
+          "caption": "Member Wealth Desktop (/member) Engine view highlighting the Downward-Only Risk Dial, Distribution Gateway, and Dual-Lane AI Tutor.",
+          "narrated": false,
+          "replaceable": true,
+          "callout_legend": [
+            {
+              "badge": 1,
+              "control_id": "fundingInstructionsCard",
+              "label": "ADR-011 Air-Gap & EXT-REF Deposit Memo",
+              "note": "Opaque EXT-REF token confirms zero bank logins or routing numbers are ever stored in PDEUE."
+            },
+            {
+              "badge": 2,
+              "control_id": "riskSlider",
+              "label": "Downward-Only Risk Dial",
+              "note": "Slide left to reduce exposure instantly; 40% Dry-Powder floor stays protected."
+            },
+            {
+              "badge": 3,
+              "control_id": "saveRiskBtn",
+              "label": "Save Risk Dial",
+              "note": "Commits your lowered risk ceiling to the audit log."
+            },
+            {
+              "badge": 4,
+              "control_id": "distributionBtn",
+              "label": "Directive R-15 Distribution Request",
+              "note": "Routes Green, Yellow Impact Card, or Red 24h dual-control withdrawals."
+            },
+            {
+              "badge": 5,
+              "control_id": "tutorInput",
+              "label": "Dual-Lane AI Literacy Tutor",
+              "note": "Answers from verified family canon or read-only research; never moves money."
+            },
+            {
+              "badge": 6,
+              "control_id": "clearTutorBtn",
+              "label": "Client-Only Clear Tutor",
+              "note": "Clears conversation locally with zero network fetch and restores input focus."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "playbook_id": "pb-m-routine-shadow-hunch",
+      "title": "Class M · Routine: Testing Ideas Safely in Shadow Paper Hunch Studio",
+      "summary": "Validate a regulated public-data hypothesis through the 3-Point Validation Audit and log zero-risk SHADOW_PAPER practice bids to build your Shadow Hit-Rate.",
+      "role_classes": [
+        "CLASS_M"
+      ],
+      "scenario_type": "routine",
+      "portal_route": "/member",
+      "control_ids": [
+        "shadowHunchStudioDetails",
+        "memberHunchHypothesis",
+        "memberHunchVertical",
+        "memberLoadExampleHunchBtn",
+        "memberEvalHunchBtn",
+        "memberRefreshHunchesBtn"
+      ],
+      "manual_anchor": "docs/manuals/USER_QUICKSTART.md#6a-testing-ideas-safely-how-to-run-the-shadow-paper-hunch-studio",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Expand Shadow Paper Hunch Studio (#shadowHunchStudioDetails) on /member Engine tab",
+          "effect": "Reveals the zero-risk hypothesis form backed by isolated pdeue_shadow_hunch.db."
+        },
+        {
+          "step": 2,
+          "action": "Click Load Example Hunch (#memberLoadExampleHunchBtn) or enter a regulated thesis in #memberHunchHypothesis and pick #memberHunchVertical",
+          "effect": "Populates an eligible Weather, Macro/CPI, Energy, Treasuries, Equity Index, or G10 FX thesis."
+        },
+        {
+          "step": 3,
+          "action": "Click Run 3-Point Validation Audit (#memberEvalHunchBtn)",
+          "effect": "Verifies public corroboration, oracle mapping, and exact-cent post-fee edge—blocking sports/gambling/war/death fail-closed."
+        },
+        {
+          "step": 4,
+          "action": "Log a virtual SHADOW_PAPER bid and click Refresh (#memberRefreshHunchesBtn)",
+          "effect": "Records pretend-dollar practice results toward your verifiable Shadow Hit-Rate without touching SCMA cash."
+        }
+      ],
+      "media_assets": [
+        {
+          "asset_id": "shot-member-shadow-hunch",
+          "media_type": "annotated_screenshot",
+          "path": "/static/media/playbooks/screenshots/member_shadow_hunch.png",
+          "caption": "Member Shadow Paper Hunch Studio (/member) expanded with 3-Point Validation and regulated vertical selectors.",
+          "narrated": false,
+          "replaceable": true,
+          "callout_legend": [
+            {
+              "badge": 1,
+              "control_id": "memberHunchHypothesis",
+              "label": "Grounded Hunch Input",
+              "note": "Describe an objective, public-data market thesis."
+            },
+            {
+              "badge": 2,
+              "control_id": "memberHunchVertical",
+              "label": "Regulated Vertical Selector",
+              "note": "Restricts testing to 6 permitted verticals (prohibited categories fail closed)."
+            },
+            {
+              "badge": 3,
+              "control_id": "memberLoadExampleHunchBtn",
+              "label": "Load Example Hunch",
+              "note": "Populates a safe sample NOAA weather hypothesis in one click."
+            },
+            {
+              "badge": 4,
+              "control_id": "memberEvalHunchBtn",
+              "label": "Run 3-Point Validation Audit",
+              "note": "Computes exact-cent post-fee edge and Nov 2026 CFTC/DEATH BETS compliance."
+            },
+            {
+              "badge": 5,
+              "control_id": "memberRefreshHunchesBtn",
+              "label": "Refresh Shadow Ledger",
+              "note": "Reloads your Shadow Hit-Rate history and F2-H/F3 clearance statuses."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "playbook_id": "pb-m-outlier-halt-or-red-withdrawal",
+      "title": "Class M · Outlier/Emergency: Market Stress Brake, R-04 Halt Banner & Red-Tier Lock",
+      "summary": "Respond calmly when you want to cut risk immediately, encounter a Directive R-04 Trading Halted banner, or trigger a Red-tier (> $500) 24-hour scam-shield pause.",
+      "role_classes": [
+        "CLASS_M"
+      ],
+      "scenario_type": "outlier_incident",
+      "portal_route": "/member",
+      "control_ids": [
+        "riskSlider",
+        "saveRiskBtn",
+        "distributionAmount",
+        "distributionBtn",
+        "readModelStatusBanner"
+      ],
+      "manual_anchor": "docs/manuals/USER_QUICKSTART.md#8-when-something-looks-off-calm-support-checklist",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Inspect #readModelStatusBanner at the top of /member",
+          "effect": "Distinguishes clearly between QUALIFICATION_PENDING, TRADING_HALTED (Directive R-04), or DEGRADED_RETRYING—never assuming zero balances."
+        },
+        {
+          "step": 2,
+          "action": "Slide #riskSlider all the way left (0.50%) and click Save Risk Dial (#saveRiskBtn)",
+          "effect": "Applies your personal brake immediately; Rule A14 guarantees any single-member loss never bleeds into sibling accounts."
+        },
+        {
+          "step": 3,
+          "action": "If requesting > $500.00 in #distributionAmount, note the Red-tier 24-hour cooling lock",
+          "effect": "Activates mandatory 24h anti-scam delay and independent F2-H Head of Household co-signature verification."
+        }
+      ],
+      "media_assets": [
+        {
+          "asset_id": "shot-member-outlier-brake",
+          "media_type": "annotated_screenshot",
+          "path": "/static/media/playbooks/screenshots/member_orientation_engine.png",
+          "caption": "Emergency personal brake controls on /member: downward risk dial and Directive R-15 withdrawal gateway.",
+          "narrated": false,
+          "replaceable": true,
+          "callout_legend": [
+            {
+              "badge": 2,
+              "control_id": "riskSlider",
+              "label": "Emergency Brake Slider",
+              "note": "Drag left to 0.50% anytime; upward increases stay locked until F2-H reviews."
+            },
+            {
+              "badge": 3,
+              "control_id": "saveRiskBtn",
+              "label": "Commit Lowered Ceiling",
+              "note": "Immediately persists your conservative risk cap."
+            },
+            {
+              "badge": 4,
+              "control_id": "distributionBtn",
+              "label": "Red-Tier Cooling Gateway",
+              "note": "Amounts > $500.00 require 24h cooling + F2-H co-sign to deter pressured scams."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "playbook_id": "pb-f-routine-fiduciary-watch",
+      "title": "Class F (F1/F2-H/F2-A/F3) · Routine: Role-Scoped Lookup, Proposal Review & Shadow Clearance",
+      "summary": "Operate inside your strict Class F Active Hat (/advisor) to look up scoped households, review F2-A staged proposals, and adjudicate Shadow Paper Hunch clearances.",
+      "role_classes": [
+        "F1",
+        "F2-H",
+        "F2-A",
+        "F3"
+      ],
+      "scenario_type": "routine",
+      "portal_route": "/advisor?role=F3",
+      "control_ids": [
+        "custodial-lookup-input",
+        "custodial-lookup-btn",
+        "macro-risk",
+        "proposal-queue",
+        "shadowHunchClearanceSection",
+        "advisor-query",
+        "clearAdvisorCopilotBtn"
+      ],
+      "manual_anchor": "docs/manuals/CLASS_F_FINANCIAL_MANUAL.md#2-the-four-tier-class-f-hierarchy-f1--f2-h--f2-a--f3",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Verify Active-Hat badge and query assigned members in #custodial-lookup-input -> Lookup",
+          "effect": "Returns strictly tier-scoped accounts (F1 sees $****.** masking; F2-H sees assigned household; F3 sees 12-House macro rollup)."
+        },
+        {
+          "step": 2,
+          "action": "Inspect 12-House Macro-Risk (#macro-risk) and Proposal Queue (#proposal-queue)",
+          "effect": "Allows F3 CRO to adjudicate F2-A PENDING proposals (ALLOWED/DENIED) while keeping F2-H domestic co-signing strictly separate."
+        },
+        {
+          "step": 3,
+          "action": "Review Step 1 (F2-H) or Step 2 (F3) Shadow Hunch items in #shadowHunchClearanceSection",
+          "effect": "Records formal clearance without auto-executing live orders (unilateral_execution = False)."
+        }
+      ],
+      "media_assets": [
+        {
+          "asset_id": "shot-advisor-f3",
+          "media_type": "annotated_screenshot",
+          "path": "/static/media/playbooks/screenshots/advisor_f2h_f3_desk.png",
+          "caption": "Class F Advisor & CRO Macro-Risk Desk (/advisor?role=F3) showing Scoped Lookup, Macro-Risk VaR, and Proposal Adjudication.",
+          "narrated": false,
+          "replaceable": true,
+          "callout_legend": [
+            {
+              "badge": 1,
+              "control_id": "custodial-lookup-input",
+              "label": "Scoped Fiduciary Lookup",
+              "note": "Enforces server-side tier and household boundaries."
+            },
+            {
+              "badge": 4,
+              "control_id": "macro-risk",
+              "label": "12-House Macro-Risk & 99% VaR",
+              "note": "Tracks cross-house exposure and Kalshi/Polymarket venue concentration."
+            },
+            {
+              "badge": 5,
+              "control_id": "proposal-queue",
+              "label": "F2-A Proposal Adjudication Queue",
+              "note": "Independent F3 ALLOWED/DENIED decisions on F2-A staged proposals."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "playbook_id": "pb-f-outlier-cro-r04-halt",
+      "title": "Class F (F3 CRO / F2-H) · Outlier/Emergency: Engaging Directive R-04 Halt & Dual-Signature Override",
+      "summary": "Pull the platform-wide CRO Emergency Financial Halt during aggregate VaR or venue distress and stage a Dual-Signature Override while respecting Chief Admin-only resumption.",
+      "role_classes": [
+        "F3",
+        "F2-H"
+      ],
+      "scenario_type": "outlier_incident",
+      "portal_route": "/advisor?role=F3",
+      "control_ids": [
+        "trigger-r04-halt-btn",
+        "submit-dual-sig-btn",
+        "r04-halt-reason",
+        "dual-sig-justification"
+      ],
+      "manual_anchor": "docs/manuals/CLASS_F_FINANCIAL_MANUAL.md#6-f3-chief-risk-officer--platform-wide-12-house-macro-risk-adjudication--directive-r-04",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Click CRO Directive R-04 Halt (#trigger-r04-halt-btn) and document root cause in #r04-halt-reason",
+          "effect": "Halts execution fail-closed platform-wide and displays TRADING HALTED across all portals."
+        },
+        {
+          "step": 2,
+          "action": "If a bounded policy exception is needed, click Dual-Signature Override (#submit-dual-sig-btn)",
+          "effect": "Stages a PENDING override requiring Chief Administrator counter-signature (Founder root remains permanently immune)."
+        },
+        {
+          "step": 3,
+          "action": "Hand off resumption verification to Chief Administrator",
+          "effect": "Obeys CHIEF_ADMINISTRATOR_ONLY resumption rule—F3 and all subordinate tiers fail closed (HTTP 403) on emergency-resume."
+        }
+      ],
+      "media_assets": [
+        {
+          "asset_id": "shot-advisor-cro-emergency",
+          "media_type": "annotated_screenshot",
+          "path": "/static/media/playbooks/screenshots/advisor_f2h_f3_desk.png",
+          "caption": "F3 Chief Risk Officer emergency controls: Directive R-04 Halt (#trigger-r04-halt-btn) and Dual-Signature Override (#submit-dual-sig-btn).",
+          "narrated": false,
+          "replaceable": true,
+          "callout_legend": [
+            {
+              "badge": 2,
+              "control_id": "trigger-r04-halt-btn",
+              "label": "CRO Directive R-04 Halt",
+              "note": "Immediately freezes platform trading during systemic VaR or venue distress."
+            },
+            {
+              "badge": 3,
+              "control_id": "submit-dual-sig-btn",
+              "label": "Dual-Signature Override",
+              "note": "Stages an auditable override awaiting Chief Admin counter-signature."
+            },
+            {
+              "badge": 4,
+              "control_id": "macro-risk",
+              "label": "99% VaR & Venue Concentration",
+              "note": "Verify aggregate stress telemetry before and after engaging halt."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "playbook_id": "pb-t-routine-telemetry-r12-watch",
+      "title": "Class T (T1/T2/T2-Household/T3) · Routine: Telemetry Watch, R-12 Masked Lookup & Tech Copilot",
+      "summary": "Monitor daemon heartbeats, settlement queues, and N=12 eviction telemetry on /admin/tech while preserving strict Directive R-12 financial privacy masking ($****.**).",
+      "role_classes": [
+        "T1",
+        "T2",
+        "T2-HOUSEHOLD",
+        "T3"
+      ],
+      "scenario_type": "routine",
+      "portal_route": "/admin/tech?tier=T3",
+      "control_ids": [
+        "tier-scope-banner",
+        "custodial-lookup-input",
+        "daemon",
+        "settlement",
+        "tech-query",
+        "run-diagnostic",
+        "clearTechCopilotBtn"
+      ],
+      "manual_anchor": "docs/manuals/CLASS_T_TECHNICAL_MANUAL.md#2-directive-r-12-strict-financial-masking--audited-t3-ca-override",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Confirm your authorized Class T tier banner in #tier-scope-banner",
+          "effect": "Enforces least-privilege scope (T1 read-only, T2 engineer, T2-Household household-scoped, T3 CTO)."
+        },
+        {
+          "step": 2,
+          "action": "Search an account identifier in #custodial-lookup-input",
+          "effect": "Returns operational health metadata with Directive R-12 masked balances ($****.**) and SCMA-MEM-**** tokens."
+        },
+        {
+          "step": 3,
+          "action": "Enter a diagnostic query in #tech-query -> Run Diagnostic (#run-diagnostic) -> Clear (#clearTechCopilotBtn)",
+          "effect": "Produces a read-only infrastructure diagnosis with zero financial leaks and zero mutations."
+        }
+      ],
+      "media_assets": [
+        {
+          "asset_id": "shot-tech-t3",
+          "media_type": "annotated_screenshot",
+          "path": "/static/media/playbooks/screenshots/admin_tech_t3_desk.png",
+          "caption": "Class T Infrastructure Console (/admin/tech?tier=T3) with R-12 masked lookup, daemon triggers, and Tech Copilot.",
+          "narrated": false,
+          "replaceable": true,
+          "callout_legend": [
+            {
+              "badge": 2,
+              "control_id": "tier-scope-banner",
+              "label": "Class T Tier Scope",
+              "note": "Displays active T1/T2/T2-Household/T3 authority boundary."
+            },
+            {
+              "badge": 3,
+              "control_id": "custodial-lookup-input",
+              "label": "R-12 Masked Lookup",
+              "note": "Always masks dollar balances ($****.**) unless an audited CA override is active."
+            },
+            {
+              "badge": 4,
+              "control_id": "trigger-daemon",
+              "label": "Scan Daemon Control",
+              "note": "Triggers a controlled diagnostic scan cycle (T2/T3 only; T1 is read-only)."
+            },
+            {
+              "badge": 5,
+              "control_id": "techCopilotCard",
+              "label": "Read-Only Tech Copilot",
+              "note": "Analyzes worker health and latency without touching funds or credentials."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "playbook_id": "pb-t-outlier-r12-override-and-daemon-recovery",
+      "title": "Class T (T2/T3) · Outlier/Emergency: Audited CA R-12 Override & Settlement Recovery",
+      "summary": "Handle stale worker heartbeats or exact-cent reconciliation incidents using time-bounded Chief Admin R-12 Overrides and immediate revocation upon closure.",
+      "role_classes": [
+        "T2",
+        "T3"
+      ],
+      "scenario_type": "outlier_incident",
+      "portal_route": "/admin/tech?tier=T3",
+      "control_ids": [
+        "grant",
+        "revoke",
+        "override-token",
+        "override-reason",
+        "trigger-daemon",
+        "trigger-settlement"
+      ],
+      "manual_anchor": "docs/manuals/CLASS_T_TECHNICAL_MANUAL.md#7-observability-migrations-secrets--incident-response",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Click #trigger-daemon or #trigger-settlement when heartbeat telemetry flags a stall",
+          "effect": "Executes a single bounded recovery pass while Gate G1 paper fail-closed defaults stay locked."
+        },
+        {
+          "step": 2,
+          "action": "If unmasked cent-level audit is unavoidable for T3, click Grant Override (#grant) with Chief Admin token (#override-token) and #override-reason",
+          "effect": "Grants time-bounded unmasking with mandatory GovernanceAuditLog entry."
+        },
+        {
+          "step": 3,
+          "action": "Click Revoke Override (#revoke) immediately after verification completes",
+          "effect": "Restores immutable Directive R-12 $****.** masking instantly."
+        }
+      ],
+      "media_assets": [
+        {
+          "asset_id": "shot-tech-override",
+          "media_type": "annotated_screenshot",
+          "path": "/static/media/playbooks/screenshots/admin_tech_t3_desk.png",
+          "caption": "T3 Audited R-12 Override (#grant) and daemon recovery controls on /admin/tech?tier=T3.",
+          "narrated": false,
+          "replaceable": true,
+          "callout_legend": [
+            {
+              "badge": 1,
+              "control_id": "grant",
+              "label": "Audited CA R-12 Override",
+              "note": "Requires Chief Admin authorization token and documented incident reason."
+            },
+            {
+              "badge": 4,
+              "control_id": "trigger-daemon",
+              "label": "Controlled Recovery Trigger",
+              "note": "Runs a bounded worker pass without mutating Gate G1 safety locks."
+            },
+            {
+              "badge": 5,
+              "control_id": "techCopilotCard",
+              "label": "Incident Diagnostics",
+              "note": "Summarize eviction telemetry and outbox ACK status safely."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "playbook_id": "pb-h-routine-lineage-desk-watch",
+      "title": "Class H (H1/H2) · Routine: House Roll Call, R-12 Privacy & Constitutional Stage Watch",
+      "summary": "Conduct weekly H1 roll call and literacy tracking (with $****.** masking) or H2 daily House capital and constitutional stage inspection on /lineage/house/{id}.",
+      "role_classes": [
+        "H1",
+        "H2"
+      ],
+      "scenario_type": "routine",
+      "portal_route": "/lineage/house/1",
+      "control_ids": [
+        "custodial-lookup-input",
+        "custodial-lookup-btn",
+        "custodial-lookup-clear",
+        "desk-governance-mode",
+        "bicameral"
+      ],
+      "manual_anchor": "docs/manuals/CLASS_H_LINEAGE_AND_HERITAGE_MANUAL.md#3-h1-house-secretary-operations-lineagehouseidroleh1",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Confirm Active Hat (H1 or H2) and search your House roster in #custodial-lookup-input -> Lookup",
+          "effect": "Lists only assigned House members (H1 receives Directive R-12 $****.** masking; cross-House requests return HTTP 403)."
+        },
+        {
+          "step": 2,
+          "action": "Check #desk-governance-mode and the Bicameral Chamber (#bicameral)",
+          "effect": "Confirms whether Stage 1 Executive Command (voting dormant), Stage 2 Advisory Petition, or Stage 3 Bicameral Veto is active."
+        },
+        {
+          "step": 3,
+          "action": "Click Clear (#custodial-lookup-clear) after verifying member status",
+          "effect": "Wipes the lookup drawer cleanly client-side."
+        }
+      ],
+      "media_assets": [
+        {
+          "asset_id": "shot-lineage-h2",
+          "media_type": "annotated_screenshot",
+          "path": "/static/media/playbooks/screenshots/lineage_house1_h2_desk.png",
+          "caption": "Class H Sovereign Desk (/lineage/house/1?role=H2) highlighting House Lookup, Governance Stage, Sovereign Immunity, and Bicameral Chamber.",
+          "narrated": false,
+          "replaceable": true,
+          "callout_legend": [
+            {
+              "badge": 1,
+              "control_id": "custodial-lookup-input",
+              "label": "Scoped House Custodial Lookup",
+              "note": "Confined strictly to your assigned House ID; cross-House calls return HTTP 403."
+            },
+            {
+              "badge": 2,
+              "control_id": "desk-governance-mode",
+              "label": "Active Constitutional Stage",
+              "note": "Shows EXECUTIVE_COMMAND, ADVISORY_PETITION_FILTER, or BICAMERAL_VETO_ACTIVE."
+            },
+            {
+              "badge": 3,
+              "control_id": "lineage-sovereign-immune",
+              "label": "Founder Sovereign Immunity",
+              "note": "Founder root SCMA is permanently immune from subordinate freezes or order purges."
+            },
+            {
+              "badge": 6,
+              "control_id": "bicameral",
+              "label": "Bicameral Ratification Chamber",
+              "note": "Dormant in Stage 1; unlocks Aye/Nay in Stage 2 and binding Veto in Stage 3."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "playbook_id": "pb-h-routine-heritage-curation",
+      "title": "Class H & House Genealogist · Routine: Curating Chronicles & Bordure-Differenced Arms",
+      "summary": "Curate assigned House chronicles and allied surname biographies inside the zero-financial Hall of Arms (/community/heritage#genealogist-desk).",
+      "role_classes": [
+        "HOUSE_GENEALOGIST",
+        "H1",
+        "H2"
+      ],
+      "scenario_type": "routine",
+      "portal_route": "/community/heritage",
+      "control_ids": [
+        "heritageSearchInput",
+        "heritageHouseFilter",
+        "genealogistDeskDrawer",
+        "editHouseId",
+        "editHouseMotto",
+        "editHouseHistory",
+        "saveHouseHistoryBtn",
+        "editSurnameName",
+        "saveSurnameBioBtn"
+      ],
+      "manual_anchor": "docs/manuals/CLASS_H_LINEAGE_AND_HERITAGE_MANUAL.md#5-house_genealogist--hall-of-arms-curation-studio-communityheritage",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Open #genealogistDeskDrawer at /community/heritage#genealogist-desk",
+          "effect": "Expands the scoped House Chronicle and Allied Surname Biography forms on the zero-financial social plane."
+        },
+        {
+          "step": 2,
+          "action": "Select your assigned House in #editHouseId, update #editHouseMotto / #editHouseHistory, and click Save (#saveHouseHistoryBtn)",
+          "effect": "Persists your House chronicle if authorized for that House; unauthorized or cross-House saves fail closed (HTTP 403)."
+        },
+        {
+          "step": 3,
+          "action": "Enter an allied surname in #editSurnameName linked to your House and click #saveSurnameBioBtn",
+          "effect": "Updates the Hall of Arms gallery immediately without touching any financial ledger."
+        }
+      ],
+      "media_assets": [
+        {
+          "asset_id": "shot-heritage-desk",
+          "media_type": "annotated_screenshot",
+          "path": "/static/media/playbooks/screenshots/heritage_hall_of_arms.png",
+          "caption": "Hall of Arms Curation Studio (/community/heritage#genealogist-desk) showing House Chronicle and Allied Surname forms.",
+          "narrated": false,
+          "replaceable": true,
+          "callout_legend": [
+            {
+              "badge": 1,
+              "control_id": "editHouseId",
+              "label": "Assigned House Selector (1-12)",
+              "note": "Must match your assigned House in user_role_assignments (or Chief Admin)."
+            },
+            {
+              "badge": 2,
+              "control_id": "editHouseMotto",
+              "label": "House Motto Editor",
+              "note": "Refines House motto text while preserving Scottish bordure-differenced crests."
+            },
+            {
+              "badge": 3,
+              "control_id": "saveHouseHistoryBtn",
+              "label": "Save House Chronicle",
+              "note": "Server-enforced HTTP 403 isolation blocks cross-House or unauthorized edits."
+            },
+            {
+              "badge": 4,
+              "control_id": "editSurnameName",
+              "label": "Allied Surname Editor",
+              "note": "Adds or updates allied and married-in family biographies."
+            },
+            {
+              "badge": 5,
+              "control_id": "saveSurnameBioBtn",
+              "label": "Save Surname Biography",
+              "note": "Publishes verified family history to the zero-financial Hall of Arms."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "playbook_id": "pb-h-outlier-surgical-freeze-and-snapback",
+      "title": "Class H (H2 / H1 / Genealogist) · Outlier/Emergency: Errant Subordinate Freeze, SHTF Snap-Back & 403 Boundaries",
+      "summary": "Contain an errant subordinate inside your House surgically with Freeze Dial (0%) and Cancel Orders, and handle SHTF Governance Snap-Back or disputed heritage edits calmly.",
+      "role_classes": [
+        "H1",
+        "H2",
+        "HOUSE_GENEALOGIST"
+      ],
+      "scenario_type": "outlier_incident",
+      "portal_route": "/lineage/house/1",
+      "control_ids": [
+        "lineage-freeze",
+        "lineage-vote",
+        "desk-governance-mode",
+        "bicameral"
+      ],
+      "manual_anchor": "docs/manuals/CLASS_H_LINEAGE_AND_HERITAGE_MANUAL.md#7-outlier--emergency-playbooks-high-stress-scenarios",
+      "steps": [
+        {
+          "step": 1,
+          "action": "On /lineage/house/{id}?role=H2, click Freeze Dial (0%) on the errant subordinate row",
+          "effect": "Clamps that single SCMA's risk dial to 0.00% immediately while all 11 sibling Houses stay undisturbed (Founder root remains Sovereign Immune)."
+        },
+        {
+          "step": 2,
+          "action": "Click Cancel Orders on the same subordinate row",
+          "effect": "Purges open resting orders and logs an immutable lineage circuit-breaker receipt."
+        },
+        {
+          "step": 3,
+          "action": "If Chief Admin engages SHTF Governance Snap-Back mid-vote, pause chamber deliberation",
+          "effect": "Voting buttons strip fail-closed to EXECUTIVE_COMMAND; Immutable Core Invariants remain permanently unamendable (HTTP 403)."
+        }
+      ],
+      "media_assets": [
+        {
+          "asset_id": "shot-lineage-outlier-breaker",
+          "media_type": "annotated_screenshot",
+          "path": "/static/media/playbooks/screenshots/lineage_house1_h2_desk.png",
+          "caption": "H2 surgical containment controls (Freeze Dial 0% and Cancel Orders) beside Founder Sovereign Immunity on /lineage/house/1.",
+          "narrated": false,
+          "replaceable": true,
+          "callout_legend": [
+            {
+              "badge": 3,
+              "control_id": "lineage-sovereign-immune",
+              "label": "Founder Sovereign Immunity",
+              "note": "Blocks subordinate freeze/cancel against Founder root (HTTP 403)."
+            },
+            {
+              "badge": 4,
+              "control_id": "lineage-freeze",
+              "label": "Surgical Freeze Dial (0%)",
+              "note": "Clamps one subordinate SCMA to 0.00% without halting other Houses."
+            },
+            {
+              "badge": 5,
+              "control_id": "lineage-cancel",
+              "label": "Surgical Cancel Orders",
+              "note": "Purges resting orders for the affected subordinate and records audit log."
+            },
+            {
+              "badge": 6,
+              "control_id": "bicameral",
+              "label": "Dormant / SHTF Chamber Guard",
+              "note": "Snaps back fail-closed to EXECUTIVE_COMMAND during emergencies."
+            }
+          ]
+        },
+        {
+          "asset_id": "diagram-governance-lifecycle",
+          "media_type": "diagram_svg",
+          "path": "/static/media/playbooks/diagrams/governance_lifecycle_diagram.svg",
+          "caption": "Three-Stage Governance Lifecycle diagram illustrating Executive Command, Advisory Filter, Bicameral Veto, and 1-Click SHTF Snap-Back.",
+          "narrated": false,
+          "replaceable": true,
+          "callout_legend": [
+            {
+              "badge": 1,
+              "control_id": "desk-governance-mode",
+              "label": "Stage 1 -> Stage 2 -> Stage 3 Progression",
+              "note": "Controlled solely by Chief Administrator with 1-click SHTF Snap-Back."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "playbook_id": "pb-ca-routine-tab1-tab2-executive-onboarding",
+      "title": "Chief Admin & Deputy · Routine: Tab 1 Executive Watch & Tab 2 12-House Pools / Onboarding",
+      "summary": "Perform start-of-watch verification on Tab 1 (Asset Rings, Active-Hat, Scoped Lookup) and onboard new family members individually or via Batch CSV/JSON on Tab 2.",
+      "role_classes": [
+        "CHIEF_ADMIN",
+        "CHIEF_ADMIN_DEPUTY"
+      ],
+      "scenario_type": "routine",
+      "portal_route": "/dashboard",
+      "control_ids": [
+        "openHatSwitchBtn",
+        "custodial-lookup-input",
+        "tab-btn-1",
+        "tab-btn-2",
+        "dashboard-asset-rings-card",
+        "cfcp-balance",
+        "faep-balance",
+        "openOnboardModalBtn",
+        "openBatchDrawerBtn"
+      ],
+      "manual_anchor": "docs/manuals/CHIEF_ADMIN_RUNBOOK.md#2-step-by-step-operational-checklists-for-all-four-dashboard-tabs",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Verify Founder SCMA metrics and Concentric Asset Engine Rings (#dashboard-asset-rings-card) on Tab 1",
+          "effect": "Confirms exact-cent ADR-008 balances, 40% dry-powder floor, and Gate G1 paper mode."
+        },
+        {
+          "step": 2,
+          "action": "Click Tab 2 (#tab-btn-2) to inspect #cfcp-balance, #faep-balance, and the 12-House Lineage Tree",
+          "effect": "Displays CFCP 10% and FAEP 3% pools alongside individual House sub-ledgers."
+        },
+        {
+          "step": 3,
+          "action": "Click + Onboard Member (#openOnboardModalBtn) or Batch Provision (#openBatchDrawerBtn)",
+          "effect": "Issues 48h invite tokens and opaque EXT-REF funding tokens with zero banking credentials (Deputy remains read-only HTTP 403)."
+        }
+      ],
+      "media_assets": [
+        {
+          "asset_id": "shot-dashboard-tab1",
+          "media_type": "annotated_screenshot",
+          "path": "/static/media/playbooks/screenshots/dashboard_tab1_executive.png",
+          "caption": "Chief Administrator Cockpit (/dashboard) Tab 1 showing Active-Hat switcher, Directive R-04 Kill Switch, Scoped Lookup, and Concentric Asset Rings.",
+          "narrated": false,
+          "replaceable": true,
+          "callout_legend": [
+            {
+              "badge": 1,
+              "control_id": "openHatSwitchBtn",
+              "label": "Active-Hat Switcher (R-06)",
+              "note": "Switches context explicitly without blending privileges."
+            },
+            {
+              "badge": 2,
+              "control_id": "emergencyKillSwitchBtn",
+              "label": "Directive R-04 Kill Switch",
+              "note": "Global emergency halt reserved strictly for systemic threats."
+            },
+            {
+              "badge": 3,
+              "control_id": "custodial-lookup-input",
+              "label": "Scoped Custodial Lookup",
+              "note": "Instant exact-cent lookup across all 12 Houses."
+            },
+            {
+              "badge": 4,
+              "control_id": "tab-btn-1",
+              "label": "4-Tab Command Navigation",
+              "note": "Switches between Executive, 12-House Pools, Velocity Radar, and Governance."
+            },
+            {
+              "badge": 5,
+              "control_id": "dashboard-asset-rings-card",
+              "label": "Concentric Asset Engine Rings",
+              "note": "Visualizes active venue float, cash cushion, and custody rings."
+            }
+          ]
+        },
+        {
+          "asset_id": "shot-dashboard-tab2",
+          "media_type": "annotated_screenshot",
+          "path": "/static/media/playbooks/screenshots/dashboard_tab2_pools_onboarding.png",
+          "caption": "Chief Administrator Cockpit (/dashboard) Tab 2 showing CFCP/FAEP pools, single/batch onboarding controls, and 12-House tree.",
+          "narrated": false,
+          "replaceable": true,
+          "callout_legend": [
+            {
+              "badge": 1,
+              "control_id": "cfcp-balance",
+              "label": "CFCP 10% Family Pool",
+              "note": "Receives 10% + residual pennies strictly above each SCMA High-Water Mark."
+            },
+            {
+              "badge": 2,
+              "control_id": "faep-balance",
+              "label": "FAEP 3% Endowment Pool",
+              "note": "Funds platform infrastructure strictly from net new realized profit."
+            },
+            {
+              "badge": 3,
+              "control_id": "openOnboardModalBtn",
+              "label": "+ Onboard Member Modal",
+              "note": "Starts 5-Stage Member Onboarding with 48h token."
+            },
+            {
+              "badge": 4,
+              "control_id": "openBatchDrawerBtn",
+              "label": "Batch CSV/JSON Ingest",
+              "note": "Provisions multiple family households with exact validation."
+            },
+            {
+              "badge": 5,
+              "control_id": "lineage-house-tree",
+              "label": "12-House Lineage Sub-Ledgers",
+              "note": "Inspect or surgically freeze individual Houses without halting siblings."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "playbook_id": "pb-ca-routine-tab3-velocity-hunch",
+      "title": "Chief Admin & Deputy · Routine: Tab 3 Velocity Radar & Admin Parallel Shadow Hunch Studio",
+      "summary": "Monitor walk-forward Strategy D baselines and validate parallel Chief Admin Shadow Paper hypotheses on /dashboard Tab 3.",
+      "role_classes": [
+        "CHIEF_ADMIN",
+        "CHIEF_ADMIN_DEPUTY"
+      ],
+      "scenario_type": "routine",
+      "portal_route": "/dashboard",
+      "control_ids": [
+        "tab-btn-3",
+        "wf-strat-d-equity",
+        "adminHunchHypothesis",
+        "adminLoadExampleHunchBtn",
+        "adminEvalHunchBtn",
+        "adminShadowBidBtn"
+      ],
+      "manual_anchor": "docs/manuals/CHIEF_ADMIN_RUNBOOK.md#tab-3--velocity-radar--admin-parallel-shadow-paper-hunch-studio-velocity-radar--scanner",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Click Tab 3 (#tab-btn-3) and inspect #wf-strat-d-equity",
+          "effect": "Compares walk-forward Strategy D performance against Baseline A and Baseline C under zero-synthetic provenance."
+        },
+        {
+          "step": 2,
+          "action": "Click Load Example Hunch (#adminLoadExampleHunchBtn) -> Run 3-Point Validation (#adminEvalHunchBtn)",
+          "effect": "Evaluates a regulated thesis in exact cents while enforcing Nov 2026 CFTC & DEATH BETS Act category blocks."
+        },
+        {
+          "step": 3,
+          "action": "Click Stage Shadow Paper Bid (#adminShadowBidBtn)",
+          "effect": "Logs an isolated SHADOW_PAPER practice position without altering Gate G1 defaults."
+        }
+      ],
+      "media_assets": [
+        {
+          "asset_id": "shot-dashboard-tab3",
+          "media_type": "annotated_screenshot",
+          "path": "/static/media/playbooks/screenshots/dashboard_tab3_velocity_hunch.png",
+          "caption": "Chief Administrator Cockpit (/dashboard) Tab 3 Velocity Radar & Admin Parallel Shadow Hunch Studio.",
+          "narrated": false,
+          "replaceable": true,
+          "callout_legend": [
+            {
+              "badge": 1,
+              "control_id": "wf-strat-d-equity",
+              "label": "Walk-Forward Strategy D Equity",
+              "note": "Observed-tape walk-forward tracking (zero synthetic fills)."
+            },
+            {
+              "badge": 2,
+              "control_id": "adminHunchHypothesis",
+              "label": "Admin Shadow Hunch Input",
+              "note": "Enter a regulated public-data hypothesis for parallel paper testing."
+            },
+            {
+              "badge": 3,
+              "control_id": "adminLoadExampleHunchBtn",
+              "label": "Load Example Hunch",
+              "note": "Seeds a compliant NOAA/BLS example hypothesis."
+            },
+            {
+              "badge": 4,
+              "control_id": "adminEvalHunchBtn",
+              "label": "Run 3-Point Validation",
+              "note": "Checks corroboration, oracle mapping, and post-fee cent edge."
+            },
+            {
+              "badge": 5,
+              "control_id": "adminShadowBidBtn",
+              "label": "Stage Shadow Paper Bid",
+              "note": "Records zero-risk shadow practice tracking."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "playbook_id": "pb-ca-outlier-r04-shtf-and-succession",
+      "title": "Chief Admin & Deputy · Outlier/Emergency: Global R-04 Kill Switch, 1-Click SHTF Snap-Back & Atomic Role Revocation",
+      "summary": "Execute systemic emergency containment via Directive R-04 or 1-Click SHTF Snap-Back on Tab 4, and execute atomic Role Demote/Custody switches with zero orphaned charges.",
+      "role_classes": [
+        "CHIEF_ADMIN",
+        "CHIEF_ADMIN_DEPUTY"
+      ],
+      "scenario_type": "outlier_incident",
+      "portal_route": "/dashboard",
+      "control_ids": [
+        "emergencyKillSwitchBtn",
+        "tab-btn-4",
+        "btn-mode-executive",
+        "btn-mode-advisory",
+        "btn-mode-bicameral",
+        "btn-shtf-snapback",
+        "role-custody-governance-card"
+      ],
+      "manual_anchor": "docs/manuals/CHIEF_ADMIN_RUNBOOK.md#3-surgical-containment-vs-global-emergency-kill-switch-directive-r-04",
+      "steps": [
+        {
+          "step": 1,
+          "action": "For systemic venue or liquidity shocks only, engage Global Directive R-04 Kill Switch (#emergencyKillSwitchBtn)",
+          "effect": "Halts all platform trading fail-closed; only Chief Admin may execute staged resumption."
+        },
+        {
+          "step": 2,
+          "action": "On Tab 4 (#tab-btn-4), click 1-Click SHTF Snap-Back (#btn-shtf-snapback)",
+          "effect": "Instantly returns all 12 Houses to Stage 1 EXECUTIVE_COMMAND with full GovernanceAuditLog trail."
+        },
+        {
+          "step": 3,
+          "action": "Use #role-custody-governance-card to atomically Demote/Promote compromised officers or toggle Anti-Tribalism Custody",
+          "effect": "Revokes prior lookup/session scope immediately while preserving zero orphaned charges."
+        }
+      ],
+      "media_assets": [
+        {
+          "asset_id": "shot-dashboard-tab4",
+          "media_type": "annotated_screenshot",
+          "path": "/static/media/playbooks/screenshots/dashboard_tab4_governance.png",
+          "caption": "Chief Administrator Cockpit (/dashboard) Tab 4 showing 3-Stage Governance buttons, 1-Click SHTF Snap-Back, and Role/Custody Registry.",
+          "narrated": false,
+          "replaceable": true,
+          "callout_legend": [
+            {
+              "badge": 1,
+              "control_id": "btn-mode-executive",
+              "label": "Stage 1: Executive Command",
+              "note": "Fail-closed default and emergency governance posture."
+            },
+            {
+              "badge": 2,
+              "control_id": "btn-mode-advisory",
+              "label": "Stage 2: Advisory Filter",
+              "note": "Unlocks 9/12 advisory petitions while keeping Absolute Founder Veto."
+            },
+            {
+              "badge": 3,
+              "control_id": "btn-mode-bicameral",
+              "label": "Stage 3: Bicameral Veto",
+              "note": "Enables binding chamber vetoes on eligible non-core proposals."
+            },
+            {
+              "badge": 4,
+              "control_id": "btn-shtf-snapback",
+              "label": "1-Click SHTF Snap-Back",
+              "note": "Instantly reverts governance to EXECUTIVE_COMMAND during emergencies."
+            },
+            {
+              "badge": 5,
+              "control_id": "btn-grant-seat",
+              "label": "Grant Enclave Voter / Veto Seat",
+              "note": "Assigns named individuals or House offices to configurable FUTURE Enclave bodies."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "playbook_id": "pb-all-routine-community-hearth",
+      "title": "All 5 Role Classes · Routine: Lineage Community Hearth, Jitsi Rooms & Dual-Lane AI Tutor",
+      "summary": "Gather safely in the zero-financial Family Hearth (/community), launch sandboxed Jitsi rooms, and ask policy or public-data questions with zero financial data loaded.",
+      "role_classes": [
+        "CLASS_M",
+        "F1",
+        "H1",
+        "T1",
+        "CHIEF_ADMIN"
+      ],
+      "scenario_type": "routine",
+      "portal_route": "/community",
+      "control_ids": [
+        "benefactorWelcomeBanner",
+        "messageText",
+        "joinAssemblyRoomBtn",
+        "tutorQuery",
+        "clearCommunityTutorBtn"
+      ],
+      "manual_anchor": "docs/manuals/USER_QUICKSTART.md#6-using-the-dual-lane-ai-literacy-tutor-safely",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Verify the Benefactor Welcome banner (#benefactorWelcomeBanner) on /community",
+          "effect": "Confirms the Family Hearth is strictly a social and learning space with zero live balances or trading hooks."
+        },
+        {
+          "step": 2,
+          "action": "Switch between Hearth Board, FSAP Charter, Jitsi Classroom, and AI Tutor tabs",
+          "effect": "Lets relatives celebrate milestones, join sandboxed family video calls, or study literacy lessons calmly."
+        },
+        {
+          "step": 3,
+          "action": "Ask a plain-English question in #tutorQuery and click Clear (#clearCommunityTutorBtn)",
+          "effect": "Returns a verified answer with unilateral_execution = False, then clears client-side with zero network calls."
+        }
+      ],
+      "media_assets": [
+        {
+          "asset_id": "shot-community-hearth",
+          "media_type": "annotated_screenshot",
+          "path": "/static/media/playbooks/screenshots/community_hearth.png",
+          "caption": "Lineage Community Hearth (/community) showing Benefactor Welcome, section tabs, Dual-Lane AI Tutor, and Zero-Network Clear.",
+          "narrated": false,
+          "replaceable": true,
+          "callout_legend": [
+            {
+              "badge": 1,
+              "control_id": "benefactorWelcomeBanner",
+              "label": "Benefactor Welcome & Social Wall",
+              "note": "Confirms zero financial data is loaded on /community."
+            },
+            {
+              "badge": 2,
+              "control_id": "hearth",
+              "label": "Lineage Hearth & Board Tab",
+              "note": "Post categorized family milestones and announcements."
+            },
+            {
+              "badge": 3,
+              "control_id": "classroom",
+              "label": "Sandboxed Jitsi Classroom Tab",
+              "note": "Opens family video rooms safely without financial tokens."
+            },
+            {
+              "badge": 4,
+              "control_id": "tutorQuery",
+              "label": "Dual-Lane AI Tutor",
+              "note": "Ask plain-English questions about PDEUE rules or public concepts."
+            },
+            {
+              "badge": 5,
+              "control_id": "clearCommunityTutorBtn",
+              "label": "Zero-Network Clear Tutor",
+              "note": "Resets the tutor display client-side and restores keyboard focus."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "playbook_id": "pb-all-routine-companion-university",
+      "title": "All 5 Role Classes · Routine: PDEUE University (/companion) Studio Audio, Manuals & Certification",
+      "summary": "Study the 6-chapter interactive simulator with offline Studio Mentor narration (Maya/Marcus), read all 5 canonical manuals, and complete Stewardship L1 certification.",
+      "role_classes": [
+        "CLASS_M",
+        "F1",
+        "H1",
+        "T1",
+        "CHIEF_ADMIN"
+      ],
+      "scenario_type": "routine",
+      "portal_route": "/companion",
+      "control_ids": [
+        "tabCollegesBtn",
+        "tabLibraryBtn",
+        "playOrientationBtn",
+        "voiceSelect",
+        "profitCents"
+      ],
+      "manual_anchor": "docs/manuals/USER_QUICKSTART.md#pdeue-university-curriculum-alignment",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Pick Studio Mentor Maya or Marcus in #voiceSelect and click Listen to 30-Second Welcome (#playOrientationBtn)",
+          "effect": "Plays local offline MP3 narration with synchronized WebVTT captions (zero runtime TTS API calls)."
+        },
+        {
+          "step": 2,
+          "action": "Test exact integer cents in #profitCents and progress through Chapters 1–6",
+          "effect": "Demonstrates ADR-008 conservation, ADR-012 High-Water Mark recovery, and Rule A14 loss isolation interactively."
+        },
+        {
+          "step": 3,
+          "action": "Open Degree Colleges (#tabCollegesBtn) or Deep-Dive & Playbook Library (#tabLibraryBtn)",
+          "effect": "Loads all 5 canonical role manuals (including Class H & House Genealogist) and browsable visual playbooks offline."
+        }
+      ],
+      "media_assets": [
+        {
+          "asset_id": "shot-companion-university",
+          "media_type": "annotated_screenshot",
+          "path": "/static/media/playbooks/screenshots/companion_university.png",
+          "caption": "PDEUE University (/companion) Campus Simulator, Studio Mentor voice selector, Degree Colleges, and Playbook Library tabs.",
+          "narrated": false,
+          "replaceable": true,
+          "callout_legend": [
+            {
+              "badge": 1,
+              "control_id": "tabCollegesBtn",
+              "label": "Degree Colleges (5 Canonical Manuals)",
+              "note": "Read or print Class M, F, T, H, and Chief Admin manuals offline."
+            },
+            {
+              "badge": 2,
+              "control_id": "tabLibraryBtn",
+              "label": "Deep-Dive & Visual Playbook Library",
+              "note": "Browse role-filtered How-To playbooks and annotated screenshots."
+            },
+            {
+              "badge": 3,
+              "control_id": "playOrientationBtn",
+              "label": "30-Second Studio Orientation",
+              "note": "Plays local MP3 + synced WebVTT welcome narration."
+            },
+            {
+              "badge": 4,
+              "control_id": "voiceSelect",
+              "label": "Local Studio Mentor Voices",
+              "note": "Switch between Studio Mentors Maya and Marcus with zero API calls."
+            },
+            {
+              "badge": 5,
+              "control_id": "profitCents",
+              "label": "Interactive 87/10/3 + HWM Simulator",
+              "note": "Hands-on exact-cent waterfall and High-Water Mark lab."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

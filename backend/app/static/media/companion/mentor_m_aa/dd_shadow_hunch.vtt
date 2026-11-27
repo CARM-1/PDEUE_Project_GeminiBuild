@@ -1,161 +1,161 @@
 WEBVTT
 
 1
-00:00:00.000 --> 00:00:00.569
+00:00:00.000 --> 00:00:08.730
 Start with an objectively verifiable public event in one of six regulated verticals—Weather
 
 2
-00:00:00.569 --> 00:00:00.619
+00:00:08.730 --> 00:00:09.401
 (NOAA),
 
 3
-00:00:00.619 --> 00:00:00.719
+00:00:09.401 --> 00:00:10.936
 Macro/CPI (BLS),
 
 4
-00:00:00.719 --> 00:00:00.788
+00:00:10.936 --> 00:00:11.991
 Energy/EIA,
 
 5
-00:00:00.788 --> 00:00:00.838
+00:00:11.991 --> 00:00:12.375
 U.S.
 
 6
-00:00:00.838 --> 00:00:01.076
+00:00:12.375 --> 00:00:16.020
 Treasuries, Equity Indices, or G10 FX.
 
 7
-00:00:01.076 --> 00:00:01.126
+00:00:16.020 --> 00:00:16.788
 Example:
 
 8
-00:00:01.126 --> 00:00:01.464
+00:00:16.788 --> 00:00:21.968
 "NOAA forecasts a 95°F heat wave in Phoenix this week,
 
 9
-00:00:01.464 --> 00:00:01.826
+00:00:21.968 --> 00:00:27.532
 making the high-temp contract underpriced at 42¢." Sports,
 
 10
-00:00:01.826 --> 00:00:01.927
+00:00:27.532 --> 00:00:29.066
 casino gambling,
 
 11
-00:00:01.927 --> 00:00:01.977
+00:00:29.066 --> 00:00:29.450
 war,
 
 12
-00:00:01.977 --> 00:00:02.039
+00:00:29.450 --> 00:00:30.409
 terrorism,
 
 13
-00:00:02.039 --> 00:00:02.596
+00:00:30.409 --> 00:00:38.947
 and death wagers are permanently blocked fail-closed under Nov 2026 CFTC & DEATH BETS Act
 
 14
-00:00:02.596 --> 00:00:02.646
+00:00:38.947 --> 00:00:39.523
 rules.
 
 15
-00:00:02.646 --> 00:00:03.209
+00:00:39.523 --> 00:00:48.156
 Click Run 3-Point Validation Audit (or use Load Example Hunch to test-drive in one click).
 
 16
-00:00:03.209 --> 00:00:03.509
+00:00:48.156 --> 00:00:52.761
 The studio checks (1) public fact corroboration,
 
 17
-00:00:03.509 --> 00:00:03.772
+00:00:52.761 --> 00:00:56.790
 (2) regulated contract and oracle mapping,
 
 18
-00:00:03.772 --> 00:00:04.328
+00:00:56.790 --> 00:01:05.327
 and (3) exact-cent edge after fees—returning VALIDATED (VALIDATED_SHADOW_READY) when math
 
 19
-00:00:04.328 --> 00:00:04.397
+00:01:05.327 --> 00:01:06.383
 beats fees,
 
 20
-00:00:04.397 --> 00:00:04.660
+00:01:06.383 --> 00:01:10.412
 REJECTED_NO_EDGE when fees erase the edge,
 
 21
-00:00:04.660 --> 00:00:04.910
+00:01:10.412 --> 00:01:14.249
 or PROHIBITED_EVENT_CATEGORY if blocked.
 
 22
-00:00:04.910 --> 00:00:05.336
+00:01:14.249 --> 00:01:20.772
 Once validated, stage a virtual practice stake in SHADOW_PAPER mode.
 
 23
-00:00:05.336 --> 00:00:05.911
+00:01:20.772 --> 00:01:29.597
 Shadow bids run against real market prices using 100% pretend dollars—zero real SCMA cash or
 
 24
-00:00:05.911 --> 00:00:06.468
+00:01:29.597 --> 00:01:38.135
 IFAS bank records are ever touched—and build your verifiable Shadow Hit-Rate track record
 
 25
-00:00:06.468 --> 00:00:06.530
+00:01:38.135 --> 00:01:39.094
 over time.
 
 26
-00:00:06.530 --> 00:00:06.780
+00:01:39.094 --> 00:01:42.931
 To petition for real SCMA consideration,
 
 27
-00:00:06.780 --> 00:00:06.943
+00:01:42.931 --> 00:01:45.426
 three gates must all pass:
 
 28
-00:00:06.943 --> 00:00:07.387
+00:01:45.426 --> 00:01:52.236
 (a) you hold your STEWARDSHIP_L1_CERTIFIED badge from PDEUE University,
 
 29
-00:00:07.387 --> 00:00:07.662
+00:01:52.236 --> 00:01:56.457
 (b) your risk dial is active and non-frozen,
 
 30
-00:00:07.662 --> 00:00:08.194
+00:01:56.457 --> 00:02:04.611
 and (c) two-step human review approves it—first your F2-H Head of Household (domestic
 
 31
-00:00:08.194 --> 00:00:08.388
+00:02:04.611 --> 00:02:07.585
 suitability + Shadow Hit-Rate),
 
 32
-00:00:08.388 --> 00:00:08.863
+00:02:07.585 --> 00:02:14.876
 then the F3 Chief Risk Officer or Chief Administrator (platform risk limits:
 
 33
-00:00:08.863 --> 00:00:08.914
+00:02:14.876 --> 00:02:15.643
 ALLOWED,
 
 34
-00:00:08.914 --> 00:00:08.964
+00:02:15.643 --> 00:02:16.315
 DENIED,
 
 35
-00:00:08.964 --> 00:00:09.051
+00:02:16.315 --> 00:02:17.658
 or RESCINDED).
 
 36
-00:00:09.051 --> 00:00:09.326
+00:02:17.658 --> 00:02:21.878
 Shadow Paper practice NEVER moves real cash,
 
 37
-00:00:09.326 --> 00:00:09.514
+00:02:21.878 --> 00:02:24.756
 NEVER alters Gate G1 defaults,
 
 38
-00:00:09.514 --> 00:00:09.758
+00:02:24.756 --> 00:02:28.497
 and NEVER emits IFAS bank instructions.
 
 39
-00:00:09.758 --> 00:00:10.327
+00:02:28.497 --> 00:02:37.227
 Members never have an impulsive solo "Buy" button—unilateral_execution remains False across
 
 40
-00:00:10.327 --> 00:00:10.515
+00:02:37.227 --> 00:02:41.256
 every AI tutor and research studio screen.
