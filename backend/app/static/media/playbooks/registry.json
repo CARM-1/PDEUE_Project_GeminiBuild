@@ -1304,6 +1304,80 @@
           ]
         }
       ]
+    },
+    {
+      "playbook_id": "pb-h-routine-family-tree-calculator",
+      "title": "Family Tree & Relationship Calculator · Routine: Exploring 12 Houses & Scoped Genealogist Curation",
+      "summary": "Explore the zero-CDN interactive 12-House Family Tree, compute kinship with the live LCA Relationship Calculator, and curate assigned House branches safely under Living-Member Privacy Protection.",
+      "role_classes": [
+        "CLASS_M",
+        "HOUSE_GENEALOGIST",
+        "H1",
+        "H2"
+      ],
+      "scenario_type": "routine",
+      "portal_route": "/community/heritage/tree",
+      "control_ids": [
+        "treeSearchInput",
+        "treeHouseFilter",
+        "treeSurnameFilter",
+        "toggleReferenceBranches",
+        "treeZoomInBtn",
+        "treeZoomOutBtn",
+        "treeZoomResetBtn",
+        "calcPersonA",
+        "calcPersonB",
+        "calcRelationshipBtn",
+        "genealogistTreeDrawer"
+      ],
+      "manual_anchor": "docs/manuals/CLASS_H_LINEAGE_AND_HERITAGE_MANUAL.md#5-house_genealogist--hall-of-arms-curation-studio-communityheritage",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Filter or search relatives with #treeSearchInput, #treeHouseFilter, or #treeSurnameFilter on /community/heritage/tree",
+          "effect": "Highlights matching relatives across the 12-House spine while keeping Living-Member Privacy Protection active."
+        },
+        {
+          "step": 2,
+          "action": "Select Person A (#calcPersonA) and Person B (#calcPersonB) and click Calculate Relationship (#calcRelationshipBtn)",
+          "effect": "Computes exact bloodline or married-in kinship, top common ancestor(s), generation steps, and a plain-English glossary explanation."
+        },
+        {
+          "step": 3,
+          "action": "For assigned HOUSE_GENEALOGIST or CHIEF_ADMIN roles, open #genealogistTreeDrawer to add/edit people or link relationships within your scoped House",
+          "effect": "Persists validated family records and logs every write or HTTP 403 boundary refusal to GovernanceAuditLog."
+        }
+      ],
+      "media_assets": [
+        {
+          "asset_id": "diag-family-tree-calculator",
+          "media_type": "diagram_svg",
+          "path": "/static/media/playbooks/diagrams/family_tree_relationship_calculator.svg",
+          "caption": "Zero-CDN Interactive Family Tree 12-House spine, Living-Member Privacy Guard, and live LCA Relationship Calculator architecture.",
+          "narrated": false,
+          "replaceable": true,
+          "callout_legend": [
+            {
+              "badge": 1,
+              "control_id": "treeHouseFilter",
+              "label": "House Filter (Houses 1–12)",
+              "note": "Focuses the SVG canvas on a single House or all 12 Houses."
+            },
+            {
+              "badge": 2,
+              "control_id": "calcRelationshipBtn",
+              "label": "How Are We Related Calculator",
+              "note": "Computes exact LCA bloodline and married-in connections."
+            },
+            {
+              "badge": 3,
+              "control_id": "genealogistTreeDrawer",
+              "label": "Genealogist Branch Curation Drawer",
+              "note": "Scoped strictly to assigned X-House-ID (or Chief Admin)."
+            }
+          ]
+        }
+      ]
     }
   ]
 }

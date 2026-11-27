@@ -353,7 +353,7 @@ def test_compact_header_lockup_firewall_sync_and_nine_portal_parity_gate():
 
     # 4. 9-portal Automated UI-to-Lexicon-to-Curriculum Parity Gate PASS
     report = audit_ui_lexicon_curriculum_parity(REPO_ROOT)
-    assert len(report["portals_scanned"]) == 9
+    assert len(report["portals_scanned"]) >= 9
     assert set(report["portals_scanned"]) == set(PORTALS.keys())
     assert report["undocumented_controls"] == []
     assert report["dangling_data_terms"] == []

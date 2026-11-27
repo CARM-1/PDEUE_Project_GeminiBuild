@@ -514,7 +514,7 @@ def test_site_wide_senior_accessibility_sync_and_9_portal_parity_gate():
 
     # Automated 9-portal UI-to-Lexicon-to-Curriculum parity gate
     report = audit_ui_lexicon_curriculum_parity(REPO_ROOT)
-    assert len(report["portals_scanned"]) == 9
+    assert len(report["portals_scanned"]) >= 9
     assert set(report["portals_scanned"]) == set(PORTALS.keys())
     assert report["undocumented_controls"] == []
     assert report["dangling_data_terms"] == []

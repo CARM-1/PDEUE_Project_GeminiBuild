@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 440" role="img" aria-label="Interactive Family Tree and Relationship Calculator Diagram">
+  <rect width="960" height="440" rx="16" fill="#0B132B"/>
+  <rect x="18" y="18" width="924" height="404" rx="14" fill="#1C2541" stroke="#334155" stroke-width="2"/>
+  <text x="40" y="54" fill="#E4BB63" font-family="system-ui,sans-serif" font-size="14" font-weight="800" letter-spacing="1.2">ZERO-CDN INTERACTIVE FAMILY TREE · LIVING-MEMBER PRIVACY GUARD</text>
+  <text x="40" y="82" fill="#F8FAFC" font-family="system-ui,sans-serif" font-size="22" font-weight="800">12-House Lineage Spine &amp; LCA Relationship Calculator</text>
+  <!-- Founding Pair -->
+  <rect x="290" y="106" width="380" height="58" rx="10" fill="#233258" stroke="#E4BB63" stroke-width="2"/>
+  <text x="480" y="131" text-anchor="middle" fill="#F8FAFC" font-family="system-ui,sans-serif" font-size="14" font-weight="800">Founding Pair · Gen 0 (Deceased Dates Shown)</text>
+  <text x="480" y="151" text-anchor="middle" fill="#F6DE8D" font-family="system-ui,sans-serif" font-size="12">Mary Viola "Ola" McCormick ♥ William F. McCormick</text>
+  <!-- Connector lines -->
+  <path d="M 480 164 L 480 194 M 150 194 L 810 194 M 150 194 L 150 220 M 480 194 L 480 220 M 810 194 L 810 220" stroke="#38BDF8" stroke-width="2" fill="none"/>
+  <!-- House 01 -->
+  <rect x="44" y="220" width="212" height="72" rx="10" fill="#101A36" stroke="#38BDF8" stroke-width="1.5"/>
+  <text x="60" y="245" fill="#F6DE8D" font-family="system-ui,sans-serif" font-size="13" font-weight="800">HOUSE-01 · Carmichael Prime</text>
+  <text x="60" y="265" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="11.5">Gen 1–4 · Living Birth Years Stripped</text>
+  <text x="60" y="282" fill="#94A3B8" font-family="system-ui,sans-serif" font-size="11">Genealogist Scoped X-House-ID</text>
+  <!-- House 02 -->
+  <rect x="374" y="220" width="212" height="72" rx="10" fill="#101A36" stroke="#38BDF8" stroke-width="1.5"/>
+  <text x="390" y="245" fill="#F6DE8D" font-family="system-ui,sans-serif" font-size="13" font-weight="800">HOUSE-02..11 · McCormick</text>
+  <text x="390" y="265" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="11.5">Collapsible Branches + Allied Surnames</text>
+  <text x="390" y="282" fill="#94A3B8" font-family="system-ui,sans-serif" font-size="11">Links to Hall of Arms Crests</text>
+  <!-- House 12 -->
+  <rect x="704" y="220" width="212" height="72" rx="10" fill="#101A36" stroke="#38BDF8" stroke-width="1.5"/>
+  <text x="720" y="245" fill="#F6DE8D" font-family="system-ui,sans-serif" font-size="13" font-weight="800">HOUSE-12 · Harvest Table</text>
+  <text x="720" y="265" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="11.5">Multi-Generation Descendants</text>
+  <text x="720" y="282" fill="#94A3B8" font-family="system-ui,sans-serif" font-size="11">Optional Historical Ref Toggle</text>
+  <!-- Relationship Calculator Bar -->
+  <rect x="44" y="318" width="872" height="78" rx="12" fill="#132A24" stroke="#059669" stroke-width="1.8"/>
+  <text x="64" y="346" fill="#A7F3D0" font-family="system-ui,sans-serif" font-size="15" font-weight="800">How Are We Related? — Deterministic LCA &amp; Shortest-Path Calculator</text>
+  <text x="64" y="370" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="12.5">Computes Parent/Child, Sibling, Aunt/Uncle, 1st/2nd/Nth Cousin (+ Once/Twice Removed), Spouse, and Married-In Links with Top Common Ancestor(s).</text>
+</svg>

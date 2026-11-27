@@ -1,0 +1,1347 @@
+<!doctype html>
+<html lang="en" data-text-scale="standard">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Interactive Family Tree &amp; Relationship Calculator — Carmichael / McCormick</title>
+  <link rel="stylesheet" href="/static/css/senior_a11y.css">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg-canvas: #0B132B;
+      --bg-card: #1C2541;
+      --bg-surface: #1E293B;
+      --border-subtle: #334155;
+      --text-primary: #F8FAFC;
+      --text-secondary: #CBD5E1;
+      --text-muted: #94A3B8;
+      --accent-sky: #38BDF8;
+      --accent-sky-deep: #0284C7;
+      --status-green: #059669;
+      --status-amber: #D97706;
+      --status-red: #DC2626;
+      --gold: #E4BB63;
+    }
+    * { box-sizing: border-box; }
+    html, body { max-width: 100%; overflow-x: hidden; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at 20% 0, #192B52 0, var(--bg-canvas) 54%);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      font-size: 16px;
+      line-height: 1.55;
+    }
+    .shell { width: min(1360px, 95vw); margin: auto; padding: 14px 0 38px; }
+
+    .brand-lockup { display: inline-flex; align-items: center; gap: 11px; text-decoration: none; color: inherit; min-width: 0; max-width: 100%; }
+    .brand-lockup:hover .brand-title { color: #F6DE8D; }
+    .brand-crests { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .brand-crest { width: 40px; height: 46px; aspect-ratio: 5/6; object-fit: contain; border: 1px solid rgba(212,175,55,.65); border-radius: 5px; background: rgba(11,19,43,.88); padding: 2px; display: block; flex-shrink: 0; }
+    .brand-crest-divider { width: 1px; height: 34px; background: linear-gradient(180deg,transparent,rgba(212,175,55,.78),transparent); flex-shrink: 0; }
+    .brand-stack { display: flex; flex-direction: column; min-width: 0; line-height: 1.22; }
+    .brand-title { font-size: .78rem; font-weight: 800; letter-spacing: .08em; color: #F8FAFC; white-space: normal; }
+    .brand-motto { font-size: .71rem; font-style: italic; color: #D8C48B; white-space: normal; }
+
+    .plane-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 12px; border-radius: 999px;
+      background: rgba(5,150,105,.18); border: 1px solid #34D399;
+      color: #A7F3D0; font-size: 0.78rem; font-weight: 800;
+    }
+    .privacy-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 12px; border-radius: 999px;
+      background: rgba(56,189,248,.14); border: 1px solid var(--accent-sky);
+      color: #BAE6FD; font-size: 0.78rem; font-weight: 700;
+    }
+    .eyebrow { color: var(--gold); font-size: 0.74rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+
+    .filter-card, .panel-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      min-width: 0;
+    }
+    .filter-row {
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    }
+    .filter-row input[type="search"],
+    .filter-row select {
+      min-height: 42px;
+      background: var(--bg-canvas);
+      color: var(--text-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 9px;
+      padding: 8px 12px;
+      font: inherit;
+      font-size: 0.92rem;
+      min-width: 0;
+    }
+    .filter-row input[type="search"] { flex: 1 1 240px; }
+    .filter-row select { flex: 0 1 210px; max-width: 100%; }
+
+    .toggle-pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      min-height: 42px; padding: 6px 12px; border-radius: 9px;
+      background: var(--bg-surface); border: 1px solid var(--border-subtle);
+      color: var(--text-secondary); font-size: 0.86rem; font-weight: 700;
+      cursor: pointer; user-select: none;
+    }
+    .toggle-pill input { width: 17px; height: 17px; accent-color: var(--gold); margin: 0; cursor: pointer; }
+
+    .btn-primary {
+      min-height: 42px; padding: 8px 16px; border-radius: 9px;
+      border: 1px solid var(--accent-sky); background: var(--accent-sky-deep);
+      color: #FFFFFF; font-weight: 800; cursor: pointer; font-size: 0.9rem;
+    }
+    .btn-primary:hover { background: #0369A1; }
+    .btn-secondary {
+      min-height: 40px; padding: 7px 12px; border-radius: 9px;
+      border: 1px solid var(--border-subtle); background: var(--bg-surface);
+      color: var(--text-secondary); font-weight: 700; cursor: pointer; font-size: 0.86rem;
+    }
+    .btn-secondary:hover { border-color: var(--accent-sky); color: var(--text-primary); }
+    .btn-gold {
+      min-height: 40px; padding: 7px 14px; border-radius: 9px;
+      border: 1px solid var(--gold); background: rgba(228,187,99,.16);
+      color: #FDE68A; font-weight: 800; cursor: pointer; font-size: 0.86rem;
+      text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-gold:hover { background: rgba(228,187,99,.28); }
+
+    .stats-strip {
+      display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;
+      font-size: 0.82rem; color: var(--text-muted);
+    }
+    .stat-pill {
+      padding: 3px 10px; border-radius: 999px;
+      background: var(--bg-canvas); border: 1px solid var(--border-subtle);
+      color: var(--text-secondary); font-weight: 700;
+    }
+
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.85fr) minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+    .canvas-header {
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 10px; margin-bottom: 10px;
+    }
+    .canvas-header h2 { margin: 0; font-size: 1.15rem; color: #F6DE8D; }
+    .canvas-controls { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+    .house-branch-bar {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;
+    }
+    .branch-chip {
+      min-height: 32px; padding: 4px 10px; border-radius: 999px;
+      border: 1px solid var(--border-subtle); background: var(--bg-surface);
+      color: var(--text-secondary); font-size: 0.76rem; font-weight: 700;
+      cursor: pointer;
+    }
+    .branch-chip.expanded { border-color: var(--gold); color: #FDE68A; background: rgba(228,187,99,.14); }
+    .branch-chip.collapsed { opacity: 0.65; }
+
+    .tree-viewport {
+      position: relative;
+      width: 100%;
+      height: 580px;
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+      background: radial-gradient(circle at 50% 12%, #13213F 0%, #091024 72%);
+      overflow: hidden;
+      touch-action: none;
+      cursor: grab;
+    }
+    .tree-viewport.dragging { cursor: grabbing; }
+    .tree-viewport svg { width: 100%; height: 100%; display: block; }
+    .zoom-readout {
+      position: absolute; right: 10px; bottom: 10px;
+      padding: 4px 10px; border-radius: 999px;
+      background: rgba(11,19,43,.88); border: 1px solid var(--border-subtle);
+      color: var(--text-muted); font-size: 0.75rem; font-weight: 700;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      pointer-events: none;
+    }
+
+    .detail-card {
+      background: var(--bg-card);
+      border: 1px solid rgba(228,187,99,.5);
+      border-radius: 14px;
+      padding: 16px;
+      min-width: 0;
+    }
+    .detail-header { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; }
+    .detail-crest {
+      width: 52px; height: 60px; object-fit: contain; flex-shrink: 0;
+      border-radius: 8px; border: 1px solid rgba(228,187,99,.65);
+      background: #0B132B; padding: 3px;
+    }
+    .detail-name { margin: 2px 0; font-size: 1.18rem; color: var(--text-primary); }
+    .code-tag {
+      display: inline-block; padding: 2px 8px; border-radius: 999px;
+      font-size: 0.72rem; font-weight: 800;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      background: var(--bg-surface); border: 1px solid var(--accent-sky); color: #BAE6FD;
+    }
+    .detail-meta-grid {
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;
+      margin: 10px 0;
+    }
+    .meta-box {
+      background: var(--bg-canvas); border: 1px solid var(--border-subtle);
+      border-radius: 9px; padding: 8px 10px; min-width: 0;
+    }
+    .meta-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
+    .meta-value { font-size: 0.9rem; color: var(--text-primary); font-weight: 700; word-break: break-word; }
+    .review-flag-box {
+      margin: 10px 0; padding: 9px 12px; border-radius: 9px;
+      background: rgba(217,119,6,.16); border: 1px solid var(--status-amber);
+      color: #FDE68A; font-size: 0.84rem;
+    }
+    .rel-group { margin-top: 10px; }
+    .rel-group-title { font-size: 0.78rem; color: var(--gold); font-weight: 800; text-transform: uppercase; margin-bottom: 5px; }
+    .rel-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .rel-chip-btn {
+      min-height: 32px; padding: 4px 10px; border-radius: 8px;
+      background: var(--bg-surface); border: 1px solid var(--border-subtle);
+      color: var(--text-primary); font-size: 0.82rem; font-weight: 700;
+      cursor: pointer;
+    }
+    .rel-chip-btn:hover { border-color: var(--accent-sky); color: #BAE6FD; }
+    .detail-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .detail-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+    /* Relationship Calculator Panel */
+    .calc-panel {
+      background: linear-gradient(145deg, #1E2E52, #15203A);
+      border: 1.5px solid rgba(56,189,248,.48);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 16px;
+    }
+    .calc-panel h2 { margin: 2px 0 6px; font-size: 1.2rem; color: var(--text-primary); }
+    .calc-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: end;
+      margin-top: 10px;
+    }
+    .calc-col { display: grid; gap: 6px; min-width: 0; }
+    .calc-col label { font-size: 0.82rem; font-weight: 800; color: #F6DE8D; }
+    .calc-col input, .calc-col select {
+      width: 100%; min-height: 40px; min-width: 0;
+      background: var(--bg-canvas); color: var(--text-primary);
+      border: 1px solid var(--border-subtle); border-radius: 9px;
+      padding: 8px 10px; font: inherit; font-size: 0.9rem;
+    }
+    .calc-btn-stack { display: flex; gap: 8px; flex-wrap: wrap; }
+    .calc-result {
+      margin-top: 14px; padding: 14px 16px; border-radius: 12px;
+      background: var(--bg-canvas); border: 1px solid rgba(228,187,99,.58);
+    }
+    .calc-primary-label {
+      display: inline-block; padding: 4px 12px; border-radius: 999px;
+      background: rgba(5,150,105,.22); border: 1px solid #34D399;
+      color: #A7F3D0; font-size: 1.02rem; font-weight: 800; margin-bottom: 8px;
+    }
+    .calc-primary-label.disconnected {
+      background: rgba(217,119,6,.2); border-color: var(--status-amber); color: #FDE68A;
+    }
+    .calc-glossary {
+      margin-top: 10px; padding: 9px 12px; border-radius: 9px;
+      background: var(--bg-surface); border-left: 3px solid var(--accent-sky);
+      color: var(--text-secondary); font-size: 0.86rem;
+    }
+
+    /* Genealogist Tree Curation Drawer & Read-Only Banner */
+    .readonly-curation-banner {
+      background: var(--bg-card); border: 1px solid var(--border-subtle);
+      border-left: 4px solid var(--accent-sky); border-radius: 12px;
+      padding: 12px 16px; margin-bottom: 16px; color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+    .curation-drawer {
+      background: var(--bg-card); border: 1px solid rgba(228,187,99,.55);
+      border-left: 5px solid var(--gold); border-radius: 14px;
+      padding: 14px 18px; margin-bottom: 16px;
+    }
+    .curation-drawer > details > summary {
+      cursor: pointer; list-style: none; display: flex;
+      justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    .curation-drawer > details > summary::-webkit-details-marker { display: none; }
+    .curation-grid {
+      display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px; margin-top: 14px;
+    }
+    .curation-form {
+      background: #101A36; border: 1px solid var(--border-subtle);
+      border-radius: 12px; padding: 14px; display: grid; gap: 8px; min-width: 0;
+    }
+    .curation-form h3 { margin: 0; font-size: 1rem; color: #F6DE8D; }
+    .curation-form label { display: grid; gap: 4px; font-size: 0.82rem; font-weight: 700; color: var(--text-secondary); }
+    .curation-form input, .curation-form select, .curation-form textarea {
+      width: 100%; min-width: 0; background: var(--bg-canvas); color: var(--text-primary);
+      border: 1px solid var(--border-subtle); border-radius: 8px; padding: 8px 10px; font: inherit;
+    }
+    .curation-form textarea { min-height: 68px; }
+    .curation-status { font-size: 0.84rem; font-weight: 700; min-height: 1.3em; color: #A7F3D0; }
+
+    /* Pure-CSS Tooltips */
+    abbr.pdeue-term { position: relative; display: inline-flex; align-items: baseline; gap: 3px; text-decoration: underline dotted var(--accent-sky); text-underline-offset: 3px; cursor: help; color: inherit; }
+    abbr.pdeue-term .pdeue-term-info { font-size: .78em; color: var(--accent-sky); font-style: normal; line-height: 1; user-select: none; }
+    abbr.pdeue-term::after { content: attr(data-tooltip); display: none; position: absolute; z-index: 6000; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%); width: max-content; max-width: min(280px,78vw); padding: 9px 12px; border: 1px solid var(--accent-sky); border-radius: 6px; background: var(--bg-surface); color: var(--text-primary); font-size: .78rem; font-weight: 500; line-height: 1.4; text-align: left; white-space: normal; box-shadow: 0 10px 24px rgba(0,0,0,.55); pointer-events: none; opacity: 0; visibility: hidden; }
+    abbr.pdeue-term:hover::after, abbr.pdeue-term:focus::after, abbr.pdeue-term:focus-visible::after { display: block; opacity: 1; visibility: visible; }
+
+    .pdeue-colophon {
+      margin-top: 26px; padding: 12px 4px; border-top: 1px solid var(--border-subtle);
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 10px; color: var(--text-muted); font-size: 0.78rem;
+    }
+    .colophon-mode-badge {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.72rem; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+      background: var(--bg-surface); border: 1px solid var(--border-subtle); color: var(--text-secondary);
+    }
+
+    @media (max-width: 1024px) {
+      .workspace-grid { grid-template-columns: minmax(0, 1fr); }
+      .curation-grid { grid-template-columns: minmax(0, 1fr); }
+    }
+    @media (max-width: 780px) {
+      .calc-grid { grid-template-columns: minmax(0, 1fr); }
+      .tree-viewport { height: 430px; }
+    }
+    @media (max-width: 520px) {
+      .brand-lockup { gap: 8px; }
+      .brand-title { font-size: .72rem; }
+      .brand-motto { font-size: .66rem; }
+      .detail-meta-grid { grid-template-columns: minmax(0, 1fr); }
+    }
+  </style>
+</head>
+<body data-tree-role="__TREE_ACTIVE_ROLE__" data-tree-house="__TREE_ASSIGNED_HOUSE__" data-tree-actor="__TREE_ACTOR_ID__" data-tree-can-curate="__TREE_CAN_CURATE__">
+<div style="display:none" id="legacyPortalHub">PDEUE PORTAL HUB</div>
+<main class="shell">
+  <div class="portal-header-shell" role="banner">
+    <nav aria-label="Interactive Family Tree navigation">
+      <div class="portal-header-row1">
+        <a href="/community/heritage" class="brand-lockup" data-plane-doorway="heritage" data-heritage-target="/community/heritage" aria-label="FUTURE Carmichael-McCormick Hall of Arms">
+          <span class="brand-crests">
+            <img class="brand-crest" src="/static/assets/crests/carmichael_crest.jpg" alt="Carmichael Family Crest" width="40" height="46" loading="eager">
+            <span class="brand-crest-divider" aria-hidden="true"></span>
+            <img class="brand-crest" src="/static/assets/crests/mccormick_crest.jpg" alt="McCormick Family Crest" width="40" height="46" loading="eager">
+          </span>
+          <span class="brand-stack">
+            <span class="brand-title">FUTURE · CARMICHAEL — McCORMICK</span>
+            <span class="brand-motto">Generational Love, Harmony, Resilience, and Wealth</span>
+          </span>
+        </a>
+        <div class="senior-a11y-controls">
+          <a id="backToHomeBtn" class="back-home-btn" href="/home" data-plane-doorway="home">← Back to Home</a>
+          <a id="backToHallBtn" class="back-home-btn" href="/community/heritage" data-plane-doorway="heritage">← Back to Hall of Arms</a>
+          <div id="textScaleGroup" class="text-scale-group" role="group" aria-label="Text size controls">
+            <button type="button" class="text-scale-btn active" data-scale="standard" aria-pressed="true" aria-label="Standard text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('standard')">A</button>
+            <button type="button" class="text-scale-btn" data-scale="large" aria-pressed="false" aria-label="Large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('large')">A+</button>
+            <button type="button" class="text-scale-btn" data-scale="xlarge" aria-pressed="false" aria-label="Extra large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('xlarge')">A++</button>
+          </div>
+        </div>
+      </div>
+      <div class="portal-header-row2">
+        <div class="portal-hub-pills">
+          <span class="portal-hub-label">FAMILY SPACE:</span>
+          <a href="/community" class="portal-hub-pill" data-plane-doorway="community">🔥 Family Hearth</a>
+          <a href="/community/heritage" class="portal-hub-pill" data-plane-doorway="heritage">🛡️ Hall of Arms</a>
+          <a href="/community/heritage/tree" class="portal-hub-pill active" data-plane-doorway="heritage_tree" aria-current="page">🌳 Family Tree</a>
+          <a href="/companion" class="nav-link campus-link" id="navCompanionLink" data-plane-doorway="companion">🎓 PDEUE University</a>
+        </div>
+      </div>
+    </nav>
+    <header class="portal-header-row3">
+      <div class="portal-title-block">
+        <div class="eyebrow">CARMICHAEL &amp; McCORMICK LINEAGE SPINE · 12 FOUNDING HOUSES · ZERO-CDN INTERACTIVE ARCHIVE</div>
+        <h1 style="margin:4px 0 4px;font-size:clamp(1.42rem,2.6vw,1.98rem);">Interactive Family Tree &amp; Relationship Calculator</h1>
+        <p style="margin:0;color:var(--text-secondary);font-size:0.92rem;">Explore the 12-House lineage connected to our <abbr class="pdeue-term" tabindex="0" data-term="hall-of-arms" data-tooltip="Our family heritage gallery displaying the founding Carmichael and McCormick crests, all 12 Houses, and 28+ allied surnames—curated by trusted House Genealogists.">Hall of Arms<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>, calculate exact kinship connections, and browse safely with automatic Living-Member Privacy Protection curated by assigned <abbr class="pdeue-term" tabindex="0" data-term="house-genealogist" data-tooltip="A trusted family historian assigned to help verify how new relatives connect to the family tree and prepare welcome paperwork—without ever moving money or activating accounts on their own.">House Genealogist<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> officers.</p>
+      </div>
+      <div class="portal-action-strip">
+        <span class="plane-badge">🛡️ Family Social Space — No Financial Data</span>
+        <span class="privacy-badge">🔒 Living-Member Privacy Guard Active</span>
+      </div>
+    </header>
+  </div>
+
+  <!-- Search, House Filter & Reference Branch Toggle -->
+  <section class="filter-card" aria-label="Search and filter Family Tree">
+    <div class="filter-row">
+      <input id="treeSearchInput" type="search" aria-label="Search by name, House, or allied surname" placeholder="Search by name, House, or allied surname (e.g., Ola, Carmichael, Vance, House 02)…" oninput="onTreeFilterChange()">
+      <select id="treeHouseFilter" aria-label="Filter by House" onchange="onTreeFilterChange()">
+        <option value="">All 12 Houses + Founders</option>
+        <option value="FOUNDERS">Founding Pair (Mary Viola &amp; William F.)</option>
+        <option value="HOUSE-01">House 01 — Carmichael Prime</option>
+        <option value="HOUSE-02">House 02 — McCormick Prime</option>
+        <option value="HOUSE-03">House 03 — Highland Hearth</option>
+        <option value="HOUSE-04">House 04 — Riverbend</option>
+        <option value="HOUSE-05">House 05 — Oak &amp; Compass</option>
+        <option value="HOUSE-06">House 06 — Watchtower</option>
+        <option value="HOUSE-07">House 07 — Cedar Grove</option>
+        <option value="HOUSE-08">House 08 — Silver Loom</option>
+        <option value="HOUSE-09">House 09 — Lantern Bearers</option>
+        <option value="HOUSE-10">House 10 — Stone Bridge</option>
+        <option value="HOUSE-11">House 11 — Southern Star</option>
+        <option value="HOUSE-12">House 12 — Harvest Table</option>
+      </select>
+      <select id="treeSurnameFilter" aria-label="Filter by Surname" onchange="onTreeFilterChange()">
+        <option value="">All Surnames</option>
+      </select>
+      <label class="toggle-pill" for="toggleReferenceBranches">
+        <input id="toggleReferenceBranches" type="checkbox" aria-label="Show Historical Reference Branches" onchange="onTreeFilterChange()">
+        <span id="refToggleLabel">Show Historical Reference Branches</span>
+      </label>
+      <button id="treeResetFiltersBtn" type="button" class="btn-secondary" onclick="resetTreeFilters()">Reset Filters</button>
+    </div>
+    <div class="stats-strip" id="treeStatsStrip" aria-live="polite">
+      <span class="stat-pill" id="statVisiblePeople">Loading family tree…</span>
+      <span class="stat-pill" id="statRelationships">Links: —</span>
+      <span class="stat-pill" id="statPrivacyGuard">Living Privacy Protected: —</span>
+    </div>
+  </section>
+
+  <!-- Main Workspace: Interactive Local SVG Canvas + Person Detail Card -->
+  <section class="workspace-grid" aria-label="Interactive Family Tree Canvas and Person Details">
+    <div class="panel-card" style="margin-bottom:0;">
+      <div class="canvas-header">
+        <div>
+          <h2>12-House Interactive Lineage Canvas</h2>
+          <span style="font-size:0.82rem;color:var(--text-muted);">Drag to pan · Click any relative to inspect · Click House chips to collapse/expand branches</span>
+        </div>
+        <div class="canvas-controls" role="group" aria-label="Tree canvas zoom and pan controls">
+          <button id="treeZoomInBtn" type="button" class="btn-secondary" onclick="zoomTree(1.18)">+ Zoom In</button>
+          <button id="treeZoomOutBtn" type="button" class="btn-secondary" onclick="zoomTree(0.85)">− Zoom Out</button>
+          <button id="treeZoomResetBtn" type="button" class="btn-secondary" onclick="resetTreeView()">Reset View</button>
+          <button id="treeExpandAllBtn" type="button" class="btn-secondary" onclick="setAllHousesExpanded(true)">Expand All Houses</button>
+          <button id="treeCollapseAllBtn" type="button" class="btn-secondary" onclick="setAllHousesExpanded(false)">Collapse Houses</button>
+        </div>
+      </div>
+
+      <div id="houseBranchBar" class="house-branch-bar" role="group" aria-label="Collapse or expand individual House branches"></div>
+
+      <div id="treeViewport" class="tree-viewport" role="region" aria-label="Interactive Family Tree SVG diagram">
+        <svg id="familyTreeSvg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 680" aria-label="Carmichael and McCormick Family Tree">
+          <g id="treePanZoomGroup"></g>
+        </svg>
+        <div id="zoomReadout" class="zoom-readout">Zoom 100%</div>
+      </div>
+    </div>
+
+    <!-- Person Detail Card -->
+    <aside id="personDetailCard" class="detail-card" aria-label="Selected Person Detail Card" aria-live="polite">
+      <div class="eyebrow">PERSON DETAIL CARD</div>
+      <div id="personDetailContent" style="margin-top:8px;color:var(--text-secondary);">
+        Select any person in the tree to view their House crest, allied surname link, generation, parents, spouses, children, and safe family notes.
+      </div>
+    </aside>
+  </section>
+
+  <!-- Built-in "How Are We Related?" Calculator Panel -->
+  <section id="relationshipCalculatorPanel" class="calc-panel" style="margin-top:16px;" aria-label="How Are We Related Relationship Calculator">
+    <div class="eyebrow">LIVE GRAPH-BASED KINSHIP CALCULATOR · LOWEST COMMON ANCESTOR (LCA)</div>
+    <h2>How Are We Related?</h2>
+    <p style="margin:0;color:var(--text-secondary);font-size:0.9rem;">Pick any two relatives below to trace their exact bloodline relationship, top common ancestor(s), generation steps, or married-in connection.</p>
+
+    <div class="calc-grid">
+      <div class="calc-col">
+        <label for="calcSearchA">Person A (Search &amp; Select)</label>
+        <input id="calcSearchA" type="search" aria-label="Filter Person A list" placeholder="Type name, surname, or House…" oninput="filterCalcSelect('A')">
+        <select id="calcPersonA" aria-label="Select Person A"></select>
+      </div>
+      <div class="calc-col">
+        <label for="calcSearchB">Person B (Search &amp; Select)</label>
+        <input id="calcSearchB" type="search" aria-label="Filter Person B list" placeholder="Type name, surname, or House…" oninput="filterCalcSelect('B')">
+        <select id="calcPersonB" aria-label="Select Person B"></select>
+      </div>
+      <div class="calc-btn-stack">
+        <button id="calcRelationshipBtn" type="button" class="btn-primary" onclick="runRelationshipCalculator()">Calculate Relationship</button>
+        <button id="calcSwapBtn" type="button" class="btn-secondary" onclick="swapCalcPeople()">Swap A ↔ B</button>
+      </div>
+    </div>
+
+    <div id="calcResultCard" class="calc-result" role="region" aria-live="polite">
+      <div style="color:var(--text-muted);font-size:0.9rem;">Select Person A and Person B, then click <strong>Calculate Relationship</strong> to see the kinship breakdown.</div>
+    </div>
+  </section>
+
+  <!-- __TREE_CURATION_START__ -->
+  <section id="genealogistTreeCurationSection" class="curation-drawer" aria-label="Genealogist Tree Curation Drawer">
+    <details id="genealogistTreeDrawer">
+      <summary>
+        <div>
+          <div class="eyebrow">SCOPED HOUSE GENEALOGIST &amp; CHIEF ADMIN CURATION · SERVER-ENFORCED HTTP 403</div>
+          <h2 style="margin:3px 0 0;font-size:1.14rem;color:#F8FAFC;">Genealogist Tree Curation Drawer</h2>
+        </div>
+        <span class="btn-gold">Open Branch Curation Tools</span>
+      </summary>
+      <p style="margin:10px 0 0;color:var(--text-secondary);font-size:0.88rem;">
+        Active Role: <strong id="curationRoleReadout">__TREE_ACTIVE_ROLE__</strong> ·
+        Scoped House: <strong id="curationHouseReadout">__TREE_ASSIGNED_HOUSE__</strong>.
+        Every addition or edit is validated server-side and recorded in the Governance Audit Log.
+      </p>
+      <div class="curation-grid">
+        <form id="addPersonForm" class="curation-form">
+          <h3>Add Person to Branch</h3>
+          <label>Full Name
+            <input id="addFullName" type="text" required maxlength="140" placeholder="e.g., Thomas E. Carmichael Jr.">
+          </label>
+          <label>Surname (Suffix separated automatically)
+            <input id="addSurname" type="text" maxlength="80" placeholder="e.g., Carmichael">
+          </label>
+          <label>Suffix (Optional)
+            <input id="addSuffix" type="text" maxlength="16" placeholder="Jr. / Sr. / III">
+          </label>
+          <label>House Branch
+            <select id="addHouseId" aria-label="House Branch for new person">
+              <option value="HOUSE-01">HOUSE-01</option><option value="HOUSE-02">HOUSE-02</option>
+              <option value="HOUSE-03">HOUSE-03</option><option value="HOUSE-04">HOUSE-04</option>
+              <option value="HOUSE-05">HOUSE-05</option><option value="HOUSE-06">HOUSE-06</option>
+              <option value="HOUSE-07">HOUSE-07</option><option value="HOUSE-08">HOUSE-08</option>
+              <option value="HOUSE-09">HOUSE-09</option><option value="HOUSE-10">HOUSE-10</option>
+              <option value="HOUSE-11">HOUSE-11</option><option value="HOUSE-12">HOUSE-12</option>
+              <option value="FOUNDERS">FOUNDERS (Chief Admin)</option>
+              <option value="REFERENCE">REFERENCE (Chief Admin)</option>
+            </select>
+          </label>
+          <label>Generation (0–6+)
+            <input id="addGeneration" type="number" min="0" max="15" value="3">
+          </label>
+          <label>Deceased Status
+            <select id="addIsDeceased" aria-label="Deceased status">
+              <option value="false" selected>Living (Privacy Protected)</option>
+              <option value="true">Deceased Historical Ancestor</option>
+            </select>
+          </label>
+          <label>Birth Year (Suppressed on read if living)
+            <input id="addBirthYear" type="number" min="1600" max="2100" placeholder="Optional year">
+          </label>
+          <label>Death Year (Historical ancestors only)
+            <input id="addDeathYear" type="number" min="1600" max="2100" placeholder="Optional year">
+          </label>
+          <label>Safe Family Bio / Milestone Notes
+            <textarea id="addBioNotes" maxlength="1500" placeholder="No private phone, email, or street address."></textarea>
+          </label>
+          <button id="addPersonSubmitBtn" type="submit" class="btn-primary">Add Person</button>
+          <div id="addPersonStatus" class="curation-status" role="status" aria-live="polite"></div>
+        </form>
+
+        <form id="editPersonForm" class="curation-form">
+          <h3>Edit Selected Person</h3>
+          <label>Person ID (Click a person in the tree)
+            <input id="editPersonId" type="text" required placeholder="e.g., P0019">
+          </label>
+          <label>Full Name
+            <input id="editFullName" type="text" maxlength="140" placeholder="Updated full name">
+          </label>
+          <label>Surname
+            <input id="editSurname" type="text" maxlength="80" placeholder="Surname">
+          </label>
+          <label>Suffix
+            <input id="editSuffix" type="text" maxlength="16" placeholder="Jr. / Sr. / III">
+          </label>
+          <label>Review Flag (Optional Discrepancy Note)
+            <input id="editReviewFlag" type="text" maxlength="240" placeholder="e.g., Confirm census birth order">
+          </label>
+          <label>Updated Safe Bio Notes
+            <textarea id="editBioNotes" maxlength="1500" placeholder="Update safe family notes…"></textarea>
+          </label>
+          <button id="editPersonSubmitBtn" type="submit" class="btn-primary">Save Person Changes</button>
+          <div id="editPersonStatus" class="curation-status" role="status" aria-live="polite"></div>
+        </form>
+
+        <form id="addRelationshipForm" class="curation-form">
+          <h3>Link Two Relatives</h3>
+          <label>Relationship Type
+            <select id="relTypeSelect" aria-label="Relationship type">
+              <option value="parent">Parent → Child (Person A is Parent of Person B)</option>
+              <option value="spouse">Spouse / Partner</option>
+            </select>
+          </label>
+          <label>Person A (Parent or Spouse 1)
+            <select id="relPersonASelect" aria-label="Relationship Person A"></select>
+          </label>
+          <label>Person B (Child or Spouse 2)
+            <select id="relPersonBSelect" aria-label="Relationship Person B"></select>
+          </label>
+          <label>Notes
+            <input id="relNotesInput" type="text" maxlength="400" placeholder="Optional archival citation or note">
+          </label>
+          <button id="addRelationshipSubmitBtn" type="submit" class="btn-primary">Add Relationship</button>
+          <div id="addRelationshipStatus" class="curation-status" role="status" aria-live="polite"></div>
+        </form>
+      </div>
+    </details>
+  </section>
+  <!-- __TREE_CURATION_END__ -->
+
+  <footer class="pdeue-colophon" role="contentinfo">
+    <span class="colophon-attr">Powered by CARM Aerotech Corporation</span>
+    <span class="colophon-mode-badge">INTERACTIVE FAMILY TREE · ZERO CDN · ZERO FINANCIAL DATA</span>
+  </footer>
+</main>
+
+<script src="/static/js/senior_a11y.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+
+const TREE_STATE = {
+  people: [],
+  relationships: [],
+  catalogPeople: [],
+  catalogRelationships: [],
+  houses: [],
+  selectedPersonId: null,
+  collapsedHouses: new Set(),
+  zoom: 1.0,
+  panX: 24,
+  panY: 18,
+  boundsW: 1200,
+  boundsH: 640,
+  dragging: false,
+  dragStartX: 0,
+  dragStartY: 0,
+  role: document.body.getAttribute('data-tree-role') || 'MEMBER_USER',
+  assignedHouse: document.body.getAttribute('data-tree-house') || '',
+  actorId: document.body.getAttribute('data-tree-actor') || '',
+  canCurate: document.body.getAttribute('data-tree-can-curate') === 'true'
+};
+
+function escHtml(v) {
+  return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+function curationHeaders() {
+  const h = { 'Content-Type': 'application/json' };
+  if (TREE_STATE.role) h['X-Active-Hat'] = TREE_STATE.role;
+  if (TREE_STATE.assignedHouse) h['X-House-ID'] = TREE_STATE.assignedHouse;
+  if (TREE_STATE.actorId) h['X-Actor-ID'] = TREE_STATE.actorId;
+  return h;
+}
+
+function updatePanZoomTransform() {
+  const g = $('treePanZoomGroup');
+  if (g) {
+    g.setAttribute('transform', 'translate(' + TREE_STATE.panX.toFixed(1) + ',' + TREE_STATE.panY.toFixed(1) + ') scale(' + TREE_STATE.zoom.toFixed(3) + ')');
+  }
+  const r = $('zoomReadout');
+  if (r) r.textContent = 'Zoom ' + Math.round(TREE_STATE.zoom * 100) + '%';
+}
+
+function fitTreeToViewport() {
+  const vbW = 1200;
+  const vbH = 680;
+  const contentW = Math.max(360, TREE_STATE.boundsW || 1200);
+  const contentH = Math.max(260, TREE_STATE.boundsH || 640);
+  const scaleX = (vbW - 36) / contentW;
+  const scaleY = (vbH - 36) / contentH;
+  const fitScale = Math.max(0.32, Math.min(1.0, Math.min(scaleX, scaleY)));
+  TREE_STATE.zoom = fitScale;
+  TREE_STATE.panX = Math.max(12, (vbW - contentW * fitScale) / 2);
+  TREE_STATE.panY = 18;
+  updatePanZoomTransform();
+}
+
+function zoomTree(factor) {
+  TREE_STATE.zoom = Math.max(0.28, Math.min(2.5, TREE_STATE.zoom * factor));
+  updatePanZoomTransform();
+}
+
+function resetTreeView() {
+  fitTreeToViewport();
+}
+
+function setAllHousesExpanded(expand) {
+  TREE_STATE.collapsedHouses.clear();
+  if (!expand) {
+    for (let i = 1; i <= 12; i++) {
+      TREE_STATE.collapsedHouses.add('HOUSE-' + String(i).padStart(2, '0'));
+    }
+  }
+  renderHouseBranchChips();
+  renderTreeSvg();
+}
+
+function toggleHouseBranch(houseId) {
+  if (TREE_STATE.collapsedHouses.has(houseId)) {
+    TREE_STATE.collapsedHouses.delete(houseId);
+  } else {
+    TREE_STATE.collapsedHouses.add(houseId);
+  }
+  renderHouseBranchChips();
+  renderTreeSvg();
+}
+
+function renderHouseBranchChips() {
+  const bar = $('houseBranchBar');
+  if (!bar) return;
+  bar.textContent = '';
+  const visibleHouses = new Set(TREE_STATE.people.map(p => p.house_id));
+  for (let i = 1; i <= 12; i++) {
+    const code = 'HOUSE-' + String(i).padStart(2, '0');
+    if (!visibleHouses.has(code)) continue;
+    const isCollapsed = TREE_STATE.collapsedHouses.has(code);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'branch-chip ' + (isCollapsed ? 'collapsed' : 'expanded');
+    btn.setAttribute('data-house-toggle', code);
+    btn.textContent = (isCollapsed ? '▸ ' : '▾ ') + 'H' + String(i).padStart(2, '0');
+    btn.title = (isCollapsed ? 'Expand ' : 'Collapse ') + code;
+    btn.onclick = () => toggleHouseBranch(code);
+    bar.appendChild(btn);
+  }
+}
+
+function svgEl(tag, attrs) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  if (attrs) {
+    Object.keys(attrs).forEach(k => el.setAttribute(k, String(attrs[k])));
+  }
+  return el;
+}
+
+function truncateText(text, maxLen) {
+  const s = String(text || '');
+  return s.length > maxLen ? s.slice(0, maxLen - 1) + '…' : s;
+}
+
+function renderTreeSvg() {
+  const g = $('treePanZoomGroup');
+  if (!g) return;
+  while (g.firstChild) g.removeChild(g.firstChild);
+
+  const people = TREE_STATE.people || [];
+  if (!people.length) {
+    const t = svgEl('text', { x: 60, y: 90, fill: '#CBD5E1', 'font-size': 16, 'font-weight': 700 });
+    t.textContent = 'No family records matched your current search or House filter.';
+    g.appendChild(t);
+    return;
+  }
+
+  const byId = {};
+  people.forEach(p => { byId[p.person_id] = p; });
+
+  // Separate main spine vs reference branch
+  const founders = people.filter(p => !p.is_reference_branch && p.house_id === 'FOUNDERS');
+  const housePeople = {};
+  people.filter(p => !p.is_reference_branch && p.house_id.startsWith('HOUSE-')).forEach(p => {
+    if (!housePeople[p.house_id]) housePeople[p.house_id] = [];
+    housePeople[p.house_id].push(p);
+  });
+  const refPeople = people.filter(p => p.is_reference_branch);
+
+  const NODE_W = 190;
+  const NODE_H = 68;
+  const COL_GAP = 26;
+  const ROW_GAP = 98;
+  const positions = {};
+
+  // Layout active House columns
+  const houseCodes = Object.keys(housePeople).sort();
+  let cursorX = 24;
+  const houseBandMeta = [];
+
+  houseCodes.forEach(code => {
+    const members = housePeople[code].slice().sort((a, b) => (a.generation - b.generation) || a.person_id.localeCompare(b.person_id));
+    const isCollapsed = TREE_STATE.collapsedHouses.has(code);
+    const byGen = {};
+    members.forEach(m => {
+      if (isCollapsed && m.generation > 1) return;
+      if (!byGen[m.generation]) byGen[m.generation] = [];
+      byGen[m.generation].push(m);
+    });
+    const maxPerGen = Math.max(1, ...Object.values(byGen).map(arr => arr.length));
+    const colWidth = maxPerGen * (NODE_W + 14) - 14;
+    const bandStartX = cursorX;
+    const gens = Object.keys(byGen).map(Number).sort((a, b) => a - b);
+
+    gens.forEach(gen => {
+      const rowItems = byGen[gen];
+      const rowWidth = rowItems.length * (NODE_W + 14) - 14;
+      const offsetX = bandStartX + Math.max(0, (colWidth - rowWidth) / 2);
+      const y = 148 + Math.max(0, gen - 1) * ROW_GAP;
+      rowItems.forEach((person, idx) => {
+        positions[person.person_id] = {
+          x: offsetX + idx * (NODE_W + 14),
+          y: y,
+          w: NODE_W,
+          h: NODE_H
+        };
+      });
+    });
+
+    houseBandMeta.push({
+      code: code,
+      x: bandStartX,
+      width: colWidth,
+      count: members.length,
+      collapsed: isCollapsed
+    });
+    cursorX += colWidth + COL_GAP;
+  });
+
+  // Layout Founders centered above active House columns
+  const totalMainWidth = Math.max(460, cursorX - COL_GAP);
+  if (founders.length) {
+    const fWidth = founders.length * (NODE_W + 24) - 24;
+    const startX = Math.max(24, (totalMainWidth - fWidth) / 2);
+    founders.forEach((p, idx) => {
+      positions[p.person_id] = {
+        x: startX + idx * (NODE_W + 24),
+        y: 16,
+        w: NODE_W,
+        h: NODE_H
+      };
+    });
+  }
+
+  // Layout Reference Branch below main tree if toggled on
+  let refBandY = 560;
+  if (Object.keys(positions).length) {
+    const maxY = Math.max(...Object.values(positions).map(pos => pos.y + pos.h));
+    refBandY = maxY + 66;
+  }
+  if (refPeople.length) {
+    const refBox = svgEl('rect', {
+      x: 16, y: refBandY - 34,
+      width: Math.max(520, refPeople.length * (NODE_W + 20) + 32),
+      height: 126, rx: 12,
+      fill: 'rgba(30,41,59,0.55)', stroke: '#D97706', 'stroke-dasharray': '6 5', 'stroke-width': 1.5
+    });
+    g.appendChild(refBox);
+    const refLabel = svgEl('text', { x: 28, y: refBandY - 12, fill: '#FDE68A', 'font-size': 12, 'font-weight': 800 });
+    refLabel.textContent = 'HISTORICAL REFERENCE BRANCH (UNLINKED TO MAIN 12-HOUSE SPINE)';
+    g.appendChild(refLabel);
+    refPeople.forEach((p, idx) => {
+      positions[p.person_id] = {
+        x: 28 + idx * (NODE_W + 18),
+        y: refBandY + 6,
+        w: NODE_W,
+        h: NODE_H
+      };
+    });
+  }
+
+  // Draw House column headers
+  houseBandMeta.forEach(hb => {
+    const hdr = svgEl('g', { style: 'cursor:pointer' });
+    const pill = svgEl('rect', {
+      x: hb.x, y: 108, width: hb.width, height: 28, rx: 8,
+      fill: hb.collapsed ? '#1E293B' : '#18294A',
+      stroke: hb.collapsed ? '#475569' : '#E4BB63', 'stroke-width': 1.2
+    });
+    const txt = svgEl('text', {
+      x: hb.x + 10, y: 126, fill: hb.collapsed ? '#94A3B8' : '#F6DE8D',
+      'font-size': 12, 'font-weight': 800
+    });
+    txt.textContent = (hb.collapsed ? '▸ ' : '▾ ') + hb.code + ' (' + hb.count + ')';
+    hdr.appendChild(pill);
+    hdr.appendChild(txt);
+    hdr.addEventListener('click', ev => {
+      ev.stopPropagation();
+      toggleHouseBranch(hb.code);
+    });
+    g.appendChild(hdr);
+  });
+
+  // Draw Relationship Edges first (under nodes)
+  const edgesLayer = svgEl('g', { id: 'treeEdgesLayer' });
+  (TREE_STATE.relationships || []).forEach(rel => {
+    const pa = positions[rel.person_a_id];
+    const pb = positions[rel.person_b_id];
+    if (!pa || !pb) return;
+    if (rel.rel_type === 'spouse') {
+      const x1 = pa.x + pa.w / 2;
+      const y1 = pa.y + pa.h / 2;
+      const x2 = pb.x + pb.w / 2;
+      const y2 = pb.y + pb.h / 2;
+      const line = svgEl('line', {
+        x1: x1, y1: y1, x2: x2, y2: y2,
+        stroke: '#E4BB63', 'stroke-width': 2.2, 'stroke-dasharray': '5 4'
+      });
+      edgesLayer.appendChild(line);
+    } else if (rel.rel_type === 'parent') {
+      const x1 = pa.x + pa.w / 2;
+      const y1 = pa.y + pa.h;
+      const x2 = pb.x + pb.w / 2;
+      const y2 = pb.y;
+      const midY = y1 + (y2 - y1) * 0.45;
+      const path = svgEl('path', {
+        d: 'M ' + x1 + ' ' + y1 + ' C ' + x1 + ' ' + midY + ', ' + x2 + ' ' + midY + ', ' + x2 + ' ' + y2,
+        fill: 'none', stroke: '#38BDF8', 'stroke-opacity': '0.55', 'stroke-width': 1.7
+      });
+      edgesLayer.appendChild(path);
+    }
+  });
+  g.appendChild(edgesLayer);
+
+  // Draw Person Nodes
+  const nodesLayer = svgEl('g', { id: 'treeNodesLayer' });
+  Object.keys(positions).forEach(pid => {
+    const p = byId[pid];
+    const pos = positions[pid];
+    const isSelected = TREE_STATE.selectedPersonId === pid;
+    const isFounder = p.house_id === 'FOUNDERS';
+    const isRef = p.is_reference_branch;
+
+    const nodeG = svgEl('g', {
+      'data-person-id': pid,
+      tabindex: '0',
+      role: 'button',
+      'aria-label': p.full_name + ', ' + p.house_id + ', Generation ' + p.generation,
+      style: 'cursor:pointer'
+    });
+
+    const strokeColor = isSelected ? '#38BDF8' : (isFounder ? '#E4BB63' : (isRef ? '#D97706' : '#334155'));
+    const fillColor = isSelected ? '#1E3A5F' : (isFounder ? '#233258' : '#1C2541');
+    const rect = svgEl('rect', {
+      x: pos.x, y: pos.y, width: pos.w, height: pos.h, rx: 10,
+      fill: fillColor, stroke: strokeColor, 'stroke-width': isSelected ? 2.6 : 1.4
+    });
+    nodeG.appendChild(rect);
+
+    const nameText = svgEl('text', {
+      x: pos.x + 10, y: pos.y + 22, fill: '#F8FAFC', 'font-size': 12.5, 'font-weight': 800
+    });
+    nameText.textContent = truncateText(p.full_name, 24);
+    nodeG.appendChild(nameText);
+
+    const metaLine = svgEl('text', {
+      x: pos.x + 10, y: pos.y + 40, fill: '#38BDF8', 'font-size': 10.5, 'font-weight': 700
+    });
+    metaLine.textContent = p.house_id + ' · Gen ' + p.generation + (p.surname ? ' · ' + truncateText(p.surname, 11) : '');
+    nodeG.appendChild(metaLine);
+
+    const dateLine = svgEl('text', {
+      x: pos.x + 10, y: pos.y + 56, fill: p.privacy_protected ? '#94A3B8' : '#F6DE8D', 'font-size': 10.2
+    });
+    dateLine.textContent = p.life_span ? p.life_span : 'Living · Privacy Protected';
+    nodeG.appendChild(dateLine);
+
+    if (p.review_flag) {
+      const dot = svgEl('circle', {
+        cx: pos.x + pos.w - 12, cy: pos.y + 13, r: 5, fill: '#D97706'
+      });
+      nodeG.appendChild(dot);
+    }
+
+    nodeG.addEventListener('click', ev => {
+      ev.stopPropagation();
+      selectPerson(pid);
+    });
+    nodeG.addEventListener('keydown', ev => {
+      if (ev.key === 'Enter' || ev.key === ' ') {
+        ev.preventDefault();
+        selectPerson(pid);
+      }
+    });
+    nodesLayer.appendChild(nodeG);
+  });
+  g.appendChild(nodesLayer);
+  const posList = Object.values(positions);
+  if (posList.length) {
+    TREE_STATE.boundsW = Math.max(...posList.map(p => p.x + p.w)) + 28;
+    TREE_STATE.boundsH = Math.max(...posList.map(p => p.y + p.h)) + 36;
+  } else {
+    TREE_STATE.boundsW = 1200;
+    TREE_STATE.boundsH = 640;
+  }
+  updatePanZoomTransform();
+}
+
+function selectPerson(personId) {
+  TREE_STATE.selectedPersonId = personId;
+  renderTreeSvg();
+  renderPersonDetailCard(personId);
+  populateEditPersonForm(personId);
+}
+
+function renderPersonDetailCard(personId) {
+  const container = $('personDetailContent');
+  if (!container) return;
+  const catalog = TREE_STATE.catalogPeople || [];
+  const person = catalog.find(p => p.person_id === personId) || (TREE_STATE.people || []).find(p => p.person_id === personId);
+  if (!person) {
+    container.textContent = 'Select any person in the tree to inspect their record.';
+    return;
+  }
+
+  const rels = TREE_STATE.catalogRelationships || [];
+  const lookup = {};
+  catalog.forEach(p => { lookup[p.person_id] = p; });
+
+  const parents = rels.filter(r => r.rel_type === 'parent' && r.person_b_id === personId).map(r => lookup[r.person_a_id]).filter(Boolean);
+  const children = rels.filter(r => r.rel_type === 'parent' && r.person_a_id === personId).map(r => lookup[r.person_b_id]).filter(Boolean);
+  const spouses = rels.filter(r => r.rel_type === 'spouse' && (r.person_a_id === personId || r.person_b_id === personId))
+    .map(r => lookup[r.person_a_id === personId ? r.person_b_id : r.person_a_id]).filter(Boolean);
+
+  function renderChipRow(label, items) {
+    if (!items.length) return '<div class="rel-group"><div class="rel-group-title">' + label + '</div><span style="font-size:0.82rem;color:var(--text-muted);">None recorded</span></div>';
+    return '<div class="rel-group"><div class="rel-group-title">' + label + '</div><div class="rel-chips">' +
+      items.map(it => '<button type="button" class="rel-chip-btn" onclick="selectPerson(\'' + escHtml(it.person_id) + '\')">' + escHtml(it.full_name) + '</button>').join('') +
+      '</div></div>';
+  }
+
+  const datesDisplay = person.life_span
+    ? escHtml(person.life_span) + ' (Deceased Ancestor)'
+    : 'Living — Birth year &amp; contact details hidden';
+
+  const flagHtml = person.review_flag
+    ? '<div class="review-flag-box"><strong>Genealogist Review Flag:</strong> ' + escHtml(person.review_flag) + '</div>'
+    : '';
+
+  const surnameBtn = person.surname_slug
+    ? '<a class="btn-gold" href="' + escHtml(person.surname_history_url) + '">Surname: ' + escHtml(person.surname) + ' →</a>'
+    : '<a class="btn-gold" href="/community/heritage">Hall of Arms Surnames →</a>';
+
+  container.innerHTML =
+    '<div class="detail-header">' +
+      '<img class="detail-crest" src="' + escHtml(person.crest_asset_path) + '" alt="' + escHtml(person.house_name) + ' Crest">' +
+      '<div style="min-width:0;">' +
+        '<span class="code-tag">' + escHtml(person.person_id) + ' · ' + escHtml(person.house_id) + '</span>' +
+        '<h3 class="detail-name" id="detailPersonName">' + escHtml(person.full_name) + '</h3>' +
+        '<div style="font-size:0.84rem;color:#F6DE8D;">' + escHtml(person.house_name) + '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="detail-meta-grid">' +
+      '<div class="meta-box"><div class="meta-label">Generation</div><div class="meta-value">Gen ' + escHtml(person.generation) + '</div></div>' +
+      '<div class="meta-box"><div class="meta-label">Surname &amp; Suffix</div><div class="meta-value">' + escHtml(person.surname || '—') + (person.suffix ? ' (' + escHtml(person.suffix) + ')' : '') + '</div></div>' +
+      '<div class="meta-box" style="grid-column:1 / -1;"><div class="meta-label">Dates / Privacy Status</div><div class="meta-value" id="detailPrivacyStatus">' + datesDisplay + '</div></div>' +
+    '</div>' +
+    flagHtml +
+    '<p style="margin:8px 0;font-size:0.88rem;color:var(--text-secondary);">' + escHtml(person.bio_notes || 'No family notes recorded yet.') + '</p>' +
+    '<div style="font-size:0.76rem;color:var(--text-muted);">Source: ' + escHtml(person.source_tag || 'ARCHIVE') + '</div>' +
+    renderChipRow('Parents', parents) +
+    renderChipRow('Spouse / Partner', spouses) +
+    renderChipRow('Children', children) +
+    '<div class="detail-links">' +
+      '<a class="btn-gold" href="' + escHtml(person.house_history_url) + '">House Crest &amp; History →</a>' +
+      surnameBtn +
+    '</div>' +
+    '<div class="detail-actions">' +
+      '<button type="button" class="btn-secondary" onclick="assignCalcPerson(\'A\',\'' + escHtml(person.person_id) + '\')">Set as Person A</button>' +
+      '<button type="button" class="btn-secondary" onclick="assignCalcPerson(\'B\',\'' + escHtml(person.person_id) + '\')">Set as Person B</button>' +
+    '</div>';
+}
+
+function populateEditPersonForm(personId) {
+  if (!$('editPersonId')) return;
+  const p = (TREE_STATE.catalogPeople || []).find(item => item.person_id === personId);
+  if (!p) return;
+  $('editPersonId').value = p.person_id;
+  $('editFullName').value = p.full_name || '';
+  $('editSurname').value = p.surname || '';
+  $('editSuffix').value = p.suffix || '';
+  $('editReviewFlag').value = p.review_flag || '';
+  $('editBioNotes').value = p.bio_notes || '';
+}
+
+function populateSelectOptions(selectEl, peopleList, preferredId) {
+  if (!selectEl) return;
+  const current = preferredId || selectEl.value;
+  selectEl.textContent = '';
+  peopleList.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.person_id;
+    opt.textContent = p.full_name + ' (' + p.house_id + ' · ' + p.person_id + ')';
+    selectEl.appendChild(opt);
+  });
+  if (current && peopleList.some(p => p.person_id === current)) {
+    selectEl.value = current;
+  }
+}
+
+function filterCalcSelect(side) {
+  const input = $(side === 'A' ? 'calcSearchA' : 'calcSearchB');
+  const select = $(side === 'A' ? 'calcPersonA' : 'calcPersonB');
+  if (!input || !select) return;
+  const q = input.value.trim().toLowerCase();
+  const list = (TREE_STATE.catalogPeople || []).filter(p => {
+    if (!q) return true;
+    return (p.full_name + ' ' + p.surname + ' ' + p.house_id + ' ' + p.person_id).toLowerCase().includes(q);
+  });
+  populateSelectOptions(select, list, select.value);
+}
+
+function assignCalcPerson(side, personId) {
+  const select = $(side === 'A' ? 'calcPersonA' : 'calcPersonB');
+  if (!select) return;
+  populateSelectOptions(select, TREE_STATE.catalogPeople || [], personId);
+  select.value = personId;
+  runRelationshipCalculator();
+}
+
+function swapCalcPeople() {
+  const a = $('calcPersonA'), b = $('calcPersonB');
+  if (!a || !b) return;
+  const tmp = a.value;
+  a.value = b.value;
+  b.value = tmp;
+  runRelationshipCalculator();
+}
+
+async function runRelationshipCalculator() {
+  const aId = $('calcPersonA') ? $('calcPersonA').value : '';
+  const bId = $('calcPersonB') ? $('calcPersonB').value : '';
+  const out = $('calcResultCard');
+  if (!aId || !bId || !out) return;
+  out.textContent = 'Calculating family relationship…';
+  try {
+    const params = new URLSearchParams({ person_a: aId, person_b: bId });
+    const resp = await fetch('/api/v1/community/heritage/tree/relationship?' + params.toString());
+    const data = await resp.json();
+    if (!resp.ok) {
+      out.innerHTML = '<div style="color:#FCA5A5;">Could not calculate relationship: ' + escHtml(data.detail || 'Error') + '</div>';
+      return;
+    }
+    const disconnected = data.relationship_kind === 'DISCONNECTED';
+    const ancestorsHtml = (data.common_ancestors && data.common_ancestors.length)
+      ? data.common_ancestors.map(anc =>
+          '<button type="button" class="rel-chip-btn" onclick="selectPerson(\'' + escHtml(anc.person_id) + '\')">' +
+          escHtml(anc.full_name) + (anc.life_span ? ' (' + escHtml(anc.life_span) + ')' : '') +
+          '</button>'
+        ).join(' ')
+      : '<span style="color:var(--text-muted);">None recorded</span>';
+
+    const stepsHtml = (data.a_steps !== null && data.b_steps !== null)
+      ? ' · Generation Steps: <strong>A = ' + escHtml(data.a_steps) + ', B = ' + escHtml(data.b_steps) + '</strong>'
+      : '';
+
+    out.innerHTML =
+      '<div class="calc-primary-label ' + (disconnected ? 'disconnected' : '') + '" id="calcPrimaryLabel">' + escHtml(data.primary_label) + '</div>' +
+      '<div style="color:var(--text-primary);font-size:0.95rem;margin-bottom:6px;">' +
+        '<strong>' + escHtml(data.person_a.full_name) + '</strong> ↔ <strong>' + escHtml(data.person_b.full_name) + '</strong>' +
+        stepsHtml +
+      '</div>' +
+      '<p style="margin:6px 0;color:var(--text-secondary);font-size:0.9rem;">' + escHtml(data.explanation) + '</p>' +
+      '<div style="margin-top:8px;"><span class="rel-group-title" style="display:inline-block;margin-right:8px;">Top Common Ancestor(s):</span> ' + ancestorsHtml + '</div>' +
+      '<div class="calc-glossary"><strong>Plain-English Glossary:</strong> ' + escHtml(data.glossary_definition) + '</div>';
+  } catch (_err) {
+    out.textContent = 'Relationship Calculator temporarily unreachable.';
+  }
+}
+
+function resetTreeFilters() {
+  $('treeSearchInput').value = '';
+  $('treeHouseFilter').value = '';
+  $('treeSurnameFilter').value = '';
+  $('toggleReferenceBranches').checked = false;
+  TREE_STATE.collapsedHouses.clear();
+  loadFamilyTreeData();
+}
+
+function onTreeFilterChange() {
+  loadFamilyTreeData();
+}
+
+async function loadFamilyTreeData() {
+  const params = new URLSearchParams();
+  const q = ($('treeSearchInput').value || '').trim();
+  const hid = ($('treeHouseFilter').value || '').trim();
+  const sur = ($('treeSurnameFilter').value || '').trim();
+  const incRef = Boolean($('toggleReferenceBranches').checked);
+  if (q) params.set('q', q);
+  if (hid) params.set('house_id', hid);
+  if (sur) params.set('surname', sur);
+  params.set('include_reference', incRef ? 'true' : 'false');
+
+  const resp = await fetch('/api/v1/community/heritage/tree/data?' + params.toString());
+  const data = await resp.json();
+
+  TREE_STATE.people = data.people || [];
+  TREE_STATE.relationships = data.relationships || [];
+  TREE_STATE.catalogPeople = data.catalog_people || TREE_STATE.people;
+  TREE_STATE.catalogRelationships = data.catalog_relationships || TREE_STATE.relationships;
+  TREE_STATE.houses = data.houses || [];
+
+  // Update reference toggle label count
+  const refLbl = $('refToggleLabel');
+  if (refLbl) {
+    refLbl.textContent = 'Show Historical Reference Branches (' + (data.reference_branch_count || 0) + ')';
+  }
+
+  // Update surname dropdown while preserving selection
+  const surSel = $('treeSurnameFilter');
+  const prevSur = surSel.value;
+  surSel.textContent = '';
+  const allOpt = document.createElement('option');
+  allOpt.value = '';
+  allOpt.textContent = 'All Surnames';
+  surSel.appendChild(allOpt);
+  (data.surnames || []).forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s;
+    opt.textContent = s;
+    surSel.appendChild(opt);
+  });
+  if (prevSur) surSel.value = prevSur;
+
+  // Update stats strip
+  $('statVisiblePeople').textContent = 'Showing ' + (data.counts.visible_people || 0) + ' of ' + (data.counts.total_people || 0) + ' Relatives';
+  $('statRelationships').textContent = 'Links: ' + (data.counts.relationships || 0);
+  $('statPrivacyGuard').textContent = 'Living Privacy Protected: ' + (data.counts.living_privacy_protected || 0) + ' · Historical Dated: ' + (data.counts.deceased_with_dates || 0);
+
+  // Populate calculator & curation selects
+  const defaultA = $('calcPersonA').value || (TREE_STATE.catalogPeople.some(p => p.person_id === 'P0019') ? 'P0019' : (TREE_STATE.catalogPeople[0] ? TREE_STATE.catalogPeople[0].person_id : ''));
+  const defaultB = $('calcPersonB').value || (TREE_STATE.catalogPeople.some(p => p.person_id === 'P0028') ? 'P0028' : (TREE_STATE.catalogPeople[1] ? TREE_STATE.catalogPeople[1].person_id : ''));
+  populateSelectOptions($('calcPersonA'), TREE_STATE.catalogPeople, defaultA);
+  populateSelectOptions($('calcPersonB'), TREE_STATE.catalogPeople, defaultB);
+  populateSelectOptions($('relPersonASelect'), TREE_STATE.catalogPeople);
+  populateSelectOptions($('relPersonBSelect'), TREE_STATE.catalogPeople);
+
+  if (!TREE_STATE.selectedPersonId && TREE_STATE.people.length) {
+    const preferred = TREE_STATE.people.find(p => p.person_id === 'P0004') || TREE_STATE.people[0];
+    TREE_STATE.selectedPersonId = preferred.person_id;
+  }
+
+  renderHouseBranchChips();
+  renderTreeSvg();
+  fitTreeToViewport();
+  if (TREE_STATE.selectedPersonId) {
+    renderPersonDetailCard(TREE_STATE.selectedPersonId);
+    populateEditPersonForm(TREE_STATE.selectedPersonId);
+  }
+  if ($('calcPersonA').value && $('calcPersonB').value) {
+    runRelationshipCalculator();
+  }
+}
+
+// Pointer drag-to-pan on SVG viewport
+(function setupPanInteraction() {
+  const vp = $('treeViewport');
+  if (!vp) return;
+  vp.addEventListener('pointerdown', ev => {
+    if (ev.target && ev.target.closest && ev.target.closest('[data-person-id]')) return;
+    TREE_STATE.dragging = true;
+    TREE_STATE.dragStartX = ev.clientX - TREE_STATE.panX;
+    TREE_STATE.dragStartY = ev.clientY - TREE_STATE.panY;
+    vp.classList.add('dragging');
+  });
+  window.addEventListener('pointermove', ev => {
+    if (!TREE_STATE.dragging) return;
+    TREE_STATE.panX = ev.clientX - TREE_STATE.dragStartX;
+    TREE_STATE.panY = ev.clientY - TREE_STATE.dragStartY;
+    updatePanZoomTransform();
+  });
+  window.addEventListener('pointerup', () => {
+    if (!TREE_STATE.dragging) return;
+    TREE_STATE.dragging = false;
+    vp.classList.remove('dragging');
+  });
+})();
+
+// Wire Genealogist Curation Forms (when rendered for HOUSE_GENEALOGIST / CHIEF_ADMIN)
+if ($('addHouseId') && TREE_STATE.assignedHouse && TREE_STATE.role === 'HOUSE_GENEALOGIST') {
+  $('addHouseId').value = TREE_STATE.assignedHouse;
+}
+
+if ($('addPersonForm')) {
+  $('addPersonForm').addEventListener('submit', async ev => {
+    ev.preventDefault();
+    const statusEl = $('addPersonStatus');
+    const by = $('addBirthYear').value ? Number($('addBirthYear').value) : null;
+    const dy = $('addDeathYear').value ? Number($('addDeathYear').value) : null;
+    const resp = await fetch('/api/v1/community/heritage/tree/person', {
+      method: 'POST',
+      headers: curationHeaders(),
+      body: JSON.stringify({
+        full_name: $('addFullName').value,
+        surname: $('addSurname').value,
+        suffix: $('addSuffix').value,
+        house_id: $('addHouseId').value,
+        generation: Number($('addGeneration').value) || 2,
+        is_deceased: $('addIsDeceased').value === 'true',
+        birth_year: by,
+        death_year: dy,
+        bio_notes: $('addBioNotes').value
+      })
+    });
+    const data = await resp.json();
+    if (resp.ok) {
+      statusEl.style.color = '#A7F3D0';
+      statusEl.textContent = 'Added ' + data.full_name + ' (' + data.person_id + ') in ' + data.house_id + '.';
+      $('addPersonForm').reset();
+      await loadFamilyTreeData();
+      selectPerson(data.person_id);
+    } else {
+      statusEl.style.color = '#FCA5A5';
+      statusEl.textContent = 'Blocked (' + resp.status + '): ' + (data.detail || 'Forbidden');
+    }
+  });
+}
+
+if ($('editPersonForm')) {
+  $('editPersonForm').addEventListener('submit', async ev => {
+    ev.preventDefault();
+    const statusEl = $('editPersonStatus');
+    const pid = ($('editPersonId').value || '').trim();
+    if (!pid) return;
+    const resp = await fetch(`/api/v1/community/heritage/tree/person/${encodeURIComponent(pid)}`, {
+      method: 'PATCH',
+      headers: curationHeaders(),
+      body: JSON.stringify({
+        full_name: $('editFullName').value || undefined,
+        surname: $('editSurname').value,
+        suffix: $('editSuffix').value,
+        review_flag: $('editReviewFlag').value,
+        bio_notes: $('editBioNotes').value
+      })
+    });
+    const data = await resp.json();
+    if (resp.ok) {
+      statusEl.style.color = '#A7F3D0';
+      statusEl.textContent = 'Updated ' + data.full_name + ' (' + data.person_id + ').';
+      await loadFamilyTreeData();
+      selectPerson(data.person_id);
+    } else {
+      statusEl.style.color = '#FCA5A5';
+      statusEl.textContent = 'Blocked (' + resp.status + '): ' + (data.detail || 'Forbidden');
+    }
+  });
+}
+
+if ($('addRelationshipForm')) {
+  $('addRelationshipForm').addEventListener('submit', async ev => {
+    ev.preventDefault();
+    const statusEl = $('addRelationshipStatus');
+    const resp = await fetch('/api/v1/community/heritage/tree/relationship', {
+      method: 'POST',
+      headers: curationHeaders(),
+      body: JSON.stringify({
+        rel_type: $('relTypeSelect').value,
+        person_a_id: $('relPersonASelect').value,
+        person_b_id: $('relPersonBSelect').value,
+        notes: $('relNotesInput').value
+      })
+    });
+    const data = await resp.json();
+    if (resp.ok) {
+      statusEl.style.color = '#A7F3D0';
+      statusEl.textContent = 'Linked ' + data.person_a_id + ' -> ' + data.person_b_id + ' (' + data.rel_type + ').';
+      $('relNotesInput').value = '';
+      await loadFamilyTreeData();
+    } else {
+      statusEl.style.color = '#FCA5A5';
+      statusEl.textContent = 'Blocked (' + resp.status + '): ' + (data.detail || 'Forbidden');
+    }
+  });
+}
+
+loadFamilyTreeData();
+</script>
+</body>
+</html>

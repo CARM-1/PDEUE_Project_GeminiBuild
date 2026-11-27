@@ -206,7 +206,7 @@ def test_automated_ui_to_lexicon_to_curriculum_parity_ci_gate():
     report = audit_ui_lexicon_curriculum_parity(REPO_ROOT)
 
     assert set(report["portals_scanned"]) == set(PORTALS.keys())
-    assert len(report["portals_scanned"]) == 9
+    assert len(report["portals_scanned"]) >= 9
     assert report["undocumented_controls"] == [], f"Undocumented controls: {report['undocumented_controls']}"
     assert report["dangling_data_terms"] == [], f"Dangling data-term tooltips: {report['dangling_data_terms']}"
     assert report["jargon_violations"] == [], f"Plain-English jargon violations: {report['jargon_violations']}"

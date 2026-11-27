@@ -54,7 +54,7 @@ narratixai.org {
 	}
 
 	@social_allowed {
-		path / /home /community /community/* /static/* /api/v1/portal/planes /api/v1/portal/community/* /health
+		path / /home /community /community/* /static/* /api/v1/portal/planes /api/v1/portal/community/* /api/v1/community/heritage/tree* /health
 	}
 
 	route {
