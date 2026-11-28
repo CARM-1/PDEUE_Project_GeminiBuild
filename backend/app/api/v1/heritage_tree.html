@@ -380,29 +380,29 @@
   <!-- Search, House Filter & Reference Branch Toggle -->
   <section class="filter-card" aria-label="Search and filter Family Tree">
     <div class="filter-row">
-      <input id="treeSearchInput" type="search" aria-label="Search by name, House, or allied surname" placeholder="Search by name, House, or allied surname (e.g., Ola, Carmichael, Vance, House 02)…" oninput="onTreeFilterChange()">
+      <input id="treeSearchInput" type="search" aria-label="Search by name, House, or allied surname" placeholder="Search by name, House, or allied surname (e.g., Ola, Carmichael, Arvell, Thompson, House 03)…" oninput="onTreeFilterChange()">
       <select id="treeHouseFilter" aria-label="Filter by House" onchange="onTreeFilterChange()">
         <option value="">All 12 Houses + Founders</option>
-        <option value="FOUNDERS">Founding Pair (Mary Viola &amp; William F.)</option>
-        <option value="HOUSE-01">House 01 — Carmichael Prime</option>
-        <option value="HOUSE-02">House 02 — McCormick Prime</option>
-        <option value="HOUSE-03">House 03 — Highland Hearth</option>
-        <option value="HOUSE-04">House 04 — Riverbend</option>
-        <option value="HOUSE-05">House 05 — Oak &amp; Compass</option>
-        <option value="HOUSE-06">House 06 — Watchtower</option>
-        <option value="HOUSE-07">House 07 — Cedar Grove</option>
-        <option value="HOUSE-08">House 08 — Silver Loom</option>
-        <option value="HOUSE-09">House 09 — Lantern Bearers</option>
-        <option value="HOUSE-10">House 10 — Stone Bridge</option>
-        <option value="HOUSE-11">House 11 — Southern Star</option>
-        <option value="HOUSE-12">House 12 — Harvest Table</option>
+        <option value="FOUNDERS">Founding Pair (Mary Viola "Ola" &amp; William Fletcher)</option>
+        <option value="HOUSE-01">House 01 — Bertha "Bert" (Carmichael Prime)</option>
+        <option value="HOUSE-02">House 02 — Arvell "Son" (McCormick Prime)</option>
+        <option value="HOUSE-03">House 03 — Tony (Highland Hearth)</option>
+        <option value="HOUSE-04">House 04 — John H. "Uncle Bull" (Riverbend)</option>
+        <option value="HOUSE-05">House 05 — Marie McNeil (Oak &amp; Compass)</option>
+        <option value="HOUSE-06">House 06 — Charlie Sr. (Watchtower)</option>
+        <option value="HOUSE-07">House 07 — Murdock "Little Boy" (Cedar Grove)</option>
+        <option value="HOUSE-08">House 08 — Murphy (Silver Loom)</option>
+        <option value="HOUSE-09">House 09 — Colon (Lantern Bearers)</option>
+        <option value="HOUSE-10">House 10 — Mabel Brown (Stone Bridge)</option>
+        <option value="HOUSE-11">House 11 — Thomas (Southern Star)</option>
+        <option value="HOUSE-12">House 12 — Vonnie (Harvest Table)</option>
       </select>
       <select id="treeSurnameFilter" aria-label="Filter by Surname" onchange="onTreeFilterChange()">
         <option value="">All Surnames</option>
       </select>
       <label class="toggle-pill" for="toggleReferenceBranches">
-        <input id="toggleReferenceBranches" type="checkbox" aria-label="Show Historical Reference Branches" onchange="onTreeFilterChange()">
-        <span id="refToggleLabel">Show Historical Reference Branches</span>
+        <input id="toggleReferenceBranches" type="checkbox" aria-label="Show Extended Roderick and Dillie Gaddy McCormick Branches" onchange="onTreeFilterChange()">
+        <span id="refToggleLabel">Show Extended Roderick &amp; Dillie Gaddy Lineage (II–IX)</span>
       </label>
       <button id="treeResetFiltersBtn" type="button" class="btn-secondary" onclick="resetTreeFilters()">Reset Filters</button>
     </div>
@@ -597,6 +597,14 @@
 <script>
 const $ = id => document.getElementById(id);
 
+function makeDefaultCollapsedHouses() {
+  const s = new Set();
+  for (let i = 1; i <= 12; i++) {
+    s.add('HOUSE-' + String(i).padStart(2, '0'));
+  }
+  return s;
+}
+
 const TREE_STATE = {
   people: [],
   relationships: [],
@@ -604,7 +612,9 @@ const TREE_STATE = {
   catalogRelationships: [],
   houses: [],
   selectedPersonId: null,
-  collapsedHouses: new Set(),
+  collapsedHouses: makeDefaultCollapsedHouses(),
+  referenceExpanded: false,
+  hasActiveFilter: false,
   zoom: 1.0,
   panX: 24,
   panY: 18,
@@ -649,7 +659,7 @@ function fitTreeToViewport() {
   const contentH = Math.max(260, TREE_STATE.boundsH || 640);
   const scaleX = (vbW - 36) / contentW;
   const scaleY = (vbH - 36) / contentH;
-  const fitScale = Math.max(0.32, Math.min(1.0, Math.min(scaleX, scaleY)));
+  const fitScale = Math.max(0.18, Math.min(1.0, Math.min(scaleX, scaleY)));
   TREE_STATE.zoom = fitScale;
   TREE_STATE.panX = Math.max(12, (vbW - contentW * fitScale) / 2);
   TREE_STATE.panY = 18;
@@ -657,7 +667,7 @@ function fitTreeToViewport() {
 }
 
 function zoomTree(factor) {
-  TREE_STATE.zoom = Math.max(0.28, Math.min(2.5, TREE_STATE.zoom * factor));
+  TREE_STATE.zoom = Math.max(0.16, Math.min(2.5, TREE_STATE.zoom * factor));
   updatePanZoomTransform();
 }
 
@@ -668,12 +678,14 @@ function resetTreeView() {
 function setAllHousesExpanded(expand) {
   TREE_STATE.collapsedHouses.clear();
   if (!expand) {
-    for (let i = 1; i <= 12; i++) {
-      TREE_STATE.collapsedHouses.add('HOUSE-' + String(i).padStart(2, '0'));
-    }
+    TREE_STATE.collapsedHouses = makeDefaultCollapsedHouses();
+    TREE_STATE.referenceExpanded = false;
+  } else {
+    TREE_STATE.referenceExpanded = true;
   }
   renderHouseBranchChips();
   renderTreeSvg();
+  fitTreeToViewport();
 }
 
 function toggleHouseBranch(houseId) {
@@ -684,25 +696,47 @@ function toggleHouseBranch(houseId) {
   }
   renderHouseBranchChips();
   renderTreeSvg();
+  fitTreeToViewport();
+}
+
+function toggleReferenceDescendants() {
+  TREE_STATE.referenceExpanded = !TREE_STATE.referenceExpanded;
+  renderHouseBranchChips();
+  renderTreeSvg();
+  fitTreeToViewport();
 }
 
 function renderHouseBranchChips() {
   const bar = $('houseBranchBar');
   if (!bar) return;
   bar.textContent = '';
-  const visibleHouses = new Set(TREE_STATE.people.map(p => p.house_id));
+  const houseCounts = {};
+  (TREE_STATE.people || []).forEach(p => {
+    houseCounts[p.house_id] = (houseCounts[p.house_id] || 0) + 1;
+  });
   for (let i = 1; i <= 12; i++) {
     const code = 'HOUSE-' + String(i).padStart(2, '0');
-    if (!visibleHouses.has(code)) continue;
-    const isCollapsed = TREE_STATE.collapsedHouses.has(code);
+    if (!houseCounts[code]) continue;
+    const isCollapsed = !TREE_STATE.hasActiveFilter && TREE_STATE.collapsedHouses.has(code);
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'branch-chip ' + (isCollapsed ? 'collapsed' : 'expanded');
     btn.setAttribute('data-house-toggle', code);
-    btn.textContent = (isCollapsed ? '▸ ' : '▾ ') + 'H' + String(i).padStart(2, '0');
+    btn.textContent = (isCollapsed ? '▸ ' : '▾ ') + 'H' + String(i).padStart(2, '0') + ' (' + houseCounts[code] + ')';
     btn.title = (isCollapsed ? 'Expand ' : 'Collapse ') + code;
     btn.onclick = () => toggleHouseBranch(code);
     bar.appendChild(btn);
+  }
+  if (houseCounts['REFERENCE']) {
+    const isRefCollapsed = !TREE_STATE.hasActiveFilter && !TREE_STATE.referenceExpanded;
+    const refBtn = document.createElement('button');
+    refBtn.type = 'button';
+    refBtn.className = 'branch-chip ' + (isRefCollapsed ? 'collapsed' : 'expanded');
+    refBtn.setAttribute('data-house-toggle', 'REFERENCE');
+    refBtn.textContent = (isRefCollapsed ? '▸ ' : '▾ ') + 'Roderick II–IX (' + houseCounts['REFERENCE'] + ')';
+    refBtn.title = isRefCollapsed ? 'Expand Roderick & Dillie Gaddy descendants' : 'Collapse Roderick & Dillie Gaddy to Children II–IX';
+    refBtn.onclick = () => toggleReferenceDescendants();
+    bar.appendChild(refBtn);
   }
 }
 
@@ -735,7 +769,7 @@ function renderTreeSvg() {
   const byId = {};
   people.forEach(p => { byId[p.person_id] = p; });
 
-  // Separate main spine vs reference branch
+  // Separate main 12-House spine vs extended Roderick & Dillie Gaddy lineage
   const founders = people.filter(p => !p.is_reference_branch && p.house_id === 'FOUNDERS');
   const housePeople = {};
   people.filter(p => !p.is_reference_branch && p.house_id.startsWith('HOUSE-')).forEach(p => {
@@ -744,111 +778,215 @@ function renderTreeSvg() {
   });
   const refPeople = people.filter(p => p.is_reference_branch);
 
+  // Identify direct children of Founders so each collapsed House displays its primary House Root cleanly
+  const founderIds = new Set(founders.map(f => f.person_id));
+  const founderChildren = new Set();
+  (TREE_STATE.relationships || []).forEach(r => {
+    if (r.rel_type === 'parent' && founderIds.has(r.person_a_id)) {
+      founderChildren.add(r.person_b_id);
+    }
+  });
+
   const NODE_W = 190;
   const NODE_H = 68;
-  const COL_GAP = 26;
-  const ROW_GAP = 98;
+  const CARD_GAP_X = 14;
+  const COL_GAP = 24;
+  const ROW_GAP = 86;
+  const SUB_ROW_GAP = 78;
+  const MAX_CARDS_PER_HOUSE_ROW = 5;
+  const MAX_CARDS_PER_REF_ROW = 8;
   const positions = {};
 
-  // Layout active House columns
+  // Layout active House columns — use a calm 4x3 overview grid at ~100% zoom when all Houses are collapsed
   const houseCodes = Object.keys(housePeople).sort();
+  const allHousesCollapsed = !TREE_STATE.hasActiveFilter && houseCodes.length > 4 && houseCodes.every(code => TREE_STATE.collapsedHouses.has(code));
   let cursorX = 24;
   const houseBandMeta = [];
 
-  houseCodes.forEach(code => {
-    const members = housePeople[code].slice().sort((a, b) => (a.generation - b.generation) || a.person_id.localeCompare(b.person_id));
-    const isCollapsed = TREE_STATE.collapsedHouses.has(code);
-    const byGen = {};
-    members.forEach(m => {
-      if (isCollapsed && m.generation > 1) return;
-      if (!byGen[m.generation]) byGen[m.generation] = [];
-      byGen[m.generation].push(m);
-    });
-    const maxPerGen = Math.max(1, ...Object.values(byGen).map(arr => arr.length));
-    const colWidth = maxPerGen * (NODE_W + 14) - 14;
-    const bandStartX = cursorX;
-    const gens = Object.keys(byGen).map(Number).sort((a, b) => a - b);
+  if (allHousesCollapsed) {
+    const GRID_COLS = 4;
+    const CELL_W = 250;
+    const CELL_GAP_X = 24;
+    const CELL_ROW_H = 124;
+    const START_X = 28;
+    const START_Y = 122;
 
-    gens.forEach(gen => {
-      const rowItems = byGen[gen];
-      const rowWidth = rowItems.length * (NODE_W + 14) - 14;
-      const offsetX = bandStartX + Math.max(0, (colWidth - rowWidth) / 2);
-      const y = 148 + Math.max(0, gen - 1) * ROW_GAP;
-      rowItems.forEach((person, idx) => {
-        positions[person.person_id] = {
-          x: offsetX + idx * (NODE_W + 14),
-          y: y,
-          w: NODE_W,
-          h: NODE_H
-        };
+    houseCodes.forEach((code, idx) => {
+      const members = housePeople[code].slice().sort((a, b) => (a.generation - b.generation) || a.person_id.localeCompare(b.person_id));
+      const rootMember = members.find(m => founderChildren.has(m.person_id)) || members.find(m => m.generation === 1) || members[0];
+      const col = idx % GRID_COLS;
+      const row = Math.floor(idx / GRID_COLS);
+      const cellX = START_X + col * (CELL_W + CELL_GAP_X);
+      const cellY = START_Y + row * CELL_ROW_H;
+
+      houseBandMeta.push({
+        code: code,
+        x: cellX,
+        y: cellY,
+        width: CELL_W,
+        count: members.length,
+        collapsed: true
       });
+      if (rootMember) {
+        positions[rootMember.person_id] = {
+          x: cellX,
+          y: cellY + 34,
+          w: CELL_W,
+          h: 72
+        };
+      }
     });
+    cursorX = START_X + Math.min(GRID_COLS, houseCodes.length) * (CELL_W + CELL_GAP_X);
+  } else {
+    houseCodes.forEach(code => {
+      const members = housePeople[code].slice().sort((a, b) => (a.generation - b.generation) || a.person_id.localeCompare(b.person_id));
+      const isCollapsed = !TREE_STATE.hasActiveFilter && TREE_STATE.collapsedHouses.has(code);
+      const byGen = {};
+      if (isCollapsed) {
+        const rootMember = members.find(m => founderChildren.has(m.person_id)) || members.find(m => m.generation === 1) || members[0];
+        if (rootMember) byGen[rootMember.generation] = [rootMember];
+      } else {
+        members.forEach(m => {
+          if (!byGen[m.generation]) byGen[m.generation] = [];
+          byGen[m.generation].push(m);
+        });
+      }
+      const maxCols = Math.max(
+        1,
+        ...Object.values(byGen).map(arr => Math.min(MAX_CARDS_PER_HOUSE_ROW, arr.length))
+      );
+      const colWidth = maxCols * (NODE_W + CARD_GAP_X) - CARD_GAP_X;
+      const bandStartX = cursorX;
+      const gens = Object.keys(byGen).map(Number).sort((a, b) => a - b);
 
-    houseBandMeta.push({
-      code: code,
-      x: bandStartX,
-      width: colWidth,
-      count: members.length,
-      collapsed: isCollapsed
+      let yCursor = 148;
+      gens.forEach(gen => {
+        const rowItems = byGen[gen];
+        for (let start = 0; start < rowItems.length; start += MAX_CARDS_PER_HOUSE_ROW) {
+          const chunk = rowItems.slice(start, start + MAX_CARDS_PER_HOUSE_ROW);
+          const rowWidth = chunk.length * (NODE_W + CARD_GAP_X) - CARD_GAP_X;
+          const offsetX = bandStartX + Math.max(0, (colWidth - rowWidth) / 2);
+          chunk.forEach((person, idx) => {
+            positions[person.person_id] = {
+              x: offsetX + idx * (NODE_W + CARD_GAP_X),
+              y: yCursor,
+              w: NODE_W,
+              h: NODE_H
+            };
+          });
+          yCursor += (start + MAX_CARDS_PER_HOUSE_ROW < rowItems.length) ? SUB_ROW_GAP : ROW_GAP;
+        }
+      });
+
+      houseBandMeta.push({
+        code: code,
+        x: bandStartX,
+        y: 108,
+        width: colWidth,
+        count: members.length,
+        collapsed: isCollapsed
+      });
+      cursorX += colWidth + COL_GAP;
     });
-    cursorX += colWidth + COL_GAP;
-  });
+  }
 
   // Layout Founders centered above active House columns
   const totalMainWidth = Math.max(460, cursorX - COL_GAP);
   if (founders.length) {
-    const fWidth = founders.length * (NODE_W + 24) - 24;
+    const fW = allHousesCollapsed ? 240 : NODE_W;
+    const fWidth = founders.length * (fW + 28) - 28;
     const startX = Math.max(24, (totalMainWidth - fWidth) / 2);
     founders.forEach((p, idx) => {
       positions[p.person_id] = {
-        x: startX + idx * (NODE_W + 24),
+        x: startX + idx * (fW + 28),
         y: 16,
-        w: NODE_W,
+        w: fW,
         h: NODE_H
       };
     });
   }
 
-  // Layout Reference Branch below main tree if toggled on
-  let refBandY = 560;
+  // Layout Extended Roderick & Dillie Gaddy McCormick Lineage below main tree if toggled ON
+  let refBandY = 300;
   if (Object.keys(positions).length) {
     const maxY = Math.max(...Object.values(positions).map(pos => pos.y + pos.h));
-    refBandY = maxY + 66;
+    refBandY = maxY + 64;
   }
   if (refPeople.length) {
+    const showAllRef = TREE_STATE.hasActiveFilter || TREE_STATE.referenceExpanded;
+    const visibleRef = refPeople
+      .filter(p => showAllRef || p.generation <= 1)
+      .slice()
+      .sort((a, b) => (a.generation - b.generation) || a.person_id.localeCompare(b.person_id));
+
+    const refByGen = {};
+    visibleRef.forEach(p => {
+      if (!refByGen[p.generation]) refByGen[p.generation] = [];
+      refByGen[p.generation].push(p);
+    });
+    const refGens = Object.keys(refByGen).map(Number).sort((a, b) => a - b);
+    const maxRefCols = Math.max(
+      2,
+      ...Object.values(refByGen).map(arr => Math.min(MAX_CARDS_PER_REF_ROW, arr.length))
+    );
+    const refInnerW = maxRefCols * (NODE_W + CARD_GAP_X) - CARD_GAP_X;
+    let refY = refBandY + 12;
+
+    refGens.forEach(gen => {
+      const items = refByGen[gen];
+      for (let start = 0; start < items.length; start += MAX_CARDS_PER_REF_ROW) {
+        const chunk = items.slice(start, start + MAX_CARDS_PER_REF_ROW);
+        const rowW = chunk.length * (NODE_W + CARD_GAP_X) - CARD_GAP_X;
+        const startX = 28 + Math.max(0, (refInnerW - rowW) / 2);
+        chunk.forEach((p, idx) => {
+          positions[p.person_id] = {
+            x: startX + idx * (NODE_W + CARD_GAP_X),
+            y: refY,
+            w: NODE_W,
+            h: NODE_H
+          };
+        });
+        refY += (start + MAX_CARDS_PER_REF_ROW < items.length) ? SUB_ROW_GAP : ROW_GAP;
+      }
+    });
+
+    const refBoxH = Math.max(132, (refY - refBandY) + 34);
     const refBox = svgEl('rect', {
-      x: 16, y: refBandY - 34,
-      width: Math.max(520, refPeople.length * (NODE_W + 20) + 32),
-      height: 126, rx: 12,
+      x: 16, y: refBandY - 36,
+      width: Math.max(580, refInnerW + 24),
+      height: refBoxH, rx: 12,
       fill: 'rgba(30,41,59,0.55)', stroke: '#D97706', 'stroke-dasharray': '6 5', 'stroke-width': 1.5
     });
     g.appendChild(refBox);
+
+    const refHdr = svgEl('g', { style: 'cursor:pointer' });
     const refLabel = svgEl('text', { x: 28, y: refBandY - 12, fill: '#FDE68A', 'font-size': 12, 'font-weight': 800 });
-    refLabel.textContent = 'HISTORICAL REFERENCE BRANCH (UNLINKED TO MAIN 12-HOUSE SPINE)';
-    g.appendChild(refLabel);
-    refPeople.forEach((p, idx) => {
-      positions[p.person_id] = {
-        x: 28 + idx * (NODE_W + 18),
-        y: refBandY + 6,
-        w: NODE_W,
-        h: NODE_H
-      };
+    refLabel.textContent = (showAllRef ? '▾ ' : '▸ ') +
+      'EXTENDED RODERICK & DILLIE GADDY McCORMICK LINEAGE (II–IX · ' +
+      visibleRef.length + ' of ' + refPeople.length + ' shown — click to ' +
+      (showAllRef ? 'collapse' : 'expand all') + ')';
+    refHdr.appendChild(refLabel);
+    refHdr.addEventListener('click', ev => {
+      ev.stopPropagation();
+      toggleReferenceDescendants();
     });
+    g.appendChild(refHdr);
   }
 
   // Draw House column headers
   houseBandMeta.forEach(hb => {
     const hdr = svgEl('g', { style: 'cursor:pointer' });
+    const hdrY = hb.y != null ? hb.y : 108;
     const pill = svgEl('rect', {
-      x: hb.x, y: 108, width: hb.width, height: 28, rx: 8,
+      x: hb.x, y: hdrY, width: hb.width, height: 28, rx: 8,
       fill: hb.collapsed ? '#1E293B' : '#18294A',
       stroke: hb.collapsed ? '#475569' : '#E4BB63', 'stroke-width': 1.2
     });
     const txt = svgEl('text', {
-      x: hb.x + 10, y: 126, fill: hb.collapsed ? '#94A3B8' : '#F6DE8D',
+      x: hb.x + 10, y: hdrY + 18, fill: hb.collapsed ? '#94A3B8' : '#F6DE8D',
       'font-size': 12, 'font-weight': 800
     });
-    txt.textContent = (hb.collapsed ? '▸ ' : '▾ ') + hb.code + ' (' + hb.count + ')';
+    txt.textContent = (hb.collapsed ? '▸ ' : '▾ ') + hb.code + ' (' + hb.count + (hb.collapsed && hb.count > 1 ? ' · Expand' : '') + ')';
     hdr.appendChild(pill);
     hdr.appendChild(txt);
     hdr.addEventListener('click', ev => {
@@ -875,16 +1013,21 @@ function renderTreeSvg() {
       });
       edgesLayer.appendChild(line);
     } else if (rel.rel_type === 'parent') {
+      const isRefBridge = (byId[rel.person_a_id] && byId[rel.person_a_id].is_reference_branch) !== (byId[rel.person_b_id] && byId[rel.person_b_id].is_reference_branch);
       const x1 = pa.x + pa.w / 2;
       const y1 = pa.y + pa.h;
       const x2 = pb.x + pb.w / 2;
       const y2 = pb.y;
       const midY = y1 + (y2 - y1) * 0.45;
-      const path = svgEl('path', {
+      const pathAttrs = {
         d: 'M ' + x1 + ' ' + y1 + ' C ' + x1 + ' ' + midY + ', ' + x2 + ' ' + midY + ', ' + x2 + ' ' + y2,
-        fill: 'none', stroke: '#38BDF8', 'stroke-opacity': '0.55', 'stroke-width': 1.7
-      });
-      edgesLayer.appendChild(path);
+        fill: 'none',
+        stroke: isRefBridge ? '#D97706' : '#38BDF8',
+        'stroke-opacity': isRefBridge ? '0.78' : '0.50',
+        'stroke-width': isRefBridge ? 2.1 : 1.6
+      };
+      if (isRefBridge) pathAttrs['stroke-dasharray'] = '6 4';
+      edgesLayer.appendChild(svgEl('path', pathAttrs));
     }
   });
   g.appendChild(edgesLayer);
@@ -927,9 +1070,11 @@ function renderTreeSvg() {
     nodeG.appendChild(metaLine);
 
     const dateLine = svgEl('text', {
-      x: pos.x + 10, y: pos.y + 56, fill: p.privacy_protected ? '#94A3B8' : '#F6DE8D', 'font-size': 10.2
+      x: pos.x + 10, y: pos.y + 56, fill: p.life_span ? '#F6DE8D' : '#94A3B8', 'font-size': 10.2
     });
-    dateLine.textContent = p.life_span ? p.life_span : 'Living · Privacy Protected';
+    dateLine.textContent = p.life_span
+      ? p.life_span
+      : (p.is_deceased ? 'Deceased · Dates not recorded' : 'Living · Privacy Protected');
     nodeG.appendChild(dateLine);
 
     if (p.review_flag) {
@@ -965,6 +1110,17 @@ function renderTreeSvg() {
 
 function selectPerson(personId) {
   TREE_STATE.selectedPersonId = personId;
+  const catalog = TREE_STATE.catalogPeople || [];
+  const target = catalog.find(p => p.person_id === personId);
+  if (target) {
+    if (target.house_id && target.house_id.startsWith('HOUSE-') && target.generation > 1) {
+      TREE_STATE.collapsedHouses.delete(target.house_id);
+      renderHouseBranchChips();
+    } else if (target.is_reference_branch && target.generation > 1 && $('toggleReferenceBranches').checked) {
+      TREE_STATE.referenceExpanded = true;
+      renderHouseBranchChips();
+    }
+  }
   renderTreeSvg();
   renderPersonDetailCard(personId);
   populateEditPersonForm(personId);
@@ -998,7 +1154,9 @@ function renderPersonDetailCard(personId) {
 
   const datesDisplay = person.life_span
     ? escHtml(person.life_span) + ' (Deceased Ancestor)'
-    : 'Living — Birth year &amp; contact details hidden';
+    : (person.is_deceased
+      ? 'Deceased Ancestor — Exact years not recorded'
+      : 'Living — Birth year &amp; contact details hidden');
 
   const flagHtml = person.review_flag
     ? '<div class="review-flag-box"><strong>Genealogist Review Flag:</strong> ' + escHtml(person.review_flag) + '</div>'
@@ -1053,13 +1211,15 @@ function populateEditPersonForm(personId) {
 function populateSelectOptions(selectEl, peopleList, preferredId) {
   if (!selectEl) return;
   const current = preferredId || selectEl.value;
-  selectEl.textContent = '';
+  const frag = document.createDocumentFragment();
   peopleList.forEach(p => {
     const opt = document.createElement('option');
     opt.value = p.person_id;
     opt.textContent = p.full_name + ' (' + p.house_id + ' · ' + p.person_id + ')';
-    selectEl.appendChild(opt);
+    frag.appendChild(opt);
   });
+  selectEl.textContent = '';
+  selectEl.appendChild(frag);
   if (current && peopleList.some(p => p.person_id === current)) {
     selectEl.value = current;
   }
@@ -1140,7 +1300,8 @@ function resetTreeFilters() {
   $('treeHouseFilter').value = '';
   $('treeSurnameFilter').value = '';
   $('toggleReferenceBranches').checked = false;
-  TREE_STATE.collapsedHouses.clear();
+  TREE_STATE.collapsedHouses = makeDefaultCollapsedHouses();
+  TREE_STATE.referenceExpanded = false;
   loadFamilyTreeData();
 }
 
@@ -1154,6 +1315,7 @@ async function loadFamilyTreeData() {
   const hid = ($('treeHouseFilter').value || '').trim();
   const sur = ($('treeSurnameFilter').value || '').trim();
   const incRef = Boolean($('toggleReferenceBranches').checked);
+  TREE_STATE.hasActiveFilter = Boolean(q || hid || sur);
   if (q) params.set('q', q);
   if (hid) params.set('house_id', hid);
   if (sur) params.set('surname', sur);
@@ -1171,23 +1333,25 @@ async function loadFamilyTreeData() {
   // Update reference toggle label count
   const refLbl = $('refToggleLabel');
   if (refLbl) {
-    refLbl.textContent = 'Show Historical Reference Branches (' + (data.reference_branch_count || 0) + ')';
+    refLbl.textContent = 'Show Extended Roderick & Dillie Gaddy Lineage (II–IX) (' + (data.reference_branch_count || 0) + ')';
   }
 
   // Update surname dropdown while preserving selection
   const surSel = $('treeSurnameFilter');
   const prevSur = surSel.value;
-  surSel.textContent = '';
+  const surFrag = document.createDocumentFragment();
   const allOpt = document.createElement('option');
   allOpt.value = '';
   allOpt.textContent = 'All Surnames';
-  surSel.appendChild(allOpt);
+  surFrag.appendChild(allOpt);
   (data.surnames || []).forEach(s => {
     const opt = document.createElement('option');
     opt.value = s;
     opt.textContent = s;
-    surSel.appendChild(opt);
+    surFrag.appendChild(opt);
   });
+  surSel.textContent = '';
+  surSel.appendChild(surFrag);
   if (prevSur) surSel.value = prevSur;
 
   // Update stats strip
@@ -1195,9 +1359,9 @@ async function loadFamilyTreeData() {
   $('statRelationships').textContent = 'Links: ' + (data.counts.relationships || 0);
   $('statPrivacyGuard').textContent = 'Living Privacy Protected: ' + (data.counts.living_privacy_protected || 0) + ' · Historical Dated: ' + (data.counts.deceased_with_dates || 0);
 
-  // Populate calculator & curation selects
-  const defaultA = $('calcPersonA').value || (TREE_STATE.catalogPeople.some(p => p.person_id === 'P0019') ? 'P0019' : (TREE_STATE.catalogPeople[0] ? TREE_STATE.catalogPeople[0].person_id : ''));
-  const defaultB = $('calcPersonB').value || (TREE_STATE.catalogPeople.some(p => p.person_id === 'P0028') ? 'P0028' : (TREE_STATE.catalogPeople[1] ? TREE_STATE.catalogPeople[1].person_id : ''));
+  // Populate calculator & curation selects across all 25 pages
+  const defaultA = $('calcPersonA').value || (TREE_STATE.catalogPeople.some(p => p.person_id === 'P0018') ? 'P0018' : (TREE_STATE.catalogPeople[0] ? TREE_STATE.catalogPeople[0].person_id : ''));
+  const defaultB = $('calcPersonB').value || (TREE_STATE.catalogPeople.some(p => p.person_id === 'P0257') ? 'P0257' : (TREE_STATE.catalogPeople[1] ? TREE_STATE.catalogPeople[1].person_id : ''));
   populateSelectOptions($('calcPersonA'), TREE_STATE.catalogPeople, defaultA);
   populateSelectOptions($('calcPersonB'), TREE_STATE.catalogPeople, defaultB);
   populateSelectOptions($('relPersonASelect'), TREE_STATE.catalogPeople);

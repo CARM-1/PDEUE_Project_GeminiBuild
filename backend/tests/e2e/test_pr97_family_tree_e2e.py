@@ -167,7 +167,7 @@ def test_pr97_family_tree_portal_renders_filters_calculates_and_has_zero_overflo
         resp = page.goto(f"{live_server}/community/heritage/tree", wait_until="networkidle", timeout=15000)
         assert resp is not None and resp.status == 200
 
-        # Wait for SVG tree nodes to hydrate
+        # Wait for SVG tree nodes to hydrate (fast render at scale)
         page.wait_for_selector('[data-person-id="P0004"]', timeout=8000)
         page.wait_for_selector('#calcPrimaryLabel', timeout=8000)
 
@@ -175,8 +175,12 @@ def test_pr97_family_tree_portal_renders_filters_calculates_and_has_zero_overflo
         assert page.locator("#treeReadOnlyBanner").count() == 1
         assert page.locator("#genealogistTreeDrawer").count() == 0
 
-        # Reference branch OFF by default (P0001 not rendered)
+        # Calm scale-safe default: Houses collapsed to Gen 1 roots + Founders (< 45 SVG nodes),
+        # and Extended Roderick & Dillie Gaddy branch OFF by default (P0001 not rendered)
+        initial_node_count = page.locator("#treeNodesLayer [data-person-id]").count()
+        assert 14 <= initial_node_count <= 45, f"Expected calm collapsed default view, got {initial_node_count} nodes"
         assert page.locator('[data-person-id="P0001"]').count() == 0
+        assert page.locator('[data-person-id="P0058"]').count() == 0  # Gen 4 hidden until House 01 expanded
 
         # Zero horizontal overflow check
         overflow = page.evaluate("document.documentElement.scrollWidth - window.innerWidth")
@@ -190,24 +194,33 @@ def test_pr97_family_tree_portal_renders_filters_calculates_and_has_zero_overflo
         )
         assert cdn_tags == [], f"External CDN tags detected: {cdn_tags}"
 
-        # Click living member P0019 -> verify Person Detail Card opens with privacy protection (no '1948')
-        page.locator('[data-person-id="P0019"]').click()
+        # 1-click expand House 01 -> reveals living descendant P0058 (William Vincent Carmichael, deduplicated)
+        page.locator('[data-house-toggle="HOUSE-01"]').click()
+        page.wait_for_selector('[data-person-id="P0058"]', timeout=6000)
+        assert page.locator('[data-person-id="P0058"]').count() == 1
+        page.locator('[data-person-id="P0058"]').click(force=True)
         page.wait_for_timeout(200)
         detail_text = page.locator("#personDetailCard").inner_text()
-        assert "James R. Carmichael Jr." in detail_text
+        assert "William Vincent Carmichael" in detail_text
         assert "Living — Birth year" in detail_text
-        assert "1948" not in detail_text
 
-        # Click deceased ancestor P0004 -> verify historical dates 1898–1984 and review flag show
-        page.locator('[data-person-id="P0004"]').click()
+        # Click deceased dated House 02 ancestor P0007 (Arvell "Son" McCormick) -> verify 1895–1975
+        page.locator('[data-person-id="P0007"]').click(force=True)
+        page.wait_for_timeout(200)
+        arvell_detail = page.locator("#personDetailCard").inner_text()
+        assert "1895–1975" in arvell_detail
+
+        # Click Founding Matriarch P0004 (Mary Viola "Ola" McCormick) -> verify Child I. review flag
+        page.locator('[data-person-id="P0004"]').click(force=True)
         page.wait_for_timeout(200)
         ola_detail = page.locator("#personDetailCard").inner_text()
-        assert "1898–1984" in ola_detail
+        assert "Mary Viola" in ola_detail
         assert "Genealogist Review Flag" in ola_detail
 
-        # Test Live Relationship Calculator: P0019 (House 01 Gen 2) vs P0028 (House 02 Gen 3) -> 1st Cousin once removed
-        page.select_option("#calcPersonA", "P0019")
-        page.select_option("#calcPersonB", "P0028")
+        # Test Live Relationship Calculator (Cross-House):
+        # P0018 (John Willie Carmichael, House 01) vs P0257 (William "Cookie Boy" McCormick, House 03)
+        page.select_option("#calcPersonA", "P0018")
+        page.select_option("#calcPersonB", "P0257")
         page.click("#calcRelationshipBtn")
         page.wait_for_function(
             "() => (document.getElementById('calcPrimaryLabel')?.textContent || '').includes('1st Cousin once removed')",
@@ -218,30 +231,44 @@ def test_pr97_family_tree_portal_renders_filters_calculates_and_has_zero_overflo
         assert "Mary Viola" in calc_text
         assert "Plain-English Glossary" in calc_text
 
+        # Test Live Relationship Calculator (Cross-Branch across all 25 pages while extended toggle is OFF):
+        # P0018 (House 01) vs P0706 (Ernest Linwood Thompson Jr., Sarah / Thompson lineage) -> 2nd Cousin via Roderick & Dillie Gaddy
+        page.select_option("#calcPersonA", "P0018")
+        page.select_option("#calcPersonB", "P0706")
+        page.click("#calcRelationshipBtn")
+        page.wait_for_function(
+            "() => (document.getElementById('calcPrimaryLabel')?.textContent || '').includes('2nd Cousin')",
+            timeout=6000,
+        )
+        cross_calc_text = page.locator("#calcResultCard").inner_text()
+        assert "2nd Cousin" in cross_calc_text
+        assert "Roderick McCormick" in cross_calc_text
+
         # Test House Filter + Search
         page.select_option("#treeHouseFilter", "HOUSE-01")
         page.wait_for_timeout(350)
-        assert page.locator('[data-person-id="P0019"]').count() == 1
-        assert page.locator('[data-person-id="P0026"]').count() == 0
+        assert page.locator('[data-person-id="P0058"]').count() == 1
+        assert page.locator('[data-person-id="P0008"]').count() == 0
 
         page.click("#treeResetFiltersBtn")
         page.wait_for_timeout(350)
-        page.fill("#treeSearchInput", "Vance")
+        page.fill("#treeSearchInput", "Whitehead")
         page.wait_for_timeout(350)
-        assert page.locator('[data-person-id="P0020"]').count() == 1
+        assert page.locator('[data-person-id="P0032"]').count() == 1
 
-        # Test Reference Branch toggle reveals P0001
+        # Test Extended Roderick & Dillie Gaddy Lineage toggle reveals P0001 & P0002
         page.click("#treeResetFiltersBtn")
         page.wait_for_timeout(350)
         page.check("#toggleReferenceBranches")
         page.wait_for_selector('[data-person-id="P0001"]', timeout=6000)
         assert page.locator('[data-person-id="P0001"]').count() == 1
+        assert page.locator('[data-person-id="P0002"]').count() == 1
 
         # Reset view & capture screenshot
         page.uncheck("#toggleReferenceBranches")
         page.wait_for_timeout(350)
         page.screenshot(
-            path=str(SCREENSHOTS_DIR / f"pr97_family_tree_{vp_name}.png"),
+            path=str(SCREENSHOTS_DIR / f"pr100_family_tree_{vp_name}.png"),
             full_page=True,
         )
 

@@ -453,7 +453,7 @@ class FamilyTreeService:
         house_name = (
             _HOUSE_NAME_BY_CODE.get(house_code)
             if h_num is not None
-            else ("Founding Spine" if house_code == "FOUNDERS" else "Historical Reference Branch")
+            else ("Founding Spine" if house_code == "FOUNDERS" else "Roderick & Dillie Gaddy Extended Lineage")
         )
         crest_path = (
             _HOUSE_CREST_BY_CODE.get(house_code, "/static/assets/crests/mccormick_crest.jpg")
@@ -595,13 +595,8 @@ class FamilyTreeService:
                 if r.person_a_id in visible_ids and r.person_b_id in visible_ids
             ]
 
-            # Build per-person immediate links across the full (reference-filtered) graph for Person Detail Card
-            base_ids = {p["person_id"] for p in base_people}
-            all_rels_in_scope = [
-                self._serialize_relationship(r)
-                for r in all_rel_rows
-                if r.person_a_id in base_ids and r.person_b_id in base_ids
-            ]
+            # Build per-person immediate links across the full 25-page graph for Person Detail Card & Relationship Calculator
+            all_rels_serialized = [self._serialize_relationship(r) for r in all_rel_rows]
 
             house_counts: Dict[str, int] = {}
             for p in all_serialized:
@@ -611,7 +606,7 @@ class FamilyTreeService:
                 {
                     "house_id": "FOUNDERS",
                     "house_num": 0,
-                    "house_name": "Founding Pair (Mary Viola & William F. McCormick)",
+                    "house_name": 'Founding Pair (Mary Viola "Ola" & William Fletcher McCormick)',
                     "member_count": house_counts.get("FOUNDERS", 0),
                     "crest_asset_path": "/static/assets/crests/mccormick_crest.jpg",
                     "history_url": "/community/heritage",
@@ -641,8 +636,8 @@ class FamilyTreeService:
                 "reference_branch_count": reference_count,
                 "people": matched_people,
                 "relationships": visible_rels,
-                "catalog_people": all_serialized if include_reference else base_people,
-                "catalog_relationships": all_rels_in_scope,
+                "catalog_people": all_serialized,
+                "catalog_relationships": all_rels_serialized,
                 "houses": houses_summary,
                 "surnames": distinct_surnames,
                 "counts": {
@@ -966,7 +961,7 @@ class FamilyTreeService:
 
             # 5. Extended multi-hop married-in path (e.g., two spouses married into two cousin lines)
             ext_path = self._shortest_kinship_path(
-                clean_a, clean_b, parents_of, children_of, spouses_of, max_hops=8
+                clean_a, clean_b, parents_of, children_of, spouses_of, max_hops=14
             )
             if ext_path is not None:
                 hops = len(ext_path)
