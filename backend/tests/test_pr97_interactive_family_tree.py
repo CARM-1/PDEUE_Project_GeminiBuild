@@ -173,32 +173,33 @@ def test_living_member_privacy_guard_suppresses_living_dates_and_preserves_decea
 
     by_id = {p["person_id"]: p for p in data["people"]}
 
-    # Deceased founding ancestor (Mary Viola "Ola" McCormick) displays birth_year–death_year
-    ola = by_id["P0004"]
-    assert ola["is_deceased"] is True
-    assert ola["birth_year"] == 1898
-    assert ola["death_year"] == 1984
-    assert ola["life_span"] == "1898–1984"
-    assert ola["privacy_protected"] is False
+    # Deceased dated ancestor (Arvell "Son" McCormick, P0007) displays birth_year–death_year (1895–1975)
+    arvell = by_id["P0007"]
+    assert arvell["is_deceased"] is True
+    assert arvell["birth_year"] == 1895
+    assert arvell["death_year"] == 1975
+    assert arvell["life_span"] == "1895–1975"
+    assert arvell["privacy_protected"] is False
 
-    # Living member (P0019 James R. Carmichael Jr. has birth_year=1948 in raw DB/seed!)
-    # Server MUST suppress birth_year, death_year, life_span, and all contact fields
-    with svc._session_factory() as db:
-        raw_p19 = db.get(FamilyTreePersonModel, "P0019")
-        assert raw_p19 is not None and raw_p19.birth_year == 1948
+    # Deceased dated House 01 ancestor (John Willie Carmichael, P0018) displays 1918–1949
+    jwc = by_id["P0018"]
+    assert jwc["is_deceased"] is True
+    assert jwc["birth_year"] == 1918
+    assert jwc["death_year"] == 1949
+    assert jwc["life_span"] == "1918–1949"
 
-    living = by_id["P0019"]
+    # Living member in seed (William Vincent Carmichael, P0058) has birth_year/death_year suppressed
+    living = by_id["P0058"]
     assert living["is_deceased"] is False
     assert living["birth_year"] is None
     assert living["death_year"] is None
     assert living["life_span"] == ""
     assert living["privacy_protected"] is True
     assert living["surname"] == "Carmichael"
-    assert living["suffix"] == "Jr."
     for forbidden_key in FORBIDDEN_LIVING_OUTPUT_KEYS:
         assert forbidden_key not in living
 
-    # Living member with accidental contact/date text in bio_notes gets scrubbed on read
+    # Living member with birth_year stored in DB + accidental contact/date text in bio_notes gets scrubbed on read
     created = svc.create_person(
         full_name="Jordan Vance",
         surname="Vance Jr",
@@ -210,6 +211,9 @@ def test_living_member_privacy_guard_suppresses_living_dates_and_preserves_decea
         actor_role="CHIEF_ADMIN",
         actor_id="CHIEF_ADMINISTRATOR",
     )
+    with svc._session_factory() as db:
+        raw_created = db.get(FamilyTreePersonModel, created["person_id"])
+        assert raw_created is not None and raw_created.birth_year == 1992
     assert created["birth_year"] is None
     assert created["privacy_protected"] is True
     assert created["surname"] == "Vance"
@@ -233,11 +237,11 @@ def test_living_member_privacy_guard_suppresses_living_dates_and_preserves_decea
     assert no_death_year["birth_year"] is None
     assert no_death_year["privacy_protected"] is True
 
-    # Reference branch hidden by default, shown when include_reference=True
+    # Extended Roderick & Dillie Gaddy branch hidden from default canvas, shown when include_reference=True
     default_view = svc.get_tree_data(include_reference=False)
     default_ids = {p["person_id"] for p in default_view["people"]}
     assert "P0001" not in default_ids
-    assert default_view["reference_branch_count"] >= 3
+    assert default_view["reference_branch_count"] >= 200
     assert "P0004" in default_ids
 
 
@@ -250,6 +254,18 @@ def test_relationship_calculator_bloodline_spouse_married_in_and_disconnected(
     tmp_path: pathlib.Path,
 ) -> None:
     svc = _make_isolated_tree_service(tmp_path)
+    all_people = svc.get_tree_data(include_reference=True)["people"]
+    by_nh = {(p["full_name"], p["house_id"]): p["person_id"] for p in all_people}
+
+    bertha = "P0006"
+    arvell = "P0007"
+    tony = "P0008"
+    jwc = by_nh[("John Willie Carmichael", "HOUSE-01")]  # House 01 Gen 2
+    james_willie = by_nh[("James Willie Carmichael", "HOUSE-01")]  # House 01 Gen 3
+    gladys = by_nh[("Gladys Bowens", "HOUSE-01")]  # Spouse of John Willie Carmichael
+    margaret_k = by_nh[("Margaret McCormick Kelley", "HOUSE-03")]  # House 03 Gen 2
+    cookie_boy = by_nh[('William "Cookie Boy" McCormick', "HOUSE-03")]  # House 03 Gen 3
+    michael_h3 = by_nh[("Michael McCormick", "HOUSE-03")]  # House 03 Gen 4
 
     # Same person
     same = svc.compute_relationship("P0004", "P0004")
@@ -262,65 +278,75 @@ def test_relationship_calculator_bloodline_spouse_married_in_and_disconnected(
     assert spouse["via_marriage"] is True
 
     # Parent / Child
-    pc = svc.compute_relationship("P0004", "P0006")
+    pc = svc.compute_relationship("P0004", bertha)
     assert pc["a_to_b_label"] == "Parent"
     assert pc["b_to_a_label"] == "Child"
     assert pc["a_steps"] == 0 and pc["b_steps"] == 1
 
     # Grandparent / Grandchild
-    gp = svc.compute_relationship("P0004", "P0019")
+    gp = svc.compute_relationship("P0004", jwc)
     assert gp["a_to_b_label"] == "Grandparent"
     assert gp["b_to_a_label"] == "Grandchild"
     assert gp["a_steps"] == 0 and gp["b_steps"] == 2
 
     # Great-Grandparent / Great-Grandchild
-    ggp = svc.compute_relationship("P0004", "P0022")
+    ggp = svc.compute_relationship("P0004", james_willie)
     assert ggp["a_to_b_label"] == "Great-Grandparent"
     assert ggp["b_to_a_label"] == "Great-Grandchild"
     assert ggp["a_steps"] == 0 and ggp["b_steps"] == 3
 
-    # Sibling (shares both Mary Viola & William F. McCormick)
-    sib = svc.compute_relationship("P0006", "P0008")
+    # Sibling (shares both Mary Viola & William Fletcher McCormick)
+    sib = svc.compute_relationship(bertha, tony)
     assert sib["primary_label"] == "Sibling"
     assert sib["a_steps"] == 1 and sib["b_steps"] == 1
     assert {c["person_id"] for c in sib["common_ancestors"]} == {"P0004", "P0005"}
 
     # Aunt / Uncle & Niece / Nephew
-    aunt = svc.compute_relationship("P0006", "P0026")
+    aunt = svc.compute_relationship(bertha, margaret_k)
     assert aunt["a_to_b_label"] == "Aunt / Uncle"
     assert aunt["b_to_a_label"] == "Niece / Nephew"
     assert aunt["a_steps"] == 1 and aunt["b_steps"] == 2
 
     # 1st Cousin
-    c1 = svc.compute_relationship("P0019", "P0026")
+    c1 = svc.compute_relationship(jwc, margaret_k)
     assert c1["primary_label"] == "1st Cousin"
     assert c1["a_steps"] == 2 and c1["b_steps"] == 2
     assert {c["person_id"] for c in c1["common_ancestors"]} == {"P0004", "P0005"}
 
     # 2nd Cousin
-    c2 = svc.compute_relationship("P0022", "P0028")
+    c2 = svc.compute_relationship(james_willie, cookie_boy)
     assert c2["primary_label"] == "2nd Cousin"
     assert c2["a_steps"] == 3 and c2["b_steps"] == 3
 
     # 1st Cousin once removed
-    c1r1 = svc.compute_relationship("P0019", "P0028")
+    c1r1 = svc.compute_relationship(jwc, cookie_boy)
     assert c1r1["primary_label"] == "1st Cousin once removed"
     assert c1r1["a_steps"] == 2 and c1r1["b_steps"] == 3
     assert "removed" in c1r1["glossary_definition"].lower()
 
     # 1st Cousin twice removed
-    c1r2 = svc.compute_relationship("P0019", "P0029")
+    c1r2 = svc.compute_relationship(jwc, michael_h3)
     assert c1r2["primary_label"] == "1st Cousin twice removed"
     assert c1r2["a_steps"] == 2 and c1r2["b_steps"] == 4
 
-    # Married-in connection (Eleanor Vance Carmichael P0020 married to P0019, 1st Cousin of P0026)
-    married_in = svc.compute_relationship("P0020", "P0026")
+    # Married-in connection (Gladys Bowens married to John Willie Carmichael, 1st Cousin of Margaret Kelley)
+    married_in = svc.compute_relationship(gladys, margaret_k)
     assert married_in["relationship_kind"] == "MARRIED_IN"
     assert "by marriage" in married_in["primary_label"].lower()
     assert married_in["via_marriage"] is True
 
-    # Disconnected Historical Reference Branch (Roderick McCormick P0001 vs Ola P0004)
-    disc = svc.compute_relationship("P0001", "P0004")
+    # Disconnected Unlinked Archival Record fallback
+    unlinked = svc.create_person(
+        full_name="Unlinked Archival Record",
+        surname="McCormick",
+        house_id="REFERENCE",
+        generation=0,
+        is_deceased=True,
+        is_reference_branch=True,
+        actor_role="CHIEF_ADMIN",
+        actor_id="CHIEF_ADMINISTRATOR",
+    )
+    disc = svc.compute_relationship(unlinked["person_id"], "P0004")
     assert disc["relationship_kind"] == "DISCONNECTED"
     assert disc["primary_label"] == "No shared recorded bloodline ancestor"
     assert disc["common_ancestors"] == []
@@ -338,6 +364,14 @@ def test_scoped_genealogist_and_chief_admin_tree_mutations_403_and_audit(
     svc = _make_isolated_tree_service(tmp_path)
     monkeypatch.setattr("app.api.v1.social_plane_router.get_family_tree_service", lambda: svc)
 
+    all_people = svc.get_tree_data(include_reference=True)["people"]
+    by_nh = {(p["full_name"], p["house_id"]): p["person_id"] for p in all_people}
+    h1_member_id = by_nh[("John Willie Carmichael", "HOUSE-01")]
+    h3_member_id = by_nh[("Margaret McCormick Kelley", "HOUSE-03")]
+    h3_cookie_id = by_nh[('William "Cookie Boy" McCormick', "HOUSE-03")]
+    h1_p2 = by_nh[("James Willie Carmichael", "HOUSE-01")]
+    h1_p3 = by_nh[("Doris Lee Carmichael", "HOUSE-01")]
+
     audit = get_governance_audit_log()
     before_count = len(audit.list_events(limit=500))
 
@@ -348,7 +382,9 @@ def test_scoped_genealogist_and_chief_admin_tree_mutations_403_and_audit(
         tree_payload = tree_resp.json()
         assert all(p["house_id"] == "HOUSE-01" for p in tree_payload["people"])
 
-        rel_resp = client.get("/api/v1/community/heritage/tree/relationship?person_a=P0019&person_b=P0028")
+        rel_resp = client.get(
+            f"/api/v1/community/heritage/tree/relationship?person_a={h1_member_id}&person_b={h3_cookie_id}"
+        )
         assert rel_resp.status_code == 200
         assert rel_resp.json()["primary_label"] == "1st Cousin once removed"
 
@@ -391,9 +427,9 @@ def test_scoped_genealogist_and_chief_admin_tree_mutations_403_and_audit(
             headers=gen_h3_headers,
             json={
                 "rel_type": "parent",
-                "person_a_id": "P0032",
+                "person_a_id": h3_member_id,
                 "person_b_id": created_person["person_id"],
-                "notes": "House 03 Gen 3 -> Gen 4",
+                "notes": "House 03 Gen 2 -> Gen 4",
             },
         )
         assert rel_ok.status_code == 201, rel_ok.text
@@ -408,7 +444,7 @@ def test_scoped_genealogist_and_chief_admin_tree_mutations_403_and_audit(
             assert cross_create.status_code == 403, f"Expected 403 on {forbidden_house}"
 
         cross_patch = client.patch(
-            "/api/v1/community/heritage/tree/person/P0019",
+            f"/api/v1/community/heritage/tree/person/{h1_member_id}",
             headers=gen_h3_headers,
             json={"bio_notes": "Attempted cross-house edit"},
         )
@@ -417,7 +453,7 @@ def test_scoped_genealogist_and_chief_admin_tree_mutations_403_and_audit(
         cross_rel = client.post(
             "/api/v1/community/heritage/tree/relationship",
             headers=gen_h3_headers,
-            json={"rel_type": "spouse", "person_a_id": "P0032", "person_b_id": "P0019"},
+            json={"rel_type": "spouse", "person_a_id": h3_member_id, "person_b_id": h1_member_id},
         )
         assert cross_rel.status_code == 403
 
@@ -446,7 +482,7 @@ def test_scoped_genealogist_and_chief_admin_tree_mutations_403_and_audit(
             )
             assert r_post.status_code == 403, f"Role {denied_role!r} must receive 403 on POST /person"
             r_patch = client.patch(
-                "/api/v1/community/heritage/tree/person/P0019",
+                f"/api/v1/community/heritage/tree/person/{h1_member_id}",
                 headers=hdrs,
                 json={"bio_notes": "Blocked patch"},
             )
@@ -454,7 +490,7 @@ def test_scoped_genealogist_and_chief_admin_tree_mutations_403_and_audit(
             r_rel = client.post(
                 "/api/v1/community/heritage/tree/relationship",
                 headers=hdrs,
-                json={"rel_type": "spouse", "person_a_id": "P0022", "person_b_id": "P0023"},
+                json={"rel_type": "spouse", "person_a_id": h1_p2, "person_b_id": h1_p3},
             )
             assert r_rel.status_code == 403, f"Role {denied_role!r} must receive 403 on POST /relationship"
 
