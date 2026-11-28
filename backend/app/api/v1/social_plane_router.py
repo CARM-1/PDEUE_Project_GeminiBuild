@@ -310,7 +310,7 @@ def get_family_home_hub(
     x_actor_id: Optional[str] = Header(None, alias="X-Actor-ID"),
     x_house_id: Optional[str] = Header(None, alias="X-House-ID"),
 ):
-    """Serve the calm, senior-friendly 4-card Central Family Home Hub."""
+    """Serve the welcoming, senior-friendly 4-card Central Family Home Hub."""
     plane_cfg = get_plane_config()
     doorways = plane_cfg["doorways"]
     role, actor_id, claimed_house = _resolve_social_caller(

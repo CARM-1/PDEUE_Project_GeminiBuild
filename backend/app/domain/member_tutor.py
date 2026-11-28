@@ -779,7 +779,7 @@ def _build_deterministic_tutor_draft(
         )
         analogy = (
             "Picture a waterwheel with a $25,000 millpond: once the pond is full, extra rainwater spills cleanly "
-            "into a calm reservoir (swept bank cash earning 4.5% APY) without flooding the wheel."
+            "into a steady reservoir (swept bank cash earning 4.5% APY) without flooding the wheel."
         )
         return {
             "content": content,

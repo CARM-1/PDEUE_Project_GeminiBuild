@@ -339,7 +339,7 @@ SEEDED_HOUSES: Tuple[Dict[str, Any], ...] = (
         "founding_branch": "McCormick Stock · Bordure Invected Vert (Green)",
         "history_body": (
             "Distinguished by a forest-green invected bordure around the foundational McCormick shield, House 05 "
-            "celebrates lifelong learning, plain-English financial literacy, and calm long-term planning."
+            "celebrates lifelong learning, plain-English financial literacy, and disciplined long-term planning."
         ),
         "milestones": ["Completed 12 consecutive weeks of family learning seminars"],
     },
@@ -451,7 +451,7 @@ SEEDED_SURNAMES: Tuple[Tuple[str, int, int, str, str], ...] = (
         1,
         2,
         "Founding Pillar · Steadfast resilience, scholarship, and kinship",
-        "Co-founding lineage of the FUTURE Enclave. Celebrated for calm leadership, deep devotion to family education, and passing down generational harmony without fear.",
+        "Co-founding lineage of the FUTURE Enclave. Celebrated for steady leadership, deep devotion to family education, and passing down generational harmony without fear.",
     ),
     ("Vance", 0, 1, "Allied Lineage · House 01 stewardship & advisory branch", "Longstanding allied family line contributing mentorship, household organization, and generational recordkeeping to House 01."),
     ("Sinclair", 0, 1, "Allied Lineage · Coastal navigators and chronicle keepers", "Connected by marriage into the Carmichael pillar, the Sinclair branch brings a heritage of archival storytelling and steady counsel."),
@@ -460,7 +460,7 @@ SEEDED_SURNAMES: Tuple[Tuple[str, int, int, str, str], ...] = (
     ("MacLeod", 0, 3, "Allied Lineage · Hospitality and hearth-keeping branch", "Rooted in House 03, the MacLeod family line anchors annual autumn reunions and preserves traditional family recipes."),
     ("Douglas", 0, 3, "Allied Lineage · Builders and rural homesteaders", "Married into House 03, the Douglas lineage contributed skilled carpentry, land stewardship, and warm southern hospitality."),
     ("Graham", 0, 4, "Allied Lineage · Craftsmanship and railway heritage", "Part of House 04, the Graham relatives share stories of mechanics, engineers, and dependable craftsmanship passed down to younger cousins."),
-    ("Henderson", 0, 4, "Allied Lineage · Educators and community librarians", "Linked with House 04, the Henderson line champions reading literacy, local history preservation, and calm practical advice."),
+    ("Henderson", 0, 4, "Allied Lineage · Educators and community librarians", "Linked with House 04, the Henderson line champions reading literacy, local history preservation, and steady practical advice."),
     ("Morrison", 0, 4, "Allied Lineage · Mariners and coastal trades", "Allied with House 04, the Morrison branch brings maritime discipline, weather wisdom, and tight-knit cousin friendships."),
     ("Wallace", 0, 5, "Allied Lineage · Endurance and plain-spoken integrity", "Rooted in House 05, the Wallace family stands for clear speech, honoring commitments, and encouraging apprentices."),
     ("Fraser", 0, 5, "Allied Lineage · Gardeners, botanists, and teachers", "Connected to House 05, the Fraser line keeps family seed-saving traditions and plain-English study guides thriving."),
@@ -477,7 +477,7 @@ SEEDED_SURNAMES: Tuple[Tuple[str, int, int, str, str], ...] = (
     ("MacKenzie", 0, 10, "Allied Lineage · Bridge builders and civil engineers", "Rooted in House 10, the MacKenzie branch honors relatives who designed roads, clinics, and lasting civic works."),
     ("Paterson", 0, 10, "Allied Lineage · Educators and choir directors", "Allied to House 10, the Paterson relatives unite generations through song, teaching, and milestone dedications."),
     ("Johnston", 0, 11, "Allied Lineage · Coastal travelers and family connectors", "Part of House 11, the Johnston branch keeps far-away relatives linked through regular calls and holiday visits."),
-    ("Crawford", 0, 11, "Allied Lineage · Aviators, technicians, and problem-solvers", "Connected to House 11, the Crawford relatives bring curiosity, technical reliability, and calm troubleshooting."),
+    ("Crawford", 0, 11, "Allied Lineage · Aviators, technicians, and problem-solvers", "Connected to House 11, the Crawford relatives bring curiosity, technical reliability, and steady troubleshooting."),
     ("Boyd", 0, 11, "Allied Lineage · Storytelling elders and cooks", "Allied with House 11, the Boyd family keeps Sunday dinner fellowship and warm cross-generational conversation alive."),
     ("Montgomery", 0, 12, "Allied Lineage · Reunion planners and welcome hosts", "Rooted in House 12, the Montgomery relatives coordinate milestone welcomes for births, marriages, and graduations."),
     ("Elliott", 0, 12, "Allied Lineage · Harvest stewards and gratitude chroniclers", "Allied to House 12, the Elliott line preserves the annual family gratitude ledger and welcomes every new relative warmly."),
@@ -506,7 +506,7 @@ JITSI_ROOM_PRESETS: Tuple[Dict[str, Any], ...] = (
         "label": "1-on-1 Mentor Check-In",
         "room_slug": "PDEUEMentorCheckInParlor",
         "embed_url": "https://meet.jit.si/PDEUEMentorCheckInParlor",
-        "description": "Calm one-on-one room for walking through PDEUE University guides or family questions.",
+        "description": "Welcoming one-on-one room for walking through PDEUE University guides or family questions.",
         "kind": "MENTOR",
     },
 )

@@ -4,7 +4,7 @@ Enforces PDEUE's non-negotiable AI Authority Envelope across all ``BaseLLMClient
 adapters and role-scoped assistants:
 
 1. ``unilateral_execution = False`` invariant on every response and Action Card.
-2. Input prompt-injection / jailbreak detection with calm, logged refusals.
+2. Input prompt-injection / jailbreak detection with clear, logged refusals.
 3. Role-scope & Active-Hat boundary protection (Directive R-06).
 4. Cross-member data & Directive R-12 masking isolation.
 5. Secret & ADR-011 banking-credential exfiltration prevention.

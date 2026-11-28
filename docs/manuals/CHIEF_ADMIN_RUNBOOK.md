@@ -9,7 +9,7 @@
 
 ## 1. Plain-English Overview & Start-of-Watch Checklist
 
-**In Plain English:** Think of `/dashboard` as the bridge of a generational family ship. Today PDEUE sails in **Phase I Paper Mode** (`HOLD_OBSERVATIONS_ONLY`)—testing live market winds with zero real bank dollars connected so the family builds calm operational habits before **Phase II** activates bank custody in **IFAS** (`accounting.narratix.io`) and our **Pay-it-Forward (`FSAP (Phase II)`)** debt-relief pool. Even as Founder and Chief Administrator, you wear one Active Hat at a time (`Directive R-06`), treat blank or pending figures as unknown rather than zero, and never let AI recommendations execute without deliberate human confirmation (`unilateral_execution = False`).
+**In Plain English:** Think of `/dashboard` as the bridge of a generational family ship. Today PDEUE sails in **Phase I Paper Mode** (`HOLD_OBSERVATIONS_ONLY`)—testing live market winds with zero real bank dollars connected so the family builds steady operational habits before **Phase II** activates bank custody in **IFAS** (`accounting.narratix.io`) and our **Pay-it-Forward (`FSAP (Phase II)`)** debt-relief pool. Even as Founder and Chief Administrator, you wear one Active Hat at a time (`Directive R-06`), treat blank or pending figures as unknown rather than zero, and never let AI recommendations execute without deliberate human confirmation (`unilateral_execution = False`).
 
 *(Technical & Governance Spec — Start-of-Watch Procedure):*
 1. **Verify Identity & Active Hat (`Directive R-06`):** Enter `/dashboard` through the approved identity flow and confirm the Active-Hat pill (`Active Hat: CHIEF_ADMIN` for live command, or `CHIEF_ADMIN_DEPUTY (READ-ONLY)` for shadow observation). Switching from `CHIEF_ADMINISTRATOR` to `PERSONAL_SCMA` (`/member`) explicitly revokes the prior executive hat session and logs an `ACTIVE_HAT_SWITCH` event.
@@ -72,7 +72,7 @@
 
 ## 3. Surgical Containment vs. Global Emergency Kill Switch (`Directive R-04`)
 
-**In Plain English:** Not every problem calls for shutting down the whole ship. If one cabin springs a leak, you close that cabin's watertight door (`Surgical Single-SCMA / Single-House Freeze`) so the other 11 Houses continue calmly without disruption. You pull the big red **`Global Emergency Kill Switch (Directive R-04)`** only when a systemic threat—like a venue outage, ledger mismatch, or compromised key—could endanger capital across multiple Houses.
+**In Plain English:** Not every problem calls for shutting down the whole ship. If one cabin springs a leak, you close that cabin's watertight door (`Surgical Single-SCMA / Single-House Freeze`) so the other 11 Houses continue steadily without disruption. You pull the big red **`Global Emergency Kill Switch (Directive R-04)`** only when a systemic threat—like a venue outage, ledger mismatch, or compromised key—could endanger capital across multiple Houses.
 
 | Control Dimension | Surgical Single-SCMA / Single-House Freeze (Tab 2) | Global Emergency Kill Switch (`Directive R-04` Header / Tab 4) |
 | :--- | :--- | :--- |
@@ -89,7 +89,7 @@
 
 ## 4. `AUTH-01` Through `AUTH-04` Action Card Ratification & FBO Custodial Sweeps (`$25,000` Float Cap)
 
-**In Plain English:** Every consequential action follows four calm checkpoints—who asked, who double-checked, did the computer's safety rules pass, and is the final receipt written down. Meanwhile, any excess cash above our `$25,000` on-venue working drawer sweeps cleanly out to our separate IFAS banking home via signed notices, never by storing bank passwords inside PDEUE.
+**In Plain English:** Every consequential action follows four structured checkpoints—who asked, who double-checked, did the computer's safety rules pass, and is the final receipt written down. Meanwhile, any excess cash above our `$25,000` on-venue working drawer sweeps cleanly out to our separate IFAS banking home via signed notices, never by storing bank passwords inside PDEUE.
 
 *(Technical & Governance Spec):*
 - **AUTH-01 (Authenticated Initiation):** Authorized human initiates a typed Action Card binding actor, Active Hat, target, parameters, timestamp, and evidence digest. AI output alone never satisfies `AUTH-01`.
@@ -137,7 +137,7 @@ Every `CHIEF_ADMIN_DEPUTY` candidate must walk through and pass all three operat
 
 ## 6. Routine Cadence, Incident Playbooks & Prohibited Shortcuts
 
-**In Plain English:** Calm daily rhythm prevents emergencies. Reconcile every day, fix errors with transparent compensating entries rather than silent edits, and never let urgency blur financial and technical roles.
+**In Plain English:** A steady daily rhythm prevents emergencies. Reconcile every day, fix errors with transparent compensating entries rather than silent edits, and never let urgency blur financial and technical roles.
 
 *(Technical & Governance Spec):*
 - **Daily Cadence:** Watch start (identity, UTC, `Gate G1`, `R-04`, governance stage) → exception queue & reconciliation check → `AUTH-01`–`AUTH-04` verification before any approval → daily reconciliation (venue positions vs. internal book, 87/10/3 + `ADR-012` HWM conservation, `$25,000` float cap, contiguous `ADR-011` outbox sequences) → watch-end handoff naming every uncertainty explicitly.
@@ -159,7 +159,7 @@ PDEUE governance operates through **three explicit, Chief-Administrator-controll
 
 ### Stage 1 — `EXECUTIVE_COMMAND` (Default Fledgling & SHTF Mode)
 * **Why it is the default:** Every fresh deployment starts fail-closed in `EXECUTIVE_COMMAND` while the family establishes operational discipline, completes PDEUE University literacy certification, and proves out custody and underwriting rails.
-* **Operational effect:** Voting and veto controls are completely stripped from all 12 House desks (`/lineage/house/{id}` displays a calm **"Executive Command Mode Active — Voting Dormant"** status badge), and all voting or petition mutation endpoints reject requests fail-closed (`HTTP 403`, `EXECUTIVE_COMMAND_MODE_ACTIVE`).
+* **Operational effect:** Voting and veto controls are completely stripped from all 12 House desks (`/lineage/house/{id}` displays a clear **"Executive Command Mode Active — Voting Dormant"** status badge), and all voting or petition mutation endpoints reject requests fail-closed (`HTTP 403`, `EXECUTIVE_COMMAND_MODE_ACTIVE`).
 * **Open study remains open:** Family members and future successors (`CHIEF_ADMIN_DEPUTY`) can still openly study the entire constitutional progression in `/companion` and these canonical manuals without seeing premature voting buttons, secrets, or live balances.
 
 ### Stage 2 — `ADVISORY_PETITION_FILTER` (Dormant Advisory Senate)

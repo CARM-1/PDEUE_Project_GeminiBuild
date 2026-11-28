@@ -3,11 +3,11 @@
 **College:** School of Sovereign Lineage & Heritage (Class H Officers `H1`–`H2` & `HOUSE_GENEALOGIST`)  
 **Audience:** `H1` House Secretary, `H2` House Head, and `HOUSE_GENEALOGIST` (House Historian & Admissions Archivist)  
 **Workspaces:** `/lineage/house/{id}?role=H1`, `/lineage/house/{id}?role=H2`, and `/community/heritage` (Hall of Arms & Curation Studio)  
-**Mission:** Preserve calm branch-level stewardship across the 12 Family Houses, safeguard subordinate accounts with surgical circuit breakers, uphold three-stage constitutional governance, and curate authentic Carmichael–McCormick lineage history with zero cross-house leakage or financial commingling.
+**Mission:** Preserve steady branch-level stewardship across the 12 Family Houses, safeguard subordinate accounts with surgical circuit breakers, uphold three-stage constitutional governance, and curate authentic Carmichael–McCormick lineage history with zero cross-house leakage or financial commingling.
 
 ---
 
-## 1. Plain-English Overview: Three Distinct Lineage Offices, One Calm Standard
+## 1. Plain-English Overview: Three Distinct Lineage Offices, One Clear Standard
 
 **In Plain English:** Today PDEUE operates in **Phase I Paper Mode**—a zero-risk proving ground observing live public markets with zero connected bank accounts and zero real family dollars at risk. Real bank custody, `$25,000` venue float sweeps, and our **Pay-it-Forward (`FSAP (Phase II)`)** debt-relief pool begin strictly in **Phase II** inside our physically separate **IFAS (Independent Financial Accounting System)** at `accounting.narratix.io`.
 
@@ -135,13 +135,13 @@ Your House desk adapts dynamically to the platform's live constitutional stage s
 2. Scan the R-12 Masked Roster (`$****.**`) for any member still in `PENDING_CERTIFICATION` or `PENDING_RATIFICATION`.
 3. Review the `<progress>` literacy bars; note any apprentice below `100%`.
 4. Use `#custodial-lookup-input` to confirm exact SCMA status for any relative who asked for onboarding help, then click `#custodial-lookup-clear` when finished.
-5. Share a calm, non-financial reminder in `/community` (Family Hearth) inviting apprentices to complete PDEUE University (`/companion`)—never posting personal SCMA IDs or private disputes in public threads.
+5. Share a welcoming, non-financial reminder in `/community` (Family Hearth) inviting apprentices to complete PDEUE University (`/companion`)—never posting personal SCMA IDs or private disputes in public threads.
 
 ### 6.2 `H2` House Head Daily Watch & Stage 2/3 Petition Review
 1. Open `/lineage/house/{id}?role=H2` and verify `Active Hat: H2`, Aggregated House Capital, Average Risk Dial, and `#desk-governance-mode`.
 2. Inspect every subordinate row in the Subordinate SCMA table for unexpected status changes (`FROZEN`, halted, or anomalous risk posture).
 3. Verify `#readModelStatusBanner` shows no active `TRADING_HALTED` or `DEGRADED_RETRYING` alert.
-4. If `#desk-governance-mode` is `ADVISORY_PETITION_FILTER` or `BICAMERAL_VETO_ACTIVE`, review the active proposal ID and title inside `#bicameral`, consult your House members calmly, and cast a deliberate ballot (`#vote-aye`, `#vote-nay`, or Stage 3 `#vote-veto`), verifying `#consensus-tally` and `#vote-feedback` confirm recording.
+4. If `#desk-governance-mode` is `ADVISORY_PETITION_FILTER` or `BICAMERAL_VETO_ACTIVE`, review the active proposal ID and title inside `#bicameral`, consult your House members thoughtfully, and cast a deliberate ballot (`#vote-aye`, `#vote-nay`, or Stage 3 `#vote-veto`), verifying `#consensus-tally` and `#vote-feedback` confirm recording.
 
 ### 6.3 `HOUSE_GENEALOGIST` Monthly Archive Curation
 1. Open `/community/heritage` and review your assigned House card and linked allied surnames via `#heritageHouseFilter`.
@@ -158,7 +158,7 @@ Your House desk adapts dynamically to the platform's live constitutional stage s
   1. Open `/lineage/house/{id}?role=H2` and locate the affected relative in the Subordinate SCMA table (verify it is **not** the Founder root account).
   2. Click **Freeze Dial (0%)** (`button.freeze`) on that member's row -> confirms `Governor Clamp (0.0%)` in `#freeze-modal` and `#breaker-feedback`, immediately clamping risk to `0.00%`.
   3. Click **Cancel Orders** (`button.cancel`) on the same row -> confirms `Resting Purge` in `#cancel-modal` and `#breaker-feedback`, canceling any open orders.
-  4. Notify the member's `F2-H` Head of Household and Chief Administrator so they can coordinate calm review. Do **not** escalate to a global `Directive R-04` halt for a single-member incident; surgical containment keeps the other 11 Houses undisturbed.
+  4. Notify the member's `F2-H` Head of Household and Chief Administrator so they can coordinate a disciplined review. Do **not** escalate to a global `Directive R-04` halt for a single-member incident; surgical containment keeps the other 11 Houses undisturbed.
 - **Recovery:** Upward risk restoration is intentionally locked downward-only; only `F2-H` (within certified bounds) or Chief Administrator may restore normal parameters once cleared.
 
 ### Playbook H-E2: Cross-House `HTTP 403` Boundary Encounter
@@ -204,7 +204,7 @@ Your House desk adapts dynamically to the platform's live constitutional stage s
 
 Authorized **`H2` House Leaders** and **`HOUSE_GENEALOGIST`** historians have access to a collapsible **House Delegated Onboarding Intake & Admissions Board** panel directly on `/lineage/house/{id}` (strictly stripped from `H1` House Secretary desks and non-house roles):
 
-1. **Respecting Chief Admin Delegation Scope (`ADMIN_ONLY` / `PER_HOUSE` / `ENCLAVE_WIDE`):** When the enclave is in its fail-closed `ADMIN_ONLY` default, the panel displays a calm notice explaining that delegated intake is paused. Once the Chief Administrator enables `PER_HOUSE` (for your House) or `ENCLAVE_WIDE` on `/dashboard` Tab 4, `H2` and `HOUSE_GENEALOGIST` can submit kinship-verified dossiers (`POST /api/v1/onboarding/delegated-submit`) strictly for their own assigned `X-House-ID` (cross-house attempts fail closed `HTTP 403`).
+1. **Respecting Chief Admin Delegation Scope (`ADMIN_ONLY` / `PER_HOUSE` / `ENCLAVE_WIDE`):** When the enclave is in its fail-closed `ADMIN_ONLY` default, the panel displays a clear notice explaining that delegated intake is paused. Once the Chief Administrator enables `PER_HOUSE` (for your House) or `ENCLAVE_WIDE` on `/dashboard` Tab 4, `H2` and `HOUSE_GENEALOGIST` can submit kinship-verified dossiers (`POST /api/v1/onboarding/delegated-submit`) strictly for their own assigned `X-House-ID` (cross-house attempts fail closed `HTTP 403`).
 2. **Staged Safely in `PENDING_RATIFICATION`:** Submitting a House dossier or casting a Genealogical Admissions Board ballot (`APPROVE`, `REQUEST_PROOF`, or `REJECT` via `/board-vote`) never creates an SCMA or moves capital unilaterally. Zero banking credentials or SSNs may ever be entered (`ADR-011`—opaque `EXT-REF-...` tokens only).
 3. **Chief Admin Solo Default vs. Toggleable Two-Party Co-Sign (`TWO_PARTY_COSIGN`):** By default in Ring 1 Alpha (`CHIEF_ADMIN_SOLO`), the Chief Administrator ratifies dossiers directly. When the Chief Administrator toggles `TWO_PARTY_COSIGN` on `/dashboard` Tab 4, solo ratification fails closed (`HTTP 409`, `TWO_PARTY_COSIGN_REQUIRED`) until an authorized **`F2-H` Head of Household** for that exact House records their co-sign attestation from `/advisor` (**Pending Member Admission Co-Signs**). Once ratified, the new relative's SCMA and `CLASS_M` private allowlist login are provisioned automatically, a 48-hour invite link is issued for `/activate`, and a signed HMAC-SHA256 `MEMBER_ADMISSION_RATIFIED` event crosses to IFAS.
 

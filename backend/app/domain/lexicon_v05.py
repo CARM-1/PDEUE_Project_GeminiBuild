@@ -414,7 +414,7 @@ LEXICON_TERMS: List[Dict[str, Any]] = [
         "category": "Family & Heritage",
         "authority_ref": "PR #82 · /home · 4-Domain Air-Gap",
         "plain_english": (
-            "Your calm, easy-to-read starting page for the entire Carmichael and McCormick family space. "
+            "Your welcoming, easy-to-read starting page for the entire Carmichael and McCormick family space. "
             "It holds no dollar balances or bank information—just four clear doorways to your account, family hearth, Hall of Arms, and learning guides."
         ),
         "technical_spec": (

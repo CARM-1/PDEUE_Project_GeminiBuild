@@ -85,7 +85,7 @@ VOICE_PROFILES: Tuple[VoiceProfile, ...] = (
     VoiceProfile(
         id="mentor_m_aa",
         label="Studio Mentor: Marcus (African American Male)",
-        description="Calm, grounded family mentor cadence",
+        description="Steady, grounded family mentor cadence",
         deepgram_default_model="aura-2-orion-en",
         deepseek_default_voice="marcus",
     ),

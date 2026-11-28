@@ -6,7 +6,7 @@
 
 ## 1. What This Workspace Is (Phase I Paper Mode & Safe View)
 
-The Public Data Event Underwriting Engine (PDEUE) monitors regulated event-contract opportunities and accounts for family capital under explicit governance rules. Today the platform operates in **Phase I Paper Mode**—a calm, zero-risk flight-simulator proving ground using real market prices with zero live bank money connected. The member workspace is the narrowest and safest view of that system. It explains one member's Separate Capital Management Account (SCMA), the protections around it, and settled results. It is not a trading terminal. Viewing a candidate, asking the AI Tutor a question, testing a Shadow Paper hunch, or lowering the risk governor does not grant authority to approve a live order, move pooled capital, alter a model, or operate a service.
+The Public Data Event Underwriting Engine (PDEUE) monitors regulated event-contract opportunities and accounts for family capital under explicit governance rules. Today the platform operates in **Phase I Paper Mode**—a structured, zero-risk flight-simulator proving ground using real market prices with zero live bank money connected. The member workspace is the narrowest and safest view of that system. It explains one member's Separate Capital Management Account (SCMA), the protections around it, and settled results. It is not a trading terminal. Viewing a candidate, asking the AI Tutor a question, testing a Shadow Paper hunch, or lowering the risk governor does not grant authority to approve a live order, move pooled capital, alter a model, or operate a service.
 
 Use only your assigned identity and the link supplied by an administrator. Open `/member`; when the account selector is present, confirm that the displayed name and SCMA identifier are yours before relying on any value. A family observer may explain what is visible but must not impersonate the member or treat the screen as authority to act. Sign out, close a shared browser, and report an unexpected identity or account immediately. Never paste credentials, override tokens, private financial details, or banking data into the tutor.
 
@@ -51,7 +51,7 @@ The waterfall is deterministic, but settlement can still be pending. An order ca
 
 *(Technical note — **ADR-011 Signed Outbox & Banking Safety Wall**)*: PDEUE never asks for, stores, or exercises bank routing numbers, bank account numbers, or banking logins. Instead, the trading engine stages HMAC-SHA256 signed, sequenced accounting notices for the separate Independent Financial Accounting System (IFAS). A visible waterfall record therefore does not mean PDEUE has transferred money to a bank. Duplicate delivery is handled idempotently by sequence and signature, never by creating another settlement.
 
-## 5. Reading Positions, Activity, and Calm Safety Labels
+## 5. Reading Positions, Activity, and Clear Safety Labels
 
 The positions area may show contract, venue, side, quantity, average price, and realized or unrealized result. Treat venue prices as observations with timestamps. “Open” means economic exposure may remain. “Resting” means an order can still fill. “Partially filled” means neither the unfilled portion nor the filled exposure should be ignored. “Settled” should be supported by reconciliation, not assumed from market expiration.
 
@@ -105,7 +105,7 @@ An observer may help a member read labels, understand educational material, and 
 
 Respect household separation. Do not compare screenshots across households, export another member's data, or assemble redacted values from other signals. The least-privilege rule applies even inside a family. If care or accessibility support is required, arrange an authorized workflow rather than sharing credentials.
 
-## 8. When Something Looks Off: Calm Support Checklist
+## 8. When Something Looks Off: Clear Support Checklist
 
 For a wrong identity, unexplained balance, failed downward change, or suspicious tutor response:
 
@@ -137,7 +137,7 @@ Keep these rules visible:
 * Require exact-cent, traceable settlement evidence *(technical standard: **ADR-008**)*.
 * Remember that signed accounting notices *(technical standard: **ADR-011**)* are bookkeeping instructions for IFAS, not bank transfers.
 
-These constraints make the member portal intentionally calm and limited. Its purpose is to make stewardship understandable while keeping execution, infrastructure, and fiduciary powers with the people and controls certified to exercise them.
+These constraints make the member portal intentionally straightforward and limited. Its purpose is to make stewardship understandable while keeping execution, infrastructure, and fiduciary powers with the people and controls certified to exercise them.
 
 ## PDEUE University Curriculum Alignment
 
@@ -155,10 +155,10 @@ The University is educational, not an authority surface. Simulator outcomes neve
 
 ## 11. Three-Stage Governance Lifecycle & Family Charter
 
-Every family member and future steward is encouraged to openly study how PDEUE governance grows over time—even before voting buttons are turned on. Our governance charter is intentionally designed in **three calm, predictable stages** *(Formal Governance Reference: `EXECUTIVE_COMMAND` → `ADVISORY_PETITION_FILTER` → `BICAMERAL_VETO_ACTIVE` & emergency `SHTF` Snap-Back protocol)*:
+Every family member and future steward is encouraged to openly study how PDEUE governance grows over time—even before voting buttons are turned on. Our governance charter is intentionally designed in **three structured, predictable stages** *(Formal Governance Reference: `EXECUTIVE_COMMAND` → `ADVISORY_PETITION_FILTER` → `BICAMERAL_VETO_ACTIVE` & emergency `SHTF` Snap-Back protocol)*:
 
 1. **Stage 1 — Executive Command *(technical state: `EXECUTIVE_COMMAND`, Default Fledgling & Emergency `SHTF` Mode)*:**
-   When the platform is young (or whenever an emergency occurs), the Founder / Chief Administrator leads directly so the family can focus on learning, literacy certification, and safe compounding without premature committee friction. In this default stage, House desks display a calm **"Executive Command Mode Active — Voting Dormant"** status badge, voting buttons are hidden, and voting endpoints fail closed (`HTTP 403`).
+   When the platform is young (or whenever an emergency occurs), the Founder / Chief Administrator leads directly so the family can focus on learning, literacy certification, and safe compounding without premature committee friction. In this default stage, House desks display a clear **"Executive Command Mode Active — Voting Dormant"** status badge, voting buttons are hidden, and voting endpoints fail closed (`HTTP 403`).
 2. **Stage 2 — Advisory Petition Filter *(technical state: `ADVISORY_PETITION_FILTER`)*:**
    When the Chief Administrator determines the 12 Houses are ready to deliberate, Stage 2 unlocks advisory voting (`AYE` / `NAY`) for authorized `H2` House Leaders and seated delegates. A 75% supermajority (default **9 of 12 Houses**) stages an advisory petition (`RATIFIED_PENDING_SETTLOR`) for Chief Administrator review. Advisory petitions never move capital on their own, and the Chief Administrator retains an **Absolute Founder Veto (`VETOED_BY_FOUNDER`)**.
 3. **Stage 3 — Configurable Bicameral Veto *(technical state: `BICAMERAL_VETO_ACTIVE`)*:**
@@ -174,10 +174,10 @@ Even in Stage 2 and Stage 3, **no vote or petition may alter the family's core m
 
 ## 12. How to Sign In & Stay Safe (No Passwords, Magic Links & Lost Devices)
 
-Signing in to our private Carmichael / McCormick family platform is designed to be calm, effortless, and safe for every generation—from teens to grandparents—with **zero passwords to memorize, write on sticky notes, or accidentally leak**.
+Signing in to our private Carmichael / McCormick family platform is designed to be straightforward, effortless, and safe for every generation—from teens to grandparents—with **zero passwords to memorize, write on sticky notes, or accidentally leak**.
 
 ### Why There Is No Password (Universal 6-Digit Email Code & Magic Link)
-* **Private Family Allowlist Only:** There is no public sign-up page. Only approved family email addresses added by leadership can receive a sign-in code. If a stranger types an unknown email on `/login`, the system shows the exact same calm generic message and sends nothing.
+* **Private Family Allowlist Only:** There is no public sign-up page. Only approved family email addresses added by leadership can receive a sign-in code. If a stranger types an unknown email on `/login`, the system shows the exact same neutral generic message and sends nothing.
 * **Same Device (One-Tap Magic Link):** If you check your email on the same phone, tablet, or computer you are using right now, simply tap the one-time **Magic Link** button in your email to step straight into your family workspace.
 * **Two Devices (6-Digit Email Code):** If you open `/login` on a laptop or iPad and read your email on your phone, simply type the **6-digit code** into the code box and click **Verify 6-Digit Code & Sign In**.
 * **Built-In Safety Limits:** Every 6-digit code and Magic Link **expires after 10 minutes**, locks out after **5 wrong guesses**, and **burns permanently after one use** so nobody can reuse an old email. Sign-in emails never contain dollar balances, bank details, or SCMA account numbers (`Directive R-12`).
@@ -192,21 +192,21 @@ Signing in to our private Carmichael / McCormick family platform is designed to 
 * **One Active Hat at a Time (`Directive R-06`):** Routine officers (`H1`, `H2`, `HOUSE_GENEALOGIST`, `F1`, `F2-H`, `F2-A`, `T1`, `T2`) also use the 8-hour / 30-minute officer session window. If a relative serves in an officer seat as well as holding a personal account, they switch Active Hats explicitly so personal savings and officer duties never blend.
 
 ### What to Do If You Lose Your Phone or Laptop
-1. **Stay Calm—Your Funds Are Protected:** PDEUE never stores banking logins or bank routing numbers (`ADR-011`), your `/member` vault auto-locks after 2 hours of inactivity, and no member can unilaterally move pooled capital or bypass withdrawal tiers.
+1. **Rest Assured—Your Funds Are Protected:** PDEUE never stores banking logins or bank routing numbers (`ADR-011`), your `/member` vault auto-locks after 2 hours of inactivity, and no member can unilaterally move pooled capital or bypass withdrawal tiers.
 2. **Contact the Chief Administrator Immediately:** Call or message the Chief Administrator (or alert your `F2-H` Head of Household / `H2` House Leader to escalate right away).
 3. **Instant 1-Click Session Revocation:** From `/dashboard` Tab 4 (**Active Family Sessions & Lost-Device Revocation**), the Chief Administrator clicks **Revoke Device** on your lost phone or laptop. That device's session cookie is invalidated immediately (forced back to `/login`) and logged permanently in `GovernanceAuditLog`.
 4. **Sign Back In Safely on Your New Device:** Once your new phone or computer is ready, visit `/login`, request a fresh 6-digit code to your family email, and continue right where you left off.
 
 ## 13. Activating Your Family Invite & Two-Party Admission Governance
 
-Every new family member joins the Carmichael & McCormick platform through a calm, invitation-only process—there is never a public sign-up form and never a password to memorize.
+Every new family member joins the Carmichael & McCormick platform through a welcoming, invitation-only process—there is never a public sign-up form and never a password to memorize.
 
 ### How to Activate Your 48-Hour Invite (`/activate`)
 1. **Step 1 — Confirm Identity & House Assignment:** Open the personal 48-hour invite link shared by the Chief Administrator or your House Leader (`/activate?token=...`), or paste your invite code into `/activate`. Confirm your full name, assigned House (`HOUSE-01` through `HOUSE-12`), and family email address for future 6-digit sign-in codes.
 2. **Step 2 — Review the Plain-English Lineage Covenant & Zero-Bank-Storage Pledge:** Read the plain-English summary confirming our **Zero-Bank-Storage Pledge (`ADR-011`)** (PDEUE never stores bank routing numbers, bank account numbers, SSNs, or banking passwords—real custody stays isolated in `IFAS`), **Phase I Paper Mode (`Gate G1: HOLD_OBSERVATIONS_ONLY`)**, and **100% SCMA Loss Isolation (`Rule A14`) & High-Water Mark protection (`ADR-012`)**, then tick the confirmation checkbox.
 3. **Step 3 — Activate Private Account:** Click **Activate Private Account**. Your single-use invite token is consumed permanently, your active `CLASS_M` account is automatically enrolled on our private family allowlist (`AuthUserModel`, never elevated to Apex Tier-3), and `ONBOARDING_AUTH_ALLOWLIST_PROVISIONED` is recorded in `GovernanceAuditLog`.
 4. **Immediate Next Steps:** Right after activation, click **Start PDEUE University (L1 Certification)** (`/companion`) to complete your 6-chapter stewardship walk, or **Open My Account** (`/member`) to inspect your tenant-jailed personal view. Whenever you sign in later on another phone or computer, visit `/login` and request a 6-digit email code to your enrolled family email.
-5. **If Your Invite Link Expired or Was Already Used (`HTTP 410`):** Every invite link works once and expires after 48 hours for family protection. If you see the calm expired/used notice, simply ask the Chief Administrator or your House Leader for a fresh link—or go straight to `/login` if you already activated earlier.
+5. **If Your Invite Link Expired or Was Already Used (`HTTP 410`):** Every invite link works once and expires after 48 hours for family protection. If you see the clear expired/used notice, simply ask the Chief Administrator or your House Leader for a fresh link—or go straight to `/login` if you already activated earlier.
 
 ### How Two-Party Admission Governance Works (`CHIEF_ADMIN_SOLO` vs. `TWO_PARTY_COSIGN`)
 * **Ring 1 Alpha Default (`CHIEF_ADMIN_SOLO`):** During Ring 1 Alpha, the Chief Administrator can ratify and provision new family members directly from `/dashboard` Tab 4 with zero extra committee bottleneck.
