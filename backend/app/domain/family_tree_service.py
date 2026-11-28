@@ -189,6 +189,13 @@ def _removed_phrase(diff: int) -> str:
     return f"{diff} times removed"
 
 
+FOUNDING_MATRIARCH_ID = "P0004"
+FOUNDING_PATRIARCH_ID = "P0005"
+FOUNDING_ANCESTOR_IDS: Set[str] = {"P0001", "P0002"}
+FOUNDERS_ANCHOR_TEXT = "Founding Matriarch & Patriarch (Ola & William McCormick)"
+EXTENDED_ANCHOR_TEXT = "Extended Ancestors (Roderick & Dillie Gaddy McCormick)"
+
+
 def _great_prefix(greats: int) -> str:
     if greats <= 0:
         return ""
@@ -197,6 +204,93 @@ def _great_prefix(greats: int) -> str:
     if greats == 2:
         return "Great-Great-"
     return f"{greats}x Great-"
+
+
+def _founder_descendant_label(gen: int) -> str:
+    """Return plain-English generation label for bloodline descendants of Ola & William McCormick."""
+    if gen <= 0:
+        return "Founding Generation"
+    if gen == 1:
+        return "1st Gen · Child of Founders"
+    if gen == 2:
+        return "2nd Gen · Grandchild of Founders"
+    if gen == 3:
+        return "3rd Gen · Great-Grandchild of Founders"
+    return f"{_ordinal(gen)} Gen · {_ordinal(gen - 2)} Great-Grandchild of Founders"
+
+
+def _married_into_founders_label(gen: int) -> str:
+    """Return plain-English generation label for spouses married into Founders' descendant tiers."""
+    tier = max(1, int(gen))
+    return f"Married into {_ordinal(tier)} Gen (Spouse)"
+
+
+def _extended_descendant_label(rod_gen: int) -> str:
+    """Return plain-English label for Roderick & Dillie Gaddy extended lineage (Children II–IX)."""
+    if rod_gen <= 0:
+        return "Parents of Matriarch (Founding Ancestors)"
+    if rod_gen == 1:
+        return "Extended Lineage · Child of Roderick & Dillie"
+    if rod_gen == 2:
+        return "Extended Lineage · Grandchild of Roderick & Dillie"
+    if rod_gen == 3:
+        return "Extended Lineage · Great-Grandchild of Roderick & Dillie"
+    return f"Extended Lineage · {_ordinal(rod_gen - 2)} Great-Grandchild of Roderick & Dillie"
+
+
+def _direct_ancestor_word(steps: int) -> str:
+    """Return plain-English singular direct ancestor word for N generations up (1=parent, 2=grandparent, ...)."""
+    if steps <= 1:
+        return "parent"
+    if steps == 2:
+        return "grandparent"
+    if steps == 3:
+        return "great-grandparent"
+    return f"{_ordinal(steps - 2)} great-grandparent"
+
+
+def _fallback_generation_meta(row: FamilyTreePersonModel) -> Dict[str, Any]:
+    """Deterministic fallback generation metadata when serialize_person is called without graph context."""
+    pid = str(row.person_id or "").strip()
+    if pid == FOUNDING_MATRIARCH_ID:
+        return {
+            "generation_from_founders": 0,
+            "generation_label": "Founding Matriarch",
+            "generation_anchor": FOUNDERS_ANCHOR_TEXT,
+        }
+    if pid == FOUNDING_PATRIARCH_ID:
+        return {
+            "generation_from_founders": 0,
+            "generation_label": "Founding Patriarch",
+            "generation_anchor": FOUNDERS_ANCHOR_TEXT,
+        }
+    if pid in FOUNDING_ANCESTOR_IDS:
+        return {
+            "generation_from_founders": -1,
+            "generation_label": "Parents of Matriarch (Founding Ancestors)",
+            "generation_anchor": EXTENDED_ANCHOR_TEXT,
+        }
+    is_ref = bool(row.is_reference_branch) or str(row.house_id or "").upper() == "REFERENCE"
+    raw_gen = int(row.generation or 0)
+    if is_ref:
+        rod_gen = max(1, raw_gen)
+        return {
+            "generation_from_founders": rod_gen - 1,
+            "generation_label": _extended_descendant_label(rod_gen),
+            "generation_anchor": EXTENDED_ANCHOR_TEXT,
+        }
+    if str(row.house_id or "").upper() == "FOUNDERS":
+        return {
+            "generation_from_founders": 0,
+            "generation_label": "Founding Generation",
+            "generation_anchor": FOUNDERS_ANCHOR_TEXT,
+        }
+    gen = max(1, raw_gen)
+    return {
+        "generation_from_founders": gen,
+        "generation_label": _founder_descendant_label(gen),
+        "generation_anchor": FOUNDERS_ANCHOR_TEXT,
+    }
 
 
 def _bloodline_labels_from_steps(
@@ -416,10 +510,134 @@ class FamilyTreeService:
         return slugs
 
     @staticmethod
+    def _compute_lineage_context(
+        people: Dict[str, FamilyTreePersonModel],
+        parents_of: Dict[str, Set[str]],
+        children_of: Dict[str, Set[str]],
+        spouses_of: Dict[str, Set[str]],
+    ) -> Dict[str, Dict[str, Any]]:
+        """Compute deterministic generation_from_founders, generation_label, and generation_anchor for every person."""
+
+        def _bfs_descendants(roots: Iterable[str]) -> Dict[str, int]:
+            dist: Dict[str, int] = {r: 0 for r in roots if r in people}
+            queue: deque[str] = deque(sorted(dist.keys()))
+            while queue:
+                curr = queue.popleft()
+                curr_d = dist[curr]
+                for child_id in sorted(children_of.get(curr, ())):
+                    if child_id not in dist:
+                        dist[child_id] = curr_d + 1
+                        queue.append(child_id)
+            return dist
+
+        founder_dist = _bfs_descendants((FOUNDING_MATRIARCH_ID, FOUNDING_PATRIARCH_ID))
+        roderick_dist = _bfs_descendants(FOUNDING_ANCESTOR_IDS)
+
+        context: Dict[str, Dict[str, Any]] = {}
+        for pid, row in people.items():
+            if pid == FOUNDING_MATRIARCH_ID:
+                context[pid] = {
+                    "generation_from_founders": 0,
+                    "generation_label": "Founding Matriarch",
+                    "generation_anchor": FOUNDERS_ANCHOR_TEXT,
+                }
+                continue
+            if pid == FOUNDING_PATRIARCH_ID:
+                context[pid] = {
+                    "generation_from_founders": 0,
+                    "generation_label": "Founding Patriarch",
+                    "generation_anchor": FOUNDERS_ANCHOR_TEXT,
+                }
+                continue
+            if pid in FOUNDING_ANCESTOR_IDS:
+                context[pid] = {
+                    "generation_from_founders": -1,
+                    "generation_label": "Parents of Matriarch (Founding Ancestors)",
+                    "generation_anchor": EXTENDED_ANCHOR_TEXT,
+                }
+                continue
+
+            if pid in founder_dist:
+                gen = max(founder_dist[pid], int(row.generation or 0))
+                context[pid] = {
+                    "generation_from_founders": gen,
+                    "generation_label": _founder_descendant_label(gen),
+                    "generation_anchor": FOUNDERS_ANCHOR_TEXT,
+                }
+                continue
+
+            founder_spouse_gens = [
+                max(founder_dist[sp], int(people[sp].generation or 0))
+                for sp in spouses_of.get(pid, ())
+                if sp in founder_dist and sp not in (FOUNDING_MATRIARCH_ID, FOUNDING_PATRIARCH_ID)
+            ]
+            if founder_spouse_gens:
+                gen = max(1, min(founder_spouse_gens))
+                context[pid] = {
+                    "generation_from_founders": gen,
+                    "generation_label": _married_into_founders_label(gen),
+                    "generation_anchor": FOUNDERS_ANCHOR_TEXT,
+                }
+                continue
+
+            if pid in roderick_dist:
+                rod_gen = max(roderick_dist[pid], int(row.generation or 0))
+                context[pid] = {
+                    "generation_from_founders": rod_gen - 1,
+                    "generation_label": _extended_descendant_label(rod_gen),
+                    "generation_anchor": EXTENDED_ANCHOR_TEXT,
+                }
+                continue
+
+            ext_spouse_gens = [
+                max(roderick_dist[sp], int(people[sp].generation or 0))
+                for sp in spouses_of.get(pid, ())
+                if sp in roderick_dist and sp not in founder_dist and sp not in FOUNDING_ANCESTOR_IDS
+            ]
+            if ext_spouse_gens:
+                rod_gen = max(1, min(ext_spouse_gens))
+                context[pid] = {
+                    "generation_from_founders": rod_gen - 1,
+                    "generation_label": "Extended Lineage · Married-In Spouse (Roderick & Dillie)",
+                    "generation_anchor": EXTENDED_ANCHOR_TEXT,
+                }
+                continue
+
+            is_ref = bool(row.is_reference_branch) or str(row.house_id or "").upper() == "REFERENCE"
+            if not is_ref and str(row.house_id or "").upper().startswith("HOUSE-"):
+                gen = max(1, int(row.generation or 0))
+                if spouses_of.get(pid):
+                    label = _married_into_founders_label(gen)
+                elif parents_of.get(pid):
+                    label = f"{_ordinal(gen)} Gen · Allied House Family"
+                else:
+                    label = _founder_descendant_label(gen)
+                context[pid] = {
+                    "generation_from_founders": gen,
+                    "generation_label": label,
+                    "generation_anchor": FOUNDERS_ANCHOR_TEXT,
+                }
+                continue
+
+            if is_ref:
+                rod_gen = max(1, int(row.generation or 0))
+                context[pid] = {
+                    "generation_from_founders": rod_gen - 1,
+                    "generation_label": "Extended Lineage · Archival Record (Roderick & Dillie)",
+                    "generation_anchor": EXTENDED_ANCHOR_TEXT,
+                }
+                continue
+
+            context[pid] = _fallback_generation_meta(row)
+
+        return context
+
+    @staticmethod
     def serialize_person(
         row: FamilyTreePersonModel,
         *,
         known_surname_slugs: Optional[Set[str]] = None,
+        lineage_context: Optional[Dict[str, Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         """Serialize a person record with strict Living-Member Privacy Guard enforced server-side.
 
@@ -474,6 +692,12 @@ class FamilyTreeService:
             except HTTPException:
                 pass
 
+        gen_meta = (
+            lineage_context.get(row.person_id)
+            if lineage_context is not None
+            else None
+        ) or _fallback_generation_meta(row)
+
         return {
             "person_id": row.person_id,
             "full_name": row.full_name,
@@ -489,6 +713,9 @@ class FamilyTreeService:
             "surname_slug": surname_slug,
             "surname_history_url": surname_history_url,
             "generation": int(row.generation),
+            "generation_from_founders": int(gen_meta["generation_from_founders"]),
+            "generation_label": str(gen_meta["generation_label"]),
+            "generation_anchor": str(gen_meta["generation_anchor"]),
             "is_deceased": bool(row.is_deceased),
             "birth_year": birth_year_out,
             "death_year": death_year_out,
@@ -549,8 +776,24 @@ class FamilyTreeService:
                 .all()
             )
 
+            people_map = {r.person_id: r for r in all_people_rows}
+            parents_of: Dict[str, Set[str]] = {pid: set() for pid in people_map}
+            children_of: Dict[str, Set[str]] = {pid: set() for pid in people_map}
+            spouses_of: Dict[str, Set[str]] = {pid: set() for pid in people_map}
+            for rel in all_rel_rows:
+                a, b, rtype = rel.person_a_id, rel.person_b_id, (rel.rel_type or "").lower()
+                if a not in people_map or b not in people_map:
+                    continue
+                if rtype == "parent":
+                    parents_of[b].add(a)
+                    children_of[a].add(b)
+                elif rtype == "spouse":
+                    spouses_of[a].add(b)
+                    spouses_of[b].add(a)
+            lineage_ctx = self._compute_lineage_context(people_map, parents_of, children_of, spouses_of)
+
             all_serialized = [
-                self.serialize_person(r, known_surname_slugs=known_slugs)
+                self.serialize_person(r, known_surname_slugs=known_slugs, lineage_context=lineage_ctx)
                 for r in all_people_rows
             ]
             reference_count = sum(1 for p in all_serialized if p["is_reference_branch"])
@@ -580,6 +823,7 @@ class FamilyTreeService:
                             p["nickname"],
                             p["house_id"],
                             p["house_name"],
+                            p["generation_label"],
                             p["bio_notes"],
                             p["review_flag"],
                         ]
@@ -751,6 +995,144 @@ class FamilyTreeService:
                 queue.append((nxt, nxt_path))
         return None
 
+    @staticmethod
+    def _trace_ancestor_path(
+        ancestor_id: str,
+        descendant_id: str,
+        parents_of: Dict[str, Set[str]],
+    ) -> List[str]:
+        """Return ordered person_ids from `ancestor_id` down to `descendant_id` along shortest parent chain."""
+        if ancestor_id == descendant_id:
+            return [ancestor_id]
+        visited: Set[str] = {descendant_id}
+        queue: deque[Tuple[str, List[str]]] = deque([(descendant_id, [descendant_id])])
+        while queue:
+            curr, up_path = queue.popleft()
+            for parent_id in sorted(parents_of.get(curr, ())):
+                if parent_id == ancestor_id:
+                    return list(reversed(up_path + [parent_id]))
+                if parent_id not in visited:
+                    visited.add(parent_id)
+                    queue.append((parent_id, up_path + [parent_id]))
+        return [ancestor_id, descendant_id]
+
+    @staticmethod
+    def _serialize_path_nodes(
+        node_ids: List[str],
+        people: Dict[str, FamilyTreePersonModel],
+        lineage_ctx: Dict[str, Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        out: List[Dict[str, Any]] = []
+        for pid in node_ids:
+            row = people.get(pid)
+            if row is None:
+                continue
+            meta = lineage_ctx.get(pid) or _fallback_generation_meta(row)
+            out.append(
+                {
+                    "person_id": row.person_id,
+                    "full_name": row.full_name,
+                    "house_id": str(row.house_id or "FOUNDERS"),
+                    "generation_label": str(meta["generation_label"]),
+                }
+            )
+        return out
+
+    @staticmethod
+    def _build_bloodline_story(
+        *,
+        ser_a: Dict[str, Any],
+        ser_b: Dict[str, Any],
+        da: int,
+        db_steps: int,
+        a_to_b: str,
+        b_to_a: str,
+        common_out: List[Dict[str, Any]],
+        path_a: List[Dict[str, Any]],
+        path_b: List[Dict[str, Any]],
+        is_half_sibling: bool = False,
+    ) -> str:
+        """Build a warm, specific, jargon-free plain-English story naming bridging relatives."""
+        name_a = ser_a["full_name"]
+        name_b = ser_b["full_name"]
+        anc_names = " and ".join(c["full_name"] for c in common_out) if common_out else "their shared ancestor"
+
+        if da == 0 and db_steps == 0:
+            return f"Both selections point to {name_a}."
+        if da == 0 and db_steps == 1:
+            return f"{name_a} is {name_b}'s parent — one generation directly above."
+        if da == 1 and db_steps == 0:
+            return f"{name_a} is {name_b}'s child — one generation directly below."
+        if da == 0 and db_steps >= 2:
+            middle = [n["full_name"] for n in path_b[1:-1]]
+            bridge = f" through {' → '.join(middle)}" if middle else ""
+            return f"{name_a} is {name_b}'s {a_to_b.lower()} ({db_steps} generations above), connected directly{bridge}."
+        if db_steps == 0 and da >= 2:
+            middle = [n["full_name"] for n in path_a[1:-1]]
+            bridge = f" through {' → '.join(middle)}" if middle else ""
+            return f"{name_b} is {name_a}'s {b_to_a.lower()} ({da} generations above), connected directly{bridge}."
+        if da == 1 and db_steps == 1:
+            if is_half_sibling:
+                return f"{name_a} and {name_b} are half-siblings who share {anc_names} as a parent."
+            return f"{name_a} and {name_b} are siblings — both are children of {anc_names}."
+        if da == 1 and db_steps >= 2:
+            sib_anc = path_b[1]["full_name"] if len(path_b) > 1 else name_b
+            anc_word = _direct_ancestor_word(db_steps - 1)
+            return (
+                f"{name_a} and {name_b}'s {anc_word} ({sib_anc}) are siblings "
+                f"(children of {anc_names}), making {name_a} {name_b}'s {a_to_b.lower()}."
+            )
+        if db_steps == 1 and da >= 2:
+            sib_anc = path_a[1]["full_name"] if len(path_a) > 1 else name_a
+            anc_word = _direct_ancestor_word(da - 1)
+            return (
+                f"{name_b} and {name_a}'s {anc_word} ({sib_anc}) are siblings "
+                f"(children of {anc_names}), making {name_b} {name_a}'s {b_to_a.lower()}."
+            )
+
+        # Cousins (da >= 2 and db_steps >= 2)
+        degree = min(da, db_steps) - 1
+        removed = abs(da - db_steps)
+        deg_plural = f"{_ordinal(degree)} cousins"
+        if removed == 0:
+            parent_a = path_a[-2]["full_name"] if len(path_a) >= 2 else ""
+            parent_b = path_b[-2]["full_name"] if len(path_b) >= 2 else ""
+            if degree == 1 and parent_a and parent_b:
+                return (
+                    f"{name_a} and {name_b} are 1st cousins — their parents "
+                    f"({parent_a} and {parent_b}) are siblings, both children of {anc_names}."
+                )
+            if parent_a and parent_b:
+                prev_plural = f"{_ordinal(degree - 1)} cousins"
+                return (
+                    f"{name_a} and {name_b} are {deg_plural} in the same generation. "
+                    f"Their parents ({parent_a} and {parent_b}) are {prev_plural}, "
+                    f"and both lines trace back to {anc_names}."
+                )
+            return f"{name_a} and {name_b} are {deg_plural} in the same generation, both descending from {anc_names}."
+
+        # Removed cousins: identify the ancestor of the younger relative who sits at the older relative's generation
+        rem_text = _removed_phrase(removed)
+        gen_phrase = "1 generation" if removed == 1 else f"{removed} generations"
+        anc_word = _direct_ancestor_word(removed)
+        if da > db_steps:
+            younger_name, older_name = name_a, name_b
+            bridge_node = path_a[db_steps] if len(path_a) > db_steps else None
+        else:
+            younger_name, older_name = name_b, name_a
+            bridge_node = path_b[da] if len(path_b) > da else None
+
+        if bridge_node is not None:
+            return (
+                f"{younger_name}'s {anc_word} ({bridge_node['full_name']}) and {older_name} are {deg_plural}. "
+                f"Because {younger_name} is {gen_phrase} younger than {older_name}, "
+                f"they are {deg_plural} {rem_text}."
+            )
+        return (
+            f"{name_a} and {name_b} are {deg_plural} {rem_text} — "
+            f"{younger_name} is {gen_phrase} younger than {older_name} along lines tracing back to {anc_names}."
+        )
+
     def compute_relationship(self, person_a_id: str, person_b_id: str) -> Dict[str, Any]:
         """Compute deterministic LCA bloodline, spouse, or married-in relationship between two people."""
         self._ensure_ready()
@@ -767,14 +1149,16 @@ class FamilyTreeService:
             if clean_b not in people:
                 raise HTTPException(status_code=404, detail=f"Person '{clean_b}' not found in family tree.")
 
+            lineage_ctx = self._compute_lineage_context(people, parents_of, children_of, spouses_of)
             row_a = people[clean_a]
             row_b = people[clean_b]
-            ser_a = self.serialize_person(row_a, known_surname_slugs=known_slugs)
-            ser_b = self.serialize_person(row_b, known_surname_slugs=known_slugs)
+            ser_a = self.serialize_person(row_a, known_surname_slugs=known_slugs, lineage_context=lineage_ctx)
+            ser_b = self.serialize_person(row_b, known_surname_slugs=known_slugs, lineage_context=lineage_ctx)
 
             # 1. Same person
             if clean_a == clean_b:
                 primary, a_to_b, b_to_a, glossary = _bloodline_labels_from_steps(0, 0)
+                self_node = self._serialize_path_nodes([clean_a], people, lineage_ctx)
                 return {
                     "scope": "HERITAGE_FAMILY_TREE_NO_FINANCIAL_DATA",
                     "person_a": ser_a,
@@ -789,6 +1173,9 @@ class FamilyTreeService:
                     "b_steps": 0,
                     "generation_steps": {"a_steps": 0, "b_steps": 0},
                     "via_marriage": False,
+                    "path_a": self_node,
+                    "path_b": list(self_node),
+                    "plain_english_story": f"Both selections point to {ser_a['full_name']}.",
                     "explanation": f"{ser_a['full_name']} is the same person selected in both fields.",
                     "glossary_definition": glossary,
                 }
@@ -802,15 +1189,23 @@ class FamilyTreeService:
                 common_out: List[Dict[str, Any]] = []
                 a_steps_out: Optional[int] = None
                 b_steps_out: Optional[int] = None
+                path_a_out = self._serialize_path_nodes([clean_a], people, lineage_ctx)
+                path_b_out = self._serialize_path_nodes([clean_b], people, lineage_ctx)
                 if bloodline is not None:
                     da, db_steps, lca_ids, is_half = bloodline
                     b_primary, _, _, _ = _bloodline_labels_from_steps(da, db_steps, is_half_sibling=is_half)
                     labels.append(b_primary)
                     common_out = [
-                        self.serialize_person(people[x], known_surname_slugs=known_slugs)
+                        self.serialize_person(people[x], known_surname_slugs=known_slugs, lineage_context=lineage_ctx)
                         for x in lca_ids
                     ]
                     a_steps_out, b_steps_out = da, db_steps
+                    path_a_out = self._serialize_path_nodes(
+                        self._trace_ancestor_path(lca_ids[0], clean_a, parents_of), people, lineage_ctx
+                    )
+                    path_b_out = self._serialize_path_nodes(
+                        self._trace_ancestor_path(lca_ids[0], clean_b, parents_of), people, lineage_ctx
+                    )
                 return {
                     "scope": "HERITAGE_FAMILY_TREE_NO_FINANCIAL_DATA",
                     "person_a": ser_a,
@@ -825,6 +1220,12 @@ class FamilyTreeService:
                     "b_steps": b_steps_out,
                     "generation_steps": {"a_steps": a_steps_out, "b_steps": b_steps_out},
                     "via_marriage": True,
+                    "path_a": path_a_out,
+                    "path_b": path_b_out,
+                    "plain_english_story": (
+                        f"{ser_a['full_name']} and {ser_b['full_name']} are spouses / partners, "
+                        f"uniting their branches of the family."
+                    ),
                     "explanation": (
                         f"{ser_a['full_name']} and {ser_b['full_name']} are directly recorded as Spouses / Partners."
                     ),
@@ -840,9 +1241,32 @@ class FamilyTreeService:
                     da, db_steps, is_half_sibling=is_half
                 )
                 common_out = [
-                    self.serialize_person(people[x], known_surname_slugs=known_slugs)
+                    self.serialize_person(people[x], known_surname_slugs=known_slugs, lineage_context=lineage_ctx)
                     for x in lca_ids
                 ]
+                primary_lca_id = lca_ids[0]
+                path_a_out = self._serialize_path_nodes(
+                    self._trace_ancestor_path(primary_lca_id, clean_a, parents_of),
+                    people,
+                    lineage_ctx,
+                )
+                path_b_out = self._serialize_path_nodes(
+                    self._trace_ancestor_path(primary_lca_id, clean_b, parents_of),
+                    people,
+                    lineage_ctx,
+                )
+                story = self._build_bloodline_story(
+                    ser_a=ser_a,
+                    ser_b=ser_b,
+                    da=da,
+                    db_steps=db_steps,
+                    a_to_b=a_to_b,
+                    b_to_a=b_to_a,
+                    common_out=common_out,
+                    path_a=path_a_out,
+                    path_b=path_b_out,
+                    is_half_sibling=is_half,
+                )
                 anc_names = " & ".join(c["full_name"] for c in common_out)
                 if da == 0:
                     explanation = (
@@ -875,12 +1299,17 @@ class FamilyTreeService:
                     "b_steps": db_steps,
                     "generation_steps": {"a_steps": da, "b_steps": db_steps},
                     "via_marriage": False,
+                    "path_a": path_a_out,
+                    "path_b": path_b_out,
+                    "plain_english_story": story,
                     "explanation": explanation,
                     "glossary_definition": glossary,
                 }
 
             # 4. Married-in connection: check if A's spouse shares a bloodline with B, or B's spouse with A
-            best_marriage: Optional[Tuple[int, str, str, str, List[str], int, int, str]] = None
+            best_marriage: Optional[
+                Tuple[int, str, str, str, List[str], int, int, str, str, List[str], List[str]]
+            ] = None
             for sp_a in sorted(spouses_of.get(clean_a, set())):
                 m = self._find_bloodline_match(sp_a, clean_b, parents_of)
                 if m is not None:
@@ -891,11 +1320,19 @@ class FamilyTreeService:
                     score = da + db_steps
                     if best_marriage is None or score < best_marriage[0]:
                         label = f"{sp_to_b} (by marriage)"
+                        sp_name = people[sp_a].full_name
                         explanation = (
                             f"{ser_a['full_name']} is connected to {ser_b['full_name']} by marriage: "
-                            f"{ser_a['full_name']} is married to {people[sp_a].full_name}, who is "
+                            f"{ser_a['full_name']} is married to {sp_name}, who is "
                             f"{ser_b['full_name']}'s {sp_to_b}."
                         )
+                        story = (
+                            f"{ser_a['full_name']} is married to {sp_name}, who is {ser_b['full_name']}'s "
+                            f"{sp_to_b.lower()}. That connects {ser_a['full_name']} and {ser_b['full_name']} "
+                            f"as {sp_to_b.lower()} by marriage."
+                        )
+                        pa_ids = self._trace_ancestor_path(lca_ids[0], sp_a, parents_of) + [clean_a]
+                        pb_ids = self._trace_ancestor_path(lca_ids[0], clean_b, parents_of)
                         best_marriage = (
                             score,
                             label,
@@ -905,6 +1342,9 @@ class FamilyTreeService:
                             da,
                             db_steps,
                             explanation,
+                            story,
+                            pa_ids,
+                            pb_ids,
                         )
 
             for sp_b in sorted(spouses_of.get(clean_b, set())):
@@ -917,11 +1357,19 @@ class FamilyTreeService:
                     score = da + db_steps
                     if best_marriage is None or score < best_marriage[0]:
                         label = f"{a_to_sp} (by marriage)"
+                        sp_name = people[sp_b].full_name
                         explanation = (
                             f"{ser_a['full_name']} is connected to {ser_b['full_name']} by marriage: "
-                            f"{ser_b['full_name']} is married to {people[sp_b].full_name}, and "
-                            f"{ser_a['full_name']} is {people[sp_b].full_name}'s {a_to_sp}."
+                            f"{ser_b['full_name']} is married to {sp_name}, and "
+                            f"{ser_a['full_name']} is {sp_name}'s {a_to_sp}."
                         )
+                        story = (
+                            f"{ser_b['full_name']} is married to {sp_name}, and {ser_a['full_name']} is "
+                            f"{sp_name}'s {a_to_sp.lower()}. That connects {ser_a['full_name']} and "
+                            f"{ser_b['full_name']} as {a_to_sp.lower()} by marriage."
+                        )
+                        pa_ids = self._trace_ancestor_path(lca_ids[0], clean_a, parents_of)
+                        pb_ids = self._trace_ancestor_path(lca_ids[0], sp_b, parents_of) + [clean_b]
                         best_marriage = (
                             score,
                             label,
@@ -931,12 +1379,15 @@ class FamilyTreeService:
                             da,
                             db_steps,
                             explanation,
+                            story,
+                            pa_ids,
+                            pb_ids,
                         )
 
             if best_marriage is not None:
-                _, primary, a_to_b, b_to_a, lca_ids, da, db_steps, explanation = best_marriage
+                _, primary, a_to_b, b_to_a, lca_ids, da, db_steps, explanation, story, pa_ids, pb_ids = best_marriage
                 common_out = [
-                    self.serialize_person(people[x], known_surname_slugs=known_slugs)
+                    self.serialize_person(people[x], known_surname_slugs=known_slugs, lineage_context=lineage_ctx)
                     for x in lca_ids
                 ]
                 return {
@@ -953,6 +1404,9 @@ class FamilyTreeService:
                     "b_steps": db_steps,
                     "generation_steps": {"a_steps": da, "b_steps": db_steps},
                     "via_marriage": True,
+                    "path_a": self._serialize_path_nodes(pa_ids, people, lineage_ctx),
+                    "path_b": self._serialize_path_nodes(pb_ids, people, lineage_ctx),
+                    "plain_english_story": story,
                     "explanation": explanation,
                     "glossary_definition": (
                         "A married-in (in-law / allied) kinship link connects two family members through a recorded marriage into the shared lineage."
@@ -965,6 +1419,7 @@ class FamilyTreeService:
             )
             if ext_path is not None:
                 hops = len(ext_path)
+                chain_ids = [clean_a] + [nid for nid, _ in ext_path]
                 return {
                     "scope": "HERITAGE_FAMILY_TREE_NO_FINANCIAL_DATA",
                     "person_a": ser_a,
@@ -979,6 +1434,12 @@ class FamilyTreeService:
                     "b_steps": None,
                     "generation_steps": {"a_steps": None, "b_steps": None},
                     "via_marriage": True,
+                    "path_a": self._serialize_path_nodes(chain_ids, people, lineage_ctx),
+                    "path_b": self._serialize_path_nodes([clean_b], people, lineage_ctx),
+                    "plain_english_story": (
+                        f"{ser_a['full_name']} and {ser_b['full_name']} belong to the wider "
+                        f"Carmichael — McCormick family circle, connected through {hops} family and marriage links."
+                    ),
                     "explanation": (
                         f"{ser_a['full_name']} and {ser_b['full_name']} share no direct bloodline ancestor, "
                         f"but are connected through {hops} recorded family and marriage links."
@@ -1008,6 +1469,12 @@ class FamilyTreeService:
                 "b_steps": None,
                 "generation_steps": {"a_steps": None, "b_steps": None},
                 "via_marriage": False,
+                "path_a": [],
+                "path_b": [],
+                "plain_english_story": (
+                    f"No shared recorded ancestor or marriage link connects "
+                    f"{ser_a['full_name']} and {ser_b['full_name']} in the archive yet.{ref_note}"
+                ),
                 "explanation": (
                     f"No shared recorded bloodline ancestor or marriage link connects "
                     f"{ser_a['full_name']} and {ser_b['full_name']} yet.{ref_note}"
@@ -1388,7 +1855,13 @@ class FamilyTreeService:
                 http_status=200,
                 detail=f"Updated Family Tree person {clean_pid} ({row.full_name}) in {row.house_id}.",
             )
-            return self.serialize_person(row, known_surname_slugs=self._known_surname_slugs(db))
+            people_map, parents_of, children_of, spouses_of = self._build_graph(db)
+            lineage_ctx = self._compute_lineage_context(people_map, parents_of, children_of, spouses_of)
+            return self.serialize_person(
+                row,
+                known_surname_slugs=self._known_surname_slugs(db),
+                lineage_context=lineage_ctx,
+            )
 
     def create_relationship(
         self,
