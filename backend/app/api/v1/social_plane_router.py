@@ -847,6 +847,20 @@ def get_family_tree_data_api(
     )
 
 
+@social_plane_router.get("/api/v1/community/heritage/tree/subtree")
+def get_family_tree_subtree_query_api(
+    root_person_id: str = Query(..., description="Root person_id to isolate as sub-tree (e.g. P0018)"),
+) -> Dict[str, Any]:
+    return get_family_tree_service().get_subtree_data(root_person_id)
+
+
+@social_plane_router.get("/api/v1/community/heritage/tree/subtree/{person_id}")
+def get_family_tree_subtree_api(
+    person_id: str,
+) -> Dict[str, Any]:
+    return get_family_tree_service().get_subtree_data(person_id)
+
+
 @social_plane_router.get("/api/v1/community/heritage/tree/relationship")
 def compute_family_tree_relationship_api(
     person_a: str = Query(..., description="First person_id (e.g. P0004)"),
