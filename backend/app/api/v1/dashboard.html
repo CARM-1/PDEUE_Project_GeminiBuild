@@ -793,12 +793,22 @@
         <div class="card-title" style="color:#38bdf8;margin:0;">
           3-STAGE <abbr class="pdeue-term" tabindex="0" data-term="delegated-onboarding" data-tooltip="A Chief-Admin-controlled helper mode where trusted House leaders and genealogists can collect a new family member's welcome dossier ahead of time—waiting safely in review until leadership gives final approval.">DELEGATED ONBOARDING<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> &amp; <abbr class="pdeue-term" tabindex="0" data-term="genealogical-ratification" data-tooltip="The formal final approval step after family kinship is checked. Once approved by leadership, the new relative's personal account, House home, mentor, and separate bookkeeping notice are all created together automatically.">GENEALOGICAL RATIFICATION<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>
         </div>
-        <span id="delegation-scope-badge" class="badge-mode" style="font-size:11px;padding:4px 10px;">SCOPE: ADMIN_ONLY</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          <span id="admission-authority-badge" class="badge-mode" style="font-size:11px;padding:4px 10px;">ADMISSION: CHIEF_ADMIN_SOLO</span>
+          <span id="delegation-scope-badge" class="badge-mode" style="font-size:11px;padding:4px 10px;">SCOPE: ADMIN_ONLY</span>
+        </div>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;background:#0b132b;border:1px solid #334155;border-radius:8px;padding:12px;margin-bottom:12px;">
-        <label style="font-size:12px;color:#cbd5e1;display:inline-flex;align-items:center;gap:6px;">
+        <label style="font-size:12px;color:#cbd5e1;display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;max-width:100%;">
+          Admission Authority
+          <select id="admission-authority-mode-select" aria-label="Member admission authority mode" style="padding:6px 8px;border-radius:6px;border:1px solid #334155;background:#1c2541;color:#f8fafc;font-size:12px;max-width:100%;">
+            <option value="CHIEF_ADMIN_SOLO">CHIEF_ADMIN_SOLO (Default)</option>
+            <option value="TWO_PARTY_COSIGN">TWO_PARTY_COSIGN (F2-H + CA)</option>
+          </select>
+        </label>
+        <label style="font-size:12px;color:#cbd5e1;display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;max-width:100%;">
           Delegation Scope
-          <select id="delegation-scope-select" aria-label="Delegated onboarding intake scope" style="padding:6px 8px;border-radius:6px;border:1px solid #334155;background:#1c2541;color:#f8fafc;font-size:12px;">
+          <select id="delegation-scope-select" aria-label="Delegated onboarding intake scope" style="padding:6px 8px;border-radius:6px;border:1px solid #334155;background:#1c2541;color:#f8fafc;font-size:12px;max-width:100%;">
             <option value="ADMIN_ONLY">ADMIN_ONLY (Fail-Closed Default)</option>
             <option value="PER_HOUSE">PER_HOUSE (Selected Houses)</option>
             <option value="ENCLAVE_WIDE">ENCLAVE_WIDE (All Ranked Officers)</option>
@@ -1148,6 +1158,7 @@
       "btn-custody-intra",
       "btn-custody-cross",
       "btn-save-delegation-config",
+      "admission-authority-mode-select",
       "adminEvalHunchBtn",
       "adminShadowBidBtn"
     ];
@@ -2525,6 +2536,11 @@
           const policy = await policyRes.json();
           const cBadge = document.getElementById("custody-mode-badge");
           if (cBadge) cBadge.textContent = `CUSTODY MODE: ${policy.custody_assignment_mode || "INTRA_HOUSE"}`;
+          const aBadge = document.getElementById("admission-authority-badge");
+          const admMode = policy.admission_authority_mode || "CHIEF_ADMIN_SOLO";
+          if (aBadge) aBadge.textContent = `ADMISSION: ${admMode}`;
+          const admSel = document.getElementById("admission-authority-mode-select");
+          if (admSel) admSel.value = admMode;
           const dBadge = document.getElementById("delegation-scope-badge");
           if (dBadge) dBadge.textContent = `SCOPE: ${policy.delegated_onboarding_scope || "ADMIN_ONLY"}${policy.genealogical_board_enabled ? " · BOARD ON" : ""}`;
           const scopeSel = document.getElementById("delegation-scope-select");
@@ -2544,12 +2560,15 @@
           if (tbody) {
             tbody.innerHTML = dossiers.length ? dossiers.map(d => {
               const canRatify = d.status !== "RATIFIED_PROVISIONED" && d.status !== "REJECTED";
+              const cosignBadge = d.f2h_cosigned
+                ? `<br><span style="font-size:11px;color:#4ade80;">F2-H Co-Signed (${_escGov(d.f2h_cosigned_by)})</span>`
+                : `<br><span style="font-size:11px;color:#fbbf24;">F2-H Co-Sign: Pending</span>`;
               return `<tr>
                 <td style="font-family:monospace;color:#38bdf8;font-size:11px;">${_escGov(d.dossier_id)}</td>
                 <td><b>${_escGov(d.applicant_full_name)}</b><br><span style="font-size:11px;color:#94a3b8;">${_escGov(d.kinship_verification)} · ${_escGov(d.custodial_status)}${d.pay_it_forward_sponsored ? " · Pay-it-Forward" : ""}</span></td>
                 <td>${_escGov(d.lineage_code)}<br><span style="font-variant-numeric:tabular-nums;color:#4ade80;">${_escGov(d.seed_formatted)}</span></td>
                 <td>${_escGov(d.submitted_by_member_id)}<br><span style="font-size:11px;color:#94a3b8;">${_escGov(d.submitted_by_role)}</span></td>
-                <td><b>${_escGov(d.status)}</b>${d.ifas_outbox_event_id ? `<br><span style="font-family:monospace;font-size:11px;color:#38bdf8;">IFAS: ${_escGov(d.ifas_outbox_event_id)}</span>` : ""}</td>
+                <td><b>${_escGov(d.status)}</b>${cosignBadge}${d.ifas_outbox_event_id ? `<br><span style="font-family:monospace;font-size:11px;color:#38bdf8;">IFAS: ${_escGov(d.ifas_outbox_event_id)}</span>` : ""}</td>
                 <td>${canRatify ? (isDeputyObserverMode ? deputyReadOnlyBadgeHtml() : `
                   <div style="display:flex;gap:5px;flex-wrap:wrap;">
                     <button type="button" onclick="adjudicateOnboardingDossier('${_escGov(d.dossier_id)}','ratify')" style="background:#059669;color:#f8fafc;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;">Ratify &amp; Provision</button>
@@ -2620,6 +2639,7 @@
     async function saveDelegationConfig() {
       if (guardDeputyMutation("Delegation policy change")) return;
       const statusEl = document.getElementById("delegation-config-status");
+      const admissionMode = document.getElementById("admission-authority-mode-select")?.value || "CHIEF_ADMIN_SOLO";
       const scope = document.getElementById("delegation-scope-select")?.value || "ADMIN_ONLY";
       const houseId = document.getElementById("house-delegation-house-select")?.value || "1";
       const houseEnabled = Boolean(document.getElementById("house-delegation-enabled-check")?.checked);
@@ -2630,14 +2650,15 @@
           headers: CHIEF_ADMIN_HEADERS,
           body: JSON.stringify({
             delegated_onboarding_scope: scope,
+            admission_authority_mode: admissionMode,
             house_delegation_flags: { [houseId]: houseEnabled },
             genealogical_board_enabled: boardEnabled,
-            reason: "Chief Admin updated delegated onboarding controls on Tab 4"
+            reason: "Chief Admin updated delegated onboarding & admission authority controls on Tab 4"
           })
         });
         const data = await res.json();
         if (res.ok) {
-          if (statusEl) statusEl.textContent = `Delegation policy saved: scope=${data.delegated_onboarding_scope}, board=${data.genealogical_board_enabled ? "ENABLED" : "OFF"} (Audit ${data.audit_event_id})`;
+          if (statusEl) statusEl.textContent = `Delegation policy saved: admission=${data.admission_authority_mode || admissionMode}, scope=${data.delegated_onboarding_scope}, board=${data.genealogical_board_enabled ? "ENABLED" : "OFF"} (Audit ${data.audit_event_id})`;
           await loadRoleCustodyAndDelegationState();
         } else if (statusEl) {
           statusEl.textContent = `Delegation policy rejected (HTTP ${res.status}): ${data.detail || "Error"}`;

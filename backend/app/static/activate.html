@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="en" data-text-scale="standard">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Activate Private Family Invite · Carmichael / McCormick Enclave</title>
+  <link rel="stylesheet" href="/static/css/senior_a11y.css">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg-canvas: #0B132B;
+      --bg-card: #1C2541;
+      --bg-surface: #1E293B;
+      --border-subtle: #334155;
+      --text-primary: #F8FAFC;
+      --text-secondary: #CBD5E1;
+      --text-muted: #94A3B8;
+      --accent-sky: #38BDF8;
+      --accent-sky-deep: #0284C7;
+      --status-green: #059669;
+      --status-amber: #D97706;
+      --status-red: #DC2626;
+      --gold: #E4BB63;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at 20% 0, #192B52 0, var(--bg-canvas) 56%);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      font-size: 16px;
+      line-height: 1.55;
+    }
+    .shell {
+      width: min(840px, 94vw);
+      margin: 0 auto;
+      padding: 16px 0 44px;
+    }
+    .top-brand-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding-bottom: 14px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .brand-lockup {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      text-decoration: none;
+      color: inherit;
+      min-width: 0;
+      max-width: 100%;
+    }
+    .brand-crests { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .brand-crest {
+      width: 40px;
+      height: 46px;
+      aspect-ratio: 5 / 6;
+      object-fit: contain;
+      border: 1px solid rgba(212, 175, 55, 0.65);
+      border-radius: 5px;
+      background: rgba(11, 19, 43, 0.88);
+      padding: 2px;
+      display: block;
+      flex-shrink: 0;
+    }
+    .brand-crest-divider {
+      width: 1px;
+      height: 34px;
+      background: linear-gradient(180deg, transparent, rgba(212, 175, 55, 0.78), transparent);
+      flex-shrink: 0;
+    }
+    .brand-stack { display: flex; flex-direction: column; min-width: 0; line-height: 1.24; }
+    .brand-title { font-size: 0.78rem; font-weight: 800; letter-spacing: 0.08em; color: #F8FAFC; }
+    .brand-motto { font-size: 0.71rem; font-style: italic; color: #D8C48B; }
+
+    .hero-card {
+      background: linear-gradient(135deg, #1B2C4E 0%, #141E36 100%);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: clamp(18px, 3vw, 26px);
+      margin-bottom: 18px;
+      box-shadow: 0 14px 32px rgba(0, 0, 0, 0.34);
+    }
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 11px;
+      border-radius: 999px;
+      font-size: 0.76rem;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+    }
+    .pill-green {
+      background: rgba(5, 150, 105, 0.18);
+      border: 1px solid #34D399;
+      color: #A7F3D0;
+    }
+    .pill-sky {
+      background: rgba(56, 189, 248, 0.14);
+      border: 1px solid var(--accent-sky);
+      color: #BAE6FD;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    .pill-amber {
+      background: rgba(217, 119, 6, 0.16);
+      border: 1px solid #F59E0B;
+      color: #FDE68A;
+    }
+    .hero-card h1 {
+      margin: 4px 0 8px;
+      font-size: clamp(1.45rem, 2.8vw, 1.85rem);
+      line-height: 1.22;
+      color: var(--text-primary);
+    }
+    .hero-card p {
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 0.96rem;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: clamp(18px, 3vw, 24px);
+      margin-bottom: 16px;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+    }
+    .card[hidden], [hidden] { display: none !important; }
+    .card h2 {
+      margin: 0 0 8px;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .step-badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--accent-sky);
+      margin-bottom: 6px;
+    }
+    .field-group { margin-bottom: 14px; }
+    .field-group label {
+      display: block;
+      font-size: 0.94rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+    .text-input {
+      width: 100%;
+      min-height: 48px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1.5px solid var(--border-subtle);
+      background: var(--bg-canvas);
+      color: var(--text-primary);
+      font-size: 1rem;
+      line-height: 1.4;
+    }
+    .text-input:focus {
+      outline: 2px solid var(--accent-sky);
+      outline-offset: 2px;
+      border-color: var(--accent-sky);
+    }
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      color: var(--accent-sky);
+      word-break: break-all;
+    }
+
+    .identity-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 10px;
+      margin: 12px 0 16px;
+    }
+    .identity-tile {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+    .identity-tile .tile-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .identity-tile .tile-value {
+      font-size: 1.02rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .pledge-list {
+      margin: 12px 0 16px;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 10px;
+    }
+    .pledge-list li {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-left: 4px solid var(--accent-sky);
+      border-radius: 10px;
+      padding: 12px 14px;
+      color: var(--text-secondary);
+      font-size: 0.94rem;
+    }
+    .pledge-list li strong { color: var(--text-primary); }
+
+    .ack-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      min-height: 48px;
+      padding: 12px 14px;
+      background: #0F172A;
+      border: 1.5px solid var(--border-subtle);
+      border-radius: 10px;
+      cursor: pointer;
+      color: var(--text-primary);
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    .ack-row input[type="checkbox"] {
+      width: 24px;
+      height: 24px;
+      margin: 2px 0 0;
+      accent-color: var(--status-green);
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .btn-primary,
+    .btn-green,
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      min-height: 52px;
+      padding: 12px 18px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      font-size: 1rem;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .btn-primary {
+      background: var(--accent-sky-deep);
+      border-color: var(--accent-sky);
+      color: #F8FAFC;
+    }
+    .btn-primary:hover, .btn-primary:focus-visible { background: #0369A1; }
+    .btn-green {
+      background: var(--status-green);
+      border-color: #34D399;
+      color: #F8FAFC;
+    }
+    .btn-green:hover, .btn-green:focus-visible { background: #047857; }
+    .btn-green:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    .btn-secondary {
+      background: var(--bg-surface);
+      border-color: var(--border-subtle);
+      color: var(--text-primary);
+    }
+    .btn-secondary:hover, .btn-secondary:focus-visible { border-color: var(--accent-sky); color: var(--accent-sky); }
+
+    .next-actions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .error-card {
+      background: rgba(220, 38, 38, 0.12);
+      border: 1.5px solid #F87171;
+      border-left: 5px solid var(--status-red);
+      border-radius: 14px;
+      padding: clamp(18px, 3vw, 24px);
+      margin-bottom: 16px;
+    }
+    .error-card h2 { color: #FECACA; margin: 0 0 8px; }
+    .error-card p { color: #F8FAFC; margin: 0 0 12px; }
+
+    .success-card {
+      background: rgba(5, 150, 105, 0.14);
+      border: 1.5px solid #34D399;
+      border-left: 5px solid var(--status-green);
+      border-radius: 14px;
+      padding: clamp(18px, 3vw, 24px);
+      margin-bottom: 16px;
+    }
+    .success-card h2 { color: #A7F3D0; margin: 0 0 8px; }
+
+    .status-box {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 0.92rem;
+      font-weight: 600;
+    }
+    .status-box.info {
+      background: rgba(56, 189, 248, 0.14);
+      border: 1px solid var(--accent-sky);
+      color: #BAE6FD;
+    }
+    .status-box.err {
+      background: rgba(220, 38, 38, 0.16);
+      border: 1px solid #F87171;
+      color: #FECACA;
+    }
+
+    abbr.pdeue-term {
+      position: relative;
+      display: inline-flex;
+      align-items: baseline;
+      gap: 3px;
+      text-decoration: underline dotted var(--accent-sky);
+      text-underline-offset: 3px;
+      cursor: help;
+      color: inherit;
+    }
+    abbr.pdeue-term .pdeue-term-info {
+      font-size: 0.78em;
+      color: var(--accent-sky);
+      font-style: normal;
+      line-height: 1;
+      user-select: none;
+    }
+    abbr.pdeue-term::after {
+      content: attr(data-tooltip);
+      display: none;
+      position: absolute;
+      z-index: 6000;
+      left: 50%;
+      bottom: calc(100% + 8px);
+      transform: translateX(-50%);
+      width: max-content;
+      max-width: min(280px, 78vw);
+      padding: 9px 12px;
+      border: 1px solid var(--accent-sky);
+      border-radius: 6px;
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      font-size: 0.78rem;
+      font-weight: 500;
+      line-height: 1.4;
+      text-align: left;
+      white-space: normal;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55);
+      pointer-events: none;
+    }
+    abbr.pdeue-term:hover::after,
+    abbr.pdeue-term:focus::after,
+    abbr.pdeue-term:focus-visible::after {
+      display: block;
+    }
+
+    footer.pdeue-colophon {
+      margin-top: 26px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+    .colophon-mode-badge {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+    }
+
+    @media (max-width: 640px) {
+      .shell { width: min(100%, 94vw); }
+      .identity-grid, .next-actions-grid { grid-template-columns: 1fr; }
+      .brand-title { font-size: 0.72rem; }
+      .brand-motto { font-size: 0.66rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="top-brand-bar" role="banner">
+      <a href="/community/heritage" class="brand-lockup" data-plane-doorway="heritage" aria-label="FUTURE Carmichael-McCormick Heritage">
+        <span class="brand-crests">
+          <img class="brand-crest" src="/static/assets/crests/carmichael_crest.jpg" alt="Carmichael Family Crest" width="40" height="46" loading="eager">
+          <span class="brand-crest-divider" aria-hidden="true"></span>
+          <img class="brand-crest" src="/static/assets/crests/mccormick_crest.jpg" alt="McCormick Family Crest" width="40" height="46" loading="eager">
+        </span>
+        <span class="brand-stack">
+          <span class="brand-title">FUTURE · CARMICHAEL — McCORMICK</span>
+          <span class="brand-motto">Generational Love, Harmony, Resilience, and Wealth</span>
+        </span>
+      </a>
+      <div class="senior-a11y-controls">
+        <a id="backToHomeBtn" class="back-home-btn" href="/home" data-plane-doorway="home">← Back to Home</a>
+        <div id="textScaleGroup" class="text-scale-group" role="group" aria-label="Text size controls">
+          <button type="button" class="text-scale-btn active" data-scale="standard" aria-pressed="true" aria-label="Standard text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('standard')">A</button>
+          <button type="button" class="text-scale-btn" data-scale="large" aria-pressed="false" aria-label="Large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('large')">A+</button>
+          <button type="button" class="text-scale-btn" data-scale="xlarge" aria-pressed="false" aria-label="Extra large text size" onclick="window.PDEUESeniorA11y && window.PDEUESeniorA11y.setScale('xlarge')">A++</button>
+        </div>
+      </div>
+    </div>
+
+    <main>
+      <section class="hero-card" aria-label="Welcome to Private Family Invite Activation">
+        <div class="badge-row">
+          <span class="pill pill-green">48-HOUR SINGLE-USE FAMILY INVITE</span>
+          <span class="pill pill-sky">ZERO PASSWORDS · ZERO BANK STORAGE</span>
+          <span class="pill pill-amber">PHASE I PAPER MODE · GATE G1</span>
+        </div>
+        <h1>Activate Your Private Family Account</h1>
+        <p>Welcome to the Carmichael &amp; McCormick Stewardship Enclave. Follow three calm steps below to confirm your House assignment, review our plain-English safety pledges, and unlock your private family login—with no passwords to memorize and zero banking credentials ever stored here.</p>
+      </section>
+
+      <!-- Manual / Query Token Loader -->
+      <section id="tokenEntryCard" class="card" aria-label="Enter or Verify Family Invite Token">
+        <span class="step-badge">INVITE LINK VERIFICATION</span>
+        <h2>Your 48-Hour Invite Code</h2>
+        <p style="margin:0 0 12px;color:var(--text-secondary);font-size:0.94rem;">If you opened this page from your personal invitation link, your code is filled in automatically. Otherwise, paste the invite code shared by the Chief Administrator or your House Leader.</p>
+        <div class="field-group">
+          <label for="activateTokenInput">Single-Use Invite Token</label>
+          <input id="activateTokenInput" class="text-input mono" type="text" autocomplete="off" spellcheck="false" placeholder="pdeue_inv_...">
+        </div>
+        <button id="loadInviteBtn" type="button" class="btn-primary" onclick="loadInvitePreview()">Verify Invite Code</button>
+        <div id="tokenLoaderStatus" class="status-box info" hidden role="status" aria-live="polite"></div>
+      </section>
+
+      <!-- Calm Plain-English Error Card for Expired / Used / Invalid Tokens (HTTP 410 / 404) -->
+      <section id="inviteErrorCard" class="error-card" hidden role="alert" aria-live="assertive">
+        <span class="pill pill-amber" style="margin-bottom:8px;">INVITE LINK UNAVAILABLE</span>
+        <h2 id="inviteErrorTitle">This 48-Hour Invite Link Has Expired or Was Already Used</h2>
+        <p id="inviteErrorBody">For your family's privacy and safety, every invitation link works only once and expires after 48 hours. Nothing was lost and no money was moved.</p>
+        <p style="color:var(--text-secondary);font-size:0.92rem;">If you already activated your account earlier, you can sign in anytime using a calm 6-digit email code at Private Family Sign-In. Otherwise, please ask the Chief Administrator or your House Leader to issue a fresh 48-hour invite link.</p>
+        <div class="next-actions-grid">
+          <a id="errorSignInLink" class="btn-primary" href="/login">Go to Private Family Sign-In (/login)</a>
+          <a id="errorBackHomeLink" class="btn-secondary" href="/home">Return to Family Home Hub</a>
+        </div>
+      </section>
+
+      <!-- 3-Step Calm Activation Wizard -->
+      <div id="activationStepsFlow" hidden>
+        <!-- STEP 1: Confirm Identity & House Assignment -->
+        <section id="step1IdentityCard" class="card" aria-label="Step 1 Confirm Identity and House Assignment">
+          <span class="step-badge">STEP 1 OF 3 · CONFIRM IDENTITY &amp; HOUSE ASSIGNMENT</span>
+          <h2>Check Your Name, House &amp; Sign-In Email</h2>
+          <p style="margin:0 0 10px;color:var(--text-secondary);font-size:0.94rem;">Confirm that your name and assigned House look right. We will enroll your family email on the private allowlist so you can sign in anytime with a simple 6-digit email code—zero passwords needed.</p>
+          <div class="identity-grid">
+            <div class="identity-tile">
+              <div class="tile-label">Invited Relative</div>
+              <div id="previewFullName" class="tile-value">—</div>
+            </div>
+            <div class="identity-tile">
+              <div class="tile-label">Assigned Family House</div>
+              <div id="previewHouseCode" class="tile-value mono">—</div>
+            </div>
+            <div class="identity-tile">
+              <div class="tile-label">Initial Family Hat</div>
+              <div id="previewRoleTier" class="tile-value">CLASS_M (Member)</div>
+            </div>
+            <div class="identity-tile">
+              <div class="tile-label">Invite Valid Until (UTC)</div>
+              <div id="previewExpiresAt" class="tile-value mono" style="font-size:0.86rem;">—</div>
+            </div>
+          </div>
+          <div class="field-group" style="margin-bottom:0;">
+            <label for="activateEmailInput">Your Private Family Email (for 6-Digit Sign-In Codes)</label>
+            <input id="activateEmailInput" class="text-input" type="email" autocomplete="email" placeholder="you@carmichael-family.local" aria-label="Family allowlist email address">
+          </div>
+        </section>
+
+        <!-- STEP 2: Review Plain-English Lineage Covenant & Zero-Bank-Storage Pledge -->
+        <section id="step2CovenantCard" class="card" aria-label="Step 2 Review Plain-English Lineage Covenant">
+          <span class="step-badge">STEP 2 OF 3 · LINEAGE COVENANT &amp; ZERO-BANK-STORAGE PLEDGE</span>
+          <h2>Plain-English Family Safety Commitments</h2>
+          <ul class="pledge-list">
+            <li>
+              <strong>Zero-Bank-Storage Pledge (<abbr class="pdeue-term" tabindex="0" data-term="adr-011-air-gap" data-tooltip="A strict safety wall: PDEUE never stores bank routing numbers, bank account numbers, SSNs, or banking passwords. Only opaque reference tokens and signed bookkeeping notices cross to IFAS.">ADR-011<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> &amp; <abbr class="pdeue-term" tabindex="0" data-term="ifas" data-tooltip="Independent Financial Accounting System — the separate bookkeeping and bank custody enclave isolated from PDEUE trading views.">IFAS<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>):</strong>
+              This platform will <em>never</em> ask for or store your bank routing number, bank account number, Social Security number, or banking password. Real-money custody stays isolated in IFAS.
+            </li>
+            <li>
+              <strong>Phase I Paper Mode First (<abbr class="pdeue-term" tabindex="0" data-term="gate-g1-qualification" data-tooltip="Gate G1 holds the platform in fail-closed paper observation mode until all statistical and founder checks are explicitly ratified.">Gate G1<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>):</strong>
+              The platform runs fail-closed in observation &amp; paper learning mode (<code>HOLD_OBSERVATIONS_ONLY</code>). You can explore calmly and complete PDEUE University without risking a single real dollar.
+            </li>
+            <li>
+              <strong>Private Walled Account &amp; Fair Profit Sharing (<abbr class="pdeue-term" tabindex="0" data-term="scma" data-tooltip="Your own private, walled-off family account. Your money grows inside your personal box, and losses never bleed into anyone else's savings.">SCMA<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>, <abbr class="pdeue-term" tabindex="0" data-term="high-water-mark-adr-012" data-tooltip="Profits are only shared on net new gains above your account's prior all-time high — recovery from a dip stays 100% in your account.">ADR-012<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> &amp; <abbr class="pdeue-term" tabindex="0" data-term="tpw-waterfall" data-tooltip="Net new realized profits above High-Water Mark split 87% to your SCMA, 10% to the CFCP family pool, and 3% to the FAEP endowment.">87/10/3 Waterfall<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>):</strong>
+              Your private account stays walled off from every other member (Rule A14), and profit sharing applies strictly to net new profit above your prior High-Water Mark.
+            </li>
+          </ul>
+          <label class="ack-row" for="covenantAckCheckbox">
+            <input id="covenantAckCheckbox" type="checkbox" onchange="updateActivateButtonState()" aria-label="Confirm plain-English Lineage Covenant and Zero-Bank-Storage Pledge">
+            <span>I have reviewed my House assignment, understand that PDEUE stores zero banking credentials (ADR-011) and operates in Phase I Paper Mode, and I am ready to activate my private family account.</span>
+          </label>
+        </section>
+
+        <!-- STEP 3: Activate Private Account -->
+        <section id="step3ActivateCard" class="card" aria-label="Step 3 Activate Private Account">
+          <span class="step-badge">STEP 3 OF 3 · ACTIVATE PRIVATE ACCOUNT</span>
+          <h2>Unlock Your Private Family Login</h2>
+          <p style="margin:0 0 14px;color:var(--text-secondary);font-size:0.94rem;">Clicking below permanently uses this 48-hour invite code, adds your email to our private family allowlist (<code>CLASS_M</code>), and opens your calm next steps.</p>
+          <button id="activateAccountBtn" type="button" class="btn-green" disabled onclick="submitInviteActivation()">Activate Private Account</button>
+          <div id="activateSubmitStatus" class="status-box err" hidden role="alert" aria-live="assertive"></div>
+        </section>
+      </div>
+
+      <!-- Post-Activation Success Card with Prominent Next Steps -->
+      <section id="activationSuccessCard" class="success-card" hidden role="status" aria-live="polite">
+        <span class="pill pill-green" style="margin-bottom:8px;">PRIVATE ACCOUNT ACTIVATED · ALLOWLIST ENROLLED</span>
+        <h2>Welcome Home — Your Private Family Account Is Ready</h2>
+        <p style="margin:0 0 12px;color:var(--text-primary);">Your single-use invite has been activated and your email is now enrolled on our private family sign-in allowlist (zero passwords—use a 6-digit email code at <a href="/login" style="color:#38BDF8;font-weight:700;">/login</a> anytime on a new device).</p>
+        <div class="identity-grid">
+          <div class="identity-tile">
+            <div class="tile-label">Allowlisted Sign-In Email</div>
+            <div id="activatedEmailDisplay" class="tile-value mono" style="font-size:0.9rem;">—</div>
+          </div>
+          <div class="identity-tile">
+            <div class="tile-label">Assigned SCMA &amp; House</div>
+            <div id="activatedScmaDisplay" class="tile-value mono" style="font-size:0.9rem;">—</div>
+          </div>
+        </div>
+        <div class="next-actions-grid">
+          <a id="nextStepUniversityBtn" class="btn-primary" href="/companion">Start PDEUE University (L1 Certification)</a>
+          <a id="nextStepAccountBtn" class="btn-green" href="/member">Open My Account</a>
+        </div>
+        <p style="margin:14px 0 0;color:var(--text-secondary);font-size:0.88rem;">Need to sign in from another phone or tablet later? Visit <a id="postActivateLoginLink" href="/login" style="color:#38BDF8;font-weight:700;">Private Family Sign-In (/login)</a> and request a 6-digit email code.</p>
+      </section>
+    </main>
+
+    <div style="display:none" id="legacyPortalHub">PDEUE PORTAL HUB</div>
+    <footer class="pdeue-colophon" role="contentinfo">
+      <span class="colophon-attr">Powered by CARM Aerotech Corporation</span>
+      <span class="colophon-mode-badge">FAIL-CLOSED · PAPER / OBSERVATION MODE · GATE G1</span>
+    </footer>
+  </div>
+
+  <script>
+    const qs = new URLSearchParams(window.location.search);
+    let verifiedToken = '';
+
+    function showErrorCard(title, body) {
+      const steps = document.getElementById('activationStepsFlow');
+      const success = document.getElementById('activationSuccessCard');
+      const errCard = document.getElementById('inviteErrorCard');
+      const loaderStatus = document.getElementById('tokenLoaderStatus');
+      if (steps) steps.hidden = true;
+      if (success) success.hidden = true;
+      if (loaderStatus) loaderStatus.hidden = true;
+      if (errCard) {
+        const tEl = document.getElementById('inviteErrorTitle');
+        const bEl = document.getElementById('inviteErrorBody');
+        if (tEl) tEl.textContent = title;
+        if (bEl) bEl.textContent = body;
+        errCard.hidden = false;
+      }
+    }
+
+    function updateActivateButtonState() {
+      const ack = document.getElementById('covenantAckCheckbox');
+      const btn = document.getElementById('activateAccountBtn');
+      if (btn) btn.disabled = !(Boolean(verifiedToken) && Boolean(ack && ack.checked));
+    }
+
+    async function loadInvitePreview() {
+      const input = document.getElementById('activateTokenInput');
+      const statusBox = document.getElementById('tokenLoaderStatus');
+      const errCard = document.getElementById('inviteErrorCard');
+      const steps = document.getElementById('activationStepsFlow');
+      const token = (input ? input.value : '').trim();
+
+      if (errCard) errCard.hidden = true;
+      if (!token) {
+        if (statusBox) {
+          statusBox.textContent = 'Please paste your 48-hour invite code to begin.';
+          statusBox.hidden = false;
+        }
+        if (steps) steps.hidden = true;
+        return;
+      }
+
+      if (statusBox) {
+        statusBox.textContent = 'Verifying your 48-hour single-use invite…';
+        statusBox.hidden = false;
+      }
+
+      try {
+        const res = await fetch(`/api/v1/onboarding/invite-preview?token=${encodeURIComponent(token)}`);
+        const data = await res.json();
+        if (!res.ok) {
+          const detail = data && data.detail ? data.detail : {};
+          const code = typeof detail === 'object' ? (detail.code || '') : '';
+          if (res.status === 410 && code === 'TOKEN_EXPIRED') {
+            showErrorCard(
+              'This 48-Hour Invite Link Has Expired',
+              'For family security, invite links stay active for 48 hours. Your place in the family roster is safe—please ask the Chief Administrator or your House Leader for a fresh link.'
+            );
+          } else if (res.status === 410 && code === 'TOKEN_ALREADY_USED') {
+            showErrorCard(
+              'This Single-Use Invite Link Was Already Activated',
+              'Good news—this invitation was already used once. You can sign in directly at /login using your family email and a 6-digit sign-in code.'
+            );
+          } else {
+            showErrorCard(
+              'We Could Not Recognize That Invite Code',
+              'Please double-check that you copied the full invite link, or ask the Chief Administrator or your House Leader to share a fresh 48-hour invite.'
+            );
+          }
+          verifiedToken = '';
+          updateActivateButtonState();
+          return;
+        }
+
+        verifiedToken = token;
+        if (statusBox) statusBox.hidden = true;
+        if (errCard) errCard.hidden = true;
+        document.getElementById('previewFullName').textContent = data.full_name || 'Family Member';
+        document.getElementById('previewHouseCode').textContent = data.lineage_code || `HOUSE-${String(data.house_id || 1).padStart(2, '0')}`;
+        document.getElementById('previewRoleTier').textContent = 'CLASS_M (Private Member)';
+        document.getElementById('previewExpiresAt').textContent = data.expires_at || 'Within 48 hours';
+        const emailInput = document.getElementById('activateEmailInput');
+        if (emailInput && data.email) emailInput.value = data.email;
+        if (steps) steps.hidden = false;
+        updateActivateButtonState();
+      } catch (_err) {
+        if (statusBox) {
+          statusBox.textContent = 'Could not reach the activation service right now. Please try again in a moment.';
+          statusBox.hidden = false;
+        }
+      }
+    }
+
+    async function submitInviteActivation() {
+      const ack = document.getElementById('covenantAckCheckbox');
+      const errBox = document.getElementById('activateSubmitStatus');
+      const btn = document.getElementById('activateAccountBtn');
+      const emailInput = document.getElementById('activateEmailInput');
+      if (!verifiedToken || !(ack && ack.checked)) return;
+
+      if (errBox) errBox.hidden = true;
+      if (btn) btn.disabled = true;
+
+      try {
+        const payload = {
+          token: verifiedToken,
+          email: emailInput ? emailInput.value.trim() : undefined,
+          issue_session: true
+        };
+        const res = await fetch('/api/v1/onboarding/activate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          if (res.status === 410) {
+            showErrorCard(
+              'This 48-Hour Invite Link Has Expired or Was Already Used',
+              typeof data.detail === 'string' ? data.detail : 'This single-use invite token can no longer be activated.'
+            );
+            return;
+          }
+          if (errBox) {
+            errBox.textContent = typeof data.detail === 'string' ? data.detail : 'Activation could not be completed. Please check your email and try again.';
+            errBox.hidden = false;
+          }
+          if (btn) btn.disabled = false;
+          return;
+        }
+
+        const member = data.member || {};
+        const allowUser = data.auth_allowlist_user || {};
+        const scmaId = member.scma_id || allowUser.scma_id || '';
+        const houseCode = member.lineage_code || allowUser.house_id || 'HOUSE-01';
+        const email = allowUser.email || member.email || '';
+
+        document.getElementById('tokenEntryCard').hidden = true;
+        document.getElementById('activationStepsFlow').hidden = true;
+        document.getElementById('inviteErrorCard').hidden = true;
+        document.getElementById('activatedEmailDisplay').textContent = email || 'Enrolled on Private Allowlist';
+        document.getElementById('activatedScmaDisplay').textContent = scmaId ? `${scmaId} · ${houseCode}` : houseCode;
+
+        const uniBtn = document.getElementById('nextStepUniversityBtn');
+        const acctBtn = document.getElementById('nextStepAccountBtn');
+        if (uniBtn) uniBtn.href = data.companion_url || (scmaId ? `/companion?scma_id=${encodeURIComponent(scmaId)}&chapter=6` : '/companion');
+        if (acctBtn) acctBtn.href = data.redirect_url || (scmaId ? `/member?scma_id=${encodeURIComponent(scmaId)}` : '/member');
+
+        document.getElementById('activationSuccessCard').hidden = false;
+      } catch (_err) {
+        if (errBox) {
+          errBox.textContent = 'Activation request failed — please check your connection and try again.';
+          errBox.hidden = false;
+        }
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const initialToken = (qs.get('token') || qs.get('invite_token') || '').trim();
+      if (initialToken) {
+        const input = document.getElementById('activateTokenInput');
+        if (input) input.value = initialToken;
+        loadInvitePreview();
+      }
+    });
+  </script>
+  <script src="/static/js/senior_a11y.js"></script>
+</body>
+</html>

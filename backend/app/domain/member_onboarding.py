@@ -32,6 +32,10 @@ from app.db.models import (
 from app.db.session import Base, SessionLocal, engine as default_engine
 from app.domain.capital_ledger import CapitalLedger
 from app.domain.lineage_hierarchy import LineageHierarchyService, get_lineage_service
+from app.domain.session_auth_service import (
+    normalize_email,
+    provision_member_auth_allowlist_in_session,
+)
 
 ALLOWED_ROLE_TIERS: Tuple[str, ...] = (
     "MEMBER_USER",
@@ -63,6 +67,7 @@ _OPAQUE_BANK_REF_RE = re.compile(r"^EXT-REF-[A-Z0-9][A-Z0-9_-]{1,31}-\*{4}[0-9]{
 _RAW_LONG_DIGITS_RE = re.compile(r"\d{5,}")
 _RAW_ROUTING_HINT_RE = re.compile(r"(?i)\b(?:aba|routing|swift|iban|acct|account[\s_-]*no)\b")
 _RAW_SSN_RE = re.compile(r"\b\d{3}-\d{2}-\d{4}\b")
+_EMAIL_BASIC_RE = re.compile(r"^[^@\s]{1,64}@[^@\s]{1,180}\.[^@\s]{2,32}$")
 
 FORBIDDEN_BANKING_KEYS = frozenset(
     {
@@ -275,6 +280,20 @@ def reject_forbidden_banking_fields(payload: Dict[str, Any]) -> None:
             )
 
 
+def validate_optional_email(value: Any, *, fallback_member_id: str) -> str:
+    """Normalize optional family allowlist email (or derive a safe local family email fallback)."""
+    raw = str(value or "").strip()
+    if not raw:
+        safe_slug = re.sub(r"[^a-z0-9._-]+", "", fallback_member_id.lower()) or "member"
+        return f"{safe_slug}@carmichael-family.local"
+    norm = normalize_email(raw)
+    if _RAW_SSN_RE.search(norm):
+        raise OnboardingValidationError("ADR-011 violation: SSN patterns are strictly prohibited.")
+    if not _EMAIL_BASIC_RE.fullmatch(norm):
+        raise OnboardingValidationError(f"Invalid family email address '{raw}'.")
+    return norm
+
+
 class MemberOnboardingService:
     """Persistent 5-stage member onboarding coordinator synchronized across DB, Ledger, and Lineage."""
 
@@ -326,6 +345,11 @@ class MemberOnboardingService:
         else:
             member_id = f"MEM-{_slugify_name(full_name)}-{uuid.uuid4().hex[:6].upper()}"
 
+        email = validate_optional_email(
+            raw.get("email") if raw.get("email") is not None else raw.get("applicant_email"),
+            fallback_member_id=member_id,
+        )
+
         house_input = raw.get("lineage_house")
         if house_input is None:
             house_input = raw.get("house_id")
@@ -357,6 +381,7 @@ class MemberOnboardingService:
             "member_id": member_id,
             "scma_id": scma_id,
             "full_name": full_name,
+            "email": email,
             "house_id": house_id,
             "lineage_code": lineage_code,
             "role_tier": role_tier,
@@ -368,10 +393,14 @@ class MemberOnboardingService:
         }
 
     def _serialize_member(self, row: OnboardingMemberModel) -> Dict[str, Any]:
+        resolved_email = (row.email or "").strip() or validate_optional_email(
+            None, fallback_member_id=row.member_id
+        )
         return {
             "member_id": row.member_id,
             "scma_id": row.scma_id,
             "full_name": row.full_name,
+            "email": resolved_email,
             "house_id": int(row.house_id),
             "lineage_code": row.lineage_code,
             "role_tier": row.role_tier,
@@ -446,6 +475,7 @@ class MemberOnboardingService:
             member_id=normalized["member_id"],
             scma_id=normalized["scma_id"],
             full_name=normalized["full_name"],
+            email=normalized["email"],
             house_id=normalized["house_id"],
             lineage_code=normalized["lineage_code"],
             role_tier=normalized["role_tier"],
@@ -470,6 +500,7 @@ class MemberOnboardingService:
                     user_id=normalized["member_id"],
                     tenant_id=normalized["lineage_code"],
                     username=normalized["full_name"],
+                    email=normalized["email"],
                     role=normalized["role_tier"],
                     created_at=now_iso,
                 )
@@ -527,6 +558,7 @@ class MemberOnboardingService:
             "invite": {
                 "token": raw_token,
                 "activation_link": f"/member?scma_id={normalized['scma_id']}&invite_token={raw_token}",
+                "activate_portal_url": f"/activate?token={raw_token}",
                 "expires_at": expires_iso,
                 "ttl_hours": INVITE_TTL_HOURS,
                 "single_use": True,
@@ -666,15 +698,81 @@ class MemberOnboardingService:
             "provisioned": receipts,
         }
 
-    def activate_invite_token(
+    def preview_invite_token(
         self,
         raw_token: str,
         *,
         now: Optional[datetime] = None,
     ) -> Dict[str, Any]:
+        """Read-only Stage 2 preview for /activate portal (never consumes the token, zero bank PII)."""
+        token_clean = (raw_token or "").strip()
+        if not token_clean:
+            raise InviteTokenError("Activation token is required.", status_code=400, code="MISSING_TOKEN")
+
+        token_hash = _hash_token(token_clean)
+        now_dt = _utc_now(now)
+
+        db = self._session_factory()
+        try:
+            invite = db.get(OnboardingInviteTokenModel, token_hash)
+            if invite is None:
+                raise InviteTokenError(
+                    "Invalid activation token: this invite link was not recognized.",
+                    status_code=404,
+                    code="TOKEN_NOT_FOUND",
+                )
+            if invite.consumed_at is not None:
+                raise InviteTokenError(
+                    "Activation token has already been used (single-use policy enforced).",
+                    status_code=410,
+                    code="TOKEN_ALREADY_USED",
+                )
+            expires_dt = datetime.fromisoformat(invite.expires_at)
+            if expires_dt.tzinfo is None:
+                expires_dt = expires_dt.replace(tzinfo=timezone.utc)
+            if now_dt > expires_dt:
+                raise InviteTokenError(
+                    "Activation token has expired (48-hour activation window exceeded).",
+                    status_code=410,
+                    code="TOKEN_EXPIRED",
+                )
+            member = db.get(OnboardingMemberModel, invite.member_id)
+            if member is None:
+                raise InviteTokenError(
+                    "Associated member record not found for token.",
+                    status_code=404,
+                    code="MEMBER_NOT_FOUND",
+                )
+            serialized = self._serialize_member(member)
+            return {
+                "valid": True,
+                "full_name": serialized["full_name"],
+                "email": serialized["email"],
+                "house_id": serialized["house_id"],
+                "lineage_code": serialized["lineage_code"],
+                "role_tier": serialized["role_tier"],
+                "is_custodial": serialized["is_custodial"],
+                "status": serialized["status"],
+                "expires_at": invite.expires_at,
+                "paper_mode": True,
+                "gate_g1_status": "HOLD_OBSERVATIONS_ONLY",
+                "ifas_portal_host": IFAS_PORTAL_HOST,
+            }
+        finally:
+            db.close()
+
+    def activate_invite_token(
+        self,
+        raw_token: str,
+        *,
+        email: Optional[str] = None,
+        now: Optional[datetime] = None,
+    ) -> Dict[str, Any]:
         """
         Stage 2: Validate and consume a single-use 48-hour invite activation token.
         Fails closed on unknown, expired, or already-consumed tokens.
+        Automatically provisions (or upserts) the member's active AuthUserModel on PR #98's
+        private family allowlist (`authorized_hats=["CLASS_M"]`, `is_apex_tier3=False`).
         """
         token_clean = (raw_token or "").strip()
         if not token_clean:
@@ -717,8 +815,36 @@ class MemberOnboardingService:
                     code="MEMBER_NOT_FOUND",
                 )
 
+            if email is not None and str(email).strip():
+                try:
+                    resolved_email = validate_optional_email(email, fallback_member_id=member.member_id)
+                except OnboardingValidationError as exc:
+                    raise InviteTokenError(str(exc), status_code=422, code="INVALID_EMAIL") from exc
+                member.email = resolved_email
+                user_mirror = db.get(UserModel, member.member_id)
+                if user_mirror is not None:
+                    user_mirror.email = resolved_email
+            else:
+                resolved_email = (member.email or "").strip() or validate_optional_email(
+                    None, fallback_member_id=member.member_id
+                )
+                if not member.email:
+                    member.email = resolved_email
+
             invite.consumed_at = now_iso
             member.invite_activated_at = now_iso
+
+            auth_allowlist_user = provision_member_auth_allowlist_in_session(
+                db,
+                user_id=member.member_id,
+                email=resolved_email,
+                display_name=member.full_name,
+                scma_id=member.scma_id,
+                house_id=member.lineage_code,
+                actor_id=member.member_id,
+                source="INVITE_ACTIVATION",
+            )
+
             self._record_audit(
                 db,
                 tenant_id=member.lineage_code,
@@ -729,6 +855,9 @@ class MemberOnboardingService:
                     "scma_id": member.scma_id,
                     "token_prefix": invite.token_prefix,
                     "activated_at": now_iso,
+                    "auth_allowlist_provisioned": True,
+                    "authorized_hats": auth_allowlist_user["authorized_hats"],
+                    "is_apex_tier3": False,
                 },
                 recorded_at=now_iso,
             )
@@ -746,7 +875,10 @@ class MemberOnboardingService:
             "member_status": serialized["status"],
             "default_view": "orientation",
             "redirect_url": f"/member?scma_id={serialized['scma_id']}",
+            "companion_url": f"/companion?scma_id={serialized['scma_id']}&chapter=6",
+            "login_url": "/login",
             "member": serialized,
+            "auth_allowlist_user": auth_allowlist_user,
         }
 
     def certify_member(

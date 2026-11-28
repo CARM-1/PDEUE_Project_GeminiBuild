@@ -53,6 +53,7 @@ EXPECTED_HTML_ROUTES = {
     "/advisor",
     "/admin/tech",
     "/login",
+    "/activate",
     "/companion",
     "/lineage/house/{house_id}",
     "/lineage/house",
@@ -238,6 +239,13 @@ CRAWL_TARGETS: tuple[CrawlTarget, ...] = (
         path="/login",
         route_template="/login",
         role_scope="PRIVATE_LOGIN_ALLOWLIST",
+        forbidden_visible_href_prefixes=("/dashboard", "/member", "/advisor", "/admin/tech", "/lineage/house"),
+    ),
+    CrawlTarget(
+        slug="invite_activation_portal",
+        path="/activate",
+        route_template="/activate",
+        role_scope="INVITE_ACTIVATION_PORTAL",
         forbidden_visible_href_prefixes=("/dashboard", "/member", "/advisor", "/admin/tech", "/lineage/house"),
     ),
 )

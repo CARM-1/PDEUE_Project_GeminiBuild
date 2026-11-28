@@ -197,3 +197,20 @@ Signing in to our private Carmichael / McCormick family platform is designed to 
 3. **Instant 1-Click Session Revocation:** From `/dashboard` Tab 4 (**Active Family Sessions & Lost-Device Revocation**), the Chief Administrator clicks **Revoke Device** on your lost phone or laptop. That device's session cookie is invalidated immediately (forced back to `/login`) and logged permanently in `GovernanceAuditLog`.
 4. **Sign Back In Safely on Your New Device:** Once your new phone or computer is ready, visit `/login`, request a fresh 6-digit code to your family email, and continue right where you left off.
 
+## 13. Activating Your Family Invite & Two-Party Admission Governance
+
+Every new family member joins the Carmichael & McCormick platform through a calm, invitation-only process—there is never a public sign-up form and never a password to memorize.
+
+### How to Activate Your 48-Hour Invite (`/activate`)
+1. **Step 1 — Confirm Identity & House Assignment:** Open the personal 48-hour invite link shared by the Chief Administrator or your House Leader (`/activate?token=...`), or paste your invite code into `/activate`. Confirm your full name, assigned House (`HOUSE-01` through `HOUSE-12`), and family email address for future 6-digit sign-in codes.
+2. **Step 2 — Review the Plain-English Lineage Covenant & Zero-Bank-Storage Pledge:** Read the plain-English summary confirming our **Zero-Bank-Storage Pledge (`ADR-011`)** (PDEUE never stores bank routing numbers, bank account numbers, SSNs, or banking passwords—real custody stays isolated in `IFAS`), **Phase I Paper Mode (`Gate G1: HOLD_OBSERVATIONS_ONLY`)**, and **100% SCMA Loss Isolation (`Rule A14`) & High-Water Mark protection (`ADR-012`)**, then tick the confirmation checkbox.
+3. **Step 3 — Activate Private Account:** Click **Activate Private Account**. Your single-use invite token is consumed permanently, your active `CLASS_M` account is automatically enrolled on our private family allowlist (`AuthUserModel`, never elevated to Apex Tier-3), and `ONBOARDING_AUTH_ALLOWLIST_PROVISIONED` is recorded in `GovernanceAuditLog`.
+4. **Immediate Next Steps:** Right after activation, click **Start PDEUE University (L1 Certification)** (`/companion`) to complete your 6-chapter stewardship walk, or **Open My Account** (`/member`) to inspect your tenant-jailed personal view. Whenever you sign in later on another phone or computer, visit `/login` and request a 6-digit email code to your enrolled family email.
+5. **If Your Invite Link Expired or Was Already Used (`HTTP 410`):** Every invite link works once and expires after 48 hours for family protection. If you see the calm expired/used notice, simply ask the Chief Administrator or your House Leader for a fresh link—or go straight to `/login` if you already activated earlier.
+
+### How Two-Party Admission Governance Works (`CHIEF_ADMIN_SOLO` vs. `TWO_PARTY_COSIGN`)
+* **Ring 1 Alpha Default (`CHIEF_ADMIN_SOLO`):** During Ring 1 Alpha, the Chief Administrator can ratify and provision new family members directly from `/dashboard` Tab 4 with zero extra committee bottleneck.
+* **Admin-Toggleable Two-Party Co-Sign (`TWO_PARTY_COSIGN`):** Whenever leadership switches **Admission Authority Mode** to `TWO_PARTY_COSIGN` on `/dashboard` Tab 4, Chief Administrator solo ratification is blocked fail-closed (`HTTP 409`, `TWO_PARTY_COSIGN_REQUIRED`) until an authorized **`F2-H` Head of Household** for the applicant's exact House co-signs the pending admission dossier from their **Pending Member Admission Co-Signs** desk on `/advisor` (`POST /api/v1/onboarding/dossiers/{dossier_id}/cosign`).
+* **Strict House Boundaries & Air-Gapped Accounting:** Cross-house `H2` / `HOUSE_GENEALOGIST` intake or cross-house `F2-H` co-sign attempts are blocked server-side (`HTTP 403`). Once ratified, the engine atomically provisions the member's SCMA, enrolls their `CLASS_M` allowlist login, and emits a signed HMAC-SHA256 `MEMBER_ADMISSION_RATIFIED` JSON-LD event to the `ADR-011` IFAS outbox with zero bank credentials or SSNs.
+
+

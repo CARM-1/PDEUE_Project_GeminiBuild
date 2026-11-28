@@ -220,6 +220,23 @@ abbr.pdeue-term:hover::after,abbr.pdeue-term:focus::after,abbr.pdeue-term:focus-
 <section class="card"><div class="label">Subordinate <abbr class="pdeue-term" tabindex="0" data-term="scma" data-tooltip="Your own private, walled-off family account. Your money grows inside your personal box, and if a trade ever loses money, that loss stays strictly inside your own account and never touches anyone else's savings.">SCMA<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> Accounts</div><div class="table-wrap table-card"><table><thead><tr><th>Member</th><th>Account (<abbr class="pdeue-term" tabindex="0" data-term="scma" data-tooltip="Your own private, walled-off family account. Your money grows inside your personal box, and if a trade ever loses money, that loss stays strictly inside your own account and never touches anyone else's savings.">SCMA<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr>)</th><th>Equity</th><th>Lineage status</th><th>Risk controls</th></tr></thead><tbody id="roster"></tbody></table></div></section>
 <section class="grid" id="operations"><div id="distribution-slot"></div><article class="card wide" id="audit-card"><div class="label">PIT Decision Audit</div><div id="telemetry"></div><div id="pit"></div></article></section>
 <section class="card" id="proposal-queue" hidden><div class="label">Fiduciary Supervisory Queue (F3 CRO Adjudication of F2-A Proposals)</div><div id="proposals"></div></section>
+<!-- F2H_ADMISSION_COSIGN_START -->
+<section class="card" id="f2hAdmissionCosignSection" aria-label="Pending Member Admission Co-Signs">
+  <div class="row" style="margin-bottom:8px;">
+    <div>
+      <div class="label">F2-H HEAD OF HOUSEHOLD · TWO-PARTY ADMISSION CO-SIGN DESK</div>
+      <h2 style="margin:2px 0 0;">Pending Member Admission Co-Signs</h2>
+    </div>
+    <div class="row" style="gap:8px;">
+      <span id="f2hAdmissionModePill" class="status-pill">MODE: CHIEF_ADMIN_SOLO</span>
+      <button id="refreshAdmissionCosignsBtn" type="button" class="btn-stage" onclick="loadF2hAdmissionCosigns()">Refresh Admission Co-Signs</button>
+    </div>
+  </div>
+  <p class="muted" style="margin:0 0 10px;font-size:.84rem;">When the Chief Administrator enables <code>TWO_PARTY_COSIGN</code> admission mode, an authorized <strong>F2-H Head of Household</strong> must co-sign pending admission dossiers for their assigned House before final ratification and SCMA provisioning. Strictly scoped to your House; zero bank credentials stored (ADR-011).</p>
+  <div id="f2hAdmissionCosignList" aria-live="polite"><p class="muted" style="margin:0;">Loading pending admission dossiers…</p></div>
+  <div id="f2hAdmissionCosignFeedback" class="muted" style="font-size:.84rem;margin-top:8px;color:#bae6fd;" aria-live="polite"></div>
+</section>
+<!-- F2H_ADMISSION_COSIGN_END -->
 <section class="card" id="shadowHunchClearanceSection" aria-label="Shadow Hunch Clearance Queue">
   <div class="row" style="margin-bottom:8px;">
     <div>
@@ -310,9 +327,9 @@ async function renderCro(){
   renderProposals(ledger.proposals);
 }
 function renderProposals(items){$('proposals').innerHTML=items.length?items.map(p=>`<div class="audit"><b>${esc(p.title||p.proposal_id)} · ${esc(p.target_scma)}</b><p><strong>Sponsor:</strong> ${esc(p.sponsor||p.submitted_by)}<br><strong>Justification:</strong> ${esc(p.justification)}<br>Current dial ${esc(p.current_dial||'—')} → proposed ${esc(p.proposed_dial)} · <span class="status-pill">${esc(p.status)}</span></p>${p.status==='PENDING'?`<button class="action" data-decision="ALLOW" data-proposal="${p.proposal_id}" ${isSupervisoryLens?'disabled':''}>Approve Proposal</button> <button class="action danger" data-decision="DENY" data-proposal="${p.proposal_id}" ${isSupervisoryLens?'disabled':''}>Veto Proposal</button>`:''}</div>`).join(''):'<p>No pending advisory proposals.</p>';document.querySelectorAll('[data-decision]').forEach(b=>b.addEventListener('click',async()=>{if(isSupervisoryLens)return;await fetch(`/api/v1/portal/advisor/proposals/${b.dataset.proposal}/adjudicate?role=F3`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({decision:b.dataset.decision})});await renderCro()}))}
-function render(){const isF2A=activeRole==='F2-A';$('branch-scope').hidden=!isF2A;$('advisor-actions').hidden=!isF2A;$('cro-emergency-controls').hidden=true;$('macro-risk').hidden=true;$('house-exposures').hidden=true;$('proposal-queue').hidden=true;if(activeRole==='F3')return renderCro();renderDomestic()}
+function render(){const isF2A=activeRole==='F2-A';$('branch-scope').hidden=!isF2A;$('advisor-actions').hidden=!isF2A;$('cro-emergency-controls').hidden=true;$('macro-risk').hidden=true;$('house-exposures').hidden=true;$('proposal-queue').hidden=true;const cosignSec=$('f2hAdmissionCosignSection');if(cosignSec)cosignSec.hidden=(activeRole!=='F2-H');if(activeRole==='F3')return renderCro();renderDomestic()}
 async function loadRole(){const current=++requestNumber;controller?.abort();controller=new AbortController();$('workspace').classList.add('loading');try{const r=await fetch(`/api/v1/portal/advisor/household-tree?role=${encodeURIComponent(activeRole)}&household_id=${encodeURIComponent(activeHousehold)}`,{headers:{'X-Household-ID':activeHousehold},signal:controller.signal});if(!r.ok)throw new Error(`Advisor data unavailable (${r.status})`);const next=await r.json();if(current!==requestNumber)return;data=next;render()}catch(error){if(error.name!=='AbortError'){renderReadModelBanner({status:'DEGRADED_RETRYING',banner_headline:'UNAVAILABLE — ENGINE UNREACHABLE',banner_detail:error.message||'Advisor read-model unreachable; retrying fail-closed without placeholder figures.',updated_at_utc:new Date().toISOString()});$('equity').textContent='UNAVAILABLE';$('liquidity').textContent='UNAVAILABLE';$('count').textContent='—';$('roster').innerHTML='<tr><td colspan="5">UNAVAILABLE — ENGINE UNREACHABLE</td></tr>';$('role-alert').innerHTML=`<span class="error">${esc(error.message)}</span>`}}finally{if(current===requestNumber)$('workspace').classList.remove('loading')}}
-function switchRole(role){if(!roles[role])return;activeRole=role;history.replaceState(null,'',`${location.pathname}?role=${encodeURIComponent(role)}`);applyRoleChrome();loadRole();if(typeof loadAdvisorHunchQueue==='function')loadAdvisorHunchQueue()}
+function switchRole(role){if(!roles[role])return;activeRole=role;history.replaceState(null,'',`${location.pathname}?role=${encodeURIComponent(role)}`);applyRoleChrome();loadRole();if(typeof loadAdvisorHunchQueue==='function')loadAdvisorHunchQueue();if(typeof loadF2hAdmissionCosigns==='function')loadF2hAdmissionCosigns()}
 window.switchRole=switchRole;window.setAdvisorRole=switchRole;
 document.querySelectorAll('[data-role]').forEach(b=>b.addEventListener('click',()=>switchRole(b.dataset.role)));
 $('cancel-cosign').addEventListener('click',()=>$('cosign-modal').hidden=true);
@@ -434,9 +451,60 @@ async function reviewAdvisorHunch(dossierId,decision){
     if(fb)fb.textContent='Clearance review unreachable — no state modified.';
   }
 }
+function _advisorHouseId(){return activeHousehold==='HOUSEHOLD-BETA'?2:1}
+async function loadF2hAdmissionCosigns(){
+  const sec=$('f2hAdmissionCosignSection'),listEl=$('f2hAdmissionCosignList'),pill=$('f2hAdmissionModePill');
+  if(!sec||!listEl)return;
+  if(activeRole!=='F2-H'){sec.hidden=true;return}
+  sec.hidden=false;
+  const houseId=_advisorHouseId();
+  try{
+    const [cfgRes,dosRes]=await Promise.all([
+      fetch('/api/v1/onboarding/delegation-config'),
+      fetch(`/api/v1/onboarding/dossiers?house_id=${encodeURIComponent(houseId)}`)
+    ]);
+    const cfg=cfgRes.ok?await cfgRes.json():{};
+    const dData=dosRes.ok?await dosRes.json():{dossiers:[]};
+    const mode=cfg.admission_authority_mode||'CHIEF_ADMIN_SOLO';
+    if(pill)pill.textContent=`MODE: ${mode}`;
+    const openDossiers=(dData.dossiers||[]).filter(d=>d.status!=='RATIFIED_PROVISIONED'&&d.status!=='REJECTED');
+    if(!openDossiers.length){
+      listEl.innerHTML=`<p class="muted" style="margin:0;">No pending admission dossiers awaiting F2-H co-sign for HOUSE-${String(houseId).padStart(2,'0')}.</p>`;
+      return;
+    }
+    listEl.innerHTML=openDossiers.map(d=>{
+      const done=Boolean(d.f2h_cosigned);
+      const btn=done
+        ? `<span class="status-pill signed">F2-H CO-SIGNED (${esc(d.f2h_cosigned_by||'VERIFIED')})</span>`
+        : `<button type="button" class="action" ${isSupervisoryLens?'disabled':''} onclick="cosignAdmissionDossier('${esc(d.dossier_id)}')">Co-Sign Admission (F2-H)</button>`;
+      return `<div class="audit"><b>${esc(d.dossier_id)} · ${esc(d.applicant_full_name)} · ${esc(d.lineage_code)}</b><p>${esc(d.kinship_verification)} · Seed: <strong>${esc(d.seed_formatted||'$0.00')}</strong> · <span class="status-pill">${esc(d.status)}</span></p><div style="margin-top:6px;">${btn}</div></div>`;
+    }).join('');
+  }catch(_err){
+    listEl.innerHTML='<p class="muted" style="margin:0;">Pending Member Admission Co-Signs temporarily unreachable — zero actions executed.</p>';
+  }
+}
+async function cosignAdmissionDossier(dossierId){
+  if(isSupervisoryLens||activeRole!=='F2-H')return;
+  const fb=$('f2hAdmissionCosignFeedback');
+  const houseId=_advisorHouseId();
+  const actorId=houseId===2?'USR-beta-head':'USR-eleanor_va-B2B31C9E';
+  try{
+    const r=await fetch(`/api/v1/onboarding/dossiers/${encodeURIComponent(dossierId)}/cosign`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Actor-Role':'F2-H','X-Actor-ID':actorId,'X-House-ID':String(houseId)},
+      body:JSON.stringify({notes:`F2-H House ${houseId} co-sign attestation via Advisor Workspace`})
+    });
+    const d=await r.json();
+    if(fb)fb.textContent=r.ok?`Co-signed dossier ${dossierId} (Audit ${d.audit_event_id}) — ready for Chief Admin final ratification.`:`Co-sign blocked (HTTP ${r.status}): ${d.detail||'Forbidden'}`;
+    await loadF2hAdmissionCosigns();
+  }catch(_err){
+    if(fb)fb.textContent='Co-sign request unreachable — no state modified.';
+  }
+}
+window.loadF2hAdmissionCosigns=loadF2hAdmissionCosigns;window.cosignAdmissionDossier=cosignAdmissionDossier;
 window.loadAdvisorHunchQueue=loadAdvisorHunchQueue;window.reviewAdvisorHunch=reviewAdvisorHunch;
 window.runCustodialLookup=runCustodialLookup;window.clearCustodialLookup=clearCustodialLookup;
-applyRoleChrome();loadRole();loadAdvisorHunchQueue();
+applyRoleChrome();loadRole();loadAdvisorHunchQueue();loadF2hAdmissionCosigns();
 </script>
 <script>(function () { var _mediaStore = []; function _esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); } function _isSafeLocalMediaPath(path) { return ( typeof path === 'string' && path.indexOf('/static/media/playbooks/') === 0 && path.indexOf('://') === -1 && path.indexOf('..') === -1 ); } function _ensureLightbox() { var existing = document.getElementById('pdeueMediaLightbox'); if (existing) return existing; var overlay = document.createElement('div'); overlay.id = 'pdeueMediaLightbox'; overlay.className = 'pdeue-media-lightbox'; overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true'); overlay.setAttribute('aria-labelledby', 'pdeueMediaLightboxTitle'); overlay.hidden = true; overlay.innerHTML = '<div class="pdeue-media-lightbox-panel">' + '  <div class="pdeue-media-lightbox-head">' + '    <h3 id="pdeueMediaLightboxTitle">Annotated Playbook Reference</h3>' + '    <button type="button" id="pdeueMediaLightboxCloseBtn" class="pdeue-media-lightbox-close" aria-label="Close enlarged playbook screenshot">Close Preview</button>' + '  </div>' + '  <img id="pdeueMediaLightboxImg" class="pdeue-media-lightbox-img" src="" alt="">' + '  <p id="pdeueMediaLightboxCaption" class="tutor-media-caption"></p>' + '  <ol id="pdeueMediaLightboxLegend" class="tutor-callout-legend" style="margin-top:10px;"></ol>' + '</div>'; document.body.appendChild(overlay); var closeBtn = document.getElementById('pdeueMediaLightboxCloseBtn'); if (closeBtn) { closeBtn.addEventListener('click', closeMediaModal); } overlay.addEventListener('click', function (ev) { if (ev.target === overlay) closeMediaModal(); }); document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && !overlay.hidden) closeMediaModal(); }); return overlay; } function openMediaModal(storeIndex) { var item = _mediaStore[storeIndex]; if (!item || !_isSafeLocalMediaPath(item.path)) return; var overlay = _ensureLightbox(); var titleEl = document.getElementById('pdeueMediaLightboxTitle'); var imgEl = document.getElementById('pdeueMediaLightboxImg'); var capEl = document.getElementById('pdeueMediaLightboxCaption'); var legEl = document.getElementById('pdeueMediaLightboxLegend'); if (titleEl) titleEl.textContent = item.title || 'Annotated Playbook Screenshot'; if (imgEl) { imgEl.src = item.path; imgEl.alt = item.caption || item.title || 'PDEUE Annotated Screenshot'; } if (capEl) capEl.textContent = item.caption || ''; if (legEl) { var legend = Array.isArray(item.callout_legend) ? item.callout_legend : []; legEl.innerHTML = legend .map(function (c, idx) { var num = c && c.badge != null ? c.badge : idx + 1; var label = (c && c.label) || ''; var note = (c && c.note) || ''; return ( '<li class="tutor-callout-item">' + '<span class="tutor-callout-num">' + _esc(num) + '</span>' + '<span><strong>' + _esc(label) + '</strong>' + (note ? ' — ' + _esc(note) : '') + '</span>' + '</li>' ); }) .join(''); } overlay.hidden = false; var closeBtn = document.getElementById('pdeueMediaLightboxCloseBtn'); if (closeBtn) closeBtn.focus(); } function closeMediaModal() { var overlay = document.getElementById('pdeueMediaLightbox'); if (overlay) overlay.hidden = true; } function renderLocalBadge(data) { if (!data || data.answered_locally !== true) return ''; return '<span class="tutor-local-badge" data-answered-locally="true">Local Library · Zero Internet</span>'; } function renderVisualAidBlock(data) { if (!data || typeof data !== 'object') return ''; var mediaRefs = Array.isArray(data.media_refs) ? data.media_refs.filter(function (m) { return m && _isSafeLocalMediaPath(m.path); }) : []; var steps = Array.isArray(data.playbook_steps) ? data.playbook_steps.filter(function (s) { return typeof s === 'string' && s.trim().length > 0; }) : []; var cites = Array.isArray(data.manual_citations) ? data.manual_citations.filter(function (c) { return c && c.manual_file; }) : []; if (!mediaRefs.length && !steps.length && !cites.length) { return ''; } var parts = ['<div class="tutor-visual-aid-stack" data-visual-aid="true">']; if (mediaRefs.length) { parts.push('<div class="tutor-media-grid">'); mediaRefs.forEach(function (ref) { var idx = _mediaStore.push(ref) - 1; var legend = Array.isArray(ref.callout_legend) ? ref.callout_legend : []; var typeLabel = String(ref.media_type || 'annotated_screenshot').replace(/_/g, ' '); var legendHtml = legend .map(function (c, cIdx) { var num = c && c.badge != null ? c.badge : cIdx + 1; var label = (c && c.label) || ''; var note = (c && c.note) || ''; return ( '<li class="tutor-callout-item">' + '<span class="tutor-callout-num">' + _esc(num) + '</span>' + '<span><strong>' + _esc(label) + '</strong>' + (note ? ' — ' + _esc(note) : '') + '</span>' + '</li>' ); }) .join(''); parts.push( '<article class="tutor-media-card" data-playbook-id="' + _esc(ref.playbook_id || '') + '">' + '<div class="tutor-media-card-head">' + '<strong style="font-size:0.84rem;color:#F8FAFC;">' + _esc(ref.title || 'Visual Walkthrough') + '</strong>' + '<span class="tutor-media-type-pill">' + _esc(typeLabel) + '</span>' + '</div>' + '<button type="button" class="tutor-media-thumb-btn" onclick="window.PDEUEVisualTutor.openMediaModal(' + idx + ')" aria-label="Enlarge annotated screenshot: ' + _esc(ref.caption || ref.title || 'Playbook visual') + '">' + '<img class="tutor-media-thumb" src="' + _esc(ref.path) + '" alt="' + _esc(ref.caption || ref.title || 'Annotated UI screenshot') + '" loading="lazy">' + '<span class="tutor-media-zoom-hint">Click to enlarge visual guide &amp; callout legend</span>' + '</button>' + '<p class="tutor-media-caption">' + _esc(ref.caption || '') + '</p>' + (legendHtml ? '<ol class="tutor-callout-legend">' + legendHtml + '</ol>' : '') + '</article>' ); }); parts.push('</div>'); } if (steps.length) { var stepsHtml = steps .map(function (step) { var cleanStep = String(step).replace(/^\d+\.\s*/, ''); return '<li>' + _esc(cleanStep) + '</li>'; }) .join(''); parts.push( '<section class="tutor-steps-card" aria-label="Playbook step checklist">' + '<div class="tutor-steps-title">Ordered Cause-and-Effect Steps</div>' + '<ol class="tutor-steps-list">' + stepsHtml + '</ol>' + '</section>' ); } if (cites.length) { var citesHtml = cites .map(function (c) { return ( '<span class="tutor-manual-cite-badge" title="' + _esc(c.excerpt || '') + '">' + '<strong>' + _esc(c.manual_file) + '</strong>' + (c.section_title ? ' · ' + _esc(c.section_title) : '') + '</span>' ); }) .join(''); parts.push( '<div class="tutor-manual-cites-bar" aria-label="Canonical manual citations">' + citesHtml + '</div>' ); } parts.push('</div>'); return parts.join(''); } window.PDEUEVisualTutor = { openMediaModal: openMediaModal, closeMediaModal: closeMediaModal, renderLocalBadge: renderLocalBadge, renderVisualAidBlock: renderVisualAidBlock }; })();</script>
 <script>(function(){var K='pdeue_text_scale',V={standard:1,large:1,xlarge:1};function r(){try{var s=localStorage.getItem(K);if(s&&V[s])return s}catch(_e){}return 'standard'}function a(s){var c=V[s]?s:'standard';document.documentElement.setAttribute('data-text-scale',c);try{localStorage.setItem(K,c)}catch(_e){}document.querySelectorAll('#textScaleGroup button[data-scale]').forEach(function(b){var on=b.getAttribute('data-scale')===c;b.setAttribute('aria-pressed',on?'true':'false');b.classList.toggle('active',on)});return c}function res(cur,tgt){if(!tgt)return cur||'';try{var o=(location&&location.origin&&location.origin!=='null')?location.origin:'http://localhost';var pt=new URL(tgt,o);if(cur){var pc=new URL(cur,o);if(pc.search){if(!pt.search){pt.search=pc.search}else{var m=new URLSearchParams(pt.search);new URLSearchParams(pc.search).forEach(function(v,k){m.set(k,v)});pt.search='?'+m.toString()}}if(pc.hash)pt.hash=pc.hash}return pt.toString()}catch(_e){return tgt}}function lk(d,k){if(!d||!k)return '';if(d[k])return d[k];if(k==='admin_tech'&&d.tech)return d.tech;if(k==='tech'&&d.admin_tech)return d.admin_tech;return ''}function ap(d){if(!d||!d.doorways)return;window.PDEUEPlaneConfig=d;if(d.routing_mode==='multi_domain_air_gapped'){document.querySelectorAll('a[data-plane-doorway]').forEach(function(el){var u=lk(d.doorways,el.getAttribute('data-plane-doorway'));if(u)el.setAttribute('href',res(el.getAttribute('href')||'',u))})}}function rdu(k,fb){var c=window.PDEUEPlaneConfig;if(c&&c.routing_mode==='multi_domain_air_gapped'&&c.doorways){var u=lk(c.doorways,k);if(u)return res(fb||'',u)}return fb||''}function hy(){if(typeof fetch!=='function')return;fetch('/api/v1/portal/planes').then(function(x){return x.ok?x.json():null}).then(ap).catch(function(){})}window.PDEUESeniorA11y={setScale:a,getScale:r,hydratePlaneLinks:hy,applyPlaneDoorways:ap,resolveDoorwayUrl:rdu};a(r());hy();})();</script>

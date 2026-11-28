@@ -176,6 +176,7 @@ class OnboardingMemberModel(Base):
     member_id = Column(String, primary_key=True, index=True)
     scma_id = Column(String, unique=True, nullable=False, index=True)
     full_name = Column(String, nullable=False)
+    email = Column(String, nullable=True, index=True)
     house_id = Column(Integer, nullable=False, index=True)
     lineage_code = Column(String, nullable=False, index=True)
     role_tier = Column(String, nullable=False, default='MEMBER_USER')
@@ -368,11 +369,12 @@ class CustodialAssignmentModel(Base):
 
 
 class EnclavePolicyControlModel(Base):
-    """PR #81: Enclave-level custody anti-tribalism & delegated onboarding governance toggles."""
+    """PR #81 / PR #99: Enclave-level custody anti-tribalism, delegated onboarding & admission authority toggles."""
     __tablename__ = 'enclave_policy_controls'
     config_id = Column(String, primary_key=True, default='GLOBAL')
     custody_assignment_mode = Column(String, nullable=False, default='INTRA_HOUSE')
     delegated_onboarding_scope = Column(String, nullable=False, default='ADMIN_ONLY')
+    admission_authority_mode = Column(String, nullable=False, default='CHIEF_ADMIN_SOLO')
     genealogical_board_enabled = Column(Integer, nullable=False, default=0)
     genealogical_board_quorum = Column(Integer, nullable=False, default=2)
     house_delegation_flags_json = Column(Text, nullable=False, default='{}')
@@ -382,10 +384,11 @@ class EnclavePolicyControlModel(Base):
 
 
 class DelegatedOnboardingDossierModel(Base):
-    """PR #81: 3-Stage Delegated Onboarding & Genealogical Ratification dossier ledger."""
+    """PR #81 / PR #99: 3-Stage Delegated Onboarding, F2-H Co-Sign & Genealogical Ratification dossier ledger."""
     __tablename__ = 'delegated_onboarding_dossiers'
     dossier_id = Column(String, primary_key=True, index=True)
     applicant_full_name = Column(String, nullable=False)
+    applicant_email = Column(String, nullable=True)
     applicant_member_id = Column(String, nullable=True, index=True)
     target_house_id = Column(Integer, nullable=False, index=True)
     lineage_code = Column(String, nullable=False, index=True)
@@ -404,6 +407,12 @@ class DelegatedOnboardingDossierModel(Base):
     submitted_by_house_id = Column(Integer, nullable=True)
     status = Column(String, nullable=False, default='PENDING_RATIFICATION', index=True)
     board_votes_json = Column(Text, nullable=False, default='[]')
+    f2h_cosigned_by = Column(String, nullable=True)
+    f2h_cosigned_role = Column(String, nullable=True)
+    f2h_cosigned_house_id = Column(Integer, nullable=True)
+    f2h_cosigned_at_utc = Column(String, nullable=True)
+    f2h_cosign_notes = Column(Text, nullable=True, default='')
+    f2h_cosign_signature = Column(String, nullable=True)
     ratified_by = Column(String, nullable=True)
     ratified_at_utc = Column(String, nullable=True)
     decision_notes = Column(Text, nullable=True, default='')
@@ -413,6 +422,42 @@ class DelegatedOnboardingDossierModel(Base):
     ifas_outbox_event_id = Column(String, nullable=True)
     created_at_utc = Column(String, nullable=False, default=_now)
     updated_at_utc = Column(String, nullable=False, default=_now)
+
+
+@event.listens_for(Base.metadata, 'after_create')
+def _ensure_pr99_onboarding_and_cosign_columns(target, connection, **kw):
+    """Idempotently backfill PR #99 columns on pre-009 SQLite DBs."""
+    inspector = inspect(connection)
+    existing_tables = set(inspector.get_table_names())
+
+    if 'onboarding_members' in existing_tables:
+        cols = {col['name'] for col in inspector.get_columns('onboarding_members')}
+        if 'email' not in cols:
+            connection.execute(text('ALTER TABLE onboarding_members ADD COLUMN email VARCHAR'))
+
+    if 'enclave_policy_controls' in existing_tables:
+        cols = {col['name'] for col in inspector.get_columns('enclave_policy_controls')}
+        if 'admission_authority_mode' not in cols:
+            connection.execute(text(
+                "ALTER TABLE enclave_policy_controls ADD COLUMN admission_authority_mode VARCHAR NOT NULL DEFAULT 'CHIEF_ADMIN_SOLO'"
+            ))
+
+    if 'delegated_onboarding_dossiers' in existing_tables:
+        cols = {col['name'] for col in inspector.get_columns('delegated_onboarding_dossiers')}
+        dossier_alters = (
+            ('applicant_email', 'VARCHAR'),
+            ('f2h_cosigned_by', 'VARCHAR'),
+            ('f2h_cosigned_role', 'VARCHAR'),
+            ('f2h_cosigned_house_id', 'INTEGER'),
+            ('f2h_cosigned_at_utc', 'VARCHAR'),
+            ('f2h_cosign_notes', 'TEXT'),
+            ('f2h_cosign_signature', 'VARCHAR'),
+        )
+        for col_name, col_sql in dossier_alters:
+            if col_name not in cols:
+                connection.execute(text(
+                    f'ALTER TABLE delegated_onboarding_dossiers ADD COLUMN {col_name} {col_sql}'
+                ))
 
 
 class HeritageHouseProfileModel(Base):

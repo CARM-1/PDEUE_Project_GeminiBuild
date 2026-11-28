@@ -285,6 +285,17 @@
     .custodial-lookup-drawer { margin-top: 10px; background: var(--bg-canvas); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 10px; display: grid; gap: 8px; }
     .custodial-lookup-drawer[hidden] { display: none !important; }
     .custodial-lookup-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 9px 11px; font-size: 0.85rem; }
+    .house-onboarding-panel { border-left: 4px solid var(--status-green); }
+    .delegation-notice { margin: 12px 0; padding: 10px 12px; border-radius: 8px; background: rgba(56, 189, 248, 0.12); border: 1px solid var(--accent-sky); color: var(--text-primary); font-size: 0.86rem; }
+    .delegation-notice.paused { background: rgba(217, 119, 6, 0.14); border-color: var(--status-amber); color: #FDE68A; }
+    .intake-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top: 10px; }
+    .intake-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); }
+    .intake-input { min-height: 40px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border-subtle); background: var(--bg-canvas); color: var(--text-primary); font-size: 0.88rem; width: 100%; }
+    .btn-intake { background: var(--status-green); color: #F8FAFC; border: 1px solid #34D399; }
+    .btn-board-approve { background: var(--status-green); color: #F8FAFC; padding: 5px 10px; font-size: 0.78rem; }
+    .btn-board-proof { background: var(--status-amber); color: #0B132B; padding: 5px 10px; font-size: 0.78rem; }
+    .btn-board-reject { background: var(--status-red); color: #F8FAFC; padding: 5px 10px; font-size: 0.78rem; }
+    .house-dossier-card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
     @media (max-width: 640px) {
       header { padding: 16px; }
       .wrap { padding: 16px; }
@@ -389,7 +400,7 @@
       </details>
     </section>
   </main>
-  <!-- DISCOVERY_CONTROLS_START --><div hidden><button id="lineage-freeze" onclick="openFreezeModal('SCMA')">Freeze Dial</button><button id="lineage-vote" onclick="castVote('AYE')">Aye</button></div><!-- DISCOVERY_CONTROLS_END -->
+  <!-- DISCOVERY_CONTROLS_START --><div hidden><button id="lineage-freeze" onclick="openFreezeModal('SCMA')">Freeze Dial</button><button id="lineage-vote" onclick="castVote('AYE')">Aye</button><button id="houseDelegatedSubmitBtn" onclick="submitHouseDelegatedDossier(event)">Stage Dossier</button><button id="refreshHouseDossiersBtn" onclick="loadHouseDelegatedOnboarding()">Refresh Dossiers</button></div><!-- DISCOVERY_CONTROLS_END -->
   <div style="display:none" id="legacyPortalHub">PDEUE PORTAL HUB</div>
   <footer class="pdeue-colophon" role="contentinfo">
     <span>__HOUSE_CODE__ · branch-confined sovereign operations · <abbr class="pdeue-term" tabindex="0" data-term="adr-008-exact-cents" data-tooltip="Every single penny is counted as a whole cent—never rounded loosely with messy decimals—so not even one penny can ever disappear or be invented when profits are split.">ADR-008<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> exact-cent accounting · <abbr class="pdeue-term" tabindex="0" data-term="directive-r12-masking" data-tooltip="Privacy blinds for technical helpers. Engineers and house secretaries can keep systems healthy without seeing anyone's real dollar balances or account names—those numbers appear hidden as stars.">Directive R-12<span class="pdeue-term-info" aria-hidden="true">ⓘ</span></abbr> compliant</span>
@@ -444,6 +455,133 @@
       const drawer = document.getElementById('custodial-lookup-drawer');
       if (input) { input.value = ''; input.focus(); }
       if (drawer) { drawer.hidden = true; drawer.innerHTML = ''; }
+    }
+    async function loadHouseDelegatedOnboarding() {
+      const panel = document.getElementById('houseDelegatedOnboardingPanel');
+      if (!panel) return;
+      const notice = document.getElementById('houseDelegationModeNotice');
+      const pill = document.getElementById('houseDelegationStatusPill');
+      const boardPill = document.getElementById('houseBoardStatePill');
+      const listEl = document.getElementById('houseDossiersList');
+      try {
+        const [cfgRes, dosRes] = await Promise.all([
+          fetch('/api/v1/onboarding/delegation-config'),
+          fetch(`/api/v1/onboarding/dossiers?house_id=${encodeURIComponent(houseId)}`)
+        ]);
+        const cfg = cfgRes.ok ? await cfgRes.json() : {};
+        const dosData = dosRes.ok ? await dosRes.json() : { dossiers: [] };
+        const scope = cfg.delegated_onboarding_scope || 'ADMIN_ONLY';
+        const houseFlags = cfg.house_delegation_flags || {};
+        const houseEnabled = scope === 'ENCLAVE_WIDE' || (scope === 'PER_HOUSE' && Boolean(houseFlags[String(houseId)]));
+        const boardOn = Boolean(cfg.genealogical_board_enabled);
+        const admissionMode = cfg.admission_authority_mode || 'CHIEF_ADMIN_SOLO';
+        if (pill) pill.textContent = `${scope} · ${admissionMode}`;
+        if (boardPill) boardPill.textContent = boardOn ? `Board ACTIVE (Quorum ${cfg.genealogical_board_quorum || 2})` : 'Board Dormant (Chief Admin Controlled)';
+        if (notice) {
+          if (scope === 'ADMIN_ONLY') {
+            notice.className = 'delegation-notice paused';
+            notice.textContent = 'Chief Administrator ADMIN_ONLY mode is currently active. House delegated submissions are paused fail-closed until the Chief Administrator enables PER_HOUSE or ENCLAVE_WIDE intake on /dashboard Tab 4.';
+          } else if (!houseEnabled) {
+            notice.className = 'delegation-notice paused';
+            notice.textContent = `Delegated intake is currently paused for HOUSE-${String(houseId).padStart(2, '0')} under PER_HOUSE policy. Ask the Chief Administrator to enable this House's flag before staging dossiers.`;
+          } else {
+            notice.className = 'delegation-notice';
+            notice.textContent = `Delegated intake is ACTIVE for HOUSE-${String(houseId).padStart(2, '0')} (${scope} · Admission Policy: ${admissionMode}). Staged dossiers enter PENDING_RATIFICATION with zero SCMA activation until ratified.`;
+          }
+        }
+        if (listEl) {
+          const items = dosData.dossiers || [];
+          if (!items.length) {
+            listEl.innerHTML = '<div class="muted-note" style="margin:0;">No delegated admission dossiers staged for this House yet.</div>';
+          } else {
+            listEl.innerHTML = items.map(d => {
+              const closed = d.status === 'RATIFIED_PROVISIONED' || d.status === 'REJECTED';
+              const cosignText = d.f2h_cosigned ? ` · F2-H Co-Signed by ${_escHtml(d.f2h_cosigned_by)}` : '';
+              const voteControls = (!closed && boardOn)
+                ? `<div style="display:flex;gap:6px;flex-wrap:wrap;">
+                     <button type="button" class="btn-board-approve" onclick="castHouseBoardVote('${_escHtml(d.dossier_id)}','APPROVE')">Board Approve</button>
+                     <button type="button" class="btn-board-proof" onclick="castHouseBoardVote('${_escHtml(d.dossier_id)}','REQUEST_PROOF')">Request Proof</button>
+                     <button type="button" class="btn-board-reject" onclick="castHouseBoardVote('${_escHtml(d.dossier_id)}','REJECT')">Board Reject</button>
+                   </div>`
+                : `<span class="muted-note" style="margin:0;">${closed ? 'Finalized' : 'Board voting dormant'}</span>`;
+              return `<div class="house-dossier-card">
+                <div>
+                  <strong style="font-size:0.92rem;">${_escHtml(d.applicant_full_name)}</strong>
+                  <span class="mono" style="margin-left:6px;">${_escHtml(d.dossier_id)}</span>
+                  <div class="muted-note" style="margin:3px 0 0;">Status: <b>${_escHtml(d.status)}</b> · Board Approvals: ${Number(d.board_approve_count || 0)}${cosignText}</div>
+                </div>
+                ${voteControls}
+              </div>`;
+            }).join('');
+          }
+        }
+      } catch (_err) {
+        if (notice) notice.textContent = 'Delegated onboarding status temporarily unreachable — zero changes made.';
+      }
+    }
+    async function submitHouseDelegatedDossier(event) {
+      if (event && typeof event.preventDefault === 'function') event.preventDefault();
+      const fb = document.getElementById('houseDelegatedFeedback');
+      const payload = {
+        applicant_full_name: (document.getElementById('intakeApplicantName')?.value || '').trim(),
+        applicant_email: (document.getElementById('intakeApplicantEmail')?.value || '').trim(),
+        target_house_id: houseId,
+        kinship_verification: (document.getElementById('intakeKinshipProof')?.value || '').trim(),
+        custodial_status: document.getElementById('intakeCustodialStatus')?.value || 'ADULT',
+        seed_cents: parseInt(document.getElementById('intakeSeedCents')?.value || '0', 10),
+        risk_dial_pct: parseFloat(document.getElementById('intakeRiskDialPct')?.value || '1.25'),
+        bank_ref_token: (document.getElementById('intakeBankRefToken')?.value || '').trim(),
+        due_diligence_attestation: (document.getElementById('intakeAttestation')?.value || '').trim()
+      };
+      try {
+        const res = await fetch('/api/v1/onboarding/delegated-submit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-House-ID': String(houseId),
+            'X-Actor-Role': activeRole,
+            'X-Actor-ID': `${activeRole}-HOUSE-${String(houseId).padStart(2, '0')}`
+          },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok) {
+          if (fb) fb.textContent = `Staged dossier ${data.dossier.dossier_id} -> ${data.status} (zero SCMA activation until ratified).`;
+          const nameIn = document.getElementById('intakeApplicantName');
+          const emailIn = document.getElementById('intakeApplicantEmail');
+          if (nameIn) nameIn.value = '';
+          if (emailIn) emailIn.value = '';
+          await loadHouseDelegatedOnboarding();
+        } else if (fb) {
+          fb.textContent = `Intake blocked (HTTP ${res.status}): ${data.detail || 'Forbidden'}`;
+        }
+      } catch (_err) {
+        if (fb) fb.textContent = 'Delegated onboarding submit unreachable — zero records staged.';
+      }
+    }
+    async function castHouseBoardVote(dossierId, vote) {
+      const fb = document.getElementById('houseDelegatedFeedback');
+      try {
+        const res = await fetch(`/api/v1/onboarding/dossiers/${encodeURIComponent(dossierId)}/board-vote`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-House-ID': String(houseId),
+            'X-Actor-Role': activeRole,
+            'X-Actor-ID': `${activeRole}-HOUSE-${String(houseId).padStart(2, '0')}`
+          },
+          body: JSON.stringify({ vote, rationale: `${activeRole} House ${houseId} Admissions Board review` })
+        });
+        const data = await res.json();
+        if (fb) {
+          fb.textContent = res.ok
+            ? `Board vote ${vote} recorded for ${dossierId} -> ${data.status} (SCMA remains unprovisioned until ratification).`
+            : `Board vote blocked (HTTP ${res.status}): ${data.detail || 'Forbidden'}`;
+        }
+        await loadHouseDelegatedOnboarding();
+      } catch (_err) {
+        if (fb) fb.textContent = 'Admissions Board vote unreachable.';
+      }
     }
     async function submitLineageTutor(event) {
       if (event && typeof event.preventDefault === 'function') event.preventDefault();
@@ -545,6 +683,11 @@
         fb.textContent = r.ok ? `Orders purged for ${scma}: ${d.status}` : `Purge rejected (HTTP ${r.status}): ${d.detail || 'Forbidden'}`;
       }
     }
+    window.addEventListener('DOMContentLoaded', () => {
+      if (document.getElementById('houseDelegatedOnboardingPanel')) {
+        loadHouseDelegatedOnboarding();
+      }
+    });
   </script>
   <script src="/static/js/tutor_media_cards.js"></script>
   <script src="/static/js/senior_a11y.js"></script>

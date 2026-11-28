@@ -59,8 +59,10 @@ from app.domain.member_onboarding import (
     validate_exact_cents,
     validate_lineage_house,
     validate_opaque_bank_ref,
+    validate_optional_email,
     validate_risk_dial_bps,
 )
+from app.domain.session_auth_service import provision_member_auth_allowlist_in_session
 
 FOUNDER_MEMBER_ID = "USR-founder_ch-C8575D7E"
 FOUNDER_SCMA_ID = "SCMA-FOUNDER_-C8575D7E"
@@ -120,6 +122,13 @@ VALID_DELEGATION_SCOPES = (
     DELEGATION_SCOPE_ADMIN_ONLY,
     DELEGATION_SCOPE_PER_HOUSE,
     DELEGATION_SCOPE_ENCLAVE_WIDE,
+)
+
+ADMISSION_MODE_CHIEF_ADMIN_SOLO = "CHIEF_ADMIN_SOLO"
+ADMISSION_MODE_TWO_PARTY_COSIGN = "TWO_PARTY_COSIGN"
+VALID_ADMISSION_AUTHORITY_MODES = (
+    ADMISSION_MODE_CHIEF_ADMIN_SOLO,
+    ADMISSION_MODE_TWO_PARTY_COSIGN,
 )
 
 DOSSIER_PENDING_RATIFICATION = "PENDING_RATIFICATION"
@@ -277,12 +286,13 @@ class RoleCustodyDelegationService:
                     config_id="GLOBAL",
                     custody_assignment_mode=CUSTODY_MODE_INTRA_HOUSE,
                     delegated_onboarding_scope=DELEGATION_SCOPE_ADMIN_ONLY,
+                    admission_authority_mode=ADMISSION_MODE_CHIEF_ADMIN_SOLO,
                     genealogical_board_enabled=0,
                     genealogical_board_quorum=2,
                     house_delegation_flags_json=json.dumps(default_flags),
                     updated_by="SYSTEM_INIT",
                     updated_at_utc=now,
-                    reason="Initial fail-closed PR #81 defaults (INTRA_HOUSE custody, ADMIN_ONLY onboarding).",
+                    reason="Initial fail-closed Ring 1 Alpha defaults (INTRA_HOUSE custody, ADMIN_ONLY onboarding, CHIEF_ADMIN_SOLO admission).",
                 )
             )
 
@@ -425,10 +435,15 @@ class RoleCustodyDelegationService:
         except Exception:
             raw_flags = {}
         house_flags = {str(h): bool(raw_flags.get(str(h), False)) for h in range(1, 13)}
+        admission_mode = (
+            getattr(row, "admission_authority_mode", None) or ADMISSION_MODE_CHIEF_ADMIN_SOLO
+        )
         return {
             "custody_assignment_mode": row.custody_assignment_mode,
             "anti_tribalism_active": row.custody_assignment_mode == CUSTODY_MODE_CROSS_HOUSE_ANTI_TRIBAL,
             "delegated_onboarding_scope": row.delegated_onboarding_scope,
+            "admission_authority_mode": admission_mode,
+            "two_party_cosign_required": admission_mode == ADMISSION_MODE_TWO_PARTY_COSIGN,
             "genealogical_board_enabled": bool(row.genealogical_board_enabled),
             "genealogical_board_quorum": int(row.genealogical_board_quorum),
             "house_delegation_flags": house_flags,
@@ -445,9 +460,12 @@ class RoleCustodyDelegationService:
         approve_count = sum(1 for v in votes if str(v.get("vote")).upper() == "APPROVE")
         reject_count = sum(1 for v in votes if str(v.get("vote")).upper() == "REJECT")
         proof_count = sum(1 for v in votes if str(v.get("vote")).upper() == "REQUEST_PROOF")
+        f2h_cosigned_by = getattr(row, "f2h_cosigned_by", None)
+        f2h_cosigned_at = getattr(row, "f2h_cosigned_at_utc", None)
         return {
             "dossier_id": row.dossier_id,
             "applicant_full_name": row.applicant_full_name,
+            "applicant_email": getattr(row, "applicant_email", None),
             "applicant_member_id": row.applicant_member_id,
             "target_house_id": int(row.target_house_id),
             "lineage_code": row.lineage_code,
@@ -470,6 +488,13 @@ class RoleCustodyDelegationService:
             "board_approve_count": approve_count,
             "board_reject_count": reject_count,
             "board_proof_request_count": proof_count,
+            "f2h_cosigned": bool(f2h_cosigned_by and f2h_cosigned_at),
+            "f2h_cosigned_by": f2h_cosigned_by,
+            "f2h_cosigned_role": getattr(row, "f2h_cosigned_role", None),
+            "f2h_cosigned_house_id": getattr(row, "f2h_cosigned_house_id", None),
+            "f2h_cosigned_at_utc": f2h_cosigned_at,
+            "f2h_cosign_notes": getattr(row, "f2h_cosign_notes", None) or "",
+            "f2h_cosign_signature": getattr(row, "f2h_cosign_signature", None),
             "ratified_by": row.ratified_by,
             "ratified_at_utc": row.ratified_at_utc,
             "decision_notes": row.decision_notes or "",
@@ -2003,6 +2028,7 @@ class RoleCustodyDelegationService:
         self,
         *,
         delegated_onboarding_scope: Optional[str] = None,
+        admission_authority_mode: Optional[str] = None,
         house_delegation_flags: Optional[Dict[Any, Any]] = None,
         genealogical_board_enabled: Optional[bool] = None,
         genealogical_board_quorum: Optional[int] = None,
@@ -2028,6 +2054,14 @@ class RoleCustodyDelegationService:
                         detail=f"delegated_onboarding_scope must be one of {', '.join(VALID_DELEGATION_SCOPES)}.",
                     )
                 row.delegated_onboarding_scope = scope_norm
+            if admission_authority_mode is not None:
+                mode_norm = str(admission_authority_mode).strip().upper()
+                if mode_norm not in VALID_ADMISSION_AUTHORITY_MODES:
+                    raise HTTPException(
+                        status_code=422,
+                        detail=f"admission_authority_mode must be one of {', '.join(VALID_ADMISSION_AUTHORITY_MODES)}.",
+                    )
+                row.admission_authority_mode = mode_norm
             if house_delegation_flags is not None:
                 try:
                     current_flags = json.loads(row.house_delegation_flags_json or "{}")
@@ -2066,6 +2100,7 @@ class RoleCustodyDelegationService:
             http_status=200,
             detail=(
                 f"Delegated onboarding scope={serialized['delegated_onboarding_scope']}, "
+                f"admission_authority_mode={serialized['admission_authority_mode']}, "
                 f"genealogical_board_enabled={serialized['genealogical_board_enabled']}."
             ),
         )
@@ -2150,7 +2185,7 @@ class RoleCustodyDelegationService:
                             status_code=403,
                             detail=f"HOUSE_DELEGATION_NOT_ENABLED: Delegated onboarding is disabled for {lineage_code}.",
                         )
-                # Verify officer's live DB role & House boundary if registered
+                # Verify officer's live DB role & House boundary (fail closed across Houses!)
                 officer_rows = (
                     db.query(UserRoleAssignmentModel)
                     .filter(UserRoleAssignmentModel.member_id == clean_actor_id)
@@ -2164,12 +2199,32 @@ class RoleCustodyDelegationService:
                             detail=f"OFFICER_ROLE_REVOKED: {clean_actor_id} no longer holds an active delegated onboarding role.",
                         )
                     officer_houses = {int(r.house_id) for r in active_officer_roles if r.house_id is not None}
-                    if scope == DELEGATION_SCOPE_PER_HOUSE and officer_houses and target_house_id not in officer_houses:
+                    if officer_houses and target_house_id not in officer_houses:
+                        get_governance_audit_log().record(
+                            event_type="DELEGATED_ONBOARDING_DENIED",
+                            actor_id=clean_actor_id,
+                            actor_role=norm_role,
+                            target_id=lineage_code,
+                            action="DELEGATED_ONBOARDING_SUBMIT",
+                            outcome="DENIED_CROSS_HOUSE",
+                            http_status=403,
+                            detail=f"Cross-house intake denied: officer {clean_actor_id} ({norm_role}) cannot submit for {lineage_code}.",
+                        )
                         raise HTTPException(
                             status_code=403,
                             detail=f"CROSS_HOUSE_DELEGATION_FORBIDDEN: Officer {clean_actor_id} cannot submit dossiers for {lineage_code}.",
                         )
-                elif actor_house_id is not None and scope == DELEGATION_SCOPE_PER_HOUSE and int(actor_house_id) != int(target_house_id):
+                if actor_house_id is not None and int(actor_house_id) != int(target_house_id):
+                    get_governance_audit_log().record(
+                        event_type="DELEGATED_ONBOARDING_DENIED",
+                        actor_id=clean_actor_id,
+                        actor_role=norm_role,
+                        target_id=lineage_code,
+                        action="DELEGATED_ONBOARDING_SUBMIT",
+                        outcome="DENIED_CROSS_HOUSE",
+                        http_status=403,
+                        detail=f"Cross-house intake denied: HOUSE-{int(actor_house_id):02d} cannot submit for {lineage_code}.",
+                    )
                     raise HTTPException(
                         status_code=403,
                         detail=f"CROSS_HOUSE_DELEGATION_FORBIDDEN: Officer scoped to HOUSE-{int(actor_house_id):02d} cannot submit for {lineage_code}.",
@@ -2179,6 +2234,17 @@ class RoleCustodyDelegationService:
             full_name = str(payload.get("applicant_full_name") or payload.get("full_name") or "").strip()
             if len(full_name) < 2 or len(full_name) > 120:
                 raise HTTPException(status_code=422, detail="applicant_full_name must be between 2 and 120 characters.")
+
+            raw_applicant_email = payload.get("applicant_email") if payload.get("applicant_email") is not None else payload.get("email")
+            applicant_email: Optional[str] = None
+            if raw_applicant_email is not None and str(raw_applicant_email).strip():
+                try:
+                    applicant_email = validate_optional_email(
+                        raw_applicant_email,
+                        fallback_member_id=str(payload.get("applicant_member_id") or full_name),
+                    )
+                except OnboardingValidationError as exc:
+                    raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
 
             kinship = str(payload.get("kinship_verification") or "").strip()
             if len(kinship) < 5:
@@ -2216,6 +2282,7 @@ class RoleCustodyDelegationService:
             dossier = DelegatedOnboardingDossierModel(
                 dossier_id=dossier_id,
                 applicant_full_name=full_name,
+                applicant_email=applicant_email,
                 applicant_member_id=str(payload.get("applicant_member_id") or "").strip() or None,
                 target_house_id=target_house_id,
                 lineage_code=lineage_code,
@@ -2309,6 +2376,7 @@ class RoleCustodyDelegationService:
         rationale: str = "",
         actor_role: Optional[str] = None,
         actor_id: str = "",
+        actor_house_id: Optional[int] = None,
     ) -> Dict[str, Any]:
         """Stage 2 (Optional): Genealogical Admissions Board vote (HOUSE_GENEALOGIST / H2)."""
         self._ensure_ready()
@@ -2335,6 +2403,15 @@ class RoleCustodyDelegationService:
             dossier = db.get(DelegatedOnboardingDossierModel, dossier_id)
             if dossier is None:
                 raise HTTPException(status_code=404, detail=f"Onboarding dossier '{dossier_id}' not found.")
+            if (
+                norm_role != "CHIEF_ADMIN"
+                and actor_house_id is not None
+                and int(actor_house_id) != int(dossier.target_house_id)
+            ):
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"CROSS_HOUSE_BOARD_VOTE_FORBIDDEN: Officer scoped to HOUSE-{int(actor_house_id):02d} cannot vote on {dossier.lineage_code} dossier.",
+                )
             if dossier.status in {DOSSIER_RATIFIED_PROVISIONED, DOSSIER_REJECTED}:
                 raise HTTPException(status_code=409, detail=f"Dossier {dossier_id} is already closed ({dossier.status}).")
 
@@ -2374,6 +2451,198 @@ class RoleCustodyDelegationService:
         )
         return {
             "status": serialized["status"],
+            "scma_provisioned": False,
+            "dossier": serialized,
+            "audit_event_id": audit_evt["event_id"],
+        }
+
+    def cosign_dossier(
+        self,
+        *,
+        dossier_id: str,
+        notes: str = "",
+        actor_role: Optional[str] = None,
+        actor_id: str = "",
+        actor_house_id: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """PR #99 Two-Party Admission Co-Sign strictly for authorized F2-H (for their assigned House)
+        or CHIEF_ADMIN read-only audit inspection. Fails closed HTTP 403 for unauthorized roles/houses.
+        """
+        self._ensure_ready()
+        _reject_pii_and_banking_payload({"notes": notes})
+
+        norm_role = canonical_registry_role(actor_role)
+        clean_actor = (actor_id or norm_role or "unknown").strip()
+
+        if is_class_t_role(norm_role) or norm_role not in {"F2-H", "CHIEF_ADMIN"}:
+            get_governance_audit_log().record(
+                event_type="DOSSIER_COSIGN_DENIED",
+                actor_id=clean_actor,
+                actor_role=norm_role or "UNSPECIFIED",
+                target_id=dossier_id,
+                action="COSIGN_DOSSIER",
+                outcome="DENIED_UNAUTHORIZED_ROLE",
+                http_status=403,
+                detail=f"Role '{norm_role or 'UNSPECIFIED'}' is not authorized to co-sign admission dossiers (F2-H required).",
+            )
+            raise HTTPException(
+                status_code=403,
+                detail=f"COSIGN_ROLE_FORBIDDEN: Role '{norm_role or 'UNSPECIFIED'}' cannot execute F2-H admission co-sign.",
+            )
+
+        now = _utc_now()
+        with self._session_factory() as db:
+            dossier = db.get(DelegatedOnboardingDossierModel, dossier_id)
+            if dossier is None:
+                raise HTTPException(status_code=404, detail=f"Onboarding dossier '{dossier_id}' not found.")
+
+            # Chief Admin audit inspection path — never forges F2-H co-signature
+            if norm_role == "CHIEF_ADMIN":
+                serialized = self._serialize_dossier(dossier)
+                audit_evt = get_governance_audit_log().record(
+                    event_type="DOSSIER_COSIGN_AUDIT_INSPECTED",
+                    actor_id=clean_actor,
+                    actor_role="CHIEF_ADMINISTRATOR",
+                    target_id=dossier_id,
+                    action="COSIGN_AUDIT_INSPECT",
+                    outcome="INSPECTED_READ_ONLY",
+                    http_status=200,
+                    detail=f"Chief Admin inspected two-party co-sign status on dossier {dossier_id} (f2h_cosigned={serialized['f2h_cosigned']}).",
+                )
+                return {
+                    "status": "AUDIT_INSPECTION_ONLY",
+                    "f2h_cosigned": serialized["f2h_cosigned"],
+                    "scma_provisioned": False,
+                    "dossier": serialized,
+                    "audit_event_id": audit_evt["event_id"],
+                }
+
+            if dossier.status in {DOSSIER_RATIFIED_PROVISIONED, DOSSIER_REJECTED}:
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Dossier {dossier_id} is already finalized ({dossier.status}).",
+                )
+
+            # Enforce strict House boundary for F2-H officer
+            officer_rows = (
+                db.query(UserRoleAssignmentModel)
+                .filter(UserRoleAssignmentModel.member_id == clean_actor)
+                .all()
+            )
+            officer_f2h_houses: Set[int] = set()
+            if officer_rows:
+                active_f2h = [r for r in officer_rows if r.status == "ACTIVE" and r.role_token == "F2-H"]
+                if not active_f2h:
+                    get_governance_audit_log().record(
+                        event_type="DOSSIER_COSIGN_DENIED",
+                        actor_id=clean_actor,
+                        actor_role="F2-H",
+                        target_id=dossier_id,
+                        action="COSIGN_DOSSIER",
+                        outcome="DENIED_ROLE_REVOKED",
+                        http_status=403,
+                        detail=f"Officer {clean_actor} no longer holds an ACTIVE F2-H assignment.",
+                    )
+                    raise HTTPException(
+                        status_code=403,
+                        detail=f"OFFICER_ROLE_REVOKED: {clean_actor} does not hold an active F2-H seat.",
+                    )
+                officer_f2h_houses = {int(r.house_id) for r in active_f2h if r.house_id is not None}
+                if officer_f2h_houses and int(dossier.target_house_id) not in officer_f2h_houses:
+                    get_governance_audit_log().record(
+                        event_type="DOSSIER_COSIGN_DENIED",
+                        actor_id=clean_actor,
+                        actor_role="F2-H",
+                        target_id=dossier_id,
+                        action="COSIGN_DOSSIER",
+                        outcome="DENIED_CROSS_HOUSE",
+                        http_status=403,
+                        detail=f"Cross-house F2-H co-sign denied: {clean_actor} is assigned to {sorted(officer_f2h_houses)}, not {dossier.lineage_code}.",
+                    )
+                    raise HTTPException(
+                        status_code=403,
+                        detail=f"CROSS_HOUSE_COSIGN_FORBIDDEN: F2-H officer {clean_actor} cannot co-sign dossiers for {dossier.lineage_code}.",
+                    )
+
+            if actor_house_id is not None and int(actor_house_id) != int(dossier.target_house_id):
+                get_governance_audit_log().record(
+                    event_type="DOSSIER_COSIGN_DENIED",
+                    actor_id=clean_actor,
+                    actor_role="F2-H",
+                    target_id=dossier_id,
+                    action="COSIGN_DOSSIER",
+                    outcome="DENIED_CROSS_HOUSE",
+                    http_status=403,
+                    detail=f"Cross-house F2-H co-sign denied: HOUSE-{int(actor_house_id):02d} cannot co-sign {dossier.lineage_code}.",
+                )
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"CROSS_HOUSE_COSIGN_FORBIDDEN: F2-H scoped to HOUSE-{int(actor_house_id):02d} cannot co-sign for {dossier.lineage_code}.",
+                )
+
+            if actor_house_id is None and not officer_f2h_houses:
+                get_governance_audit_log().record(
+                    event_type="DOSSIER_COSIGN_DENIED",
+                    actor_id=clean_actor,
+                    actor_role="F2-H",
+                    target_id=dossier_id,
+                    action="COSIGN_DOSSIER",
+                    outcome="DENIED_HOUSE_SCOPE_REQUIRED",
+                    http_status=403,
+                    detail="F2-H co-sign requires explicit X-House-ID or assigned House scope.",
+                )
+                raise HTTPException(
+                    status_code=403,
+                    detail="HOUSE_SCOPE_REQUIRED: F2-H co-sign requires an assigned House matching the dossier's target House.",
+                )
+
+            clean_notes = notes.strip() or f"F2-H House Head attestation for {dossier.lineage_code}"
+            cosign_sig = hashlib.sha256(
+                f"{dossier_id}|{dossier.target_house_id}|{clean_actor}|F2-H|{clean_notes}|{now}".encode("utf-8")
+            ).hexdigest()
+
+            dossier.f2h_cosigned_by = clean_actor
+            dossier.f2h_cosigned_role = "F2-H"
+            dossier.f2h_cosigned_house_id = int(dossier.target_house_id)
+            dossier.f2h_cosigned_at_utc = now
+            dossier.f2h_cosign_notes = clean_notes
+            dossier.f2h_cosign_signature = cosign_sig
+            dossier.updated_at_utc = now
+
+            self._record_db_audit(
+                db,
+                tenant_id=dossier.lineage_code,
+                actor_id=clean_actor,
+                action="DOSSIER_F2H_COSIGNED",
+                payload={
+                    "dossier_id": dossier_id,
+                    "target_house_id": int(dossier.target_house_id),
+                    "f2h_cosigned_by": clean_actor,
+                    "f2h_cosign_signature": cosign_sig,
+                    "scma_provisioned": False,
+                },
+                recorded_at=now,
+            )
+            db.commit()
+            db.refresh(dossier)
+            serialized = self._serialize_dossier(dossier)
+
+        audit_evt = get_governance_audit_log().record(
+            event_type="DOSSIER_F2H_COSIGNED",
+            actor_id=clean_actor,
+            actor_role="F2-H",
+            target_id=dossier_id,
+            action="COSIGN_DOSSIER",
+            outcome="F2H_COSIGNED",
+            http_status=200,
+            detail=(
+                f"F2-H ({clean_actor}) co-signed admission dossier {dossier_id} for "
+                f"{serialized['lineage_code']} (awaiting Chief Admin final ratification)."
+            ),
+        )
+        return {
+            "status": "F2H_COSIGNED",
+            "f2h_cosigned": True,
             "scma_provisioned": False,
             "dossier": serialized,
             "audit_event_id": audit_evt["event_id"],
@@ -2476,9 +2745,11 @@ class RoleCustodyDelegationService:
     ) -> Dict[str, Any]:
         """
         Stage 2 -> Stage 3 Atomic Dual-Plane Provisioning:
-        1. Chief Admin ratifies dossier.
-        2. Provisions member SCMA, House lineage, initial MEMBER_USER role, and initial
-           custodial mentor (INTRA_HOUSE or CROSS_HOUSE_ANTI_TRIBAL per active mode).
+        1. Chief Admin ratifies dossier (enforcing TWO_PARTY_COSIGN_REQUIRED HTTP 409 if
+           admission_authority_mode == TWO_PARTY_COSIGN and F2-H co-sign is missing).
+        2. Provisions member SCMA, House lineage, initial MEMBER_USER role, PR #98 private
+           family allowlist AuthUserModel (`authorized_hats=["CLASS_M"]`, `is_apex_tier3=False`),
+           and initial custodial mentor (INTRA_HOUSE or CROSS_HOUSE_ANTI_TRIBAL per active mode).
         3. Emits signed HMAC-SHA256 MEMBER_ADMISSION_RATIFIED JSON-LD event to the ADR-011
            accounting outbox (both global_accounting_gateway and accounting_outbox_events table),
            with zero bank account numbers, routing numbers, or SSNs.
@@ -2491,7 +2762,7 @@ class RoleCustodyDelegationService:
             target_id=dossier_id,
         )
 
-        # Read and validate dossier state first
+        # Read and validate dossier state + admission authority mode BEFORE any provisioning
         with self._session_factory() as db:
             dossier = db.get(DelegatedOnboardingDossierModel, dossier_id)
             if dossier is None:
@@ -2501,7 +2772,49 @@ class RoleCustodyDelegationService:
             if dossier.status == DOSSIER_REJECTED:
                 raise HTTPException(status_code=409, detail=f"Dossier {dossier_id} was rejected and cannot be ratified.")
 
-            provision_payload = {
+            policy_row = db.get(EnclavePolicyControlModel, "GLOBAL")
+            admission_mode = (
+                getattr(policy_row, "admission_authority_mode", None)
+                if policy_row is not None
+                else ADMISSION_MODE_CHIEF_ADMIN_SOLO
+            ) or ADMISSION_MODE_CHIEF_ADMIN_SOLO
+
+            f2h_cosigned_by = getattr(dossier, "f2h_cosigned_by", None)
+            f2h_cosigned_role = getattr(dossier, "f2h_cosigned_role", None)
+            f2h_cosigned_house_id = getattr(dossier, "f2h_cosigned_house_id", None)
+            f2h_cosigned_at_utc = getattr(dossier, "f2h_cosigned_at_utc", None)
+
+            if admission_mode == ADMISSION_MODE_TWO_PARTY_COSIGN:
+                has_valid_cosign = (
+                    bool(f2h_cosigned_by)
+                    and bool(f2h_cosigned_at_utc)
+                    and f2h_cosigned_role == "F2-H"
+                    and int(f2h_cosigned_house_id or 0) == int(dossier.target_house_id)
+                )
+                if not has_valid_cosign:
+                    get_governance_audit_log().record(
+                        event_type="MEMBER_ADMISSION_COSIGN_REQUIRED",
+                        actor_id=actor_id,
+                        actor_role="CHIEF_ADMINISTRATOR",
+                        target_id=dossier_id,
+                        action="RATIFY_DOSSIER",
+                        outcome="BLOCKED_TWO_PARTY_COSIGN_REQUIRED",
+                        http_status=409,
+                        detail=(
+                            f"Blocked Chief Admin solo ratification of dossier {dossier_id}: "
+                            f"admission_authority_mode=TWO_PARTY_COSIGN requires an authorized F2-H "
+                            f"House Head co-signature for {dossier.lineage_code}."
+                        ),
+                    )
+                    raise HTTPException(
+                        status_code=409,
+                        detail=(
+                            f"TWO_PARTY_COSIGN_REQUIRED: Dossier {dossier_id} requires an authorized "
+                            f"F2-H House Head co-sign for {dossier.lineage_code} prior to Chief Administrator final ratification."
+                        ),
+                    )
+
+            provision_payload: Dict[str, Any] = {
                 "full_name": dossier.applicant_full_name,
                 "lineage_house": dossier.lineage_code,
                 "role_tier": "MEMBER_USER",
@@ -2510,6 +2823,8 @@ class RoleCustodyDelegationService:
                 "is_custodial": bool(dossier.is_custodial),
                 "bank_ref_token": dossier.bank_ref_token,
             }
+            if getattr(dossier, "applicant_email", None):
+                provision_payload["email"] = dossier.applicant_email
             if dossier.applicant_member_id:
                 provision_payload["member_id"] = dossier.applicant_member_id
             target_house_id = int(dossier.target_house_id)
@@ -2530,7 +2845,7 @@ class RoleCustodyDelegationService:
         provisioned_scma_id = member_info["scma_id"]
         now = _utc_now()
 
-        # Stage 3B & 3C: Initial MEMBER_USER role + Custodial mentor + Signed ADR-011 IFAS outbox event
+        # Stage 3B & 3C: Initial MEMBER_USER role + AuthUserModel allowlist + Custodial mentor + Signed ADR-011 IFAS outbox event
         gateway = self._get_accounting_gateway()
         with self._session_factory() as db:
             dossier = db.get(DelegatedOnboardingDossierModel, dossier_id)
@@ -2549,6 +2864,18 @@ class RoleCustodyDelegationService:
                 reason=f"Initial MEMBER_USER provisioned on ratification of {dossier_id}",
             )
             db.add(role_row)
+
+            # Automatically provision/upsert PR #98 private family allowlist login (CLASS_M, non-apex)
+            auth_allowlist_user = provision_member_auth_allowlist_in_session(
+                db,
+                user_id=provisioned_member_id,
+                email=member_info["email"],
+                display_name=member_info["full_name"],
+                scma_id=provisioned_scma_id,
+                house_id=lineage_code,
+                actor_id=actor_id,
+                source="DELEGATED_RATIFICATION",
+            )
 
             # Initial custodial mentor per active INTRA_HOUSE / CROSS_HOUSE_ANTI_TRIBAL mode
             cust_id, cust_role, _ = self._select_eligible_custodian_in_tx(
@@ -2596,6 +2923,9 @@ class RoleCustodyDelegationService:
                 "bank_ref_token": member_info["bank_ref_token"],
                 "custodian_member_id": cust_id,
                 "custody_assignment_mode": active_mode,
+                "admission_authority_mode": admission_mode,
+                "f2h_cosigned_by": f2h_cosigned_by,
+                "f2h_cosigned_at_utc": f2h_cosigned_at_utc,
                 "ratified_by": actor_id,
                 "ratified_at_utc": now,
             }
@@ -2637,6 +2967,9 @@ class RoleCustodyDelegationService:
                     "scma_id": provisioned_scma_id,
                     "custodian_member_id": cust_id,
                     "custody_assignment_mode": active_mode,
+                    "admission_authority_mode": admission_mode,
+                    "f2h_cosigned_by": f2h_cosigned_by,
+                    "auth_allowlist_provisioned": True,
                     "ifas_outbox_event_id": signed_envelope["event_id"],
                 },
                 recorded_at=now,
@@ -2657,15 +2990,18 @@ class RoleCustodyDelegationService:
             outcome="RATIFIED_PROVISIONED",
             http_status=200,
             detail=(
-                f"Ratified dossier {dossier_id}: provisioned {provisioned_scma_id} ({lineage_code}), "
-                f"assigned custodian {cust_id} ({active_mode}), emitted signed IFAS outbox event {signed_envelope['event_id']}."
+                f"Ratified dossier {dossier_id} ({admission_mode}): provisioned {provisioned_scma_id} ({lineage_code}), "
+                f"assigned custodian {cust_id} ({active_mode}), provisioned AuthUserModel allowlist, "
+                f"emitted signed IFAS outbox event {signed_envelope['event_id']}."
             ),
         )
         return {
             "status": DOSSIER_RATIFIED_PROVISIONED,
+            "admission_authority_mode": admission_mode,
             "dossier": serialized_dossier,
             "member": member_info,
             "invite": receipt["invite"],
+            "auth_allowlist_user": auth_allowlist_user,
             "role_assignment": serialized_role,
             "custodial_assignment": serialized_custody,
             "ifas_outbox_event": signed_envelope,

@@ -16,6 +16,7 @@ from app.domain.training_media_registry import summarize_playbook_coverage
 
 PORTALS = {
     "/login": "app/api/v1/login.html",
+    "/activate": "app/api/v1/activate.html",
     "/home": "app/api/v1/home.html",
     "/dashboard": "app/api/v1/dashboard.html",
     "/member": "app/api/v1/member.html",
@@ -218,7 +219,7 @@ def _pillar(route: str, label: str) -> str:
         return "Education / Capital Ledger"
     if route.startswith("/lineage/"):
         return "Lineage & Household / Fiduciary Oversight"
-    if route == "/login":
+    if route in {"/login", "/activate"}:
         return "Identity & Access / Security & Privacy"
     if route == "/home":
         return "Lineage & Household / Identity & Access"
