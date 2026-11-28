@@ -182,6 +182,66 @@ def test_pr97_family_tree_portal_renders_filters_calculates_and_has_zero_overflo
         assert page.locator('[data-person-id="P0001"]').count() == 0
         assert page.locator('[data-person-id="P0058"]').count() == 0  # Gen 4 hidden until House 01 expanded
 
+        # PR #101 Deliverable 1: Full-width canvas, legible untruncated Founder/House names (>=280x96, >=15px),
+        # plain-English generation badges on SVG nodes, and slide-over drawer starts closed
+        assert not page.locator("#personDetailCard").evaluate("el => el.classList.contains('open')")
+        ola_node_info = page.evaluate(
+            """() => {
+                const g = document.querySelector('[data-person-id="P0004"]');
+                const rect = g.querySelector('rect');
+                const nameEl = g.querySelector('[data-node-name]');
+                const genEl = g.querySelector('[data-node-gen-label]');
+                const bertha = document.querySelector('[data-person-id="P0006"]');
+                const berthaGen = bertha ? bertha.querySelector('[data-node-gen-label]').textContent : '';
+                return {
+                    w: Number(rect.getAttribute('width')),
+                    h: Number(rect.getAttribute('height')),
+                    nameFontSize: Number(nameEl.getAttribute('font-size')),
+                    genFontSize: Number(genEl.getAttribute('font-size')),
+                    olaName: nameEl.textContent,
+                    olaGen: genEl.textContent,
+                    berthaGen: berthaGen,
+                };
+            }"""
+        )
+        assert ola_node_info["w"] >= 280, f"Expected node width >= 280px, got {ola_node_info['w']}"
+        assert ola_node_info["h"] >= 96, f"Expected node height >= 96px, got {ola_node_info['h']}"
+        assert ola_node_info["nameFontSize"] >= 15, f"Expected name font >= 15px, got {ola_node_info['nameFontSize']}"
+        assert ola_node_info["genFontSize"] >= 12, f"Expected gen font >= 12px, got {ola_node_info['genFontSize']}"
+        assert "Mary Viola" in ola_node_info["olaName"] and "McCormick" in ola_node_info["olaName"]
+        assert "…" not in ola_node_info["olaName"] and "..." not in ola_node_info["olaName"]
+        assert ola_node_info["olaGen"] == "Founding Matriarch"
+        assert ola_node_info["berthaGen"] == "1st Gen · Child of Founders"
+
+        # PR #101 Zoom unclipped check: zooming in physically increases SVG width & scrollable area
+        before_zoom = page.evaluate(
+            """() => {
+                const vp = document.getElementById('treeViewport');
+                const svg = document.getElementById('familyTreeSvg');
+                return { svgW: Number(svg.getAttribute('width')), scrollW: vp.scrollWidth };
+            }"""
+        )
+        page.click("#treeZoomInBtn")
+        page.click("#treeZoomInBtn")
+        page.wait_for_timeout(150)
+        after_zoom = page.evaluate(
+            """() => {
+                const vp = document.getElementById('treeViewport');
+                const svg = document.getElementById('familyTreeSvg');
+                return { svgW: Number(svg.getAttribute('width')), scrollW: vp.scrollWidth };
+            }"""
+        )
+        assert after_zoom["svgW"] > before_zoom["svgW"], f"SVG did not physically enlarge on zoom: {before_zoom} -> {after_zoom}"
+        assert after_zoom["scrollW"] >= before_zoom["scrollW"], "Scrollable viewport did not expand on zoom"
+        page.click("#treeZoomResetBtn")
+        page.wait_for_timeout(120)
+
+        # PR #101 Full-Screen toggle opens and closes cleanly
+        page.click("#toggleFullscreenTreeBtn")
+        assert page.locator("#treeWorkspaceCard").evaluate("el => el.classList.contains('tree-fullscreen-mode')")
+        page.click("#toggleFullscreenTreeBtn")
+        assert not page.locator("#treeWorkspaceCard").evaluate("el => el.classList.contains('tree-fullscreen-mode')")
+
         # Zero horizontal overflow check
         overflow = page.evaluate("document.documentElement.scrollWidth - window.innerWidth")
         assert overflow <= 1, f"Horizontal overflow detected on {vp_name}: {overflow}px"
@@ -200,27 +260,104 @@ def test_pr97_family_tree_portal_renders_filters_calculates_and_has_zero_overflo
         assert page.locator('[data-person-id="P0058"]').count() == 1
         page.locator('[data-person-id="P0058"]').click(force=True)
         page.wait_for_timeout(200)
+        assert page.locator("#personDetailCard").evaluate("el => el.classList.contains('open')")
         detail_text = page.locator("#personDetailCard").inner_text()
         assert "William Vincent Carmichael" in detail_text
+        assert "4th Gen · 2nd Great-Grandchild of Founders" in detail_text
         assert "Living — Birth year" in detail_text
+        assert "Check Relationship" in detail_text
 
-        # Click deceased dated House 02 ancestor P0007 (Arvell "Son" McCormick) -> verify 1895–1975
+        # Close drawer cleanly with X button, reopen on deceased dated House 02 ancestor P0007
+        page.click("#closePersonDrawerBtn")
+        page.wait_for_timeout(150)
+        assert not page.locator("#personDetailCard").evaluate("el => el.classList.contains('open')")
+
         page.locator('[data-person-id="P0007"]').click(force=True)
         page.wait_for_timeout(200)
         arvell_detail = page.locator("#personDetailCard").inner_text()
         assert "1895–1975" in arvell_detail
+        assert "1st Gen · Child of Founders" in arvell_detail
 
-        # Click Founding Matriarch P0004 (Mary Viola "Ola" McCormick) -> verify Child I. review flag
+        # Close drawer via Escape, then click Founding Matriarch P0004 -> verify Founding Matriarch badge & review flag
+        page.keyboard.press("Escape")
+        page.wait_for_timeout(150)
+        assert not page.locator("#personDetailCard").evaluate("el => el.classList.contains('open')")
+
         page.locator('[data-person-id="P0004"]').click(force=True)
         page.wait_for_timeout(200)
         ola_detail = page.locator("#personDetailCard").inner_text()
         assert "Mary Viola" in ola_detail
+        assert "Founding Matriarch" in ola_detail
         assert "Genealogist Review Flag" in ola_detail
+        page.keyboard.press("Escape")
+        page.wait_for_timeout(150)
+        assert not page.locator("#personDetailCard").evaluate("el => el.classList.contains('open')")
 
-        # Test Live Relationship Calculator (Cross-House):
-        # P0018 (John Willie Carmichael, House 01) vs P0257 (William "Cookie Boy" McCormick, House 03)
-        page.select_option("#calcPersonA", "P0018")
-        page.select_option("#calcPersonB", "P0257")
+        # PR #101 Deliverable 2: 1-Click Easy-Read Family Directory toggle + opens same slide-over drawer
+        page.click("#viewModeDirectoryBtn")
+        page.wait_for_selector('[data-dir-person-id="P0004"]', timeout=6000)
+        dir_text = page.locator("#familyDirectoryContent").inner_text()
+        assert "Founding Matriarch" in dir_text
+        assert "1st Gen · Child of Founders" in dir_text
+        assert "4th Gen · 2nd Great-Grandchild of Founders" in dir_text
+        page.locator('[data-dir-person-id="P0028"]').click()
+        page.wait_for_timeout(200)
+        assert page.locator("#personDetailCard").evaluate("el => el.classList.contains('open')")
+        assert "Ronnie Carmichael" in page.locator("#personDetailCard").inner_text()
+        page.click("#closePersonDrawerBtn")
+        page.wait_for_timeout(120)
+
+        # Capture Easy-Read Directory screenshot on desktop
+        if vp_name == "desktop_1440x900":
+            page.screenshot(
+                path=str(SCREENSHOTS_DIR / f"pr101_easy_read_directory_{vp_name}.png"),
+                full_page=True,
+            )
+
+        # Switch back to Visual Tree Diagram
+        page.click("#viewModeTreeBtn")
+        page.wait_for_selector('[data-person-id="P0004"]', timeout=6000)
+
+        # PR #101 Deliverable 4: Relationship Calculator default (Ronnie Carmichael <-> Debora Simmons),
+        # single-step picker labels (no raw IDs), Plain-English Story, Lineage Trails, and zero-network Clear button
+        picker_a_val = page.locator("#calcPickerA").input_value()
+        picker_b_val = page.locator("#calcPickerB").input_value()
+        assert "Ronnie Carmichael" in picker_a_val and "P0028" not in picker_a_val
+        assert "Debora Simmons" in picker_b_val and "P0526" not in picker_b_val
+        default_calc = page.locator("#calcResultCard").inner_text()
+        assert "2nd Cousin once removed" in default_calc
+        assert "in plain english" in default_calc.lower()
+        assert "James Willie Carmichael" in default_calc
+        assert "1 generation younger" in default_calc
+        assert page.locator("#calcLineageTrails").is_visible()
+        assert "Generation Steps:" not in default_calc
+
+        # Verify Clear button executes purely client-side (0 network requests) and returns focus to Person A
+        clear_requests: list[str] = []
+        page.on("request", lambda req: clear_requests.append(req.url))
+        page.click("#clearRelationshipBtn")
+        page.wait_for_timeout(150)
+        assert clear_requests == [], f"Clear button must make zero network calls, observed: {clear_requests}"
+        assert page.locator("#calcPickerA").input_value() == ""
+        assert page.locator("#calcPickerB").input_value() == ""
+        assert page.evaluate("document.activeElement && document.activeElement.id") == "calcPickerA"
+
+        # Single-step searchable picker flow: type Ronnie -> pick P0028, type Debora -> pick P0526
+        page.fill("#calcPickerA", "Ronnie Carmichael")
+        page.wait_for_selector('#calcSuggestionsA [data-picker-person-id="P0028"]', timeout=4000)
+        page.click('#calcSuggestionsA [data-picker-person-id="P0028"]')
+        page.fill("#calcPickerB", "Debora Simmons")
+        page.wait_for_selector('#calcSuggestionsB [data-picker-person-id="P0526"]', timeout=4000)
+        page.click('#calcSuggestionsB [data-picker-person-id="P0526"]')
+        page.click("#calcRelationshipBtn")
+        page.wait_for_function(
+            "() => (document.getElementById('calcPrimaryLabel')?.textContent || '').includes('2nd Cousin once removed')",
+            timeout=6000,
+        )
+
+        # Test Cross-House via synchronized <select> hook: P0018 <-> P0257 -> 1st Cousin once removed
+        page.select_option("#calcPersonA", "P0018", force=True)
+        page.select_option("#calcPersonB", "P0257", force=True)
         page.click("#calcRelationshipBtn")
         page.wait_for_function(
             "() => (document.getElementById('calcPrimaryLabel')?.textContent || '').includes('1st Cousin once removed')",
@@ -231,10 +368,10 @@ def test_pr97_family_tree_portal_renders_filters_calculates_and_has_zero_overflo
         assert "Mary Viola" in calc_text
         assert "Plain-English Glossary" in calc_text
 
-        # Test Live Relationship Calculator (Cross-Branch across all 25 pages while extended toggle is OFF):
+        # Test Cross-Branch across all 25 pages while extended toggle is OFF:
         # P0018 (House 01) vs P0706 (Ernest Linwood Thompson Jr., Sarah / Thompson lineage) -> 2nd Cousin via Roderick & Dillie Gaddy
-        page.select_option("#calcPersonA", "P0018")
-        page.select_option("#calcPersonB", "P0706")
+        page.select_option("#calcPersonA", "P0018", force=True)
+        page.select_option("#calcPersonB", "P0706", force=True)
         page.click("#calcRelationshipBtn")
         page.wait_for_function(
             "() => (document.getElementById('calcPrimaryLabel')?.textContent || '').includes('2nd Cousin')",
@@ -264,15 +401,24 @@ def test_pr97_family_tree_portal_renders_filters_calculates_and_has_zero_overflo
         assert page.locator('[data-person-id="P0001"]').count() == 1
         assert page.locator('[data-person-id="P0002"]').count() == 1
 
-        # Reset view & capture screenshot
+        # Reset view to default Ronnie <-> Debora for clean PR screenshot
         page.uncheck("#toggleReferenceBranches")
-        page.wait_for_timeout(350)
+        page.wait_for_timeout(300)
+        page.select_option("#calcPersonA", "P0028", force=True)
+        page.select_option("#calcPersonB", "P0526", force=True)
+        page.click("#calcRelationshipBtn")
+        page.wait_for_function(
+            "() => (document.getElementById('calcPrimaryLabel')?.textContent || '').includes('2nd Cousin once removed')",
+            timeout=6000,
+        )
         page.screenshot(
-            path=str(SCREENSHOTS_DIR / f"pr100_family_tree_{vp_name}.png"),
+            path=str(SCREENSHOTS_DIR / f"pr101_family_tree_{vp_name}.png"),
             full_page=True,
         )
 
-        # Final zero-error assertions
+        # Final zero-overflow & zero-error assertions
+        final_overflow = page.evaluate("document.documentElement.scrollWidth - window.innerWidth")
+        assert final_overflow <= 1, f"Final horizontal overflow detected on {vp_name}: {final_overflow}px"
         assert page_errors == [], f"Uncaught JS errors on {vp_name}: {page_errors}"
         assert console_errors == [], f"Console errors on {vp_name}: {console_errors}"
         assert failed_requests == [], f"Failed HTTP requests on {vp_name}: {failed_requests}"
