@@ -893,6 +893,196 @@ class FamilyTreeService:
                 },
             }
 
+    def get_subtree_data(self, root_person_id: str) -> Dict[str, Any]:
+        """Return an isolated sub-tree rooted at `root_person_id` (root, spouse(s), and descendants).
+
+        Enforces the exact same server-side Living-Member Privacy Guard and builds a
+        deterministic clickable Lineage Breadcrumb Trail from the Full 12-House Tree
+        down to the spun-off branch root.
+        """
+        self._ensure_ready()
+        root_id = str(root_person_id or "").strip()
+        if not root_id:
+            raise HTTPException(status_code=422, detail="root_person_id is required.")
+
+        with self._session_factory() as db:
+            known_slugs = self._known_surname_slugs(db)
+            all_people_rows = (
+                db.query(FamilyTreePersonModel)
+                .order_by(
+                    FamilyTreePersonModel.is_reference_branch.asc(),
+                    FamilyTreePersonModel.generation.asc(),
+                    FamilyTreePersonModel.house_id.asc(),
+                    FamilyTreePersonModel.person_id.asc(),
+                )
+                .all()
+            )
+            all_rel_rows = (
+                db.query(FamilyTreeRelationshipModel)
+                .order_by(FamilyTreeRelationshipModel.rel_id.asc())
+                .all()
+            )
+
+            people_map = {r.person_id: r for r in all_people_rows}
+            if root_id not in people_map:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Person '{root_id}' was not found in the Family Tree.",
+                )
+
+            parents_of: Dict[str, Set[str]] = {pid: set() for pid in people_map}
+            children_of: Dict[str, Set[str]] = {pid: set() for pid in people_map}
+            spouses_of: Dict[str, Set[str]] = {pid: set() for pid in people_map}
+            for rel in all_rel_rows:
+                a, b, rtype = rel.person_a_id, rel.person_b_id, (rel.rel_type or "").lower()
+                if a not in people_map or b not in people_map:
+                    continue
+                if rtype == "parent":
+                    parents_of[b].add(a)
+                    children_of[a].add(b)
+                elif rtype == "spouse":
+                    spouses_of[a].add(b)
+                    spouses_of[b].add(a)
+
+            lineage_ctx = self._compute_lineage_context(
+                people_map, parents_of, children_of, spouses_of
+            )
+
+            # 1. BFS strictly downward along parent->child edges from root_id
+            descendant_depths: Dict[str, int] = {root_id: 0}
+            queue: deque[str] = deque([root_id])
+            while queue:
+                curr = queue.popleft()
+                curr_depth = descendant_depths[curr]
+                for child_id in sorted(children_of.get(curr, ())):
+                    if child_id not in descendant_depths:
+                        descendant_depths[child_id] = curr_depth + 1
+                        queue.append(child_id)
+
+            # 2. Include direct spouses of root and of every bloodline descendant
+            #    (never traverse outward into unrelated prior/other unions of a married-in spouse)
+            subtree_ids: Set[str] = set(descendant_depths.keys())
+            spouse_depths: Dict[str, int] = {}
+            for member_id in sorted(descendant_depths.keys()):
+                m_depth = descendant_depths[member_id]
+                for sp_id in sorted(spouses_of.get(member_id, ())):
+                    if sp_id not in subtree_ids:
+                        subtree_ids.add(sp_id)
+                        spouse_depths[sp_id] = m_depth
+
+            # 3. Build deterministic Lineage Breadcrumb Trail back to Full 12-House Tree
+            anc_chain: List[str] = []
+            visited_anc: Set[str] = {root_id}
+            cursor = root_id
+            while True:
+                p_candidates = [
+                    pid
+                    for pid in parents_of.get(cursor, ())
+                    if pid not in visited_anc
+                    and pid not in {FOUNDING_MATRIARCH_ID, FOUNDING_PATRIARCH_ID}
+                ]
+                if not p_candidates:
+                    break
+
+                def _parent_rank(pid: str) -> Tuple[int, int, str]:
+                    ctx = lineage_ctx.get(pid, {})
+                    lbl = str(ctx.get("generation_label", "")).lower()
+                    is_married_in = 1 if ("married into" in lbl or "spouse" in lbl) else 0
+                    gen_val = int(ctx.get("generation_from_founders", 99))
+                    return (is_married_in, gen_val, pid)
+
+                best_parent = min(p_candidates, key=_parent_rank)
+                visited_anc.add(best_parent)
+                anc_chain.append(best_parent)
+                cursor = best_parent
+                if len(anc_chain) >= 12:
+                    break
+
+            anc_chain.reverse()
+            trail_ids = [*anc_chain, root_id]
+
+            breadcrumbs: List[Dict[str, Any]] = [
+                {
+                    "person_id": None,
+                    "label": "Full 12-House Tree",
+                    "house_id": "",
+                    "kind": "full_tree",
+                }
+            ]
+            for pid in trail_ids:
+                row = people_map[pid]
+                h_code = str(row.house_id or "")
+                h_num = house_code_to_int(h_code)
+                ctx = lineage_ctx.get(pid, {})
+                gen_from_f = int(ctx.get("generation_from_founders", row.generation or 0))
+                is_house_head = h_num is not None and gen_from_f == 1 and not bool(row.is_reference_branch)
+                crumb_label = (
+                    f"House {h_num:02d}: {row.full_name}"
+                    if is_house_head
+                    else row.full_name
+                )
+                breadcrumbs.append(
+                    {
+                        "person_id": pid,
+                        "label": crumb_label,
+                        "house_id": h_code,
+                        "kind": "subtree_root" if pid == root_id else ("house_head" if is_house_head else "ancestor"),
+                    }
+                )
+
+            # 4. Serialize isolated sub-tree people with strict Living-Member Privacy Guard
+            subtree_people: List[Dict[str, Any]] = []
+            for row in all_people_rows:
+                if row.person_id not in subtree_ids:
+                    continue
+                item = self.serialize_person(
+                    row,
+                    known_surname_slugs=known_slugs,
+                    lineage_context=lineage_ctx,
+                )
+                is_spouse = row.person_id not in descendant_depths
+                item["subtree_depth"] = (
+                    spouse_depths[row.person_id] if is_spouse else descendant_depths[row.person_id]
+                )
+                item["is_subtree_spouse"] = is_spouse
+                subtree_people.append(item)
+
+            subtree_people.sort(
+                key=lambda p: (
+                    int(p["subtree_depth"]),
+                    1 if p["is_subtree_spouse"] else 0,
+                    str(p["person_id"]),
+                )
+            )
+            subtree_rels = [
+                self._serialize_relationship(r)
+                for r in all_rel_rows
+                if r.person_a_id in subtree_ids and r.person_b_id in subtree_ids
+            ]
+
+            serialized_root = next(p for p in subtree_people if p["person_id"] == root_id)
+            living_protected = sum(1 for p in subtree_people if p["privacy_protected"])
+            deceased_dated = sum(1 for p in subtree_people if not p["privacy_protected"])
+
+            return {
+                "scope": "HERITAGE_FAMILY_TREE_NO_FINANCIAL_DATA",
+                "privacy_guard_active": True,
+                "root_person_id": root_id,
+                "root_person": serialized_root,
+                "breadcrumbs": breadcrumbs,
+                "people": subtree_people,
+                "relationships": subtree_rels,
+                "counts": {
+                    "subtree_people": len(subtree_people),
+                    "bloodline_descendants": len(descendant_depths),
+                    "spouses_included": len(subtree_people) - len(descendant_depths),
+                    "living_privacy_protected": living_protected,
+                    "deceased_with_dates": deceased_dated,
+                    "relationships": len(subtree_rels),
+                    "max_depth": max(descendant_depths.values(), default=0),
+                },
+            }
+
     # ------------------------------------------------------------------
     # Live Graph-Based Relationship Calculator ("How Are We Related?")
     # ------------------------------------------------------------------
