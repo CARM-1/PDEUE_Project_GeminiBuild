@@ -3,13 +3,13 @@
 **College:** School of Fiduciary Stewardship (Class F Lineage Advisors `F1`–`F3`)  
 **Audience:** `F1` Peer Guide, `F2-H` Head of Household, `F2-A` Lineage Advisor, and `F3` Chief Risk Officer  
 **Workspace:** `/advisor?role=F1`, `/advisor?role=F2-H`, `/advisor?role=F2-A`, or `/advisor?role=F3`  
-**Mission:** Provide calm, least-privilege family mentoring, domestic custody protection, multi-branch advisory review, and platform-wide macro-risk supervision without blurring human authority boundaries.
+**Mission:** Provide steady, least-privilege family mentoring, domestic custody protection, multi-branch advisory review, and platform-wide macro-risk supervision without blurring human authority boundaries.
 
 ---
 
 ## 1. Plain-English Overview: Phase I Paper Mode, Active Hats, and Common Rules
 
-**In Plain English:** Today PDEUE runs in **Phase I Paper Mode**—a calm, zero-risk proving ground that reads live market prices without connecting real family bank accounts or risking real bank money. Real bank custody, tax sweeps, and our **Pay-it-Forward (`FSAP (Phase II)`)** debt-relief pool launch strictly in **Phase II** inside our physically separate **IFAS (Independent Financial Accounting System)** at `accounting.narratix.io`. As a Class F steward, your screen is tailored to one job at a time: you never wear two hats at once, you never guess what a blank or starred number means, and you never let an AI helper execute a financial decision on its own.
+**In Plain English:** Today PDEUE runs in **Phase I Paper Mode**—a structured, zero-risk proving ground that reads live market prices without connecting real family bank accounts or risking real bank money. Real bank custody, tax sweeps, and our **Pay-it-Forward (`FSAP (Phase II)`)** debt-relief pool launch strictly in **Phase II** inside our physically separate **IFAS (Independent Financial Accounting System)** at `accounting.narratix.io`. As a Class F steward, your screen is tailored to one job at a time: you never wear two hats at once, you never guess what a blank or starred number means, and you never let an AI helper execute a financial decision on its own.
 
 *(Technical & Governance Spec — Directive R-06, ADR-008, ADR-011, Directive R-12, Gate G1):*
 - **Active-Hat Enforcement (`Directive R-06`):** Open `/advisor` through the approved identity flow and verify the active-hat badge (`F1_PEER_GUIDE`, `F2-H_HOUSEHOLD_HEAD`, `F2-A_LINEAGE_ADVISOR`, or `F3_CRO_RISK`) before reading or acting. Cross-tier navigation bars are stripped server-side for non-admin sessions, and attempting to jump across Class F tiers fails closed with `HTTP 403`.
@@ -35,7 +35,7 @@
 
 ## 3. `F1` Peer Guide — Mentee-Only Literacy & Encouragement
 
-**In Plain English:** Think of an `F1` Peer Guide as a calm older cousin or family tutor who helps a relative learn how the system works, answers vocabulary questions, and points them to the right chapter in PDEUE University (`/companion`). Because `F1` is purely a mentor role, all household dollar totals are hidden behind stars (`$****.**`), protecting family privacy while keeping mentorship warm and focused.
+**In Plain English:** Think of an `F1` Peer Guide as a reassuring older cousin or family tutor who helps a relative learn how the system works, answers vocabulary questions, and points them to the right chapter in PDEUE University (`/companion`). Because `F1` is purely a mentor role, all household dollar totals are hidden behind stars (`$****.**`), protecting family privacy while keeping mentorship warm and focused.
 
 *(Technical & Governance Spec):*
 - **Workspace Scope:** `/advisor?role=F1` renders mentee status, custodial badges, and redacted financial placeholders (`EQUITY REDACTED ($****.**)`).
@@ -121,7 +121,7 @@
 
 ## 10. Risk Reading, Routine Watch Cadence & Fiduciary Attestation
 
-**In Plain English:** Numbers only help when you read them with calm skepticism. A sudden drop in 99% VaR can mean a missing data feed rather than safer markets; a missing House in the 12-House table is an incomplete report, never zero exposure. When in doubt, stop, preserve timestamps and identifiers, and escalate rather than improvising.
+**In Plain English:** Numbers only help when you read them with disciplined skepticism. A sudden drop in 99% VaR can mean a missing data feed rather than safer markets; a missing House in the 12-House table is an incomplete report, never zero exposure. When in doubt, stop, preserve timestamps and identifiers, and escalate rather than improvising.
 
 *(Technical & Governance Spec):*
 - **99% VaR & 12-House Rollups:** Always read 99% VaR alongside timestamp, 24-hour horizon, data completeness, and gross (un-netted) venue exposure. Verify all 12 Houses appear once and totals reconcile in integer cents. House votes never override risk breaches or execute disbursements.

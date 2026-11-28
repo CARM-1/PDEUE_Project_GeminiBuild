@@ -4,7 +4,7 @@ Server-Side Active-Hat Lock, Tenant Jailing & Chief Admin Session Revocation.
 
 Security & Governance Invariants:
 - Private Family Allowlist Only: ZERO public registration. Unknown or inactive emails
-  return the exact same calm generic 200 response without sending any notification or
+  return the exact same neutral generic 200 response without sending any notification or
   leaking account existence.
 - Zero Plaintext Secrets in Storage: Only SHA-256 hashes of single-use 6-digit codes
   and Magic Link tokens, salted PBKDF2-HMAC-SHA256 hashes of Apex passphrases, and
@@ -624,7 +624,7 @@ class SessionAuthService:
     ) -> Dict[str, Any]:
         """Issue a single-use 6-digit email code & Magic Link for allowlisted non-Apex users.
 
-        Unknown or inactive emails receive the exact same calm generic 200 payload with
+        Unknown or inactive emails receive the exact same neutral generic 200 payload with
         ZERO outbound notifications dispatched (preventing account enumeration).
         Apex/Tier-3 accounts (`CHIEF_ADMIN`, `T3`, `F3`) are explicitly rejected from
         passwordless shortcuts (HTTP 403).

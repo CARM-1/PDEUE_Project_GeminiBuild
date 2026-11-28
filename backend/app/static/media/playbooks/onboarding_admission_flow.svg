@@ -9,7 +9,7 @@
   <circle cx="64" cy="132" r="13" fill="#0284C7"/>
   <text x="64" y="137" text-anchor="middle" fill="#F8FAFC" font-family="system-ui,sans-serif" font-size="13" font-weight="800">1</text>
   <text x="86" y="137" fill="#38BDF8" font-family="system-ui,sans-serif" font-size="14" font-weight="800">48h Invite Portal (/activate)</text>
-  <text x="56" y="162" fill="#F8FAFC" font-family="system-ui,sans-serif" font-size="12.5" font-weight="700">3 Calm Senior-Friendly Steps</text>
+  <text x="56" y="162" fill="#F8FAFC" font-family="system-ui,sans-serif" font-size="12.5" font-weight="700">3 Clear Senior-Friendly Steps</text>
   <text x="56" y="183" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="11.5">• Confirm name, House &amp; family email.</text>
   <text x="56" y="200" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="11.5">• Review ADR-011 Zero-Bank Pledge.</text>
   <text x="56" y="217" fill="#94A3B8" font-family="system-ui,sans-serif" font-size="11.5">Expired/used links fail closed (HTTP 410).</text>
@@ -49,7 +49,7 @@
   <text x="88" y="297" fill="#38BDF8" font-family="system-ui,sans-serif" font-size="15" font-weight="800">House Delegated Intake (/lineage/house/{id})</text>
   <text x="58" y="324" fill="#F8FAFC" font-family="system-ui,sans-serif" font-size="12.5" font-weight="700">H2 &amp; HOUSE_GENEALOGIST Only (Stripped for H1)</text>
   <text x="58" y="347" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="12">• Scoped strictly to X-House-ID (cross-house blocked HTTP 403).</text>
-  <text x="58" y="368" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="12">• Displays calm notice when ADMIN_ONLY default mode is active.</text>
+  <text x="58" y="368" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="12">• Displays clear notice when ADMIN_ONLY default mode is active.</text>
   <text x="58" y="389" fill="#CBD5E1" font-family="system-ui,sans-serif" font-size="12">• Staged dossiers enter PENDING_RATIFICATION (zero SCMA yet).</text>
   <text x="58" y="410" fill="#BAE6FD" font-family="system-ui,sans-serif" font-size="11.5">Optional Genealogical Admissions Board votes: APPROVE / PROOF / REJECT.</text>
 

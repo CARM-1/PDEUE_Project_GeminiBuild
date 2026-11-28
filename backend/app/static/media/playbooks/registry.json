@@ -27,7 +27,7 @@
     {
       "playbook_id": "pb-m-routine-home-orientation",
       "title": "Class M · Routine: Family Home Hub Orientation & Senior Accessibility",
-      "summary": "Navigate cleanly from the calm 4-card Family Home Hub (/home) using senior readability scaling without ever touching financial or admin complexity.",
+      "summary": "Navigate cleanly from the welcoming 4-card Family Home Hub (/home) using senior readability scaling without ever touching financial or admin complexity.",
       "role_classes": [
         "CLASS_M"
       ],
@@ -126,7 +126,7 @@
         {
           "step": 1,
           "action": "Click Wealth Engine (#tabBtnEngine) or Orientation (#tabBtnOrientation)",
-          "effect": "Toggles calmly between compounding projections and live SCMA safety controls."
+          "effect": "Toggles cleanly between compounding projections and live SCMA safety controls."
         },
         {
           "step": 2,
@@ -279,7 +279,7 @@
     {
       "playbook_id": "pb-m-outlier-halt-or-red-withdrawal",
       "title": "Class M · Outlier/Emergency: Market Stress Brake, R-04 Halt Banner & Red-Tier Lock",
-      "summary": "Respond calmly when you want to cut risk immediately, encounter a Directive R-04 Trading Halted banner, or trigger a Red-tier (> $500) 24-hour scam-shield pause.",
+      "summary": "Respond decisively when you want to cut risk immediately, encounter a Directive R-04 Trading Halted banner, or trigger a Red-tier (> $500) 24-hour scam-shield pause.",
       "role_classes": [
         "CLASS_M"
       ],
@@ -292,7 +292,7 @@
         "distributionBtn",
         "readModelStatusBanner"
       ],
-      "manual_anchor": "docs/manuals/USER_QUICKSTART.md#8-when-something-looks-off-calm-support-checklist",
+      "manual_anchor": "docs/manuals/USER_QUICKSTART.md#8-when-something-looks-off-clear-support-checklist",
       "steps": [
         {
           "step": 1,
@@ -777,7 +777,7 @@
     {
       "playbook_id": "pb-h-outlier-surgical-freeze-and-snapback",
       "title": "Class H (H2 / H1 / Genealogist) · Outlier/Emergency: Errant Subordinate Freeze, SHTF Snap-Back & 403 Boundaries",
-      "summary": "Contain an errant subordinate inside your House surgically with Freeze Dial (0%) and Cancel Orders, and handle SHTF Governance Snap-Back or disputed heritage edits calmly.",
+      "summary": "Contain an errant subordinate inside your House surgically with Freeze Dial (0%) and Cancel Orders, and handle SHTF Governance Snap-Back or disputed heritage edits with discipline.",
       "role_classes": [
         "H1",
         "H2",
@@ -1173,7 +1173,7 @@
         {
           "step": 2,
           "action": "Switch between Hearth Board, FSAP Charter, Jitsi Classroom, and AI Tutor tabs",
-          "effect": "Lets relatives celebrate milestones, join sandboxed family video calls, or study literacy lessons calmly."
+          "effect": "Lets relatives celebrate milestones, join sandboxed family video calls, or study literacy lessons at their own pace."
         },
         {
           "step": 3,
@@ -1440,7 +1440,7 @@
               "badge": 1,
               "control_id": "loginEmailInput",
               "label": "Private Family Allowlist (Zero Passwords)",
-              "note": "No public registration; unknown emails receive a calm generic 200 with zero messages sent."
+              "note": "No public registration; unknown emails receive a neutral generic 200 with zero messages sent."
             },
             {
               "badge": 2,
@@ -1467,7 +1467,7 @@
     {
       "playbook_id": "chief_admin_lost_device_session_revocation",
       "title": "Lost Phone or Laptop · Incident: Instant 1-Click Session Revocation & Device Lockout",
-      "summary": "Respond calmly when a family member loses a phone or leaves a shared laptop active: contact the Chief Administrator to inspect Active Family Sessions on /dashboard Tab 4 and immediately revoke the lost device.",
+      "summary": "Respond swiftly when a family member loses a phone or leaves a shared laptop active: contact the Chief Administrator to inspect Active Family Sessions on /dashboard Tab 4 and immediately revoke the lost device.",
       "role_classes": [
         "CHIEF_ADMIN",
         "CLASS_M",
@@ -1485,7 +1485,7 @@
       "steps": [
         {
           "step": 1,
-          "action": "If you lose your phone or laptop, stay calm (no banking logins are stored in PDEUE and /member auto-locks after 2 hours idle) and contact the Chief Administrator (or your F2-H / H2 leader) right away",
+          "action": "If you lose your phone or laptop, rest assured (no banking logins are stored in PDEUE and /member auto-locks after 2 hours idle) and contact the Chief Administrator (or your F2-H / H2 leader) right away",
           "effect": "Alerts leadership to terminate the missing device's session without touching your SCMA balance or IFAS custody records."
         },
         {
@@ -1527,7 +1527,7 @@
     {
       "playbook_id": "onboarding_invite_and_admission_flow",
       "title": "How to Activate Your Family Invite & Two-Party Admission Governance",
-      "summary": "Walk through activating a 48-hour single-use family invite on /activate (3 calm steps), automatic private allowlist enrollment (CLASS_M) for 6-digit email sign-in, House delegated intake on /lineage/house/{id}, and Chief Admin Solo vs. toggleable Two-Party Co-Sign admission (F2-H + CHIEF_ADMIN).",
+      "summary": "Walk through activating a 48-hour single-use family invite on /activate (3 straightforward steps), automatic private allowlist enrollment (CLASS_M) for 6-digit email sign-in, House delegated intake on /lineage/house/{id}, and Chief Admin Solo vs. toggleable Two-Party Co-Sign admission (F2-H + CHIEF_ADMIN).",
       "role_classes": [
         "CLASS_M",
         "H2",
@@ -1550,7 +1550,7 @@
         {
           "step": 1,
           "action": "Open your 48-hour single-use invite link at /activate?token=... (or paste your code in #activateTokenInput) and verify your name, House assignment, and family email (#activateEmailInput)",
-          "effect": "Loads your read-only invite preview with zero banking details exposed; expired or already-used tokens show a calm HTTP 410 notice."
+          "effect": "Loads your read-only invite preview with zero banking details exposed; expired or already-used tokens show a clear HTTP 410 notice."
         },
         {
           "step": 2,
@@ -1576,7 +1576,7 @@
               "badge": 1,
               "control_id": "activateTokenInput",
               "label": "48-Hour Single-Use Invite Portal (/activate)",
-              "note": "3 calm senior-friendly steps with ADR-011 pledge and calm HTTP 410 expired/used handling."
+              "note": "3 straightforward senior-friendly steps with ADR-011 pledge and clear HTTP 410 expired/used handling."
             },
             {
               "badge": 2,

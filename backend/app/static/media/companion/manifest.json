@@ -18,7 +18,7 @@
     {
       "id": "mentor_m_aa",
       "label": "Studio Mentor: Marcus (African American Male)",
-      "description": "Calm, grounded family mentor cadence",
+      "description": "Steady, grounded family mentor cadence",
       "provider": "deepgram",
       "model": "flux-miles-en",
       "audio_ready": true,
@@ -99,7 +99,7 @@
         "duration_seconds": 14.184,
         "bytes": 85104,
         "sha256": "0483276d6bf64ea58091a82190f7984425dff8f2ccb165eea0d6f5db78fa2c4e",
-        "vtt_sha256": "22fd26dd30cd978f9c2c56fb99b3df66033edaa8bd4ecfec55d51f8e14abd259",
+        "vtt_sha256": "4f695ef0f6c8a94b4f3da0d5f9a59216edb9ffa5cac9c536108b8db5a8a1351b",
         "text_sha256": "46525c4a3a2feeaace2fdffd15125ed023806fccee81c8d8340c278a5d99be2e"
       },
       "ch2_b2": {
@@ -324,7 +324,7 @@
         "duration_seconds": 36.216,
         "bytes": 217296,
         "sha256": "bb36844724b6ec45a4ef5b3319127152f240a9569c3f4f82fc3ef01f8263fb7d",
-        "vtt_sha256": "78c506e5a931fa9b176b209c6883b0acd302366d2d8ad7b46f63e89b291045c7",
+        "vtt_sha256": "6e795c6a86f7f961de544875917cc7cbbd237e9774829937f3be56ff30580fa0",
         "text_sha256": "9dabf06b0eb35cf31877ad94209937476ce426799bc8b7dab74bb4398f74f605"
       },
       "dd_prediction_odds": {
@@ -476,7 +476,7 @@
         "duration_seconds": 15.648,
         "bytes": 93888,
         "sha256": "d3a8325c1fe5704c49cbc16ec7d69d1f877948d71660e968102de069ee08e123",
-        "vtt_sha256": "19c8c1480675722e822eca9b647a9a388b13134822dd2b2e84f6ce20f133a551",
+        "vtt_sha256": "84dcbde9f580be59061b62b305594271dc2aa648fde27187826efed4aa741409",
         "text_sha256": "46525c4a3a2feeaace2fdffd15125ed023806fccee81c8d8340c278a5d99be2e"
       },
       "ch2_b2": {
@@ -701,7 +701,7 @@
         "duration_seconds": 41.976,
         "bytes": 251856,
         "sha256": "caa79c0c695525ecd412100832d92d375acba8129c450d4a3db448039a27f56c",
-        "vtt_sha256": "f9066d4ac605d2911b846f4623e7c050f0e6e10c6f95ef44c321ccb40083bc73",
+        "vtt_sha256": "62796bbeadfb42e62b7cdeae732e8f4b748a5b43104a21c7d90045cd4f847ef8",
         "text_sha256": "9dabf06b0eb35cf31877ad94209937476ce426799bc8b7dab74bb4398f74f605"
       },
       "dd_prediction_odds": {
